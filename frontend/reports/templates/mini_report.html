@@ -1,0 +1,71 @@
+{% extends '_base.html' %}
+
+{% block content %}
+<div class="cover" style="text-align:center;padding:60px 0 40px;min-height:auto;">
+  <div class="cover-logo" style="justify-content:center;margin-bottom:32px;">
+    <span class="logo-mark">✦</span>
+    <span>NURA</span>
+  </div>
+
+  <div style="margin-bottom:8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:3px;">
+    Главный архетип
+  </div>
+  <div class="cover-archetype" style="font-size:clamp(32px,6vw,56px);color:var(--orange);font-family:var(--font-heading);font-weight:500;">
+    {{ analysis.main_archetype }}
+  </div>
+
+  {% include '_matrix_3x3.html' %}
+</div>
+
+<div class="card">
+  <h2>Сильная сторона</h2>
+  <p>{{ analysis.core_strength }}</p>
+</div>
+
+<div class="card">
+  <h2>Эмоциональный конфликт</h2>
+  <p>{{ analysis.emotional_conflict }}</p>
+</div>
+
+<div class="card">
+  <h2>Паттерн отношений</h2>
+  <p>{{ analysis.relationship_pattern }}</p>
+</div>
+
+<div class="card">
+  <h2>Денежный блок</h2>
+  <p>{{ analysis.financial_block }}</p>
+</div>
+
+<div class="mini-cta" style="text-align:center;padding:40px 20px;margin-top:20px;border:1px solid rgba(217,122,50,0.24);border-radius:var(--radius-lg);background:radial-gradient(circle at 80% 20%, rgba(217,122,50,0.14), transparent 36%), rgba(17,17,17,0.5);">
+  <p style="color:var(--muted);font-size:15px;line-height:1.7;margin-bottom:24px;max-width:480px;margin-left:auto;margin-right:auto;">
+    Это только начало. В полном отчёте — глубокий разбор отношений,
+    денег, талантов, теневых сторон, жизненных циклов и персональный
+    план на 7 дней.
+  </p>
+  <a href="https://t.me/{{ bot_username }}" style="display:inline-flex;align-items:center;justify-content:center;min-height:58px;padding:0 36px;border-radius:999px;background:linear-gradient(135deg,#E8883A,#B5601E);color:#fff;font-family:'DM Sans',sans-serif;font-weight:600;font-size:16px;text-decoration:none;box-shadow:0 16px 48px rgba(217,122,50,0.32);">
+    Получить полный AI-разбор за {{ report_price_rub }} ₽
+  </a>
+</div>
+
+<style>
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 18px;
+    color: var(--orange);
+    margin-bottom: 10px;
+    font-family: var(--font-heading);
+  }
+  .card p {
+    font-size: 15px;
+    color: rgba(245,243,238,0.85);
+    line-height: 1.7;
+  }
+</style>
+{% endblock %}

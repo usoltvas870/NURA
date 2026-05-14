@@ -1,0 +1,85 @@
+{% extends '_base.html' %}
+
+{% block content %}
+  {% include '_cover.html' %}
+
+  {% with section_class='archetype', section_title='Архетип личности', section_text=analysis.main_archetype %}
+    {% include '_section_card.html' %}
+  {% endwith %}
+
+  {% with section_class='strengths', section_title='Сильные стороны', section_text=analysis.strengths %}
+    {% include '_section_card.html' %}
+  {% endwith %}
+
+  {% with section_class='shadow', section_title='Теневая сторона', section_text=analysis.shadow_side %}
+    {% include '_section_card.html' %}
+  {% endwith %}
+
+  {% with section_class='relationships', section_title='Динамика отношений', section_text=analysis.relationship_dynamics %}
+    {% include '_section_card.html' %}
+  {% endwith %}
+
+  {% with section_class='money', section_title='Деньги и карьера', section_text=analysis.financial_scenario %}
+    {% include '_section_card.html' %}
+  {% endwith %}
+
+  {% with section_class='mistakes', section_title='Повторяющиеся сценарии', section_text=analysis.recurring_mistakes %}
+    {% include '_section_card.html' %}
+  {% endwith %}
+
+  {% with section_class='conflicts', section_title='Внутренние конфликты', section_text=analysis.internal_conflicts %}
+    {% include '_section_card.html' %}
+  {% endwith %}
+
+  {% with section_class='cycles', section_title='Жизненные циклы', section_text=analysis.life_cycles %}
+    {% include '_section_card.html' %}
+  {% endwith %}
+
+  <section class="report-section section-recommendations">
+    <div class="section-header">
+      <div class="section-accent-bar"></div>
+      <h2>Твои 7 дней</h2>
+    </div>
+    <p class="section-subtitle">Практические шаги, привязанные к твоей матрице</p>
+    <div class="recommendations-list">
+      {% for day in recommendations_parsed %}
+        {% with day=day %}
+          {% include '_recommendation_day.html' %}
+        {% endwith %}
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if compatibility %}
+  <section class="report-section section-compatibility">
+    <div class="section-header">
+      <div class="section-accent-bar" style="background:var(--gold);"></div>
+      <h2>Совместимость с {{ partner_name }}</h2>
+    </div>
+
+    <div class="compat-subsection">
+      <h3>{{ partner_name }} — {{ compatibility.archetype_second }}</h3>
+    </div>
+
+    <div class="compat-subsection">
+      <h3>Эмоциональное сочетание</h3>
+      <p>{{ compatibility.emotional_compatibility }}</p>
+    </div>
+
+    <div class="compat-subsection">
+      <h3>Точки напряжения</h3>
+      <p>{{ compatibility.conflict_zones }}</p>
+    </div>
+
+    <div class="compat-subsection">
+      <h3>Сила вашей пары</h3>
+      <p>{{ compatibility.pair_strengths }}</p>
+    </div>
+
+    <div class="compat-subsection compat-recommendation">
+      <h3>Что попробовать уже сегодня</h3>
+      <p>{{ compatibility.ai_recommendation }}</p>
+    </div>
+  </section>
+  {% endif %}
+{% endblock %}
