@@ -21,8 +21,17 @@ logger = logging.getLogger(__name__)
 
 
 async def main():
+    token = settings.telegram_bot_token
+    if not token or token.startswith("change-me"):
+        logger.error(
+            "TELEGRAM_BOT_TOKEN is not configured. "
+            "Bot will not start. Set a real token in .env"
+        )
+        while True:
+            await asyncio.sleep(3600)
+
     bot = Bot(
-        token=settings.telegram_bot_token,
+        token=token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher(storage=MemoryStorage())

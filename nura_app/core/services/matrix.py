@@ -100,16 +100,23 @@ class MatrixService:
 
     @staticmethod
     def format_for_prompt(matrix: dict) -> str:
+        arcana = matrix["arcana_names"]
+        tail_parts = []
+        for k in matrix["karmic_tail"]:
+            name = arcana.get(str(k), k)
+            tail_parts.append(f"{name} ({k})")
+        karmic_tail_str = ", ".join(tail_parts)
+
         lines = [
             f"Дата рождения: {matrix['birth_date']}",
-            f"Центр (главный архетип): {matrix['arcana_names']['center']} ({matrix['center']})",
-            f"Верх (небо): {matrix['arcana_names']['top']} ({matrix['top']})",
-            f"Низ (земля): {matrix['arcana_names']['bottom']} ({matrix['bottom']})",
-            f"Лево (мужское): {matrix['arcana_names']['left']} ({matrix['left']})",
-            f"Право (женское): {matrix['arcana_names']['right']} ({matrix['right']})",
-            f"Зона талантов: {matrix['arcana_names']['talent_zone']} ({matrix['talent_zone']})",
-            f"Зона комфорта: {matrix['arcana_names']['comfort_zone']} ({matrix['comfort_zone']})",
-            f"Портретная зона: {matrix['arcana_names']['portrait_zone']} ({matrix['portrait_zone']})",
-            f"Кармический хвост: {', '.join(f'{matrix[\"arcana_names\"].get(str(k), k)} ({k})' for k in matrix['karmic_tail'])}",
+            f"Центр (главный архетип): {arcana['center']} ({matrix['center']})",
+            f"Верх (небо): {arcana['top']} ({matrix['top']})",
+            f"Низ (земля): {arcana['bottom']} ({matrix['bottom']})",
+            f"Лево (мужское): {arcana['left']} ({matrix['left']})",
+            f"Право (женское): {arcana['right']} ({matrix['right']})",
+            f"Зона талантов: {arcana['talent_zone']} ({matrix['talent_zone']})",
+            f"Зона комфорта: {arcana['comfort_zone']} ({matrix['comfort_zone']})",
+            f"Портретная зона: {arcana['portrait_zone']} ({matrix['portrait_zone']})",
+            f"Кармический хвост: {karmic_tail_str}",
         ]
         return "\n".join(lines)

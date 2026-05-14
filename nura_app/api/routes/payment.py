@@ -1,9 +1,7 @@
-import uuid
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from core.config import settings
 from core.services.payment import PaymentService
 from core.services.report import ReportService
 
@@ -44,9 +42,6 @@ async def payment_webhook(request: Request):
 
     if event == "payment.succeeded":
         payment_id = payment_obj.get("id")
-        metadata = payment_obj.get("metadata", {})
-        telegram_id = metadata.get("telegram_id")
-        report_token = metadata.get("report_token")
         return {"status": "ok", "payment_id": payment_id}
 
     return {"status": "ignored"}

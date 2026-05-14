@@ -61,7 +61,11 @@ class Settings(BaseSettings):
     rate_limit_requests: int = 30
     rate_limit_window: int = 60
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
 
 settings = Settings()

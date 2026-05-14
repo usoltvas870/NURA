@@ -1,12 +1,6 @@
 import hmac
 import hashlib
-from typing import Optional
 
-from fastapi import Depends, HTTPException, Request, status
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from api.deps import get_db, get_redis
 from core.config import settings
 
 

@@ -7,7 +7,6 @@ from aiogram.types import CallbackQuery, Message
 
 from bot.keyboards.main_menu import main_menu_keyboard
 from bot.states.matrix_state import MatrixState
-from core.services.matrix import MatrixService
 from core.tasks import generate_mini_report
 
 router = Router()
@@ -57,7 +56,7 @@ async def process_birth_date(message: Message, state: FSMContext):
     try:
         task = generate_mini_report.delay(user_id, date_str)
         result = task.get(timeout=120)
-    except Exception as e:
+    except Exception:
         await message.answer(
             "Произошла ошибка при расчёте. Попробуй снова через минуту.",
             reply_markup=main_menu_keyboard(),

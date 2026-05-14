@@ -1,12 +1,11 @@
 import asyncio
 import os
 import uuid
-from datetime import datetime, timezone
 
 from celery import Celery
 
 from core.config import settings
-from core.models import Report, User
+from core.models import Report
 from core.services.ai import AIService
 from core.services.matrix import MatrixService
 from core.services.report import ReportService
@@ -44,7 +43,6 @@ def generate_mini_report(user_id: str, birth_date: str) -> dict:
 
 
 async def _generate_mini_report_async(user_id: str, birth_date: str) -> dict:
-    from sqlalchemy import select
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -85,7 +83,6 @@ def generate_full_report(user_id: str, birth_date: str) -> dict:
 
 
 async def _generate_full_report_async(user_id: str, birth_date: str) -> dict:
-    from sqlalchemy import select
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
