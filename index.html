@@ -778,6 +778,43 @@
       letter-spacing: .05em;
     }
 
+    .pricing {
+      display: grid;
+      grid-template-columns: .9fr 1.1fr .9fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .price-card {
+      position: relative;
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .price-card.featured {
+      border-color: rgba(217,122,50,.42);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(217,122,50,.18), transparent 40%),
+        rgba(245,243,238,.075);
+      transform: translateY(-12px);
+    }
+
+    .price {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 48px;
+      line-height: 1;
+      margin: 18px 0 8px;
+    }
+
+    .old-price {
+      color: rgba(245,243,238,.42);
+      text-decoration: line-through;
+      font-size: 16px;
+      margin-left: 8px;
+    }
+
     /* CENTER CTA */
     .center-cta {
       display: flex;
@@ -829,6 +866,8 @@
       .free-card:last-child { border-bottom: none; }
       .free-entry-top, .free-entry-cta { padding: 32px; }
       .pain-block { padding: 36px 28px; }
+      .pricing { grid-template-columns: 1fr; }
+      .price-card.featured { transform: none; }
     }
 
     @media (max-width: 560px) {
@@ -1069,6 +1108,44 @@
               </a>
               <span style="color: var(--muted); font-size: 14px;">Нужна только дата рождения</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRICING -->
+      <section>
+        <div class="container">
+          <div class="section-head">
+            <h2>Выбери глубину разбора</h2>
+          </div>
+          <div class="pricing">
+            <article class="card price-card">
+              <div>
+                <span class="pill">Бесплатно</span>
+                <h3>Мини-разбор</h3>
+                <div class="price">0 ₽</div>
+                <p>Главный архетип, сильная сторона, зона напряжения и первый вывод по отношениям.</p>
+              </div>
+              <a class="btn" href="https://t.me/your_bot" target="_blank" rel="noopener">Попробовать</a>
+            </article>
+            <article class="card price-card featured">
+              <div>
+                <span class="pill">Лучший старт</span>
+                <h3>Полная матрица</h3>
+                <div class="price">590 ₽ <span class="old-price">990 ₽</span></div>
+                <p>Личность, отношения, деньги, таланты, внутренние блоки, рекомендации и план на 7 дней.</p>
+              </div>
+              <a class="btn btn-primary" href="https://t.me/your_bot" target="_blank" rel="noopener">Получить полный отчёт</a>
+            </article>
+            <article class="card price-card">
+              <div>
+                <span class="pill">Подписка</span>
+                <h3>Ежедневные инсайты</h3>
+                <div class="price">990 ₽</div>
+                <p>Личные подсказки, совместимость, недельные разборы и вопросы для самонаблюдения.</p>
+              </div>
+              <a class="btn" href="https://t.me/your_bot" target="_blank" rel="noopener">Открыть подписку</a>
+            </article>
           </div>
         </div>
       </section>
