@@ -64,7 +64,7 @@ class MatrixService:
         # --- Производные зоны ---
         talent = sum_digits(E + B)
         comfort = sum_digits(E + A)
-        portrait = sum_digits(E + D)
+        portrait = sum_digits(E + C)
 
         # --- Кармический хвост ---
         karmic_tail = [D, E, B]

@@ -100,7 +100,7 @@ A (день) ─── E (центр) ─── C (год)
 |------|---------|----------|
 | Зона талантов | `sum_digits(E + B)` | Врождённый дар, предназначение духа |
 | Зона комфорта | `sum_digits(E + A)` | Зона отдыха, как человек восстанавливает силы |
-| Портретная зона | `sum_digits(E + D)` | Как человека видят другие |
+| Портретная зона | `sum_digits(E + C)` | Как человека видят другие |
 
 ### 3.4 Кармический хвост
 
@@ -211,7 +211,7 @@ I = sum_digits(D + A)   (нижне-левая внутренняя)
 | `center` | Центр | `sum_digits(left + top + right + bottom)` |
 | `talent_zone` | Зона талантов | `sum_digits(center + top)` |
 | `comfort_zone` | Зона комфорта | `sum_digits(center + left)` |
-| `portrait_zone` | Портретная зона | `sum_digits(center + bottom)` |
+| `portrait_zone` | Портретная зона | `sum_digits(center + right)` |
 | `karmic_tail` | Кармический хвост | `[bottom, center, top]` |
 | `inner_f` | Кармический дар | `sum_digits(left + top)` |
 | `inner_g` | Линия отца | `sum_digits(top + right)` |
@@ -255,7 +255,7 @@ E (center) = sum_digits(15+8+6+11) = sum_digits(40) = 4+0 = 4     → 4  (Имп
 ```
 talent_zone   = sum_digits(4+8) = sum_digits(12) = 12              → 12 (Повешенный)
 comfort_zone  = sum_digits(4+15) = sum_digits(19) = 19             → 19 (Солнце)
-portrait_zone = sum_digits(4+11) = sum_digits(15) = 15             → 15 (Дьявол)
+portrait_zone = sum_digits(4+6) = sum_digits(10) = 10              → 10 (Колесо Фортуны)
 ```
 
 ### Шаг 5: Кармический хвост
@@ -358,7 +358,7 @@ def matrix_calculate_full(birth_date: str) -> dict:
     # --- Производные зоны ---
     talent = sum_digits(E + B)                                 # Зона талантов
     comfort = sum_digits(E + A)                                # Зона комфорта
-    portrait = sum_digits(E + D)                               # Портретная зона
+    portrait = sum_digits(E + C)                               # Портретная зона
 
     # --- Кармический хвост ---
     karmic_tail = [D, E, B]
