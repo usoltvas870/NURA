@@ -31,10 +31,16 @@ jobs:
           envs: GITHUB_TOKEN
           script: |
             set -e
+            if [ ! -d /opt/nura/.git ]; then
+              rm -rf /opt/nura
+              git clone https://x-access-token:${GITHUB_TOKEN}@github.com/usoltvas870/NURA.git /opt/nura
+            else
+              cd /opt/nura
+              git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/usoltvas870/NURA.git
+              git fetch origin
+              git reset --hard origin/master
+            fi
             cd /opt/nura
-            git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/usoltvas870/NURA.git
-            git fetch origin
-            git reset --hard origin/master
             cp -f index.html /var/www/nura-ai.ru/index.html
             cd nura_app
             docker compose up -d --build || true
