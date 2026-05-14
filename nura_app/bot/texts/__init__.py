@@ -1,0 +1,103 @@
+from bot.texts.start import welcome_text, welcome_back_text, help_text, unknown_message_text
+from bot.texts.matrix import (
+    ask_birth_date_text,
+    invalid_format_text,
+    impossible_date_text,
+    loading_steps as matrix_loading_steps,
+    mini_analysis_text,
+)
+from bot.texts.compatibility import (
+    explanation_text,
+    ask_first_date_text,
+    ask_second_date_text,
+    dates_match_error_text,
+    loading_steps as compatibility_loading_steps,
+    mini_compatibility_text,
+)
+from bot.texts.insights import (
+    no_matrix_text,
+    insight_of_day_text,
+    share_insight_text,
+    insight_copied_text,
+    insights_exhausted_text,
+    no_insights_text,
+)
+from bot.texts.profile import (
+    profile_no_matrix_text,
+    profile_mini_text,
+    profile_full_report_text,
+    profile_subscriber_text,
+    reports_list_text,
+)
+from bot.texts.chat import paywall_text, greeting_text, history_cleared_text, exit_text
+from bot.texts.payment import (
+    payment_link_text,
+    payment_pending_text,
+    payment_success_text,
+    report_ready_text,
+    payment_error_text,
+    already_paid_text,
+)
+from bot.texts.subscription import (
+    subscription_offer_text,
+    subscription_activated_text,
+    expiring_soon_text,
+    expired_text,
+    daily_insight_text,
+)
+from bot.texts.system import (
+    global_error_text,
+    rate_limit_text,
+    anti_flood_text,
+    registration_text,
+    buttons_blocked_text,
+)
+
+__all__ = [
+    "welcome_text",
+    "welcome_back_text",
+    "help_text",
+    "unknown_message_text",
+    "ask_birth_date_text",
+    "invalid_format_text",
+    "impossible_date_text",
+    "matrix_loading_steps",
+    "mini_analysis_text",
+    "explanation_text",
+    "ask_first_date_text",
+    "ask_second_date_text",
+    "dates_match_error_text",
+    "compatibility_loading_steps",
+    "mini_compatibility_text",
+    "no_matrix_text",
+    "insight_of_day_text",
+    "share_insight_text",
+    "insight_copied_text",
+    "insights_exhausted_text",
+    "no_insights_text",
+    "profile_no_matrix_text",
+    "profile_mini_text",
+    "profile_full_report_text",
+    "profile_subscriber_text",
+    "reports_list_text",
+    "paywall_text",
+    "greeting_text",
+    "history_cleared_text",
+    "exit_text",
+    "payment_link_text",
+    "payment_pending_text",
+    "payment_success_text",
+    "report_ready_text",
+    "payment_error_text",
+    "already_paid_text",
+    "subscription_offer_text",
+    "subscription_activated_text",
+    "expiring_soon_text",
+    "expired_text",
+    "daily_insight_text",
+    "global_error_text",
+    "rate_limit_text",
+    "anti_flood_text",
+    "registration_text",
+    "buttons_blocked_text",
+]
