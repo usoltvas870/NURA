@@ -1,9 +1,13 @@
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 
 from core.config import settings
+
+if TYPE_CHECKING:
+    from core.schemas import MatrixData
 
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
@@ -40,7 +44,7 @@ class AIService:
             return data["choices"][0]["message"]["content"]
 
     @staticmethod
-    async def generate_mini_analysis(matrix_data: dict) -> dict:
+    async def generate_mini_analysis(matrix_data: "MatrixData | dict") -> dict:
         from core.services.matrix import MatrixService
 
         matrix_text = MatrixService.format_for_prompt(matrix_data)
@@ -89,7 +93,7 @@ class AIService:
         return result
 
     @staticmethod
-    async def generate_full_report(matrix_data: dict) -> dict:
+    async def generate_full_report(matrix_data: "MatrixData | dict") -> dict:
         from core.services.matrix import MatrixService
 
         matrix_text = MatrixService.format_for_prompt(matrix_data)

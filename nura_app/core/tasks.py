@@ -59,7 +59,7 @@ async def _generate_mini_report_async(user_id: str, birth_date: str) -> dict:
             user_id=uuid.UUID(user_id),
             report_type="mini",
             token=token,
-            matrix_data=matrix,
+            matrix_data=matrix.model_dump(),
             ai_analysis=analysis,
         )
         session.add(report)
@@ -93,7 +93,7 @@ async def _generate_full_report_async(user_id: str, birth_date: str) -> dict:
     analysis = await AIService.generate_full_report(matrix)
     token = ReportService.generate_token()
 
-    html = ReportService.render_full(matrix, analysis)
+    html = ReportService.render_full(matrix.model_dump(), analysis)
 
     reports_dir = "/app/static/reports"
     os.makedirs(reports_dir, exist_ok=True)
@@ -110,7 +110,7 @@ async def _generate_full_report_async(user_id: str, birth_date: str) -> dict:
             user_id=uuid.UUID(user_id),
             report_type="full",
             token=token,
-            matrix_data=matrix,
+            matrix_data=matrix.model_dump(),
             ai_analysis=analysis,
         )
         session.add(report)

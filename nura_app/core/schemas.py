@@ -30,6 +30,15 @@ class MatrixData(BaseModel):
     comfort_zone: int
     portrait_zone: int
     karmic_tail: list[int]
+    inner_f: int
+    inner_g: int
+    inner_h: int
+    inner_i: int
+    sky_line: list[int]
+    earth_line: list[int]
+    relationship_line: list[int]
+    money_line: list[int]
+    relationship_point: int
     arcana_names: dict[str, str] = Field(default_factory=dict)
 
 
