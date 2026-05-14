@@ -88,5 +88,20 @@ class PaymentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CompatibilityMiniResult(BaseModel):
+    archetype_first: str
+    archetype_second: str
+    emotional_compatibility: str
+
+
+class CompatibilityFullResult(BaseModel):
+    archetype_first: str
+    archetype_second: str
+    emotional_compatibility: str
+    conflict_zones: str
+    pair_strengths: str
+    ai_recommendation: str
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"
