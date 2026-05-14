@@ -11,7 +11,6 @@ from bot.keyboards.main_menu import paywall_keyboard
 from bot.states.matrix_state import MatrixState
 from bot.texts.matrix import (
     ask_birth_date_text,
-    impossible_date_text,
     invalid_format_text,
     loading_steps,
     mini_analysis_text,

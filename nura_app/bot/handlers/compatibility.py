@@ -10,14 +10,13 @@ from bot.handlers.validators import validate_date
 from bot.keyboards.main_menu import compatibility_paywall_keyboard
 from bot.states.compatibility_state import CompatibilityStates
 from bot.texts.compatibility import (
-    ask_first_date_text,
     ask_second_date_text,
     dates_match_error_text,
     explanation_text,
     loading_steps,
     mini_compatibility_text,
 )
-from bot.texts.matrix import impossible_date_text, invalid_format_text
+from bot.texts.matrix import invalid_format_text
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
 from core.tasks import generate_compatibility_report
