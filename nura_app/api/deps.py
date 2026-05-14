@@ -1,23 +1,4 @@
-import hmac
-import hashlib
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
-from core.config import settings
-
-
-async def verify_telegram_auth(auth_data: dict) -> bool:
-    token = settings.telegram_bot_token
-    check_hash = auth_data.pop("hash", None)
-    if not check_hash:
-        return False
-
-    data_check_arr = []
-    for key in sorted(auth_data.keys()):
-        data_check_arr.append(f"{key}={auth_data[key]}")
-
-    secret_key = hashlib.sha256(token.encode()).digest()
-    data_check_string = "\n".join(data_check_arr)
-    computed_hash = hmac.new(
-        secret_key, data_check_string.encode(), hashlib.sha256
-    ).hexdigest()
-
-    return computed_hash == check_hash
+limiter = Limiter(key_func=get_remote_address)

@@ -1,14 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 
+from api.deps import limiter
 from api.routes.reports import router as reports_router
 from api.routes.webhook import router as webhook_router
 from api.routes.payment import router as payment_router
-
-limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(title="NURA API", version="1.0.0", docs_url=None, redoc_url=None)
 app.state.limiter = limiter
