@@ -1,92 +1,96 @@
-import re
-from datetime import datetime
+import asyncio
+import logging
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from celery.result import AsyncResult
 
-from bot.keyboards.main_menu import main_menu_keyboard
+from bot.handlers.validators import validate_date
+from bot.keyboards.main_menu import paywall_keyboard
 from bot.states.matrix_state import MatrixState
+from bot.texts.matrix import (
+    ask_birth_date_text,
+    impossible_date_text,
+    invalid_format_text,
+    loading_steps,
+    mini_analysis_text,
+)
+from core.database import get_async_sessionmaker
+from core.repositories.user import UserRepository
 from core.tasks import generate_mini_report
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
-DATE_PATTERN = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
-
-
-def validate_date(date_str: str) -> bool:
-    if not DATE_PATTERN.match(date_str):
-        return False
-    try:
-        datetime.strptime(date_str, "%d.%m.%Y")
-        return True
-    except ValueError:
-        return False
+POLL_INTERVAL = 2
+MAX_POLL_SECONDS = 90
 
 
 @router.callback_query(F.data == "calculate_matrix")
-async def ask_birth_date(callback: CallbackQuery, state: FSMContext):
+async def ask_birth_date(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     await state.set_state(MatrixState.waiting_for_birth_date)
-    await callback.message.answer(
-        "Введи свою дату рождения в формате ДД.ММ.ГГГГ\n"
-        "Например: 15.06.1998"
-    )
+    await callback.message.edit_text(ask_birth_date_text())
 
 
 @router.message(MatrixState.waiting_for_birth_date)
-async def process_birth_date(message: Message, state: FSMContext):
+async def process_birth_date(message: Message, state: FSMContext) -> None:
     date_str = message.text.strip()
 
     if not validate_date(date_str):
-        await message.answer(
-            "Пожалуйста, введи дату в формате ДД.ММ.ГГГГ, "
-            "например 15.06.1998"
-        )
+        await message.answer(invalid_format_text())
         return
 
     await state.clear()
 
-    user_id = str(message.from_user.id)
-    await message.answer(
-        "Анализирую твою Матрицу Судьбы...\n"
-        "Это займёт несколько секунд."
-    )
+    steps = loading_steps()
+    msg = await message.answer(steps[0])
+    for step in steps[1:]:
+        await asyncio.sleep(1)
+        await msg.edit_text(step)
 
-    try:
-        task = generate_mini_report.delay(user_id, date_str)
-        result = task.get(timeout=120)
-    except Exception:
-        await message.answer(
-            "Произошла ошибка при расчёте. Попробуй снова через минуту.",
-            reply_markup=main_menu_keyboard(),
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_telegram_id(message.from_user.id)
+    if user is None:
+        await msg.edit_text(
+            "Пользователь не найден. Начни с /start",
+        )
+        return
+
+    username = message.from_user.username or message.from_user.first_name or "user"
+    task = generate_mini_report.delay(str(user.id), date_str, username)
+
+    result = None
+    waited = 0
+    while waited < MAX_POLL_SECONDS:
+        ready = AsyncResult(task.id).ready()
+        if ready:
+            result = AsyncResult(task.id).result
+            break
+        await asyncio.sleep(POLL_INTERVAL)
+        waited += POLL_INTERVAL
+
+    if result is None:
+        await msg.edit_text(
+            "Что-то пошло не так. Попробуй ещё раз через минуту.",
         )
         return
 
     analysis = result.get("analysis", {})
     token = result.get("token", "")
+    archetype = result.get("archetype", {})
 
-    text = (
-        "Твоя Матрица Судьбы\n\n"
-        f"Главный архетип: {analysis.get('main_archetype', '...')}\n\n"
-        f"Сильная сторона: {analysis.get('core_strength', '...')}\n\n"
-        f"Эмоциональный конфликт: {analysis.get('emotional_conflict', '...')}\n\n"
-        f"Паттерн отношений: {analysis.get('relationship_pattern', '...')}\n\n"
-        f"Денежный блок: {analysis.get('financial_block', '...')}\n\n"
-        "Хочешь получить полный AI-отчёт?\n"
-        "В нём — теневые стороны, жизненные циклы, "
-        "совместимость и персональные рекомендации на 7 дней."
+    text = mini_analysis_text(
+        archetype_name=archetype.get("name", "..."),
+        archetype_number=archetype.get("number", 0),
+        main_archetype=analysis.get("main_archetype", "..."),
+        core_strength=analysis.get("core_strength", "..."),
+        emotional_conflict=analysis.get("emotional_conflict", "..."),
+        relationship_pattern=analysis.get("relationship_pattern", "..."),
+        financial_block=analysis.get("financial_block", "..."),
     )
 
-    from bot.keyboards.main_menu import paywall_keyboard
-
-    await message.answer(text, reply_markup=paywall_keyboard(token))
-
-
-@router.callback_query(F.data == "back_to_menu")
-async def back_to_menu(callback: CallbackQuery):
-    await callback.answer()
-    await callback.message.answer(
-        "Главное меню",
-        reply_markup=main_menu_keyboard(),
-    )
+    await msg.edit_text(text, reply_markup=paywall_keyboard(token))

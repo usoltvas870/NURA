@@ -8,9 +8,10 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import ErrorEvent
 
-from bot.handlers.start import router as start_router
+from bot.handlers.compatibility import router as compatibility_router
 from bot.handlers.matrix import router as matrix_router
 from bot.handlers.profile import router as profile_router
+from bot.handlers.start import router as start_router
 from bot.middlewares import UserRegistrationMiddleware, ThrottlingMiddleware, AntiFloodMiddleware
 from bot.texts.system import global_error_text
 from core.config import settings
@@ -50,6 +51,7 @@ async def main():
     dp.message.middleware(AntiFloodMiddleware())
     dp.callback_query.middleware(AntiFloodMiddleware())
 
+    dp.include_router(compatibility_router)
     dp.include_router(start_router)
     dp.include_router(matrix_router)
     dp.include_router(profile_router)
