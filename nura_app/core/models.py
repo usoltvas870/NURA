@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime
 
@@ -16,6 +17,12 @@ class Base(DeclarativeBase):
     pass
 
 
+class ReportType(str, enum.Enum):
+    MINI = "mini"
+    FULL = "full"
+    COMPATIBILITY = "compatibility"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -25,9 +32,19 @@ class User(Base):
     telegram_id: Mapped[int] = mapped_column(
         Integer, unique=True, nullable=False, index=True
     )
+    username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     birth_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    main_archetype: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    main_archetype_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     subscription_status: Mapped[str] = mapped_column(
         String(20), default="free", nullable=False
+    )
+    subscription_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    payment_method_id: Mapped[str | None] = mapped_column(
+        String(100), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -46,7 +63,7 @@ class Report(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
     report_type: Mapped[str] = mapped_column(
-        String(20), default="mini", nullable=False
+        String(20), default=ReportType.MINI.value, nullable=False
     )
     token: Mapped[str] = mapped_column(
         String(64), unique=True, nullable=False, index=True
