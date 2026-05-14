@@ -1,14 +1,22 @@
 import asyncio
-import os
+import logging
+import random
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from celery import Celery
+from sqlalchemy import select
 
 from core.config import settings
-from core.models import Report
+from core.database import get_async_sessionmaker
+from core.models import ReportType, User
+from core.repositories import ReportRepository, UserRepository
 from core.services.ai import AIService
+from core.services.insights_data import INSIGHTS_BY_ARCHETYPE
 from core.services.matrix import MatrixService
 from core.services.report import ReportService
+
+logger = logging.getLogger(__name__)
 
 celery_app = Celery("nura")
 celery_app.conf.update(
@@ -20,106 +28,376 @@ celery_app.conf.update(
     timezone="Europe/Moscow",
     enable_utc=True,
     task_track_started=True,
-    task_time_limit=180,
-    task_soft_time_limit=150,
+    task_time_limit=300,
+    task_soft_time_limit=240,
 )
 
-celery_app.conf.beat_schedule = {}
+celery_app.conf.beat_schedule = {
+    "send-daily-insights": {
+        "task": "core.tasks.send_daily_insights",
+        "schedule": 60 * 60 * 6,
+    },
+    "check-expiring-subscriptions": {
+        "task": "core.tasks.check_expiring_subscriptions",
+        "schedule": 60 * 60 * 12,
+    },
+    "downgrade-expired-subscriptions": {
+        "task": "core.tasks.downgrade_expired_subscriptions",
+        "schedule": 60 * 60 * 24,
+    },
+}
+
+
+def _run_async(coro) -> dict:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
+
+async def _send_message(
+    telegram_id: int,
+    text: str,
+    reply_markup: dict | None = None,
+) -> bool:
+    from aiogram import Bot
+    from aiogram.client.default import DefaultBotProperties
+    from aiogram.enums import ParseMode
+    from aiogram.exceptions import TelegramForbiddenError
+
+    token = settings.telegram_bot_token
+    if not token or token.startswith("change-me"):
+        logger.warning("TELEGRAM_BOT_TOKEN not configured, skipping notification")
+        return False
+
+    bot = Bot(
+        token=token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+    try:
+        await bot.send_message(
+            chat_id=telegram_id, text=text, reply_markup=reply_markup
+        )
+        return True
+    except TelegramForbiddenError:
+        return False
+    finally:
+        await bot.session.close()
+
+
+async def _notify_full_report(telegram_id: int, token: str) -> None:
+    report_url = ReportService.report_url(token)
+    text = (
+        "✨ Твой полный AI-отчёт готов!\n\n"
+        "В нём:\n"
+        "• Разбор 9 ключевых зон твоей матрицы\n"
+        "• Теневые стороны и зоны роста\n"
+        "• Жизненные циклы\n"
+        "• 7-дневные рекомендации\n"
+        "• Совместимость с другими архетипами\n\n"
+        "Открой и изучи — это твоя карта."
+    )
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "👁 Открыть отчёт", "url": report_url},
+            ],
+            [{"text": "🏠 В меню", "callback_data": "main_menu"}],
+        ],
+    }
+    await _send_message(telegram_id, text, keyboard)
+
+
+async def _notify_mini_report(telegram_id: int, token: str) -> None:
+    text = (
+        "✨ Твой мини-разбор готов!\n\n"
+        "Матрица расшифрована. Загляни в профиль — "
+        "там ждут 5 ключевых блоков твоего архетипа."
+    )
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "✨ Полный разбор за 590 ₽", "callback_data": f"pay_full_report:{token}"}],
+            [{"text": "🏠 В меню", "callback_data": "main_menu"}],
+        ],
+    }
+    await _send_message(telegram_id, text, keyboard)
+
+
+async def _notify_compatibility(telegram_id: int, token: str) -> None:
+    text = (
+        "❤️ Разбор совместимости готов!\n\n"
+        "Карта вашей совместимости ждёт тебя. "
+        "Полный разбор покажет зоны конфликтов и сильные стороны пары."
+    )
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "✨ Полная матрица 590 ₽", "callback_data": f"pay_compatibility:{token}"}],
+            [{"text": "💎 Подписка 390 ₽/мес", "callback_data": "buy_subscription"}],
+            [{"text": "🏠 В меню", "callback_data": "main_menu"}],
+        ],
+    }
+    await _send_message(telegram_id, text, keyboard)
+
+
+async def _process_mini_report(user_id: str, birth_date: str) -> dict:
+    uid = uuid.UUID(user_id)
+    session_factory = get_async_sessionmaker()
+    report_repo = ReportRepository(session_factory)
+    user_repo = UserRepository(session_factory)
+
+    matrix = MatrixService.calculate(birth_date)
+    analysis = await AIService.generate_mini_analysis(birth_date, matrix)
+    token = ReportService.generate_token()
+    archetype_name = MatrixService.get_archetype_name(matrix.center)
+
+    report = await report_repo.create(
+        user_id=uid,
+        report_type=ReportType.MINI,
+        token=token,
+        matrix_data=matrix.model_dump(),
+        ai_analysis=analysis,
+    )
+
+    await user_repo.update_archetype(
+        user_id=uid,
+        archetype=archetype_name,
+        number=matrix.center,
+    )
+
+    return {
+        "report_id": str(report.id),
+        "token": token,
+        "analysis": analysis,
+        "archetype": {"name": archetype_name, "number": matrix.center},
+    }
+
+
+async def _get_user_telegram_id(user_id: str) -> int | None:
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get(uuid.UUID(user_id))
+    if user is None:
+        logger.warning("User %s not found for notification", user_id)
+        return None
+    return user.telegram_id
 
 
 @celery_app.task(name="core.tasks.generate_mini_report")
-def generate_mini_report(user_id: str, birth_date: str) -> dict:
-    import asyncio
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        result = loop.run_until_complete(
-            _generate_mini_report_async(user_id, birth_date)
-        )
-        return result
-    finally:
-        loop.close()
+def generate_mini_report(user_id: str, birth_date: str, username: str) -> dict:
+    result = _run_async(_process_mini_report(user_id, birth_date))
+    telegram_id = _run_async(_get_user_telegram_id(user_id))
+    if telegram_id:
+        _run_async(_notify_mini_report(telegram_id, result["token"]))
+    return result
 
 
-async def _generate_mini_report_async(user_id: str, birth_date: str) -> dict:
-    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-    from sqlalchemy.orm import sessionmaker
-
-    engine = create_async_engine(settings.database_url)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+async def _process_full_report(
+    user_id: str, birth_date: str, report_token: str
+) -> dict:
+    uid = uuid.UUID(user_id)
+    session_factory = get_async_sessionmaker()
+    report_repo = ReportRepository(session_factory)
 
     matrix = MatrixService.calculate(birth_date)
-    analysis = await AIService.generate_mini_analysis(matrix)
+    analysis = await AIService.generate_full_report(birth_date, matrix)
     token = ReportService.generate_token()
 
-    async with async_session() as session:
-        report = Report(
-            id=uuid.uuid4(),
-            user_id=uuid.UUID(user_id),
-            report_type="mini",
-            token=token,
-            matrix_data=matrix.model_dump(),
-            ai_analysis=analysis,
-        )
-        session.add(report)
-        await session.commit()
+    matrix_dict = matrix.model_dump()
+    html = ReportService.generate_html_report(
+        report_data={"matrix": MatrixService.format_for_report(matrix), "analysis": analysis},
+    )
+    pdf = await ReportService.generate_pdf(html)
+    paths = ReportService.save_report_files(token, html, pdf)
 
-    await engine.dispose()
-    return {"report_id": str(report.id), "token": token, "analysis": analysis}
+    report = await report_repo.create(
+        user_id=uid,
+        report_type=ReportType.FULL,
+        token=token,
+        matrix_data=matrix_dict,
+        ai_analysis=analysis,
+    )
 
-
-@celery_app.task(name="core.tasks.generate_full_report")
-def generate_full_report(user_id: str, birth_date: str) -> dict:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        result = loop.run_until_complete(
-            _generate_full_report_async(user_id, birth_date)
-        )
-        return result
-    finally:
-        loop.close()
-
-
-async def _generate_full_report_async(user_id: str, birth_date: str) -> dict:
-    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-    from sqlalchemy.orm import sessionmaker
-
-    engine = create_async_engine(settings.database_url)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-    matrix = MatrixService.calculate(birth_date)
-    analysis = await AIService.generate_full_report(matrix)
-    token = ReportService.generate_token()
-
-    html = ReportService.render_full(matrix.model_dump(), analysis)
-
-    reports_dir = "/app/static/reports"
-    os.makedirs(reports_dir, exist_ok=True)
-    html_path = os.path.join(reports_dir, f"{token}.html")
-    with open(html_path, "w", encoding="utf-8") as f:
-        f.write(html)
-
-    pdf_path = os.path.join(reports_dir, f"{token}.pdf")
-    await ReportService.generate_pdf(html, pdf_path)
-
-    async with async_session() as session:
-        report = Report(
-            id=uuid.uuid4(),
-            user_id=uuid.UUID(user_id),
-            report_type="full",
-            token=token,
-            matrix_data=matrix.model_dump(),
-            ai_analysis=analysis,
-        )
-        session.add(report)
-        await session.commit()
-
-    await engine.dispose()
     return {
         "report_id": str(report.id),
         "token": token,
         "report_url": ReportService.report_url(token),
+        "html_path": paths["html"],
+        "pdf_path": paths["pdf"],
         "analysis": analysis,
     }
+
+
+@celery_app.task(name="core.tasks.generate_full_report")
+def generate_full_report(user_id: str, birth_date: str, report_token: str) -> dict:
+    result = _run_async(_process_full_report(user_id, birth_date, report_token))
+    telegram_id = _run_async(_get_user_telegram_id(user_id))
+    if telegram_id:
+        _run_async(_notify_full_report(telegram_id, result["token"]))
+    return result
+
+
+@celery_app.task(name="core.tasks.generate_compatibility_report")
+def generate_compatibility_report(user_id: str, date1: str, date2: str) -> dict:
+    result = _run_async(_process_compatibility_report(user_id, date1, date2))
+    telegram_id = _run_async(_get_user_telegram_id(user_id))
+    if telegram_id:
+        _run_async(_notify_compatibility(telegram_id, result["token"]))
+    return result
+
+
+async def _process_compatibility_report(
+    user_id: str, date1: str, date2: str
+) -> dict:
+    uid = uuid.UUID(user_id)
+    session_factory = get_async_sessionmaker()
+    report_repo = ReportRepository(session_factory)
+
+    matrix1 = MatrixService.calculate(date1)
+    matrix2 = MatrixService.calculate(date2)
+    analysis = await AIService.generate_compatibility(
+        date1, matrix1, date2, matrix2
+    )
+    token = ReportService.generate_token()
+
+    report = await report_repo.create(
+        user_id=uid,
+        report_type=ReportType.COMPATIBILITY,
+        token=token,
+        matrix_data={
+            "matrix1": matrix1.model_dump(),
+            "matrix2": matrix2.model_dump(),
+        },
+        ai_analysis=analysis,
+    )
+
+    return {
+        "report_id": str(report.id),
+        "token": token,
+        "analysis": analysis,
+    }
+
+
+@celery_app.task(name="core.tasks.send_daily_insights")
+def send_daily_insights() -> dict:
+    return _run_async(_send_daily_insights_async())
+
+
+async def _send_daily_insights_async() -> dict:
+    session_factory = get_async_sessionmaker()
+    async with session_factory() as session:
+        result = await session.execute(
+            select(User).where(User.subscription_status == "premium")
+        )
+        users = result.scalars().all()
+
+    sent = 0
+    blocked = 0
+    for user in users:
+        archetype_number = user.main_archetype_number
+        first_name = user.first_name or user.username or "пользователь"
+
+        archetype_data = INSIGHTS_BY_ARCHETYPE.get(archetype_number)
+        if not archetype_data:
+            continue
+
+        insight = random.choice(archetype_data["insights"])
+        text = (
+            f"🌅 Доброе утро, {first_name}.\n\n"
+            f"{insight}\n\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "✨ Хочешь глубже? Открой полный отчёт или "
+            "напиши NURA в чате — сегодня твой архетип "
+            "шепчет тебе что-то важное."
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "💬 Чат с NURA", "callback_data": "chat_with_nura"}],
+                [{"text": "📋 Мои отчёты", "callback_data": "view_reports"}],
+                [{"text": "🏠 В меню", "callback_data": "main_menu"}],
+            ],
+        }
+
+        ok = await _send_message(user.telegram_id, text, keyboard)
+        if not ok:
+            async with session_factory() as session:
+                db_user = await session.get(User, user.id)
+                if db_user is not None:
+                    db_user.subscription_status = "blocked"
+                    await session.commit()
+            blocked += 1
+        else:
+            sent += 1
+
+    return {"sent": sent, "blocked": blocked, "total": len(users)}
+
+
+@celery_app.task(name="core.tasks.check_expiring_subscriptions")
+def check_expiring_subscriptions() -> dict:
+    return _run_async(_check_expiring_subscriptions_async())
+
+
+async def _check_expiring_subscriptions_async() -> dict:
+    now = datetime.now(timezone.utc)
+    three_days = now + timedelta(days=3)
+
+    session_factory = get_async_sessionmaker()
+    async with session_factory() as session:
+        result = await session.execute(
+            select(User).where(
+                User.subscription_status == "premium",
+                User.subscription_until <= three_days,
+                User.subscription_until > now,
+            )
+        )
+        users = result.scalars().all()
+
+    notified = 0
+    for user in users:
+        first_name = user.first_name or user.username or "пользователь"
+        text = (
+            f"🌒 NURA\n\n"
+            f"{first_name}, твоя подписка истекает через 3 дня.\n\n"
+            "После этого ты потеряешь доступ к чату с NURA, "
+            "ежедневным инсайтам и новым отчётам.\n\n"
+            "Продли сейчас, чтобы ничего не прерывать."
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "💎 Продлить подписку", "callback_data": "buy_subscription"}],
+                [{"text": "🏠 В меню", "callback_data": "main_menu"}],
+            ],
+        }
+        ok = await _send_message(user.telegram_id, text, keyboard)
+        if ok:
+            notified += 1
+
+    return {"notified": notified, "total_expiring": len(users)}
+
+
+@celery_app.task(name="core.tasks.downgrade_expired_subscriptions")
+def downgrade_expired_subscriptions() -> dict:
+    return _run_async(_downgrade_expired_subscriptions_async())
+
+
+async def _downgrade_expired_subscriptions_async() -> dict:
+    now = datetime.now(timezone.utc)
+
+    session_factory = get_async_sessionmaker()
+    async with session_factory() as session:
+        result = await session.execute(
+            select(User).where(
+                User.subscription_status == "premium",
+                User.subscription_until < now,
+            )
+        )
+        users = result.scalars().all()
+
+        downgraded = 0
+        for user in users:
+            user.subscription_status = "free"
+            downgraded += 1
+        await session.commit()
+
+    return {"downgraded": downgraded, "total_expired": len(users)}
