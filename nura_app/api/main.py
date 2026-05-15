@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -23,6 +25,18 @@ app.add_middleware(
 app.include_router(webhook_router)
 app.include_router(reports_router)
 app.include_router(payment_router)
+
+
+@app.on_event("startup")
+async def startup():
+    from core.database import create_engine
+    from core.models import Base
+    engine = create_engine()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    await engine.dispose()
+    logger = logging.getLogger(__name__)
+    logger.info("Database tables ensured")
 
 
 @app.get("/health")

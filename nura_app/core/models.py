@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
     DateTime,
     ForeignKey,
     Integer,
@@ -30,7 +31,7 @@ class User(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     telegram_id: Mapped[int] = mapped_column(
-        Integer, unique=True, nullable=False, index=True
+        BigInteger, unique=True, nullable=False, index=True
     )
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     first_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
