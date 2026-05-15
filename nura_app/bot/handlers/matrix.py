@@ -61,7 +61,14 @@ async def process_birth_date(message: Message, state: FSMContext) -> None:
         )
 
     username = message.from_user.username or message.from_user.first_name or "user"
-    task = generate_mini_report.delay(str(user.id), date_str, username)
+    try:
+        task = generate_mini_report.delay(str(user.id), date_str, username)
+    except Exception:
+        logger.exception("Failed to dispatch celery task")
+        await msg.edit_text(
+            "Сервис временно недоступен. Попробуй позже.",
+        )
+        return
 
     result = None
     waited = 0
@@ -71,18 +78,29 @@ async def process_birth_date(message: Message, state: FSMContext) -> None:
             try:
                 result = AsyncResult(task.id).result
             except Exception as e:
+                logger.exception("Celery task %s raised", task.id)
                 result = e
             break
         await asyncio.sleep(POLL_INTERVAL)
         waited += POLL_INTERVAL
 
-    if result is None or isinstance(result, Exception):
+    if result is None:
+        logger.error("Celery task %s timed out after %ss", task.id, MAX_POLL_SECONDS)
         await msg.edit_text(
-            "Что-то пошло не так. Попробуй ещё раз через минуту.",
+            "Расчёт занимает больше времени, чем обычно. "
+            "Попробуй ещё раз через минуту.",
+        )
+        return
+
+    if isinstance(result, Exception):
+        logger.error("Celery task %s failed: %s", task.id, result)
+        await msg.edit_text(
+            "Что-то пошло не так при расчёте. Попробуй ещё раз через минуту.",
         )
         return
 
     if not isinstance(result, dict):
+        logger.error("Celery task %s returned non-dict: %s", task.id, type(result))
         await msg.edit_text(
             "Что-то пошло не так. Попробуй ещё раз через минуту.",
         )
