@@ -1,6 +1,5 @@
 import os
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
@@ -58,7 +57,7 @@ async def serve_report(token: str):
         with open(paths["html"], "r", encoding="utf-8") as f:
             return Response(content=f.read(), media_type="text/html")
 
-    html = _render_report_html(report, session_factory)
+    html = await _render_report_html(report, session_factory)
     if html is None:
         return HTMLResponse(content=NOT_FOUND_HTML, status_code=404)
     return Response(content=html, media_type="text/html")
@@ -81,7 +80,7 @@ async def serve_report_pdf(token: str):
             filename=f"nura-report-{token[:8]}.pdf",
         )
 
-    html = _render_report_html(report, session_factory)
+    html = await _render_report_html(report, session_factory)
     if html is None:
         return PlainTextResponse("Report not found", status_code=404)
     from weasyprint import HTML as WPHTML
@@ -90,22 +89,15 @@ async def serve_report_pdf(token: str):
                     headers={"Content-Disposition": f"inline; filename=nura-report-{token[:8]}.pdf"})
 
 
-def _render_report_html(report, session_factory):
+async def _render_report_html(report, session_factory):
     matrix_data = report.matrix_data or {}
     analysis = report.ai_analysis or {}
     user_id = matrix_data.get("user_id") or str(report.user_id)
 
-    import uuid as _uuid
-    uid = _uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+    uid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
 
-    import asyncio
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        user_repo = UserRepository(session_factory)
-        user = loop.run_until_complete(user_repo.get(uid))
-    finally:
-        loop.close()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get(uid)
 
     if not user:
         user_name = "пользователь"
