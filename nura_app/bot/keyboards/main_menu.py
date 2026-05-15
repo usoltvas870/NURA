@@ -85,6 +85,17 @@ def insight_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def insight_keyboard_subscriber() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="📋 Поделиться", callback_data="share_insight"),
+            ],
+            [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+        ]
+    )
+
+
 def chat_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

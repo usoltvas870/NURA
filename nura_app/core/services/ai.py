@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -9,6 +10,7 @@ import httpx
 from core.config import settings
 from core.schemas import (
     CompatibilityFullResult,
+    DailyInsightResult,
     FullReportResult,
     MiniAnalysisResult,
 )
@@ -441,6 +443,56 @@ class AIService:
             return validated.model_dump()
         except Exception:
             return FALLBACK_COMPATIBILITY
+
+    @staticmethod
+    async def generate_daily_insight(
+        user_name: str,
+        archetype_name: str,
+        archetype_number: int,
+        archetype_key: str,
+        matrix_data: "MatrixData | dict",
+        current_date: str,
+    ) -> DailyInsightResult:
+        from datetime import datetime
+
+        md = AIService._to_matrix_data(matrix_data)
+        matrix_json = md.model_dump_json()
+        dt = datetime.fromisoformat(current_date)
+        day_of_year = dt.timetuple().tm_yday
+
+        template = AIService._load_prompt("daily_insight.txt")
+        prompt = template.format(
+            user_name=user_name,
+            archetype_name=archetype_name,
+            archetype_number=archetype_number,
+            archetype_key=archetype_key,
+            matrix_json=matrix_json,
+            current_date=current_date,
+            day_of_year=day_of_year,
+        )
+
+        try:
+            response = await AIService.chat(
+                [
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": "Сгенерируй инсайт дня на основе моих данных."},
+                ],
+                api_params={**DEFAULT_PARAMS, "max_tokens": 800},
+            )
+            result = await AIService._parse_json_response(response)
+            validated = DailyInsightResult(**result)
+            return validated
+        except Exception:
+            from core.services.insights_data import INSIGHTS_BY_ARCHETYPE
+
+            archetype_data = INSIGHTS_BY_ARCHETYPE.get(archetype_number)
+            if archetype_data and archetype_data["insights"]:
+                insight = random.choice(archetype_data["insights"])
+                return DailyInsightResult(insight=insight, focus_area="саморазвитие")
+            return DailyInsightResult(
+                insight="Сегодня — день новых возможностей. Откройся им.",
+                focus_area="саморазвитие",
+            )
 
     @staticmethod
     async def chat_response(

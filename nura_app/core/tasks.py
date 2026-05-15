@@ -13,7 +13,7 @@ from core.models import ReportType, User
 from core.repositories import ReportRepository, UserRepository
 from core.services.ai import AIService
 from core.services.insights_data import INSIGHTS_BY_ARCHETYPE
-from core.services.matrix import MatrixService
+from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
 
 logger = logging.getLogger(__name__)
@@ -375,17 +375,48 @@ async def _send_daily_insights_async() -> dict:
         )
         users = result.scalars().all()
 
+    total = len(users)
+    needs_rate_limit = total > 50
     sent = 0
     blocked = 0
-    for user in users:
-        archetype_number = user.main_archetype_number
-        first_name = user.first_name or user.username or "пользователь"
 
-        archetype_data = INSIGHTS_BY_ARCHETYPE.get(archetype_number)
-        if not archetype_data:
+    for i, user in enumerate(users):
+        if needs_rate_limit and i > 0:
+            await asyncio.sleep(0.5)
+
+        if not user.birth_date:
             continue
 
-        insight = random.choice(archetype_data["insights"])
+        first_name = user.first_name or user.username or "пользователь"
+        archetype_number = user.main_archetype_number
+        if not archetype_number:
+            continue
+
+        archetype_info = ARCANA.get(archetype_number, {})
+        archetype_name = archetype_info.get("name", "Неизвестный")
+        archetype_key = archetype_info.get("key", "")
+
+        try:
+            matrix = MatrixService.calculate(user.birth_date)
+            current_date_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+            daily_insight = await AIService.generate_daily_insight(
+                user_name=first_name,
+                archetype_name=archetype_name,
+                archetype_number=archetype_number,
+                archetype_key=archetype_key,
+                matrix_data=matrix,
+                current_date=current_date_iso,
+            )
+            insight = daily_insight.insight
+        except Exception:
+            archetype_data = INSIGHTS_BY_ARCHETYPE.get(archetype_number)
+            insight = (
+                random.choice(archetype_data["insights"])
+                if archetype_data and archetype_data["insights"]
+                else "Сегодня — день новых возможностей. Откройся им."
+            )
+
         text = (
             f"🌅 Доброе утро, {first_name}.\n\n"
             f"{insight}\n\n"
@@ -413,7 +444,7 @@ async def _send_daily_insights_async() -> dict:
         else:
             sent += 1
 
-    return {"sent": sent, "blocked": blocked, "total": len(users)}
+    return {"sent": sent, "blocked": blocked, "total": total}
 
 
 @celery_app.task(name="core.tasks.check_expiring_subscriptions")

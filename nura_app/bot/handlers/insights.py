@@ -1,12 +1,17 @@
 import logging
 import random
-from datetime import date
+from datetime import date, timezone
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from bot.keyboards.main_menu import insight_keyboard, main_menu_keyboard, subscription_keyboard
+from bot.keyboards.main_menu import (
+    insight_keyboard,
+    insight_keyboard_subscriber,
+    main_menu_keyboard,
+    subscription_keyboard,
+)
 from bot.texts.insights import (
     insight_copied_text,
     insight_of_day_text,
@@ -16,7 +21,9 @@ from bot.texts.insights import (
 )
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
+from core.services.ai import AIService
 from core.services.insights_data import INSIGHTS_BY_ARCHETYPE
+from core.services.matrix import ARCANA, MatrixService
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +54,61 @@ async def show_insight(callback: CallbackQuery, state: FSMContext) -> None:
 
     archetype_number = user.main_archetype_number
     archetype_name = user.main_archetype
+
+    is_subscriber = user.subscription_status == "premium"
+
+    if is_subscriber:
+        state_data = await state.get_data()
+        today_str = date.today().isoformat()
+        cached_date = state_data.get("ai_insight_date")
+        cached_insight = state_data.get("ai_insight_text")
+
+        if cached_date == today_str and cached_insight:
+            text = insight_of_day_text(archetype_name, cached_insight)
+            await callback.message.edit_text(text, reply_markup=insight_keyboard_subscriber())
+            return
+
+        try:
+            if not user.birth_date:
+                raise ValueError("No birth_date")
+
+            matrix = MatrixService.calculate(user.birth_date)
+            archetype_info = ARCANA.get(archetype_number, {})
+            archetype_key = archetype_info.get("key", "")
+            from datetime import datetime
+            current_date_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            first_name = user.first_name or user.username or "пользователь"
+
+            daily_insight = await AIService.generate_daily_insight(
+                user_name=first_name,
+                archetype_name=archetype_name,
+                archetype_number=archetype_number,
+                archetype_key=archetype_key,
+                matrix_data=matrix,
+                current_date=current_date_iso,
+            )
+            insight_text = daily_insight.insight
+        except Exception:
+            archetype_data = INSIGHTS_BY_ARCHETYPE.get(archetype_number)
+            insight_text = (
+                random.choice(archetype_data["insights"])
+                if archetype_data and archetype_data["insights"]
+                else "Сегодня — день новых возможностей. Откройся им."
+            )
+
+        await state.update_data(
+            {
+                "ai_insight_date": today_str,
+                "ai_insight_text": insight_text,
+                "current_insight_text": insight_text,
+                "current_archetype_name": archetype_name,
+            }
+        )
+
+        text = insight_of_day_text(archetype_name, insight_text)
+        await callback.message.edit_text(text, reply_markup=insight_keyboard_subscriber())
+        return
+
     archetype_data = INSIGHTS_BY_ARCHETYPE.get(archetype_number)
 
     if not archetype_data:

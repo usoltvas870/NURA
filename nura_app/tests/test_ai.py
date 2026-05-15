@@ -43,6 +43,53 @@ class TestMiniAnalysis:
 
 
 @pytest.mark.asyncio
+class TestDailyInsight:
+    async def test_generates_valid_insight(self, sample_matrix):
+        mock_response = '{"insight":"Сегодня отличный день для роста. Твой архетип Маг даёт тебе силу начинать.","focus_area":"карьера"}'
+        with patch.object(AIService, "chat", new_callable=AsyncMock) as mock:
+            mock.return_value = mock_response
+            result = await AIService.generate_daily_insight(
+                user_name="Тест",
+                archetype_name="Маг",
+                archetype_number=1,
+                archetype_key="Воля, мастерство, начало",
+                matrix_data=sample_matrix,
+                current_date="2026-05-15",
+            )
+        assert result.insight
+        assert result.focus_area in ("отношения", "карьера", "финансы", "саморазвитие", "здоровье")
+        assert isinstance(result.insight, str)
+
+    async def test_fallback_on_error(self, sample_matrix):
+        with patch.object(AIService, "chat", new_callable=AsyncMock) as mock:
+            mock.side_effect = Exception("API error")
+            result = await AIService.generate_daily_insight(
+                user_name="Тест",
+                archetype_name="Маг",
+                archetype_number=1,
+                archetype_key="Воля, мастерство, начало",
+                matrix_data=sample_matrix,
+                current_date="2026-05-15",
+            )
+        assert result.insight
+        assert result.focus_area
+
+    async def test_fallback_on_invalid_json(self, sample_matrix):
+        with patch.object(AIService, "chat", new_callable=AsyncMock) as mock:
+            mock.return_value = "NOT JSON"
+            result = await AIService.generate_daily_insight(
+                user_name="Тест",
+                archetype_name="Маг",
+                archetype_number=1,
+                archetype_key="Воля, мастерство, начало",
+                matrix_data=sample_matrix,
+                current_date="2026-05-15",
+            )
+        assert result.insight
+        assert result.focus_area == "саморазвитие"
+
+
+@pytest.mark.asyncio
 class TestFullReport:
     async def test_returns_correct_fields(self, sample_matrix):
         with patch.object(AIService, "chat", new_callable=AsyncMock) as mock:

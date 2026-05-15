@@ -103,5 +103,10 @@ class CompatibilityFullResult(BaseModel):
     ai_recommendation: str
 
 
+class DailyInsightResult(BaseModel):
+    insight: str
+    focus_area: str
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"
