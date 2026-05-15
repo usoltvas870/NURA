@@ -50,3 +50,9 @@ async def callback_main_menu(callback: CallbackQuery) -> None:
         welcome_back_text(name=name, archetype=archetype),
         reply_markup=main_menu_keyboard(),
     )
+
+
+@router.message()
+async def unknown_message(message: Message) -> None:
+    from bot.texts.start import unknown_message_text
+    await message.answer(unknown_message_text())

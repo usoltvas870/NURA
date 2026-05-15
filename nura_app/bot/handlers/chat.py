@@ -16,7 +16,6 @@ from bot.texts.chat import (
     messages_remaining_text,
     paywall_text,
 )
-from bot.texts.start import unknown_message_text
 from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.report import ReportRepository
@@ -150,8 +149,7 @@ async def chat_message(message: Message, state: FSMContext) -> None:
         response += messages_remaining_text(0)
         await message.answer(response)
         await message.answer(paywall_text(), reply_markup=subscription_keyboard())
-        await state.set_state(ChatStates.idle)
-        await state.update_data(chat_history=[], chat_messages_left=0)
+        await state.clear()
         return
 
     if messages_left > 0:
@@ -171,8 +169,7 @@ async def exit_chat(event: Message | CallbackQuery, state: FSMContext) -> None:
         message = event
         user_id = event.from_user.id
 
-    await state.set_state(ChatStates.idle)
-    await state.update_data(chat_history=[], chat_messages_left=0)
+    await state.clear()
 
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
@@ -187,8 +184,3 @@ async def clear_chat(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     await state.update_data(chat_history=[])
     await callback.message.answer(history_cleared_text())
-
-
-@router.message(ChatStates.idle)
-async def unknown_message_handler(message: Message) -> None:
-    await message.answer(unknown_message_text())
