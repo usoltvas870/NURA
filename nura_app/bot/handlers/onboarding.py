@@ -129,6 +129,18 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
 
     if mini_report and mini_report.ai_analysis:
         analysis = mini_report.ai_analysis or {}
+        is_fallback = isinstance(analysis.get("main_archetype"), str) and "запроси разбор ещё раз" in analysis.get("main_archetype", "")
+        if is_fallback:
+            await report_repo.delete(mini_report.id)
+            username = callback.from_user.username or callback.from_user.first_name or "user"
+            generate_mini_report.delay(str(user.id), user.birth_date, username)
+            await callback.message.edit_text(
+                "🔄 Пересчитываю твою матрицу...\n"
+                "Это займёт около минуты.\n"
+                "Нажми 🔮 Моя матрица через минуту.",
+                reply_markup=main_menu_keyboard(),
+            )
+            return
         matrix_data = mini_report.matrix_data or {}
         analysis_text = mini_analysis_text(
             archetype_name=matrix_data.get("archetype_name", user.main_archetype or "..."),
