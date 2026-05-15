@@ -16,6 +16,7 @@ from bot.texts.chat import (
     messages_remaining_text,
     paywall_text,
 )
+from bot.texts.start import help_text
 from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.report import ReportRepository
@@ -104,6 +105,21 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         text = greeting_text_free(name, archetype_name)
 
     await callback.message.edit_text(text)
+
+
+@router.message(Command(commands=["start", "menu", "help"]), ChatStates.chatting)
+async def chat_command_exit(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("🚪 Вышел из чата.")
+
+    if message.text.startswith("/start"):
+        from bot.handlers.onboarding import cmd_start
+        await cmd_start(message, state)
+    elif message.text.startswith("/menu"):
+        from bot.handlers.start import cmd_menu
+        await cmd_menu(message)
+    elif message.text.startswith("/help"):
+        await message.answer(help_text())
 
 
 @router.message(ChatStates.chatting)
