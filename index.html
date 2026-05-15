@@ -891,9 +891,24 @@
       .pain-block { padding: 36px 28px; }
       .pricing { grid-template-columns: 1fr; }
       .price-card.featured { transform: none; }
+
+      .pm-top { grid-template-columns: 1fr; }
+      .pm-top::after { display: none; }
+      .pm-bottom { grid-template-columns: 1fr; }
+
+      .pricing-table { display: none; }
+      .pricing-cards-mobile { display: grid; gap: 18px; }
+
+      .pm-arrow-down::before { left: 50%; }
+
+      .pricing-featured-note { flex-direction: column; gap: 12px; }
     }
 
     @media (max-width: 560px) {
+      .pm-card { padding: 22px 18px; }
+      .pm-path-card { padding: 24px 20px; }
+      .pricing-featured-note { padding: 20px; }
+
       .container { width: min(100% - 24px, 1140px); }
       .hero { padding: 52px 0 48px; }
       .hero-actions .btn { width: 100%; }
@@ -906,6 +921,298 @@
       .n5 { left: calc(50% - 21px); top: calc(50% - 21px); }
       .card { padding: 22px; border-radius: 20px; }
       .stats-inner { grid-template-columns: 1fr 1fr; gap: 24px; }
+    }
+
+    /* PRODUCT MAP */
+    .product-map {
+      display: grid;
+      gap: 0;
+      position: relative;
+    }
+
+    .pm-top {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      position: relative;
+    }
+
+    .pm-top::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: calc(33.33% + 9px);
+      right: calc(33.33% + 9px);
+      height: 2px;
+      background: linear-gradient(90deg, var(--orange), rgba(217,122,50,.35), var(--orange));
+      z-index: 1;
+    }
+
+    .pm-card {
+      position: relative;
+      z-index: 2;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 28px 24px;
+      background: rgba(245,243,238,.05);
+      text-align: center;
+      transition: border-color .25s ease;
+    }
+
+    .pm-card:hover {
+      border-color: rgba(217,122,50,.3);
+    }
+
+    .pm-card .pm-num {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      background: rgba(217,122,50,.12);
+      border: 1px solid rgba(217,122,50,.35);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      color: var(--orange);
+    }
+
+    .pm-card h3 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .pm-card p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+      font-weight: 300;
+      margin: 0;
+    }
+
+    .pm-arrow-down {
+      display: flex;
+      justify-content: center;
+      padding: 24px 0;
+      position: relative;
+    }
+
+    .pm-arrow-down::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--orange), rgba(217,122,50,.3));
+    }
+
+    .pm-arrow-down svg {
+      position: relative;
+      z-index: 1;
+      background: var(--deep-green);
+      padding: 4px;
+    }
+
+    .pm-bottom {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .pm-path-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 32px 28px;
+      background: rgba(245,243,238,.04);
+      transition: border-color .25s ease, transform .25s ease;
+    }
+
+    .pm-path-card:hover {
+      border-color: rgba(217,122,50,.28);
+      transform: translateY(-3px);
+    }
+
+    .pm-path-card.featured {
+      border-color: rgba(217,122,50,.42);
+      background:
+        radial-gradient(circle at 50% 0%, rgba(217,122,50,.14), transparent 40%),
+        rgba(245,243,238,.06);
+    }
+
+    .pm-path-price {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 36px;
+      color: var(--orange);
+      margin: 12px 0 4px;
+    }
+
+    .pm-path-price span {
+      font-size: 16px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .pm-path-card h3 {
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .pm-path-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 24px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .pm-path-card li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+      font-weight: 300;
+    }
+
+    .pm-path-card li::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+      flex: 0 0 auto;
+      margin-top: 7px;
+    }
+
+    /* PRICING TABLE */
+    .pricing-table {
+      display: grid;
+      grid-template-columns: 1.4fr repeat(3, 1fr);
+      gap: 0;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      overflow: hidden;
+      background: rgba(245,243,238,.03);
+    }
+
+    .pt-header {
+      display: contents;
+    }
+
+    .pt-header > div {
+      padding: 28px 24px;
+      border-bottom: 1px solid var(--line);
+      text-align: center;
+    }
+
+    .pt-header > div:first-child {
+      text-align: left;
+      display: flex;
+      align-items: center;
+    }
+
+    .pt-header > div:not(:first-child) {
+      border-left: 1px solid var(--line);
+    }
+
+    .pt-header .pt-plan-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      color: var(--white);
+      margin-bottom: 4px;
+    }
+
+    .pt-header .pt-plan-price {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px;
+      color: var(--orange);
+      line-height: 1;
+    }
+
+    .pt-header .pt-plan-price small {
+      font-size: 14px;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .pt-row {
+      display: contents;
+    }
+
+    .pt-row > div {
+      padding: 18px 24px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    .pt-row > div:first-child {
+      justify-content: flex-start;
+      color: rgba(245,243,238,.85);
+      font-weight: 400;
+    }
+
+    .pt-row > div:not(:first-child) {
+      border-left: 1px solid var(--line);
+    }
+
+    .pt-check {
+      color: var(--orange);
+      font-size: 18px;
+    }
+
+    .pt-cross {
+      color: rgba(245,243,238,.2);
+      font-size: 16px;
+    }
+
+    .pt-highlight {
+      background: rgba(217,122,50,.06);
+    }
+
+    .pricing-cards-mobile {
+      display: none;
+    }
+
+    .pricing-featured-note {
+      border: 1px solid rgba(217,122,50,.3);
+      border-radius: 20px;
+      padding: 24px 28px;
+      margin-top: 24px;
+      background:
+        radial-gradient(circle at 20% 50%, rgba(217,122,50,.1), transparent 50%),
+        rgba(245,243,238,.04);
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .pricing-featured-note .pfn-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .pricing-featured-note h4 {
+      margin: 0 0 6px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      color: var(--orange);
+    }
+
+    .pricing-featured-note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+      font-weight: 300;
     }
 
     /* ANIMATIONS */
@@ -929,6 +1236,7 @@
         </a>
         <nav class="nav-links" aria-label="Главное меню">
           <a href="#about">Как это работает</a>
+          <a href="#product-map">Путь</a>
           <a href="#inside">Что внутри</a>
           <a href="#reviews">Отзывы</a>
           <a href="#faq">FAQ</a>
@@ -1050,6 +1358,69 @@
         </div>
       </section>
 
+      <!-- PRODUCT MAP -->
+      <section id="product-map">
+        <div class="container">
+          <div class="section-head centered">
+            <h2>Путь по продукту</h2>
+            <p class="lead">Как ты проходишь через NURA — от бесплатного разбора до глубокой практики.</p>
+          </div>
+
+          <div class="product-map">
+            <div class="pm-top">
+              <div class="pm-card">
+                <div class="pm-num">1</div>
+                <h3>Расчёт матрицы</h3>
+                <p>Бесплатно · 2 минуты<br>Вводишь дату рождения — получаешь базовый разбор</p>
+              </div>
+              <div class="pm-card">
+                <div class="pm-num">2</div>
+                <h3>Мини-разбор</h3>
+                <p>Бесплатно<br>Архетип, сценарий, зона роста — три ключевых инсайта</p>
+              </div>
+              <div class="pm-card">
+                <div class="pm-num">3</div>
+                <h3>Выбор пути</h3>
+                <p>Решаешь: глубокий отчёт или ежедневная практика</p>
+              </div>
+            </div>
+
+            <div class="pm-arrow-down">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 4L12 20M12 20L6 14M12 20L18 14" stroke="#D97A32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <div class="pm-bottom">
+              <div class="pm-path-card">
+                <span class="pill">Одноразово</span>
+                <h3>Полный отчёт</h3>
+                <div class="pm-path-price">590 ₽ <span>· навсегда</span></div>
+                <ul>
+                  <li>Личность, деньги, отношения, таланты</li>
+                  <li>План на 7 дней</li>
+                  <li>Совместимость с партнёром</li>
+                  <li>Чат с NURA</li>
+                </ul>
+                <a class="btn btn-primary" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Получить отчёт</a>
+              </div>
+              <div class="pm-path-card featured">
+                <span class="pill">Постоянно</span>
+                <h3>Подписка</h3>
+                <div class="pm-path-price">390 ₽ <span>/мес</span></div>
+                <ul>
+                  <li>Ежедневные AI-инсайты каждое утро</li>
+                  <li>Чат с NURA безлимит</li>
+                  <li>Все отчёты для себя</li>
+                  <li>Глубокие интерпретации</li>
+                </ul>
+                <a class="btn btn-primary" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Оформить подписку</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- HOW TO GET -->
       <section>
         <div class="container">
@@ -1123,37 +1494,115 @@
       <!-- PRICING -->
       <section>
         <div class="container">
-          <div class="section-head">
-            <h2>Выбери глубину разбора</h2>
+          <div class="section-head centered">
+            <h2>Тарифы</h2>
+            <p class="lead">Все начинается бесплатно. Выбирай глубину — когда будешь готова.</p>
           </div>
-          <div class="pricing">
+
+          <div class="pricing-table">
+            <div class="pt-header">
+              <div></div>
+              <div>
+                <div class="pt-plan-name">Бесплатно</div>
+                <div class="pt-plan-price">0 ₽</div>
+              </div>
+              <div>
+                <div class="pt-plan-name">Полная матрица</div>
+                <div class="pt-plan-price">590 ₽</div>
+              </div>
+              <div class="pt-highlight">
+                <div class="pt-plan-name">Подписка</div>
+                <div class="pt-plan-price">390 ₽ <small>/мес</small></div>
+              </div>
+            </div>
+
+            <div class="pt-row">
+              <div>Мини-разбор (5 блоков)</div>
+              <div><span class="pt-check">✓</span></div>
+              <div><span class="pt-check">✓</span></div>
+              <div class="pt-highlight"><span class="pt-check">✓</span></div>
+            </div>
+            <div class="pt-row">
+              <div>Полный AI-отчёт</div>
+              <div><span class="pt-cross">—</span></div>
+              <div><span class="pt-check">✓</span> 1 шт</div>
+              <div class="pt-highlight"><span class="pt-check">✓</span> безлимит для себя</div>
+            </div>
+            <div class="pt-row">
+              <div>Чат с NURA</div>
+              <div><span class="pt-cross">—</span></div>
+              <div><span class="pt-check">✓</span></div>
+              <div class="pt-highlight"><span class="pt-check">✓</span> безлимит</div>
+            </div>
+            <div class="pt-row">
+              <div>Ежедневные AI-инсайты</div>
+              <div><span class="pt-cross">—</span></div>
+              <div><span class="pt-cross">—</span></div>
+              <div class="pt-highlight"><span class="pt-check">✓</span> каждое утро</div>
+            </div>
+            <div class="pt-row">
+              <div>Совместимость</div>
+              <div><span class="pt-cross">—</span></div>
+              <div><span class="pt-check">✓</span> в составе</div>
+              <div class="pt-highlight"><span class="pt-cross">—</span> отдельно</div>
+            </div>
+            <div class="pt-row">
+              <div>Отчёты для других</div>
+              <div><span class="pt-cross">—</span></div>
+              <div><span class="pt-cross">—</span></div>
+              <div class="pt-highlight"><span class="pt-cross">—</span> только себе</div>
+            </div>
+
+            <div class="pt-row">
+              <div></div>
+              <div>
+                <a class="btn" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Попробовать</a>
+              </div>
+              <div>
+                <a class="btn btn-primary" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Получить отчёт</a>
+              </div>
+              <div class="pt-highlight">
+                <a class="btn btn-primary" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Оформить</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="pricing-cards-mobile">
             <article class="card price-card">
               <div>
                 <span class="pill">Бесплатно</span>
                 <h3>Мини-разбор</h3>
                 <div class="price">0 ₽</div>
-                <p>Главный архетип, сильная сторона, зона напряжения и первый вывод по отношениям.</p>
+                <p>Главный архетип, сценарий, зона роста — три ключевых инсайта за 2 минуты.</p>
               </div>
               <a class="btn" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Попробовать</a>
             </article>
-            <article class="card price-card featured">
+            <article class="card price-card">
               <div>
-                <span class="pill">Лучший старт</span>
+                <span class="pill">Одноразово</span>
                 <h3>Полная матрица</h3>
                 <div class="price">590 ₽</div>
-                <p>Личность, отношения, деньги, таланты, внутренние блоки, рекомендации и план на 7 дней.</p>
+                <p>Личность, деньги, отношения, таланты, план на 7 дней, совместимость, чат с NURA.</p>
               </div>
-              <a class="btn btn-primary" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Получить полный отчёт</a>
+              <a class="btn btn-primary" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Получить отчёт</a>
             </article>
-            <article class="card price-card">
+            <article class="card price-card featured">
               <div>
                 <span class="pill">Подписка</span>
                 <h3>Ежедневные инсайты</h3>
-                <div class="price">390 ₽ <span class="old-price">990 ₽</span></div>
-                <p>Личные подсказки, совместимость, недельные разборы и вопросы для самонаблюдения.</p>
+                <div class="price">390 ₽ <span class="old-price">/мес</span></div>
+                <p>Каждое утро — персональный AI-инсайт под твою матрицу и текущую дату. Безлимитный чат с NURA и все отчёты для себя.</p>
               </div>
-              <a class="btn" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Открыть подписку</a>
+              <a class="btn btn-primary" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Оформить подписку</a>
             </article>
+          </div>
+
+          <div class="pricing-featured-note">
+            <div class="pfn-icon">✦</div>
+            <div>
+              <h4>Ежедневные AI-инсайты</h4>
+              <p>Каждое утро — персональный инсайт, сгенерированный AI под твою матрицу и текущую дату. Никто не получает такой же. Это не рассылка — это живая практика самопознания.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -1273,6 +1722,20 @@
                 <span class="faq-arrow">+</span>
               </button>
               <div class="faq-a">Да, в полном отчёте есть раздел совместимости. Ты вводишь дату рождения партнёра, и NURA строит анализ по двум матрицам: где вы усиливаете друг друга, а где могут возникать напряжения.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" onclick="toggleFaq(this)">
+                Зачем нужна подписка, если я могу купить один отчёт?
+                <span class="faq-arrow">+</span>
+              </button>
+              <div class="faq-a">Полный отчёт — это глубокий снимок твоей матрицы сейчас. Подписка — это ежедневная практика: каждое утро ты получаешь новый инсайт, который резонирует с твоим архетипом и текущей датой. Плюс — безлимитный чат с NURA и все отчёты для себя.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" onclick="toggleFaq(this)">
+                Могу ли я по подписке рассчитывать матрицы для друзей?
+                <span class="faq-arrow">+</span>
+              </button>
+              <div class="faq-a">Нет. Подписка даёт полные отчёты только для твоей даты рождения. Для расчёта других людей отчёты приобретаются отдельно.</div>
             </div>
           </div>
         </div>
