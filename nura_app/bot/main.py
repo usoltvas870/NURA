@@ -17,6 +17,8 @@ from bot.handlers.profile import router as profile_router
 from bot.handlers.start import router as start_router
 from bot.middlewares import UserRegistrationMiddleware, ThrottlingMiddleware, AntiFloodMiddleware
 from core.config import settings
+from core.database import create_engine
+from core.models import Base
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,6 +62,29 @@ async def main():
     dp.include_router(payment_router)
     dp.include_router(profile_router)
     dp.include_router(start_router)
+
+    max_db_retries = 10
+    for attempt in range(max_db_retries):
+        try:
+            engine = create_engine()
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            await engine.dispose()
+            logger.info("Database tables ensured")
+            break
+        except Exception as e:
+            logger.warning(
+                "DB init attempt %d/%d failed: %s",
+                attempt + 1, max_db_retries, e,
+            )
+            try:
+                await engine.dispose()
+            except Exception:
+                pass
+            if attempt < max_db_retries - 1:
+                await asyncio.sleep(3)
+            else:
+                raise
 
     logger.info("Bot polling started")
     await dp.start_polling(bot)

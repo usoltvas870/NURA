@@ -54,10 +54,11 @@ async def process_birth_date(message: Message, state: FSMContext) -> None:
     user_repo = UserRepository(session_factory)
     user = await user_repo.get_by_telegram_id(message.from_user.id)
     if user is None:
-        await msg.edit_text(
-            "Пользователь не найден. Начни с /start",
+        user = await user_repo.create(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            first_name=message.from_user.first_name,
         )
-        return
 
     username = message.from_user.username or message.from_user.first_name or "user"
     task = generate_mini_report.delay(str(user.id), date_str, username)
@@ -67,12 +68,21 @@ async def process_birth_date(message: Message, state: FSMContext) -> None:
     while waited < MAX_POLL_SECONDS:
         ready = AsyncResult(task.id).ready()
         if ready:
-            result = AsyncResult(task.id).result
+            try:
+                result = AsyncResult(task.id).result
+            except Exception as e:
+                result = e
             break
         await asyncio.sleep(POLL_INTERVAL)
         waited += POLL_INTERVAL
 
-    if result is None:
+    if result is None or isinstance(result, Exception):
+        await msg.edit_text(
+            "Что-то пошло не так. Попробуй ещё раз через минуту.",
+        )
+        return
+
+    if not isinstance(result, dict):
         await msg.edit_text(
             "Что-то пошло не так. Попробуй ещё раз через минуту.",
         )
