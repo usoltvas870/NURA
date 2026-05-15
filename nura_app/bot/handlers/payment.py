@@ -16,7 +16,9 @@ from core.database import get_async_sessionmaker
 from core.repositories.payment import PaymentRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
+from core.services.access import can_access_full_report
 from core.services.payment import PaymentService
+from core.tasks import generate_full_report
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +71,31 @@ async def initiate_full_report_payment(callback: CallbackQuery) -> None:
         )
         return
 
+    report_birth_date = (report.matrix_data or {}).get("birth_date") if report else None
+    if not report_birth_date:
+        report_birth_date = user.birth_date
+
+    access, reason = await can_access_full_report(user, report_birth_date)
+
+    if access and reason == "subscription":
+        generate_full_report.delay(str(user.id), report_birth_date, token)
+        await callback.message.edit_text(
+            "🎉 Доступно по подписке!\n\n"
+            "🔄 Генерирую твой полный AI-отчёт...\n"
+            "Это займёт около минуты.\n\n"
+            "Я пришлю уведомление, как только он будет готов.",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    if reason == "other_person":
+        message_prefix = (
+            "ℹ️ Этот отчёт для другого человека.\n"
+            "Приобрети его отдельно за 590 ₽.\n\n"
+        )
+    else:
+        message_prefix = ""
+
     try:
         payment = await PaymentService.create_payment(
             telegram_id=user.telegram_id,
@@ -78,7 +105,7 @@ async def initiate_full_report_payment(callback: CallbackQuery) -> None:
         )
 
         await callback.message.edit_text(
-            payment_link_text(),
+            message_prefix + payment_link_text(),
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
                     [InlineKeyboardButton(text=f"💳 Оплатить {settings.report_price_rub} ₽", url=payment["payment_url"])],
