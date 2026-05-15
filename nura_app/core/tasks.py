@@ -118,7 +118,7 @@ async def _notify_mini_report(telegram_id: int, token: str) -> None:
     )
     keyboard = {
         "inline_keyboard": [
-            [{"text": "✨ Полный разбор за 590 ₽", "callback_data": f"pay_full_report:{token}"}],
+            [{"text": "✨ Полный разбор за 690 ₽", "callback_data": f"pay_full_report:{token}"}],
             [{"text": "🏠 В меню", "callback_data": "main_menu"}],
         ],
     }
@@ -133,7 +133,7 @@ async def _notify_compatibility(telegram_id: int, token: str) -> None:
     )
     keyboard = {
         "inline_keyboard": [
-            [{"text": "✨ Полная матрица 590 ₽", "callback_data": f"pay_compatibility:{token}"}],
+            [{"text": "✨ Полная матрица 690 ₽", "callback_data": f"pay_compatibility:{token}"}],
             [{"text": "💎 Подписка 390 ₽/мес", "callback_data": "buy_subscription"}],
             [{"text": "🏠 В меню", "callback_data": "main_menu"}],
         ],
