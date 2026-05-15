@@ -178,31 +178,44 @@ MCP-серверы подключаются автоматически из `.op
 
 ## VPS Access
 
-Текущий VPS (Beget) — общий с Astro Insight. Проект NURA живёт рядом.
+Проект NURA развёрнут на отдельном VPS.
 
 | | |
 |---|---|
-| SSH | `root@45.146.166.199` |
+| SSH | `root@45.144.178.118` |
 | SSH key | `C:\Users\Bayzel\.ssh\id_ed25519_astro` (Windows, без пароля) |
-| Landing root | `/var/www/nura-ai.ru/` |
-| Project root | `/opt/nura/` (TODO) |
-| Nginx конфиг | `/opt/astro-insight/nginx/nura-ai.ru.conf` |
-| Nginx контейнер | `astro_nginx_prod` |
+| Landing | `https://nura-ai.ru` — статика в `/opt/nura/index.html` |
+| Project root | `/opt/nura/` |
+| Code | `/opt/nura/nura_app/` |
+
+### Docker контейнеры (в `/opt/nura/nura_app/`)
+
+| Контейнер | Роль |
+|---|---|
+| `nura_app-bot-1` | Telegram бот (aiogram) |
+| `nura_app-api-1` | FastAPI (вебхуки, отчёты) |
+| `nura_app-celery-worker-1` | Celery worker |
+| `nura_app-celery-beat-1` | Celery beat |
+| `nura_app-postgres-1` | PostgreSQL |
+| `nura_app-redis-1` | Redis (FSM + Celery) |
 
 ### Deploy commands
 
 ```bash
 # Подключение
-ssh -i C:\Users\Bayzel\.ssh\id_ed25519_astro -o StrictHostKeyChecking=no root@45.146.166.199
+ssh -i C:\Users\Bayzel\.ssh\id_ed25519_astro -o StrictHostKeyChecking=no root@45.144.178.118
 
-# Обновить лендинг
-scp -i C:\Users\Bayzel\.ssh\id_ed25519_astro index.html root@45.146.166.199:/var/www/nura-ai.ru/
+# Pull + rebuild bot
+cd /opt/nura && git pull origin master && cd nura_app && docker compose up -d --build bot
 
-# Логи nginx
-docker exec astro_nginx_prod tail -50 /var/log/nginx/access.log
+# Pull + rebuild всё
+cd /opt/nura && git pull origin master && cd nura_app && docker compose up -d --build
 
-# Reload nginx конфига
-docker exec astro_nginx_prod nginx -s reload
+# Логи бота
+docker logs nura_app-bot-1 --tail 50
+
+# Перезапуск контейнера
+docker compose restart bot
 ```
 
 ## Suspicious Activity
