@@ -3,7 +3,7 @@ import logging
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from celery.result import AsyncResult
 
 from bot.handlers.validators import validate_date
@@ -17,6 +17,7 @@ from bot.texts.compatibility import (
     mini_compatibility_text,
 )
 from bot.texts.matrix import invalid_format_text
+from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
 from core.tasks import generate_compatibility_report
@@ -112,4 +113,16 @@ async def process_second_date(message: Message, state: FSMContext) -> None:
         block_3=analysis.get("emotional_compatibility", "..."),
     )
 
-    await msg.edit_text(text, reply_markup=compatibility_paywall_keyboard(token))
+    if settings.test_mode:
+        report_url = f"{settings.report_base_url}/report/{token}"
+        await msg.edit_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="👁 Открыть полный разбор (тестовый режим — оплата не требуется)", url=report_url)],
+                    [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+                ]
+            ),
+        )
+    else:
+        await msg.edit_text(text, reply_markup=compatibility_paywall_keyboard(token))

@@ -55,10 +55,13 @@ class Settings(BaseSettings):
 
     # Report
     report_base_url: str = "https://nura-ai.ru"
-    report_price_rub: int = 590
+    report_price_rub: int = 690
 
     # Subscription
     subscription_price_rub: int = 390
+
+    # Test mode — all paid features free
+    test_mode: bool = True
 
     # Rate limit
     rate_limit_requests: int = 30

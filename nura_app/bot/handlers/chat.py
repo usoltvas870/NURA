@@ -5,10 +5,18 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from bot.keyboards.main_menu import chat_keyboard, main_menu_keyboard
+from bot.keyboards.main_menu import chat_keyboard, main_menu_keyboard, subscription_keyboard
 from bot.states.chat_state import ChatStates
-from bot.texts.chat import exit_text, greeting_text, history_cleared_text, paywall_text
+from bot.texts.chat import (
+    exit_text,
+    greeting_text_free,
+    greeting_text_unlimited,
+    history_cleared_text,
+    messages_remaining_text,
+    paywall_text,
+)
 from bot.texts.start import unknown_message_text
+from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
@@ -17,6 +25,8 @@ from core.services.ai import AIService
 logger = logging.getLogger(__name__)
 
 router = Router()
+
+FREE_MESSAGES_LIMIT = 5
 
 
 async def _get_user_matrix_data(telegram_id: int):
@@ -38,6 +48,19 @@ async def _get_user_matrix_data(telegram_id: int):
 
 
 def _has_chat_access(user, reports) -> bool:
+    if settings.test_mode:
+        return True
+    if user.subscription_status == "premium":
+        return True
+    for r in reports:
+        if r.report_type == "full":
+            return True
+    return False
+
+
+def _has_unlimited_chat(user, reports) -> bool:
+    if settings.test_mode:
+        return True
     if user.subscription_status == "premium":
         return True
     for r in reports:
@@ -59,23 +82,8 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         return
 
     if not _has_chat_access(user, reports):
-        last_mini_report = None
-        for r in reports:
-            if r.report_type == "mini":
-                last_mini_report = r
-        token = last_mini_report.token if last_mini_report else ""
         text = paywall_text()
-
-        from bot.keyboards.main_menu import InlineKeyboardMarkup, InlineKeyboardButton
-
-        kb = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="✨ Полный отчёт 590 ₽", callback_data=f"pay_full_report:{token}")],
-                [InlineKeyboardButton(text="💎 Подписка 390 ₽/мес", callback_data="buy_subscription")],
-                [InlineKeyboardButton(text="👤 Назад в профиль", callback_data="back_to_profile")],
-            ]
-        )
-        await callback.message.edit_text(text, reply_markup=kb)
+        await callback.message.edit_text(text, reply_markup=subscription_keyboard())
         return
 
     name = user.first_name or user.username or "пользователь"
@@ -88,7 +96,13 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(matrix_data=matrix_report.matrix_data)
     await state.update_data(user_name=name)
 
-    text = greeting_text(name, archetype_name)
+    if _has_unlimited_chat(user, reports):
+        await state.update_data(chat_messages_left=-1)
+        text = greeting_text_unlimited(name, archetype_name)
+    else:
+        await state.update_data(chat_messages_left=FREE_MESSAGES_LIMIT)
+        text = greeting_text_free(name, archetype_name)
+
     await callback.message.edit_text(text, reply_markup=chat_keyboard())
 
 
@@ -98,6 +112,7 @@ async def chat_message(message: Message, state: FSMContext) -> None:
     chat_history = state_data.get("chat_history", [])
     matrix_data = state_data.get("matrix_data")
     user_name = state_data.get("user_name", message.from_user.first_name or "пользователь")
+    messages_left = state_data.get("chat_messages_left", 0)
 
     if not matrix_data:
         session_factory = get_async_sessionmaker()
@@ -124,6 +139,21 @@ async def chat_message(message: Message, state: FSMContext) -> None:
     chat_history.append({"role": "assistant", "content": response})
     await state.update_data(chat_history=chat_history)
 
+    if messages_left > 0:
+        messages_left -= 1
+        await state.update_data(chat_messages_left=messages_left)
+
+    if messages_left == 0:
+        response += messages_remaining_text(0)
+        await message.answer(response)
+        await message.answer(paywall_text(), reply_markup=subscription_keyboard())
+        await state.set_state(ChatStates.idle)
+        await state.update_data(chat_history=[], chat_messages_left=0)
+        return
+
+    if messages_left > 0:
+        response += messages_remaining_text(messages_left)
+
     await message.answer(response, reply_markup=chat_keyboard())
 
 
@@ -139,7 +169,7 @@ async def exit_chat(event: Message | CallbackQuery, state: FSMContext) -> None:
         user_id = event.from_user.id
 
     await state.set_state(ChatStates.idle)
-    await state.update_data(chat_history=[])
+    await state.update_data(chat_history=[], chat_messages_left=0)
 
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)

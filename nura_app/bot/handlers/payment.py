@@ -77,6 +77,17 @@ async def initiate_full_report_payment(callback: CallbackQuery) -> None:
 
     access, reason = await can_access_full_report(user, report_birth_date)
 
+    if settings.test_mode:
+        generate_full_report.delay(str(user.id), report_birth_date, token)
+        await callback.message.edit_text(
+            "🔄 Генерирую твой полный AI-отчёт...\n"
+            "(тестовый режим — оплата не требуется)\n\n"
+            "Это займёт около минуты.\n"
+            "Я пришлю уведомление, как только он будет готов.",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
     if access and reason == "subscription":
         generate_full_report.delay(str(user.id), report_birth_date, token)
         await callback.message.edit_text(
@@ -91,7 +102,7 @@ async def initiate_full_report_payment(callback: CallbackQuery) -> None:
     if reason == "other_person":
         message_prefix = (
             "ℹ️ Этот отчёт для другого человека.\n"
-            "Приобрети его отдельно за 590 ₽.\n\n"
+            "Приобрети его отдельно за 690 ₽.\n\n"
         )
     else:
         message_prefix = ""
@@ -152,6 +163,20 @@ async def initiate_compatibility_payment(callback: CallbackQuery) -> None:
         )
         return
 
+    if settings.test_mode:
+        report_url = f"{settings.report_base_url}/report/{token}"
+        await callback.message.edit_text(
+            "❤️ Полный разбор совместимости доступен.\n"
+            "(тестовый режим — оплата не требуется)",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="👁 Открыть полный разбор", url=report_url)],
+                    [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+                ]
+            ),
+        )
+        return
+
     try:
         payment = await PaymentService.create_payment(
             telegram_id=user.telegram_id,
@@ -209,7 +234,34 @@ async def full_report_pay(callback: CallbackQuery) -> None:
         from bot.texts.matrix import mini_analysis_text
         analysis = mini_report.ai_analysis or {}
         matrix_data = mini_report.matrix_data or {}
-        text = mini_analysis_text(
+
+        matrix_text = ""
+        if user.birth_date:
+            from core.services.matrix import MatrixService
+            matrix = MatrixService.calculate(user.birth_date)
+            arcana = matrix.arcana_names
+            matrix_text = (
+                f"<b>🔮 Твоя Матрица Судьбы</b>\n\n"
+                f"<b>Дата рождения:</b> {user.birth_date}\n"
+                f"<b>Главный архетип:</b> {user.main_archetype or arcana['center']} ({user.main_archetype_number or matrix.center})\n\n"
+                "━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"<b>🎭 Основные позиции:</b>\n"
+                f"• Центр (ты): {arcana['center']}\n"
+                f"• Верх (небо): {arcana['top']}\n"
+                f"• Низ (земля): {arcana['bottom']}\n"
+                f"• Лево (мужское): {arcana['left']}\n"
+                f"• Право (женское): {arcana['right']}\n\n"
+                f"<b>🌟 Зоны:</b>\n"
+                f"• Таланты: {arcana['talent_zone']}\n"
+                f"• Комфорт: {arcana['comfort_zone']}\n"
+                f"• Портрет: {arcana['portrait_zone']}\n\n"
+                "━━━━━━━━━━━━━━━━━━━━\n\n"
+                "<b>Мини-разбор AI:</b>\n\n"
+            )
+        else:
+            matrix_text = ""
+
+        analysis_text = mini_analysis_text(
             archetype_name=matrix_data.get("archetype_name", user.main_archetype or "..."),
             archetype_number=matrix_data.get("archetype_number", user.main_archetype_number or 0),
             main_archetype=analysis.get("main_archetype", "..."),
@@ -218,11 +270,13 @@ async def full_report_pay(callback: CallbackQuery) -> None:
             relationship_pattern=analysis.get("relationship_pattern", "..."),
             financial_block=analysis.get("financial_block", "..."),
         )
+        text = matrix_text + analysis_text
+
         await callback.message.edit_text(
             text,
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="🔮 Полный разбор за 590 ₽", callback_data=f"pay_full_report:{mini_report.token}")],
+                    [InlineKeyboardButton(text="🔮 Полный разбор за 690 ₽", callback_data=f"pay_full_report:{mini_report.token}")],
                     [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
                 ]
             ),
@@ -261,6 +315,22 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
             f"Действительна до: {until_str}"
         )
         await callback.message.edit_text(text, reply_markup=main_menu_keyboard())
+        return
+
+    if settings.test_mode:
+        from datetime import datetime, timedelta, timezone
+        session_factory = get_async_sessionmaker()
+        user_repo = UserRepository(session_factory)
+        until_date = datetime.now(timezone.utc) + timedelta(days=30)
+        await user_repo.update_subscription(user.id, "premium", until_date)
+        until_str = until_date.strftime("%d.%m.%Y")
+        await callback.message.edit_text(
+            f"🎉 Подписка активирована!\n"
+            f"(тестовый режим — оплата не требуется)\n\n"
+            f"Твой статус: 👑 Premium\n"
+            f"Действительна до: {until_str}",
+            reply_markup=main_menu_keyboard(),
+        )
         return
 
     try:

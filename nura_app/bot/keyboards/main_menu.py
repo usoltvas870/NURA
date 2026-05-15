@@ -5,23 +5,17 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 def main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="👤 Профиль", callback_data="profile")],
-            [InlineKeyboardButton(text="🔮 Моя матрица", callback_data="my_matrix")],
-            [InlineKeyboardButton(text="📖 Полный разбор", callback_data="full_report_pay")],
             [
-                InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
+                InlineKeyboardButton(text="🔮 Моя матрица", callback_data="my_matrix"),
+                InlineKeyboardButton(text="📖 Полный разбор", callback_data="full_report_pay"),
+            ],
+            [
+                InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura"),
                 InlineKeyboardButton(text="🌒 Инсайты", callback_data="insights"),
             ],
-            [InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura")],
-        ]
-    )
-
-
-def paywall_keyboard(token: str, report_type: str = "matrix") -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="🔮 Полный разбор за 590 ₽", callback_data=f"pay_full_report:{token}")],
-            [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+            [
+                InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
+            ],
         ]
     )
 
@@ -29,7 +23,7 @@ def paywall_keyboard(token: str, report_type: str = "matrix") -> InlineKeyboardM
 def compatibility_paywall_keyboard(token: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🔮 Полный разбор за 390 ₽", callback_data=f"pay_compatibility:{token}")],
+            [InlineKeyboardButton(text="💎 Полный разбор по подписке 390 ₽/мес", callback_data="buy_subscription")],
             [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
         ]
     )
@@ -65,7 +59,7 @@ def profile_keyboard(has_matrix: bool, has_full_report: bool, is_subscriber: boo
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✨ Полный отчёт 590 ₽", callback_data="full_report_pay")],
+            [InlineKeyboardButton(text="✨ Полный отчёт 690 ₽", callback_data="full_report_pay")],
             [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
             [InlineKeyboardButton(text="💎 О подписке", callback_data="subscription")],
             [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],

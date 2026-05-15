@@ -4,11 +4,12 @@ import logging
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from bot.handlers.validators import validate_date
 from bot.keyboards.main_menu import main_menu_keyboard
 from bot.states.onboarding_state import OnboardingStates
+from bot.texts.matrix import mini_analysis_text
 from bot.texts.onboarding import (
     ask_birth_date_onboarding_text,
     invalid_format_onboarding_text,
@@ -18,6 +19,7 @@ from bot.texts.onboarding import (
     onboarding_loading_text,
 )
 from core.database import get_async_sessionmaker
+from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.services.matrix import MatrixService
 
@@ -91,6 +93,7 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
     await callback.answer()
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
+    report_repo = ReportRepository(session_factory)
     user = await user_repo.get_by_telegram_id(callback.from_user.id)
 
     if not user or not user.birth_date:
@@ -103,7 +106,7 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
     matrix = MatrixService.calculate(user.birth_date)
     arcana = matrix.arcana_names
 
-    text = my_matrix_text(
+    schema_text = my_matrix_text(
         archetype_name=user.main_archetype or arcana["center"],
         archetype_number=user.main_archetype_number or matrix.center,
         birth_date=user.birth_date,
@@ -117,15 +120,42 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
         portrait_zone=arcana["portrait_zone"],
     )
 
-    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+    reports = await report_repo.get_by_user_id(user.id)
+    mini_report = next((r for r in reports if r.report_type == "mini"), None)
+
+    if mini_report and mini_report.ai_analysis:
+        analysis = mini_report.ai_analysis or {}
+        matrix_data = mini_report.matrix_data or {}
+        analysis_text = mini_analysis_text(
+            archetype_name=matrix_data.get("archetype_name", user.main_archetype or "..."),
+            archetype_number=matrix_data.get("archetype_number", user.main_archetype_number or 0),
+            main_archetype=analysis.get("main_archetype", "..."),
+            core_strength=analysis.get("core_strength", "..."),
+            emotional_conflict=analysis.get("emotional_conflict", "..."),
+            relationship_pattern=analysis.get("relationship_pattern", "..."),
+            financial_block=analysis.get("financial_block", "..."),
+        )
+        text = schema_text + "\n\n" + analysis_text
+    else:
+        text = schema_text
+
     await callback.message.edit_text(
         text,
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="📖 Полный разбор", callback_data="full_report_pay")],
+                [InlineKeyboardButton(text="🔮 Полный разбор за 690 ₽", callback_data="full_report_pay")],
                 [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
             ]
         ),
+    )
+
+
+@router.callback_query(F.data == "calculate_matrix")
+async def handle_calculate_matrix(callback: CallbackQuery) -> None:
+    await callback.answer()
+    await callback.message.edit_text(
+        "Введи /start чтобы рассчитать свою матрицу ✶",
+        reply_markup=main_menu_keyboard(),
     )
 
 
