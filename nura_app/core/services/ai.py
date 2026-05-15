@@ -349,7 +349,8 @@ class AIService:
             result = await AIService._parse_json_response(response, _retry_callback)
             validated = MiniAnalysisResult(**result)
             return validated.model_dump()
-        except Exception:
+        except Exception as e:
+            logger.error("generate_mini_analysis failed: %s", e, exc_info=True)
             return FALLBACK_MINI
 
     @staticmethod

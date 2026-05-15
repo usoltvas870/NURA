@@ -129,7 +129,8 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
 
     if mini_report and mini_report.ai_analysis:
         analysis = mini_report.ai_analysis or {}
-        is_fallback = isinstance(analysis.get("main_archetype"), str) and "запроси разбор ещё раз" in analysis.get("main_archetype", "")
+        raw = analysis.get("main_archetype", "")
+        is_fallback = isinstance(raw, str) and any(m in raw for m in ["чуть больше времени", "запросить разбор ещё раз", "дай мне ещё одну попытку"])
         if is_fallback:
             await report_repo.delete(mini_report.id)
             username = callback.from_user.username or callback.from_user.first_name or "user"
