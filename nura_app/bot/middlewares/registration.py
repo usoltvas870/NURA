@@ -23,20 +23,6 @@ class UserRegistrationMiddleware(BaseMiddleware):
                     username=telegram_user.username,
                     first_name=telegram_user.first_name,
                 )
-                first_name = telegram_user.first_name or telegram_user.username or "друг"
-                text = (
-                    f"Приятно познакомиться, {first_name}! ✶\n\n"
-                    "NURA — это пространство, где ты можешь "
-                    "узнать себя через свою Матрицу Судьбы.\n\n"
-                    "Начни с расчёта — это займёт всего минуту."
-                )
-                from bot.keyboards.main_menu import main_menu_keyboard
-                from aiogram.types import Message, CallbackQuery
-
-                if isinstance(event, Message):
-                    await event.answer(text, reply_markup=main_menu_keyboard())
-                elif isinstance(event, CallbackQuery):
-                    await event.message.answer(text, reply_markup=main_menu_keyboard())
             data["user"] = user
 
         return await handler(event, data)

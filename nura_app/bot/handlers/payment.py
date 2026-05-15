@@ -161,6 +161,59 @@ async def initiate_compatibility_payment(callback: CallbackQuery) -> None:
         )
 
 
+@router.callback_query(F.data == "full_report_pay")
+async def full_report_pay(callback: CallbackQuery) -> None:
+    await callback.answer()
+
+    user = await _get_user(callback.from_user.id)
+    if not user or not user.birth_date:
+        await callback.message.edit_text(
+            "Сначала рассчитай базовую матрицу — напиши /start ✶",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    session_factory = get_async_sessionmaker()
+    report_repo = ReportRepository(session_factory)
+    reports = await report_repo.get_by_user_id(user.id)
+    mini_report = next((r for r in reports if r.report_type == "mini"), None)
+
+    if mini_report:
+        from bot.texts.matrix import mini_analysis_text
+        analysis = mini_report.ai_analysis or {}
+        matrix_data = mini_report.matrix_data or {}
+        text = mini_analysis_text(
+            archetype_name=matrix_data.get("archetype_name", user.main_archetype or "..."),
+            archetype_number=matrix_data.get("archetype_number", user.main_archetype_number or 0),
+            main_archetype=analysis.get("main_archetype", "..."),
+            core_strength=analysis.get("core_strength", "..."),
+            emotional_conflict=analysis.get("emotional_conflict", "..."),
+            relationship_pattern=analysis.get("relationship_pattern", "..."),
+            financial_block=analysis.get("financial_block", "..."),
+        )
+        await callback.message.edit_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="🔮 Полный разбор за 590 ₽", callback_data=f"pay_full_report:{mini_report.token}")],
+                    [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+                ]
+            ),
+        )
+        return
+
+    await callback.message.edit_text(
+        "Для доступа к полному разбору нужно сначала получить мини-анализ.\n\n"
+        "Нажми «Рассчитать матрицу», чтобы начать:",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")],
+                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+            ]
+        ),
+    )
+
+
 @router.callback_query(F.data == "buy_subscription")
 async def initiate_subscription(callback: CallbackQuery) -> None:
     await callback.answer()

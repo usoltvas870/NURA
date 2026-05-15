@@ -3,37 +3,29 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
 from bot.keyboards.main_menu import main_menu_keyboard
-from bot.texts.start import help_text, welcome_back_text, welcome_text
+from bot.texts.start import help_text, welcome_back_text
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
 
 router = Router()
 
 
-async def _show_main_menu(message: Message, user_id: int) -> None:
-    session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-    user = await user_repo.get_by_telegram_id(user_id)
-
-    if user and user.main_archetype:
-        text = welcome_back_text(
-            name=user.first_name or user.username or "пользователь",
-            archetype=user.main_archetype,
-        )
-    else:
-        text = welcome_text()
-
-    await message.answer(text, reply_markup=main_menu_keyboard())
-
-
-@router.message(Command("start"))
-async def cmd_start(message: Message) -> None:
-    await _show_main_menu(message, message.from_user.id)
-
-
 @router.message(Command("menu"))
 async def cmd_menu(message: Message) -> None:
-    await _show_main_menu(message, message.from_user.id)
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_telegram_id(message.from_user.id)
+
+    if not user or not user.birth_date:
+        await message.answer("Напиши /start, чтобы начать знакомство с NURA ✶")
+        return
+
+    name = user.first_name or user.username or "пользователь"
+    archetype = user.main_archetype or "не определён"
+    await message.answer(
+        welcome_back_text(name=name, archetype=archetype),
+        reply_markup=main_menu_keyboard(),
+    )
 
 
 @router.message(Command("help"))
@@ -44,4 +36,17 @@ async def cmd_help(message: Message) -> None:
 @router.callback_query(F.data == "main_menu")
 async def callback_main_menu(callback: CallbackQuery) -> None:
     await callback.answer()
-    await _show_main_menu(callback.message, callback.from_user.id)
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_telegram_id(callback.from_user.id)
+
+    if not user or not user.birth_date:
+        await callback.message.answer("Напиши /start, чтобы начать знакомство с NURA ✶")
+        return
+
+    name = user.first_name or user.username or "пользователь"
+    archetype = user.main_archetype or "не определён"
+    await callback.message.edit_text(
+        welcome_back_text(name=name, archetype=archetype),
+        reply_markup=main_menu_keyboard(),
+    )

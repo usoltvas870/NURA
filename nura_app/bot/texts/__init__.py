@@ -45,6 +45,14 @@ from bot.texts.subscription import (
     expired_text,
     daily_insight_text,
 )
+from bot.texts.onboarding import (
+    onboarding_greeting_text,
+    ask_birth_date_onboarding_text,
+    invalid_format_onboarding_text,
+    onboarding_loading_text,
+    onboarding_done_text,
+    my_matrix_text,
+)
 from bot.texts.system import (
     global_error_text,
     rate_limit_text,
@@ -100,4 +108,10 @@ __all__ = [
     "anti_flood_text",
     "registration_text",
     "buttons_blocked_text",
+    "onboarding_greeting_text",
+    "ask_birth_date_onboarding_text",
+    "invalid_format_onboarding_text",
+    "onboarding_loading_text",
+    "onboarding_done_text",
+    "my_matrix_text",
 ]

@@ -8,8 +8,8 @@ from core.config import settings
 
 
 class ReportService:
-    TEMPLATE_DIR = Path(__file__).resolve().parent.parent.parent.parent / "frontend" / "reports" / "templates"
-    OUTPUT_DIR = Path(__file__).resolve().parent.parent.parent.parent / "frontend" / "reports" / "output"
+    TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "frontend" / "reports" / "templates"
+    OUTPUT_DIR = Path(__file__).resolve().parent.parent / "frontend" / "reports" / "output"
 
     @classmethod
     def _env(cls) -> Environment:

@@ -186,11 +186,13 @@ async def _get_user_telegram_id(user_id: str) -> int | None:
 
 @celery_app.task(name="core.tasks.generate_mini_report")
 def generate_mini_report(user_id: str, birth_date: str, username: str) -> dict:
-    result = _run_async(_process_mini_report(user_id, birth_date))
-    telegram_id = _run_async(_get_user_telegram_id(user_id))
-    if telegram_id:
-        _run_async(_notify_mini_report(telegram_id, result["token"]))
-    return result
+    async def _run_all():
+        result = await _process_mini_report(user_id, birth_date)
+        telegram_id = await _get_user_telegram_id(user_id)
+        if telegram_id:
+            await _notify_mini_report(telegram_id, result["token"])
+        return result
+    return _run_async(_run_all())
 
 
 async def _process_full_report(
@@ -258,20 +260,24 @@ async def _process_full_report(
 
 @celery_app.task(name="core.tasks.generate_full_report")
 def generate_full_report(user_id: str, birth_date: str, report_token: str) -> dict:
-    result = _run_async(_process_full_report(user_id, birth_date, report_token))
-    telegram_id = _run_async(_get_user_telegram_id(user_id))
-    if telegram_id:
-        _run_async(_notify_full_report(telegram_id, result["token"]))
-    return result
+    async def _run_all():
+        result = await _process_full_report(user_id, birth_date, report_token)
+        telegram_id = await _get_user_telegram_id(user_id)
+        if telegram_id:
+            await _notify_full_report(telegram_id, result["token"])
+        return result
+    return _run_async(_run_all())
 
 
 @celery_app.task(name="core.tasks.generate_compatibility_report")
 def generate_compatibility_report(user_id: str, date1: str, date2: str) -> dict:
-    result = _run_async(_process_compatibility_report(user_id, date1, date2))
-    telegram_id = _run_async(_get_user_telegram_id(user_id))
-    if telegram_id:
-        _run_async(_notify_compatibility(telegram_id, result["token"]))
-    return result
+    async def _run_all():
+        result = await _process_compatibility_report(user_id, date1, date2)
+        telegram_id = await _get_user_telegram_id(user_id)
+        if telegram_id:
+            await _notify_compatibility(telegram_id, result["token"])
+        return result
+    return _run_async(_run_all())
 
 
 async def _process_compatibility_report(

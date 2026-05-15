@@ -6,12 +6,14 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.types import BotCommand, BotCommandScopeDefault, MenuButtonCommands
 
 from bot.handlers.chat import router as chat_router
 from bot.handlers.compatibility import router as compatibility_router
 from bot.handlers.errors import global_error_handler
 from bot.handlers.insights import router as insights_router
 from bot.handlers.matrix import router as matrix_router
+from bot.handlers.onboarding import router as onboarding_router
 from bot.handlers.payment import router as payment_router
 from bot.handlers.profile import router as profile_router
 from bot.handlers.start import router as start_router
@@ -59,6 +61,7 @@ async def main():
     dp.include_router(compatibility_router)
     dp.include_router(insights_router)
     dp.include_router(matrix_router)
+    dp.include_router(onboarding_router)
     dp.include_router(payment_router)
     dp.include_router(profile_router)
     dp.include_router(start_router)
@@ -86,6 +89,16 @@ async def main():
             else:
                 raise
 
+    commands = [
+        BotCommand(command="start", description="🚀 Главное меню"),
+        BotCommand(command="menu", description="📋 Открыть меню"),
+        BotCommand(command="profile", description="👤 Мой профиль"),
+        BotCommand(command="help", description="❓ Помощь"),
+        BotCommand(command="exit", description="🚪 Выйти из чата"),
+    ]
+    await bot.set_my_commands(commands, BotCommandScopeDefault())
+    await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+    logger.info("Bot commands registered")
     logger.info("Bot polling started")
     await dp.start_polling(bot)
 

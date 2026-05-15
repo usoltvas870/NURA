@@ -1,0 +1,18 @@
+<section class="cover">
+  <div class="cover-inner">
+    <div class="cover-logo">
+      <span class="logo-mark">✦</span>
+      <span>NURA</span>
+    </div>
+
+    <h1 class="cover-name">{{ user_name }}</h1>
+
+    <div class="cover-archetype">{{ archetype_name }}</div>
+    <div class="cover-archetype-num">{{ archetype_number }} аркан</div>
+
+    {% include '_matrix_3x3.html' %}
+
+    <div class="cover-date">{{ generated_at }}</div>
+    <div class="cover-divider"></div>
+  </div>
+</section>

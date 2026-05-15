@@ -5,13 +5,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 def main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")],
+            [InlineKeyboardButton(text="👤 Профиль", callback_data="profile")],
+            [InlineKeyboardButton(text="🔮 Моя матрица", callback_data="my_matrix")],
+            [InlineKeyboardButton(text="📖 Полный разбор", callback_data="full_report_pay")],
             [
                 InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
                 InlineKeyboardButton(text="🌒 Инсайты", callback_data="insights"),
             ],
             [InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura")],
-            [InlineKeyboardButton(text="👤 Профиль", callback_data="profile")],
         ]
     )
 

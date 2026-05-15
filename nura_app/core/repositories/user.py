@@ -49,6 +49,20 @@ class UserRepository(SQLAlchemyRepository[User]):
             await session.refresh(user)
             return user
 
+    async def update_birth_date(
+        self,
+        user_id: uuid.UUID,
+        birth_date: str,
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.birth_date = birth_date
+            await session.commit()
+            await session.refresh(user)
+            return user
+
     async def update_subscription(
         self,
         user_id: uuid.UUID,

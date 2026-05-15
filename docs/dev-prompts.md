@@ -10,12 +10,9 @@
 **Модель:** DeepSeek V4 Pro
 **Агенты:** `database-optimizer` (модели + индексы), `backend-architect` (репозитории)
 **Рецензент:** `code-reviewer`
-**Вход:** `docs/dev-plan.md` (этап 1-2), `docs/bot-spec.md` (секция 14 — поля User)
+**Вход:** `docs/bot-spec.md` (секция 14 — поля User)
 
 ```
-Разработка этапа 1 и 2 из docs/dev-plan.md.
-
-Прочитай docs/dev-plan.md, этапы "1 — База данных и модели" и "2 — Репозитории".
 
 Что сделать:
 
@@ -69,9 +66,6 @@ nura_app/core/repositories/payment.py — PaymentRepository:
 **Вход:** `docs/matrix-algo.md`, `nura_app/core/services/matrix.py` (текущий)
 
 ```
-Разработка этапа 3.1 из docs/dev-plan.md.
-
-Прочитай docs/dev-plan.md, секцию "3.1 — Матрица".
 Прочитай docs/matrix-algo.md — алгоритм расчёта.
 Прочитай nura_app/core/services/matrix.py — текущая реализация.
 Прочитай nura_app/core/schemas.py — MatrixData.
@@ -102,9 +96,6 @@ nura_app/core/repositories/payment.py — PaymentRepository:
 **Вход:** `docs/prompt-spec.md`, `nura_app/core/services/ai.py`, `nura_app/core/prompts/`
 
 ```
-Разработка этапа 3.2 из docs/dev-plan.md.
-
-Прочитай docs/dev-plan.md, секцию "3.2 — AI".
 Прочитай docs/prompt-spec.md — полная спецификация промптов.
 Прочитай nura_app/core/services/ai.py — текущая реализация.
 Прочитай nura_app/core/prompts/mini_analysis.txt — текущий промпт.
@@ -149,9 +140,6 @@ System prompt — захардкодить в коде (не из файла), �
 **Вход:** `docs/report-spec.md`, `nura_app/core/services/payment.py`, `nura_app/core/services/report.py`
 
 ```
-Разработка этапа 3.3 и 3.4 из docs/dev-plan.md.
-
-Прочитай docs/dev-plan.md, секции "3.3 — Платежи" и "3.4 — Отчёты".
 Прочитай docs/report-spec.md — структура отчёта.
 Прочитай nura_app/core/services/payment.py — текущая реализация.
 Прочитай nura_app/core/services/report.py — текущая реализация.
@@ -215,9 +203,6 @@ CSS Design System для отчёта — взять цвета из index.html 
 **Вход:** `nura_app/core/tasks.py`, `nura_app/core/services/`, `nura_app/core/config.py`
 
 ```
-Разработка этапа 4 из docs/dev-plan.md.
-
-Прочитай docs/dev-plan.md, этап "4 — Celery Tasks".
 Прочитай nura_app/core/tasks.py — текущая реализация.
 Прочитай nura_app/core/services/ai.py — AIService.
 Прочитай nura_app/core/services/matrix.py — MatrixService.
@@ -280,9 +265,6 @@ CSS Design System для отчёта — взять цвета из index.html 
 **Вход:** `nura_app/api/routes/payment.py`, `nura_app/api/routes/reports.py`, `nura_app/core/services/`
 
 ```
-Разработка этапа 5 из docs/dev-plan.md.
-
-Прочитай docs/dev-plan.md, этап "5 — API Routes".
 Прочитай nura_app/api/routes/payment.py — текущая реализация.
 Прочитай nura_app/api/routes/reports.py — текущая реализация.
 Прочитай nura_app/api/main.py — FastAPI app.
@@ -338,9 +320,6 @@ Rate limiting через slowapi на webhook (10 запросов/мин).
 **Вход:** `docs/bot-spec.md`, `nura_app/bot/main.py`, `nura_app/bot/middlewares/`, `nura_app/bot/keyboards/`, `nura_app/bot/states/`
 
 ```
-Разработка этапа 6, 8 и 9 из docs/dev-plan.md.
-
-Прочитай docs/dev-plan.md, этапы "6 — Middleware", "8 — Keyboards и Texts", "9 — Интеграция".
 Прочитай docs/bot-spec.md — все разделы (callback_data, FSM, клавиатуры, тексты).
 Прочитай nura_app/bot/main.py — текущий entry point.
 Прочитай nura_app/core/repositories/user.py — UserRepository.
@@ -634,12 +613,9 @@ global_error_handler:
 **Модель:** DeepSeek V4 Flash
 **Агент:** `test-results-analyzer`
 **Рецензент:** `code-reviewer`
-**Вход:** `docs/dev-plan.md` (этап 10), все сервисы и handler'ы
+**Вход:** `nura_app/core/services/matrix.py`, `nura_app/core/services/ai.py`, `nura_app/core/services/payment.py`
 
 ```
-Разработка этапа 10 из docs/dev-plan.md.
-
-Прочитай docs/dev-plan.md, этап "10 — Тесты".
 Прочитай nura_app/core/services/matrix.py — MatrixService.
 Прочитай nura_app/core/services/ai.py — AIService.
 Прочитай nura_app/core/services/payment.py — PaymentService.

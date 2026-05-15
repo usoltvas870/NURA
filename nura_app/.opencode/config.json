@@ -1,0 +1,55 @@
+{
+  "$schema": "https://opencode.ai/schemas/config.json",
+  "model": {
+    "provider": "deepseek",
+    "default": "deepseek-chat",
+    "variants": {
+      "fast": "deepseek-chat",
+      "deep": "deepseek-reasoner",
+      "architect": "gpt-4o"
+    },
+    "parameters": {
+      "temperature": 0.3,
+      "maxTokens": 4096
+    },
+    "reasoningEffort": "auto"
+  },
+  "compact": {
+    "threshold": 0.85,
+    "preserve": ["file_changes", "decisions", "todos"]
+  },
+  "permission": {
+    "bash": {
+      "allow": ["git", "npm", "docker", "pip", "ruff", "mypy", "pytest", "alembic", "ssh"],
+      "deny": ["rm -rf /", "curl.*|sh", "eval", "sudo"]
+    },
+    "edit": "ask"
+  },
+  "mcp": {
+    "servers": {
+      "playwright": {
+        "command": "npx",
+        "args": [
+          "@playwright/mcp",
+          "--caps",
+          "vision,devtools",
+          "--headless",
+          "--console-level",
+          "info"
+        ]
+      },
+      "figma": {
+        "command": "npx",
+        "args": ["figma-developer-mcp"],
+        "env": {
+          "FIGMA_ACCESS_TOKEN": "${FIGMA_ACCESS_TOKEN}"
+        }
+      }
+    }
+  },
+  "share": "disabled",
+  "features": {},
+  "telemetry": {
+    "enabled": false
+  }
+}
