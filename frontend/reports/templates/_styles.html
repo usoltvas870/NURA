@@ -81,6 +81,116 @@ h3 { font-size: var(--h3-size); }
 p { font-size: var(--body-size); line-height: 1.7; color: rgba(245, 243, 238, 0.85); }
 small { font-size: var(--small-size); color: var(--muted); }
 
+/* Cover */
+.cover {
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl) 0;
+  page: cover;
+}
+
+.cover-inner {
+  text-align: center;
+  max-width: 520px;
+  width: 100%;
+}
+
+.cover-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--white);
+  margin-bottom: var(--space-xl);
+}
+
+.cover-name {
+  font-family: var(--font-heading);
+  font-size: var(--h1-size);
+  color: var(--white);
+  margin-bottom: var(--space-sm);
+}
+
+.cover-archetype {
+  font-family: var(--font-heading);
+  font-size: clamp(36px, 6vw, 56px);
+  color: var(--orange);
+  line-height: 1.1;
+  margin-bottom: var(--space-xs);
+}
+
+.cover-archetype-num {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.cover-date {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: var(--space-md);
+}
+
+.cover-divider {
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--orange), transparent);
+  margin: var(--space-lg) auto;
+}
+
+/* Matrix 3x3 */
+.cover-matrix {
+  margin: var(--space-xl) auto 0;
+  max-width: 280px;
+}
+
+.matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.matrix-cell {
+  aspect-ratio: 1;
+  border: 1px solid rgba(245, 243, 238, 0.1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: rgba(11, 11, 11, 0.6);
+}
+
+.matrix-cell.center {
+  border-color: rgba(217, 122, 50, 0.4);
+  box-shadow: 0 0 24px rgba(217, 122, 50, 0.12);
+}
+
+.matrix-cell-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.matrix-cell-num {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  color: var(--white);
+}
+
+.matrix-cell.center .matrix-cell-num {
+  color: var(--orange);
+}
+
 /* Section card */
 .report-section {
   background: var(--card-bg);

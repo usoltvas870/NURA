@@ -199,18 +199,45 @@ async def _process_full_report(
     uid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
     report_repo = ReportRepository(session_factory)
+    user_repo = UserRepository(session_factory)
 
     matrix = MatrixService.calculate(birth_date)
     analysis = await AIService.generate_full_report(birth_date, matrix)
     token = ReportService.generate_token()
 
-    matrix_dict = matrix.model_dump()
+    user = await user_repo.get(uid)
+    user_name = user.first_name or user.username or "пользователь" if user else "пользователь"
+    archetype_name = MatrixService.get_archetype_name(matrix.center)
+    recommendations_parsed = ReportService.parse_recommendations(
+        analysis.get("ai_recommendations", "")
+    )
+
+    matrix_raw = {
+        "center": matrix.center,
+        "top": matrix.top,
+        "bottom": matrix.bottom,
+        "left": matrix.left,
+        "right": matrix.right,
+        "talent_zone": matrix.talent_zone,
+        "comfort_zone": matrix.comfort_zone,
+        "portrait_zone": matrix.portrait_zone,
+        "karmic_tail": matrix.karmic_tail,
+    }
+
     html = ReportService.generate_html_report(
-        report_data={"matrix": MatrixService.format_for_report(matrix), "analysis": analysis},
+        report_data={
+            "matrix": matrix_raw,
+            "analysis": analysis,
+            "user_name": user_name,
+            "archetype_name": archetype_name,
+            "archetype_number": matrix.center,
+            "recommendations_parsed": recommendations_parsed,
+        },
     )
     pdf = await ReportService.generate_pdf(html)
     paths = ReportService.save_report_files(token, html, pdf)
 
+    matrix_dict = matrix.model_dump()
     report = await report_repo.create(
         user_id=uid,
         report_type=ReportType.FULL,
@@ -253,6 +280,7 @@ async def _process_compatibility_report(
     uid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
     report_repo = ReportRepository(session_factory)
+    user_repo = UserRepository(session_factory)
 
     matrix1 = MatrixService.calculate(date1)
     matrix2 = MatrixService.calculate(date2)
@@ -260,6 +288,52 @@ async def _process_compatibility_report(
         date1, matrix1, date2, matrix2
     )
     token = ReportService.generate_token()
+
+    user = await user_repo.get(uid)
+    user_name = user.first_name or user.username or "пользователь" if user else "пользователь"
+    archetype_first_name = MatrixService.get_archetype_name(matrix1.center)
+    archetype_second_name = MatrixService.get_archetype_name(matrix2.center)
+
+    matrix_raw_1 = {
+        "center": matrix1.center,
+        "top": matrix1.top,
+        "bottom": matrix1.bottom,
+        "left": matrix1.left,
+        "right": matrix1.right,
+        "talent_zone": matrix1.talent_zone,
+        "comfort_zone": matrix1.comfort_zone,
+        "portrait_zone": matrix1.portrait_zone,
+        "karmic_tail": matrix1.karmic_tail,
+    }
+    matrix_raw_2 = {
+        "center": matrix2.center,
+        "top": matrix2.top,
+        "bottom": matrix2.bottom,
+        "left": matrix2.left,
+        "right": matrix2.right,
+        "talent_zone": matrix2.talent_zone,
+        "comfort_zone": matrix2.comfort_zone,
+        "portrait_zone": matrix2.portrait_zone,
+        "karmic_tail": matrix2.karmic_tail,
+    }
+
+    html = ReportService.generate_html_report(
+        report_data={
+            "matrix": matrix_raw_1,
+            "matrix_second": matrix_raw_2,
+            "analysis": analysis,
+            "user_name": user_name,
+            "archetype_name": archetype_first_name,
+            "archetype_number": matrix1.center,
+            "archetype_first_name": archetype_first_name,
+            "archetype_first_number": matrix1.center,
+            "archetype_second_name": archetype_second_name,
+            "archetype_second_number": matrix2.center,
+        },
+        template_name="compatibility_report.html",
+    )
+    pdf = await ReportService.generate_pdf(html)
+    paths = ReportService.save_report_files(token, html, pdf)
 
     report = await report_repo.create(
         user_id=uid,
@@ -276,6 +350,9 @@ async def _process_compatibility_report(
         "report_id": str(report.id),
         "token": token,
         "analysis": analysis,
+        "report_url": ReportService.report_url(token),
+        "html_path": paths["html"],
+        "pdf_path": paths["pdf"],
     }
 
 
