@@ -29,7 +29,7 @@ from bot.texts.profile import (
     profile_subscriber_text,
     reports_list_text,
 )
-from bot.texts.chat import paywall_text, greeting_text, history_cleared_text, exit_text
+from bot.texts.chat import paywall_text, greeting_text_free, greeting_text_unlimited, history_cleared_text, exit_text
 from bot.texts.payment import (
     payment_link_text,
     payment_pending_text,
@@ -89,7 +89,8 @@ __all__ = [
     "profile_subscriber_text",
     "reports_list_text",
     "paywall_text",
-    "greeting_text",
+    "greeting_text_free",
+    "greeting_text_unlimited",
     "history_cleared_text",
     "exit_text",
     "payment_link_text",
