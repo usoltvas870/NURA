@@ -1,10 +1,13 @@
 import os
+import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 
 from core.database import get_async_sessionmaker
-from core.repositories import ReportRepository
+from core.repositories import ReportRepository, UserRepository
+from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
 
 router = APIRouter(prefix="/report")
@@ -51,11 +54,14 @@ async def serve_report(token: str):
         return HTMLResponse(content=NOT_FOUND_HTML, status_code=404)
 
     paths = ReportService.get_report_path(token)
-    if not os.path.exists(paths["html"]):
-        return HTMLResponse(content="Report file not found", status_code=404)
+    if os.path.exists(paths["html"]):
+        with open(paths["html"], "r", encoding="utf-8") as f:
+            return Response(content=f.read(), media_type="text/html")
 
-    with open(paths["html"], "r", encoding="utf-8") as f:
-        return Response(content=f.read(), media_type="text/html")
+    html = _render_report_html(report, session_factory)
+    if html is None:
+        return HTMLResponse(content=NOT_FOUND_HTML, status_code=404)
+    return Response(content=html, media_type="text/html")
 
 
 @router.get("/{token}/pdf")
@@ -68,11 +74,71 @@ async def serve_report_pdf(token: str):
         return PlainTextResponse("Report not found", status_code=404)
 
     paths = ReportService.get_report_path(token)
-    if not os.path.exists(paths["pdf"]):
-        return PlainTextResponse("PDF not found", status_code=404)
+    if os.path.exists(paths["pdf"]):
+        return FileResponse(
+            paths["pdf"],
+            media_type="application/pdf",
+            filename=f"nura-report-{token[:8]}.pdf",
+        )
 
-    return FileResponse(
-        paths["pdf"],
-        media_type="application/pdf",
-        filename=f"nura-report-{token[:8]}.pdf",
+    html = _render_report_html(report, session_factory)
+    if html is None:
+        return PlainTextResponse("Report not found", status_code=404)
+    from weasyprint import HTML as WPHTML
+    pdf_bytes = WPHTML(string=html).write_pdf()
+    return Response(content=pdf_bytes, media_type="application/pdf",
+                    headers={"Content-Disposition": f"inline; filename=nura-report-{token[:8]}.pdf"})
+
+
+def _render_report_html(report, session_factory):
+    matrix_data = report.matrix_data or {}
+    analysis = report.ai_analysis or {}
+    user_id = matrix_data.get("user_id") or str(report.user_id)
+
+    import uuid as _uuid
+    uid = _uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        user_repo = UserRepository(session_factory)
+        user = loop.run_until_complete(user_repo.get(uid))
+    finally:
+        loop.close()
+
+    if not user:
+        user_name = "пользователь"
+        archetype_name = ARCANA.get(matrix_data.get("center", 0), {}).get("name", "Неизвестный")
+        archetype_number = matrix_data.get("center", 0)
+    else:
+        user_name = user.first_name or user.username or "пользователь"
+        archetype_number = user.main_archetype_number or matrix_data.get("center", 0)
+        archetype_name = user.main_archetype or ARCANA.get(archetype_number, {}).get("name", "Неизвестный")
+
+    recommendations_parsed = ReportService.parse_recommendations(
+        analysis.get("ai_recommendations", "")
     )
+
+    matrix_raw = {
+        "center": matrix_data.get("center"),
+        "top": matrix_data.get("top"),
+        "bottom": matrix_data.get("bottom"),
+        "left": matrix_data.get("left"),
+        "right": matrix_data.get("right"),
+        "talent_zone": matrix_data.get("talent_zone"),
+        "comfort_zone": matrix_data.get("comfort_zone"),
+        "portrait_zone": matrix_data.get("portrait_zone"),
+        "karmic_tail": matrix_data.get("karmic_tail"),
+    }
+
+    report_data = {
+        "matrix": matrix_raw,
+        "analysis": analysis,
+        "user_name": user_name,
+        "archetype_name": archetype_name,
+        "archetype_number": archetype_number,
+        "recommendations_parsed": recommendations_parsed,
+    }
+
+    return ReportService.generate_html_report(report_data)
