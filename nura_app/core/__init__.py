@@ -1,5 +1,5 @@
 from core.config import settings
-from core.database import engine, get_async_sessionmaker
+from core.database import get_async_sessionmaker
 from core.models import Base, ReportType
 from core.repositories import (
     PaymentRepository,
@@ -15,7 +15,6 @@ from core.services.payment import PaymentService
 __all__ = [
     "settings",
     "Base",
-    "engine",
     "get_async_sessionmaker",
     "ReportType",
     "MatrixService",
