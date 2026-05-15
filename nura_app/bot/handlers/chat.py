@@ -1,11 +1,12 @@
 import logging
 
 from aiogram import F, Router
+from aiogram.enums import ChatAction
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from bot.keyboards.main_menu import chat_keyboard, main_menu_keyboard, subscription_keyboard
+from bot.keyboards.main_menu import main_menu_keyboard, subscription_keyboard
 from bot.states.chat_state import ChatStates
 from bot.texts.chat import (
     exit_text,
@@ -103,7 +104,7 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(chat_messages_left=FREE_MESSAGES_LIMIT)
         text = greeting_text_free(name, archetype_name)
 
-    await callback.message.edit_text(text, reply_markup=chat_keyboard())
+    await callback.message.edit_text(text)
 
 
 @router.message(ChatStates.chatting)
@@ -126,6 +127,8 @@ async def chat_message(message: Message, state: FSMContext) -> None:
                     matrix_data = r.matrix_data
                     await state.update_data(matrix_data=matrix_data)
                     break
+
+    await message.bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
 
     chat_history.append({"role": "user", "content": message.text})
 
@@ -154,7 +157,7 @@ async def chat_message(message: Message, state: FSMContext) -> None:
     if messages_left > 0:
         response += messages_remaining_text(messages_left)
 
-    await message.answer(response, reply_markup=chat_keyboard())
+    await message.answer(response)
 
 
 @router.callback_query(F.data == "chat_exit")
@@ -183,7 +186,7 @@ async def exit_chat(event: Message | CallbackQuery, state: FSMContext) -> None:
 async def clear_chat(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     await state.update_data(chat_history=[])
-    await callback.message.answer(history_cleared_text(), reply_markup=chat_keyboard())
+    await callback.message.answer(history_cleared_text())
 
 
 @router.message(ChatStates.idle)

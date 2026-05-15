@@ -3,7 +3,6 @@ from bot.keyboards.main_menu import (
     compatibility_paywall_keyboard,
     profile_keyboard,
     insight_keyboard,
-    chat_keyboard,
     subscription_keyboard,
     reports_keyboard,
 )
@@ -13,7 +12,6 @@ __all__ = [
     "compatibility_paywall_keyboard",
     "profile_keyboard",
     "insight_keyboard",
-    "chat_keyboard",
     "subscription_keyboard",
     "reports_keyboard",
 ]

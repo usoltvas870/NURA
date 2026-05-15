@@ -91,10 +91,8 @@ async def main():
 
     commands = [
         BotCommand(command="start", description="🚀 Главное меню"),
-        BotCommand(command="menu", description="📋 Открыть меню"),
         BotCommand(command="profile", description="👤 Мой профиль"),
         BotCommand(command="help", description="❓ Помощь"),
-        BotCommand(command="exit", description="🚪 Выйти из чата"),
     ]
     await bot.set_my_commands(commands, BotCommandScopeDefault())
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())

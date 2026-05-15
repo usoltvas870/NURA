@@ -27,7 +27,7 @@ class TestPayment:
             mock_create.return_value = payment
 
             result = await PaymentService.create_payment(
-                telegram_id=12345, amount=590, description="Test"
+                telegram_id=12345, amount=690, description="Test"
             )
 
         assert result["id"] == "pm-123"

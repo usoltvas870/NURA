@@ -90,17 +90,6 @@ def insight_keyboard_subscriber() -> InlineKeyboardMarkup:
     )
 
 
-def chat_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="🚪 Выйти", callback_data="chat_exit"),
-                InlineKeyboardButton(text="🗑 Очистить историю", callback_data="chat_clear"),
-            ],
-        ]
-    )
-
-
 def subscription_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

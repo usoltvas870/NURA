@@ -22,6 +22,7 @@ from core.database import get_async_sessionmaker
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.services.matrix import MatrixService
+from core.tasks import generate_mini_report
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,9 @@ async def process_onboarding_birth_date(
 
     await user_repo.update_birth_date(db_user.id, date_str)
     await user_repo.update_archetype(db_user.id, archetype_name, archetype_number)
+
+    username = message.from_user.username or message.from_user.first_name or "user"
+    generate_mini_report.delay(str(db_user.id), date_str, username)
 
     await asyncio.sleep(0.5)
     await loading_msg.edit_text(
