@@ -2,7 +2,7 @@ import asyncio
 import logging
 import random
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from celery import Celery
 from sqlalchemy import select
@@ -224,6 +224,16 @@ async def _process_full_report(
         "comfort_zone": matrix.comfort_zone,
         "portrait_zone": matrix.portrait_zone,
         "karmic_tail": matrix.karmic_tail,
+        "sky_line": matrix.sky_line,
+        "earth_line": matrix.earth_line,
+        "relationship_line": matrix.relationship_line,
+        "money_line": matrix.money_line,
+        "relationship_point": matrix.relationship_point,
+        "inner_f": matrix.inner_f,
+        "inner_g": matrix.inner_g,
+        "inner_h": matrix.inner_h,
+        "inner_i": matrix.inner_i,
+        "arcana_names": matrix.arcana_names,
     }
 
     html = ReportService.generate_html_report(
@@ -234,6 +244,8 @@ async def _process_full_report(
             "archetype_name": archetype_name,
             "archetype_number": matrix.center,
             "recommendations_parsed": recommendations_parsed,
+            "life_periods": MatrixService.calculate_life_periods(birth_date),
+            "current_year_arcana": MatrixService.calculate_year_arcana(birth_date, date.today().year),
         },
     )
     pdf = await ReportService.generate_pdf(html)
