@@ -1,40 +1,95 @@
 <div class="cover-matrix">
   <div class="matrix-grid">
     <div class="matrix-cell">
-      <span class="matrix-cell-label">небо</span>
       <span class="matrix-cell-num">{{ matrix.top }}</span>
+      <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('top', '') }}</span>
     </div>
     <div class="matrix-cell">
-      <span class="matrix-cell-label">талант</span>
       <span class="matrix-cell-num">{{ matrix.talent_zone }}</span>
+      <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('talent_zone', '') }}</span>
     </div>
     <div class="matrix-cell">
-      <span class="matrix-cell-label">женское</span>
       <span class="matrix-cell-num">{{ matrix.right }}</span>
+      <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('right', '') }}</span>
     </div>
     <div class="matrix-cell">
-      <span class="matrix-cell-label">комфорт</span>
       <span class="matrix-cell-num">{{ matrix.comfort_zone }}</span>
+      <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('comfort_zone', '') }}</span>
     </div>
     <div class="matrix-cell center">
-      <span class="matrix-cell-label">центр</span>
       <span class="matrix-cell-num">{{ matrix.center }}</span>
+      <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('center', '') }}</span>
     </div>
     <div class="matrix-cell">
-      <span class="matrix-cell-label">портрет</span>
       <span class="matrix-cell-num">{{ matrix.portrait_zone }}</span>
+      <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('portrait_zone', '') }}</span>
     </div>
     <div class="matrix-cell">
-      <span class="matrix-cell-label">мужское</span>
       <span class="matrix-cell-num">{{ matrix.left }}</span>
+      <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('left', '') }}</span>
     </div>
     <div class="matrix-cell">
-      <span class="matrix-cell-label">карма</span>
       <span class="matrix-cell-num">{{ matrix.karmic_tail[1] if matrix.karmic_tail else '' }}</span>
+      <span class="matrix-cell-name">—</span>
     </div>
     <div class="matrix-cell">
-      <span class="matrix-cell-label">земля</span>
       <span class="matrix-cell-num">{{ matrix.bottom }}</span>
+      <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('bottom', '') }}</span>
     </div>
   </div>
+
+  <div class="matrix-lines">
+    <div class="matrix-line sky">
+      <span class="matrix-line-label">небо</span>
+      <div class="matrix-line-dots">
+        {% for num in (matrix.sky_line or []) %}
+          <span class="matrix-line-dot">{{ num }}</span>
+          {% if not loop.last %}<span class="matrix-line-connector"></span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="matrix-line earth">
+      <span class="matrix-line-label">земля</span>
+      <div class="matrix-line-dots">
+        {% for num in (matrix.earth_line or []) %}
+          <span class="matrix-line-dot">{{ num }}</span>
+          {% if not loop.last %}<span class="matrix-line-connector"></span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="matrix-line relationship">
+      <span class="matrix-line-label">отношения</span>
+      <div class="matrix-line-dots">
+        {% for num in (matrix.relationship_line or []) %}
+          <span class="matrix-line-dot">{{ num }}</span>
+          {% if not loop.last %}<span class="matrix-line-connector"></span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    <div class="matrix-line money">
+      <span class="matrix-line-label">деньги</span>
+      <div class="matrix-line-dots">
+        {% for num in (matrix.money_line or []) %}
+          <span class="matrix-line-dot">{{ num }}</span>
+          {% if not loop.last %}<span class="matrix-line-connector"></span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% if matrix.karmic_tail %}
+  <div class="matrix-karmic-chain">
+    {% for num in matrix.karmic_tail %}
+      <span class="matrix-karmic-dot">{{ num }}</span>
+      {% if not loop.last %}<span class="matrix-karmic-arrow"></span>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if matrix.relationship_point %}
+  <div class="matrix-relationship-point">
+    <span class="matrix-relationship-dot">{{ matrix.relationship_point }}</span>
+    <span class="matrix-relationship-label">точка отношений</span>
+  </div>
+  {% endif %}
 </div>

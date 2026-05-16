@@ -122,6 +122,12 @@ async def _render_report_html(report, session_factory):
         "comfort_zone": matrix_data.get("comfort_zone"),
         "portrait_zone": matrix_data.get("portrait_zone"),
         "karmic_tail": matrix_data.get("karmic_tail"),
+        "sky_line": matrix_data.get("sky_line"),
+        "earth_line": matrix_data.get("earth_line"),
+        "relationship_line": matrix_data.get("relationship_line"),
+        "money_line": matrix_data.get("money_line"),
+        "relationship_point": matrix_data.get("relationship_point"),
+        "arcana_names": matrix_data.get("arcana_names", {}),
     }
 
     report_data = {

@@ -1,0 +1,29 @@
+<div class="dashboard">
+  <div class="dashboard-grid">
+    <div class="dashboard-card card-archetype">
+      <span class="card-label">Архетип</span>
+      <span class="card-number">{{ archetype_number }}</span>
+      <span class="card-name">{{ archetype_name }}</span>
+    </div>
+    <div class="dashboard-card card-talent">
+      <span class="card-label">Талант</span>
+      <span class="card-number">{{ matrix.talent_zone }}</span>
+      <span class="card-name">{{ (matrix.arcana_names or {}).get('talent_zone', '') }}</span>
+    </div>
+    <div class="dashboard-card card-challenge">
+      <span class="card-label">Вызов</span>
+      <span class="card-number">{{ matrix.karmic_tail[1] if matrix.karmic_tail else '' }}</span>
+      <span class="card-name">—</span>
+    </div>
+    <div class="dashboard-card card-lesson">
+      <span class="card-label">Урок</span>
+      <span class="card-number">{{ matrix.karmic_tail[2] if matrix.karmic_tail else '' }}</span>
+      <span class="card-name">—</span>
+    </div>
+    <div class="dashboard-card card-resource">
+      <span class="card-label">Ресурс</span>
+      <span class="card-number">{{ matrix.comfort_zone }}</span>
+      <span class="card-name">{{ (matrix.arcana_names or {}).get('comfort_zone', '') }}</span>
+    </div>
+  </div>
+</div>
