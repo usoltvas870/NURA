@@ -51,15 +51,84 @@ class MiniAnalysisResult(BaseModel):
 
 
 class FullReportResult(BaseModel):
-    main_archetype: str
-    strengths: str
-    shadow_side: str
-    relationship_dynamics: str
-    financial_scenario: str
-    recurring_mistakes: str
-    internal_conflicts: str
-    life_cycles: str
-    ai_recommendations: str
+    main_archetype: str = Field(
+        ...,
+        min_length=400,
+        max_length=1200,
+        description="глубокий разбор главного архетипа, жизненная стратегия, стиль решений",
+    )
+    strengths: str = Field(
+        ...,
+        min_length=300,
+        max_length=1000,
+        description="сильные стороны, таланты, ресурсы, врождённые способности",
+    )
+    shadow_side: str = Field(
+        ...,
+        min_length=300,
+        max_length=1000,
+        description="теневая сторона, слепые пятна, зоны роста",
+    )
+    relationship_dynamics: str = Field(
+        ...,
+        min_length=350,
+        max_length=1000,
+        description="динамика отношений, паттерны привязанности, тип партнёра",
+    )
+    financial_scenario: str = Field(
+        ...,
+        min_length=400,
+        max_length=1200,
+        description="финансовый сценарий, каналы дохода, блоки, стратегии",
+    )
+    recurring_mistakes: str = Field(
+        ...,
+        min_length=250,
+        max_length=800,
+        description="повторяющиеся ошибки, циклы и паттерны",
+    )
+    internal_conflicts: str = Field(
+        ...,
+        min_length=300,
+        max_length=1000,
+        description="внутренние конфликты, противоречия между энергиями",
+    )
+    life_cycles: str = Field(
+        ...,
+        min_length=250,
+        max_length=800,
+        description="жизненные циклы, периоды подъёма и спада",
+    )
+    ai_recommendations: str = Field(
+        ...,
+        min_length=300,
+        max_length=1500,
+        description="рекомендации на 7 дней, привязанные к позициям матрицы",
+    )
+    karmic_tail_analysis: str = Field(
+        ...,
+        min_length=400,
+        max_length=1200,
+        description="кармический хвост: причина→следствие→урок, как выйти из цикла",
+    )
+    ancestral_programs: str = Field(
+        ...,
+        min_length=400,
+        max_length=1200,
+        description="родовые программы: линия отца, линия матери, влияние на жизнь",
+    )
+    life_purpose: str = Field(
+        ...,
+        min_length=400,
+        max_length=1200,
+        description="предназначение: линия неба, кармический дар, денежный канал, профессии",
+    )
+    life_forecast: str = Field(
+        ...,
+        min_length=300,
+        max_length=1000,
+        description="прогноз периодов: ключевые возраста, энергия года, 3-летний прогноз",
+    )
 
 
 class ReportResponse(BaseModel):
