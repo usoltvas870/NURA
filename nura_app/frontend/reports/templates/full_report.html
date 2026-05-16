@@ -3,6 +3,8 @@
 {% block content %}
   {% include '_cover.html' %}
 
+  {% include '_matrix_full.html' %}
+
   {% include '_dashboard.html' %}
 
   {% with section_class='archetype', section_title='Архетип личности', section_text=analysis.main_archetype %}
@@ -11,9 +13,11 @@
 
   {% include '_section_karmic_tail.html' %}
 
-  {% include '_section_ancestral.html' %}
+  {% include '_health_map.html' %}
 
-  {% include '_section_purpose.html' %}
+  {% include '_section_purposes.html' %}
+
+  {% include '_section_ancestral.html' %}
 
   {% with section_class='strengths', section_title='Сильные стороны', section_text=analysis.strengths %}
     {% include '_section_card.html' %}
@@ -74,26 +78,21 @@
       <div class="section-accent-bar" style="background:var(--gold);"></div>
       <h2>Совместимость с {{ partner_name }}</h2>
     </div>
-
     <div class="compat-subsection">
       <h3>{{ partner_name }} — {{ compatibility.archetype_second }}</h3>
     </div>
-
     <div class="compat-subsection">
       <h3>Эмоциональное сочетание</h3>
       <p>{{ compatibility.emotional_compatibility }}</p>
     </div>
-
     <div class="compat-subsection">
       <h3>Точки напряжения</h3>
       <p>{{ compatibility.conflict_zones }}</p>
     </div>
-
     <div class="compat-subsection">
       <h3>Сила вашей пары</h3>
       <p>{{ compatibility.pair_strengths }}</p>
     </div>
-
     <div class="compat-subsection compat-recommendation">
       <h3>Что попробовать уже сегодня</h3>
       <p>{{ compatibility.ai_recommendation }}</p>

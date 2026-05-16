@@ -1,0 +1,61 @@
+<section class="report-section section-purposes">
+  <div class="section-header">
+    <div class="section-accent-bar"></div>
+    <h2>Предназначения</h2>
+  </div>
+  <p class="section-subtitle">Четыре уровня твоего пути</p>
+
+  <div class="purposes-grid">
+    <div class="purpose-card personal-purpose">
+      <div class="purpose-header">
+        <span class="purpose-icon">☀</span>
+        <h3>Личное предназначение</h3>
+      </div>
+      <p class="purpose-text">{{ analysis.life_purpose }}</p>
+      <div class="purpose-energies">
+        <span class="purpose-e-label">Небо</span>
+        <span class="purpose-e-val">{{ matrix.sky_line[1] if matrix.sky_line else '—' }}</span>
+        <span class="purpose-e-label">Земля</span>
+        <span class="purpose-e-val">{{ matrix.earth_line[1] if matrix.earth_line else '—' }}</span>
+      </div>
+    </div>
+
+    <div class="purpose-card ancestry-purpose">
+      <div class="purpose-header">
+        <span class="purpose-icon">🌳</span>
+        <h3>Родовое предназначение</h3>
+      </div>
+      <p class="purpose-text">{{ analysis.ancestral_programs }}</p>
+      <div class="purpose-energies">
+        <span class="purpose-e-label">Мать</span>
+        <span class="purpose-e-val">{{ matrix.inner_i if matrix.inner_i else '—' }}</span>
+        <span class="purpose-e-label">Отец</span>
+        <span class="purpose-e-val">{{ matrix.inner_g if matrix.inner_g else '—' }}</span>
+      </div>
+    </div>
+
+    <div class="purpose-card spiritual-purpose">
+      <div class="purpose-header">
+        <span class="purpose-icon">✦</span>
+        <h3>Духовное предназначение</h3>
+      </div>
+      <p class="purpose-text">{{ analysis.life_forecast }}</p>
+      <div class="purpose-energies">
+        <span class="purpose-e-label">Духовный путь</span>
+        <span class="purpose-e-val">{{ matrix.sky_line[2] if matrix.sky_line else '—' }}</span>
+      </div>
+    </div>
+
+    <div class="purpose-card higher-purpose">
+      <div class="purpose-header">
+        <span class="purpose-icon">◈</span>
+        <h3>Высшее духовное</h3>
+      </div>
+      <p class="purpose-text">{{ analysis.karmic_tail_analysis }}</p>
+      <div class="purpose-energies">
+        <span class="purpose-e-label">Высшее</span>
+        <span class="purpose-e-val">{{ matrix.earth_line[2] if matrix.earth_line else '—' }}</span>
+      </div>
+    </div>
+  </div>
+</section>

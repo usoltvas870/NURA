@@ -1,0 +1,66 @@
+<section class="report-section section-health">
+  <div class="section-header">
+    <div class="section-accent-bar"></div>
+    <h2>Карта здоровья</h2>
+  </div>
+  <p class="section-subtitle">Энергетические центры твоей матрицы</p>
+
+  <div class="chakra-grid">
+    {% set chakras = [
+      {'id':'sahasrara', 'name':'Сахасрара', 'loc':'Макушка', 'desc':'Духовный канал, связь с Высшим', 'sky':chakra_data.sahasrara_sky if chakra_data else matrix.portrait_zone, 'earth':chakra_data.sahasrara_earth if chakra_data else matrix.inner_h, 'key':chakra_data.sahasrara_key if chakra_data else '—'},
+      {'id':'ajna', 'name':'Аджна', 'loc':'Голова', 'desc':'Мышление, интуиция, видение', 'sky':chakra_data.ajna_sky if chakra_data else matrix.talent_zone, 'earth':chakra_data.ajna_earth if chakra_data else matrix.inner_g, 'key':chakra_data.ajna_key if chakra_data else '—'},
+      {'id':'vishudha', 'name':'Вишудха', 'loc':'Горло', 'desc':'Самовыражение, творчество', 'sky':chakra_data.vishudha_sky if chakra_data else matrix.inner_f, 'earth':chakra_data.vishudha_earth if chakra_data else matrix.inner_i, 'key':chakra_data.vishudha_key if chakra_data else '—'},
+      {'id':'anahata', 'name':'Анахата', 'loc':'Сердце', 'desc':'Чувства, принятие, любовь', 'sky':chakra_data.anahata_sky if chakra_data else matrix.comfort_zone, 'earth':chakra_data.anahata_earth if chakra_data else matrix.center, 'key':chakra_data.anahata_key if chakra_data else '—'},
+      {'id':'manipura', 'name':'Манипура', 'loc':'Живот', 'desc':'Воля, деньги, социум', 'sky':chakra_data.manipura_sky if chakra_data else matrix.left, 'earth':chakra_data.manipura_earth if chakra_data else matrix.right, 'key':chakra_data.manipura_key if chakra_data else matrix.relationship_point},
+      {'id':'svadhisthana', 'name':'Свадхистана', 'loc':'Низ живота', 'desc':'Удовольствия, отношения', 'sky':chakra_data.svadhisthana_sky if chakra_data else matrix.top, 'earth':chakra_data.svadhisthana_earth if chakra_data else matrix.talent_zone, 'key':chakra_data.svadhisthana_key if chakra_data else '—'},
+      {'id':'muladhara', 'name':'Муладхара', 'loc':'Корень', 'desc':'Опора, безопасность, род', 'sky':chakra_data.muladhara_sky if chakra_data else matrix.bottom, 'earth':chakra_data.muladhara_earth if chakra_data else matrix.comfort_zone, 'key':chakra_data.muladhara_key if chakra_data else '—'},
+    ] %}
+    {% for ch in chakras %}
+    <div class="chakra-card" id="chakra-{{ ch.id }}">
+      <div class="chakra-header">
+        <span class="chakra-name">{{ ch.name }}</span>
+        <span class="chakra-loc">{{ ch.loc }}</span>
+      </div>
+      <p class="chakra-desc">{{ ch.desc }}</p>
+      <div class="chakra-triple">
+        <div class="chakra-part">
+          <span class="chakra-part-label">Небо</span>
+          <span class="chakra-part-val">{{ ch.sky }}</span>
+        </div>
+        <div class="chakra-part">
+          <span class="chakra-part-label">Земля</span>
+          <span class="chakra-part-val">{{ ch.earth }}</span>
+        </div>
+        <div class="chakra-part chakra-key">
+          <span class="chakra-part-label">Ключ</span>
+          <span class="chakra-part-val">{{ ch.key }}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="chakra-summary">
+    <div class="chakra-card chakra-organism">
+      <div class="chakra-header">
+        <span class="chakra-name">Организм (итог)</span>
+        <span class="chakra-loc">Общий ресурс</span>
+      </div>
+      <p class="chakra-desc">Суммарный показатель всех центров. Указывает на то, что держит в балансе весь организм.</p>
+      <div class="chakra-triple">
+        <div class="chakra-part">
+          <span class="chakra-part-label">Небо</span>
+          <span class="chakra-part-val">{{ chakra_data.organism_sky if chakra_data else '—' }}</span>
+        </div>
+        <div class="chakra-part">
+          <span class="chakra-part-label">Земля</span>
+          <span class="chakra-part-val">{{ chakra_data.organism_earth if chakra_data else '—' }}</span>
+        </div>
+        <div class="chakra-part chakra-key">
+          <span class="chakra-part-label">Ключ</span>
+          <span class="chakra-part-val">{{ chakra_data.organism_key if chakra_data else '—' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

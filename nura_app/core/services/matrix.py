@@ -139,6 +139,58 @@ class MatrixService:
         return periods
 
     @staticmethod
+    def calculate_chakras(matrix_data: "MatrixData | dict") -> dict:
+        if isinstance(matrix_data, dict):
+            matrix_data = MatrixData(**matrix_data)
+        md = matrix_data
+
+        sahasrara_key = sum_digits(md.portrait_zone + md.inner_h)
+        ajna_key = sum_digits(md.talent_zone + md.inner_g)
+        vishudha_key = sum_digits(md.inner_f + md.inner_i)
+        anahata_key = sum_digits(md.comfort_zone + md.center)
+        svadhisthana_key = sum_digits(md.top + md.talent_zone)
+        muladhara_key = sum_digits(md.bottom + md.comfort_zone)
+
+        all_nebo = [
+            md.portrait_zone, md.talent_zone, md.inner_f,
+            md.comfort_zone, md.left, md.top, md.bottom,
+        ]
+        all_zemlya = [
+            md.inner_h, md.inner_g, md.inner_i,
+            md.center, md.right, md.talent_zone, md.comfort_zone,
+        ]
+        organism_sky = sum_digits(sum(all_nebo))
+        organism_earth = sum_digits(sum(all_zemlya))
+        organism_key = sum_digits(organism_sky + organism_earth)
+
+        return {
+            "sahasrara_sky": md.portrait_zone,
+            "sahasrara_earth": md.inner_h,
+            "sahasrara_key": sahasrara_key,
+            "ajna_sky": md.talent_zone,
+            "ajna_earth": md.inner_g,
+            "ajna_key": ajna_key,
+            "vishudha_sky": md.inner_f,
+            "vishudha_earth": md.inner_i,
+            "vishudha_key": vishudha_key,
+            "anahata_sky": md.comfort_zone,
+            "anahata_earth": md.center,
+            "anahata_key": anahata_key,
+            "manipura_sky": md.left,
+            "manipura_earth": md.right,
+            "manipura_key": md.relationship_point,
+            "svadhisthana_sky": md.top,
+            "svadhisthana_earth": md.talent_zone,
+            "svadhisthana_key": svadhisthana_key,
+            "muladhara_sky": md.bottom,
+            "muladhara_earth": md.comfort_zone,
+            "muladhara_key": muladhara_key,
+            "organism_sky": organism_sky,
+            "organism_earth": organism_earth,
+            "organism_key": organism_key,
+        }
+
+    @staticmethod
     def format_for_prompt(matrix_data: "MatrixData | dict") -> str:
         if isinstance(matrix_data, dict):
             matrix_data = MatrixData(**matrix_data)

@@ -1,0 +1,159 @@
+<section class="report-section section-matrix-full">
+  <div class="section-header">
+    <div class="section-accent-bar"></div>
+    <h2>Твоя Матрица Судьбы</h2>
+  </div>
+  <p class="section-subtitle">Полная карта энергий по дате рождения</p>
+
+  <div class="matrix-full-wrap">
+    <!-- Age labels -->
+    <div class="matrix-age age-0"><span>0 лет</span></div>
+    <div class="matrix-age age-10"><span>10 лет</span></div>
+    <div class="matrix-age age-20"><span>20 лет</span></div>
+    <div class="matrix-age age-30"><span>30 лет</span></div>
+    <div class="matrix-age age-40"><span>40 лет</span></div>
+    <div class="matrix-age age-50"><span>50 лет</span></div>
+    <div class="matrix-age age-60"><span>60 лет</span></div>
+    <div class="matrix-age age-70"><span>70 лет</span></div>
+
+    <!-- Main diamond -->
+    <div class="matrix-diamond">
+      <!-- Row 0: top alone -->
+      <div class="diamond-row row-0">
+        <div class="diamond-cell diamond-top">
+          <span class="diamond-num">{{ matrix.top }}</span>
+          <span class="diamond-name">{{ (matrix.arcana_names or {}).get('top', '')[:8] }}</span>
+        </div>
+      </div>
+
+      <!-- Row 1: inner_f + talent -->
+      <div class="diamond-row row-1">
+        <div class="diamond-cell diamond-inner-f diamond-side">
+          <span class="diamond-num">{{ matrix.inner_f }}</span>
+          <span class="diamond-name">{{ (matrix.arcana_names or {}).get('inner_f', '')[:8] }}</span>
+          <span class="diamond-hint">G</span>
+        </div>
+        <div class="diamond-cell diamond-talent">
+          <span class="diamond-num">{{ matrix.talent_zone }}</span>
+          <span class="diamond-name">{{ (matrix.arcana_names or {}).get('talent_zone', '')[:8] }}</span>
+          <span class="diamond-hint">T</span>
+        </div>
+      </div>
+
+      <!-- Row 2: left + center + right -->
+      <div class="diamond-row row-2">
+        <div class="diamond-cell diamond-left">
+          <span class="diamond-num">{{ matrix.left }}</span>
+          <span class="diamond-name">{{ (matrix.arcana_names or {}).get('left', '')[:8] }}</span>
+          <span class="diamond-hint">A</span>
+        </div>
+        <div class="diamond-cell diamond-center">
+          <span class="diamond-num">{{ matrix.center }}</span>
+          <span class="diamond-name">{{ (matrix.arcana_names or {}).get('center', '')[:8] }}</span>
+        </div>
+        <div class="diamond-cell diamond-right">
+          <span class="diamond-num">{{ matrix.right }}</span>
+          <span class="diamond-name">{{ (matrix.arcana_names or {}).get('right', '')[:8] }}</span>
+          <span class="diamond-hint">C</span>
+        </div>
+      </div>
+
+      <!-- Row 3: comfort + portrait -->
+      <div class="diamond-row row-3">
+        <div class="diamond-cell diamond-comfort">
+          <span class="diamond-num">{{ matrix.comfort_zone }}</span>
+          <span class="diamond-name">{{ (matrix.arcana_names or {}).get('comfort_zone', '')[:8] }}</span>
+          <span class="diamond-hint">CO</span>
+        </div>
+        <div class="diamond-cell diamond-portrait">
+          <span class="diamond-num">{{ matrix.portrait_zone }}</span>
+          <span class="diamond-name">{{ (matrix.arcana_names or {}).get('portrait_zone', '')[:8] }}</span>
+          <span class="diamond-hint">P</span>
+        </div>
+      </div>
+
+      <!-- Row 4: bottom alone -->
+      <div class="diamond-row row-4">
+        <div class="diamond-cell diamond-bottom">
+          <span class="diamond-num">{{ matrix.bottom }}</span>
+          <span class="diamond-name">{{ (matrix.arcana_names or {}).get('bottom', '')[:8] }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line labels -->
+    <div class="matrix-lines-legend">
+      {% if matrix.sky_line %}
+      <div class="line-legend-item sky-legend">
+        <span class="legend-color"></span>
+        <span class="legend-label">Линия неба (духовное)</span>
+        <span class="legend-nums">
+          {% for n in matrix.sky_line %}
+            {{ n }}{% if not loop.last %} → {% endif %}
+          {% endfor %}
+        </span>
+      </div>
+      {% endif %}
+      {% if matrix.earth_line %}
+      <div class="line-legend-item earth-legend">
+        <span class="legend-color"></span>
+        <span class="legend-label">Линия земли (материальное)</span>
+        <span class="legend-nums">
+          {% for n in matrix.earth_line %}
+            {{ n }}{% if not loop.last %} → {% endif %}
+          {% endfor %}
+        </span>
+      </div>
+      {% endif %}
+      {% if matrix.relationship_line %}
+      <div class="line-legend-item rel-legend">
+        <span class="legend-color"></span>
+        <span class="legend-label">Линия отношений</span>
+        <span class="legend-nums">
+          {% for n in matrix.relationship_line %}
+            {{ n }}{% if not loop.last %} → {% endif %}
+          {% endfor %}
+        </span>
+      </div>
+      {% endif %}
+      {% if matrix.money_line %}
+      <div class="line-legend-item money-legend">
+        <span class="legend-color"></span>
+        <span class="legend-label">Линия денег</span>
+        <span class="legend-nums">
+          {% for n in matrix.money_line %}
+            {{ n }}{% if not loop.last %} → {% endif %}
+          {% endfor %}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Additional info -->
+    <div class="matrix-extras">
+      {% if matrix.karmic_tail %}
+      <div class="matrix-extra-item">
+        <span class="extra-label">Кармический хвост</span>
+        <div class="extra-chain">
+          {% for n in matrix.karmic_tail %}
+            <span class="extra-dot">{{ n }}</span>
+            {% if not loop.last %}<span class="extra-arrow">→</span>{% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% if matrix.relationship_point is defined %}
+      <div class="matrix-extra-item">
+        <span class="extra-label">Точка отношений</span>
+        <span class="extra-value">{{ matrix.relationship_point }}</span>
+      </div>
+      {% endif %}
+      {% if matrix.inner_g %}
+      <div class="matrix-extra-item">
+        <span class="extra-label">Линия отца / матери</span>
+        <span class="extra-value">{{ matrix.inner_g }} / {{ matrix.inner_i }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>

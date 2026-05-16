@@ -236,6 +236,8 @@ async def _process_full_report(
         "arcana_names": matrix.arcana_names,
     }
 
+    chakra_data = MatrixService.calculate_chakras(matrix)
+
     html = ReportService.generate_html_report(
         report_data={
             "matrix": matrix_raw,
@@ -246,6 +248,7 @@ async def _process_full_report(
             "recommendations_parsed": recommendations_parsed,
             "life_periods": MatrixService.calculate_life_periods(birth_date),
             "current_year_arcana": MatrixService.calculate_year_arcana(birth_date, date.today().year),
+            "chakra_data": chakra_data,
         },
     )
     pdf = await ReportService.generate_pdf(html)
