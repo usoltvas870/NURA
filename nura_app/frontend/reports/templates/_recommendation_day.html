@@ -1,4 +1,13 @@
 <div class="rec-day">
-  <div class="rec-day-num">{{ day.number }}</div>
-  <div class="rec-day-text">{{ day.text }}</div>
+  <div class="rec-day-check">
+    <input type="checkbox" id="day-{{ day.number }}" class="rec-checkbox">
+    <label for="day-{{ day.number }}" class="rec-check-label"></label>
+  </div>
+  <div class="rec-day-content">
+    <div class="rec-day-header">
+      <span class="rec-day-num">День {{ day.number }}</span>
+      <span class="rec-day-category">{{ day.category if day.category else 'Практика' }}</span>
+    </div>
+    <div class="rec-day-text">{{ day.text }}</div>
+  </div>
 </div>

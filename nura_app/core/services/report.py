@@ -69,5 +69,16 @@ class ReportService:
             cleaned = line
             if cleaned and cleaned[0].isdigit() and ". " in cleaned[:4]:
                 cleaned = cleaned.split(". ", 1)[-1]
-            result.append({"number": i, "text": cleaned})
+
+            lower = cleaned.lower()
+            if any(w in lower for w in ["тело", "физическ", "йог", "дыхание", "спорт", "сон", "движение", "тренировк", "прогулк"]):
+                category = "Тело"
+            elif any(w in lower for w in ["ум", "мысл", "анализ", "изучени", "чтение", "план", "интеллект", "обучени", "запис"]):
+                category = "Ум"
+            elif any(w in lower for w in ["дух", "медитаци", "осознанност", "тишина", "благодарност", "духовн", "молитв"]):
+                category = "Дух"
+            else:
+                category = "Практика"
+
+            result.append({"number": i, "text": cleaned, "category": category})
         return result
