@@ -553,6 +553,128 @@ small { font-size: var(--small-size); color: var(--muted); }
   }
 }
 
+/* --- Блок 1: Dashboard --- */
+.dashboard { margin: var(--space-xl) 0; }
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-sm);
+}
+.dashboard-card {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  page-break-inside: avoid;
+}
+.card-label {
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.card-number {
+  font-family: var(--font-heading);
+  font-size: 36px; line-height: 1;
+}
+.card-name { font-size: 14px; color: rgba(245,243,238,0.7); }
+.card-archetype .card-number { color: var(--orange); }
+.card-talent .card-number { color: var(--green); }
+.card-challenge .card-number { color: var(--gold); }
+.card-lesson .card-number { color: var(--orange); }
+.card-resource .card-number { color: var(--green); }
+
+/* --- Блок 2: Karmic chain --- */
+.karmic-chain {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--space-sm); margin-top: var(--space-md);
+}
+.karmic-link {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border: 2px solid; page-break-inside: avoid;
+}
+.karmic-link.cause { border-color: var(--gold); }
+.karmic-link.effect { border-color: var(--orange); }
+.karmic-link.lesson { border-color: var(--green); }
+.karmic-link-label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+.karmic-link-num {
+  font-family: var(--font-heading); font-size: 22px;
+  color: var(--white);
+}
+.karmic-arrow { font-size: 20px; color: var(--muted); }
+
+/* --- Блок 3: Year arcana block --- */
+.year-arcana-block {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: rgba(217,122,50,0.08);
+  border: 1px solid rgba(217,122,50,0.2);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+.year-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+.year-value { font-family: var(--font-heading); font-size: 28px; color: var(--orange); }
+
+/* --- Блок 4: Line visual --- */
+.line-visual {
+  background: var(--card-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  display: flex; align-items: center; gap: var(--space-lg);
+  page-break-inside: avoid;
+}
+.line-visual-header { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.line-visual-emoji { font-size: 20px; }
+.line-visual-title { font-family: var(--font-heading); font-size: 16px; }
+.line-visual.relationship .line-visual-title { color: var(--orange); }
+.line-visual.money .line-visual-title { color: var(--green); }
+.line-visual.sky .line-visual-title { color: var(--orange); }
+.line-visual.earth .line-visual-title { color: var(--gold); }
+.line-visual-pips { display: flex; align-items: center; gap: 8px; }
+.line-pip {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 2px solid; display: grid; place-items: center;
+}
+.line-visual.relationship .line-pip { border-color: var(--orange); }
+.line-visual.money .line-pip { border-color: var(--green); }
+.line-visual.sky .line-pip { border-color: var(--orange); }
+.line-visual.earth .line-pip { border-color: var(--gold); }
+.line-pip-num {
+  font-family: var(--font-heading); font-size: 18px;
+  color: var(--white);
+}
+.line-pip-connector {
+  width: 32px; height: 2px; background: var(--line); flex-shrink: 0;
+}
+
+/* --- Блок 5: Section accent colors for new sections --- */
+.section-karmic-tail .section-accent-bar { background: var(--gold); }
+.section-ancestral .section-accent-bar { background: var(--green); }
+.section-purpose .section-accent-bar { background: var(--orange); }
+.section-forecast .section-accent-bar { background: var(--green); }
+
+/* --- Блок 6: Print styles for new elements --- */
+@media print {
+  .dashboard-card { border: 1px solid #ddd; }
+  .karmic-link { border-color: #999 !important; print-color-adjust: exact; }
+  .year-arcana-block { border: 1px solid #ddd; }
+  .line-visual { border: 1px solid #eee; }
+  .card-number, .karmic-link-num, .year-value, .line-pip-num { color: #1a1a1a !important; }
+  .line-pip { border-color: #ccc !important; }
+  .dashboard-card .card-number { color: #1a1a1a !important; }
+  .card-archetype .card-number { color: #D97A32 !important; print-color-adjust: exact; }
+  .card-talent .card-number { color: #355C4D !important; print-color-adjust: exact; }
+  .card-challenge .card-number { color: #8C6A3B !important; print-color-adjust: exact; }
+  .card-lesson .card-number { color: #D97A32 !important; print-color-adjust: exact; }
+  .card-resource .card-number { color: #355C4D !important; print-color-adjust: exact; }
+  .dashboard-card, .karmic-link, .year-arcana-block, .line-visual { page-break-inside: avoid; }
+}
+
 /* Print */
 @page {
   size: A4;
