@@ -4,6 +4,8 @@ Based on birth date numerology mapping to the 22 Major Arcana.
 Method by Natalia Ladini.
 """
 
+from datetime import date
+
 from core.schemas import MatrixData
 
 ARCANA: dict[int, dict[str, str]] = {
@@ -121,6 +123,22 @@ class MatrixService:
         )
 
     @staticmethod
+    def calculate_year_arcana(birth_date: str, target_year: int) -> int:
+        day, month, year = parse_birth_date(birth_date)
+        age = target_year - year
+        if age <= 0:
+            return 22
+        return sum_digits(age)
+
+    @staticmethod
+    def calculate_life_periods(birth_date: str) -> dict:
+        day, month, year = parse_birth_date(birth_date)
+        periods = {}
+        for age in [0, 17, 25, 33, 40, 50, 60, 70]:
+            periods[f"age_{age}"] = MatrixService.calculate_year_arcana(birth_date, year + age)
+        return periods
+
+    @staticmethod
     def format_for_prompt(matrix_data: "MatrixData | dict") -> str:
         if isinstance(matrix_data, dict):
             matrix_data = MatrixData(**matrix_data)
@@ -158,7 +176,16 @@ class MatrixService:
             f"Линия денег: {ARCANA[md.money_line[0]]['emoji']} {ARCANA[md.money_line[0]]['name']} ({md.money_line[0]}) → {ARCANA[md.money_line[1]]['emoji']} {ARCANA[md.money_line[1]]['name']} ({md.money_line[1]}) → {ARCANA[md.money_line[2]]['emoji']} {ARCANA[md.money_line[2]]['name']} ({md.money_line[2]})",
             "",
             f"Точка отношений: {ARCANA[md.relationship_point]['emoji']} {ARCANA[md.relationship_point]['name']} ({md.relationship_point})",
+            "",
+            "== Жизненные периоды ==",
         ]
+        periods = MatrixService.calculate_life_periods(md.birth_date)
+        for key, arcana_num in periods.items():
+            age = key.replace("age_", "")
+            lines.append(f"{age} лет: {ARCANA[arcana_num]['name']} ({arcana_num}) {ARCANA[arcana_num]['emoji']}")
+        current_year = date.today().year
+        year_arcana = MatrixService.calculate_year_arcana(md.birth_date, current_year)
+        lines.append(f"Текущий год ({current_year}): {ARCANA[year_arcana]['name']} ({year_arcana}) {ARCANA[year_arcana]['emoji']}")
         return "\n".join(lines)
 
     @staticmethod
