@@ -1,0 +1,15 @@
+<section class="report-section section-forecast">
+  <div class="section-header">
+    <div class="section-accent-bar"></div>
+    <h2>Жизненные периоды</h2>
+  </div>
+  <div class="section-body">
+    <p>{{ analysis.life_forecast }}</p>
+  </div>
+  {% if current_year_arcana is defined %}
+  <div class="year-arcana-block">
+    <span class="year-label">Твой год</span>
+    <span class="year-value">{{ current_year_arcana }} аркан</span>
+  </div>
+  {% endif %}
+</section>

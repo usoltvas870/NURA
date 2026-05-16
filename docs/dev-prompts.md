@@ -363,7 +363,7 @@ main_menu_keyboard() — InlineKeyboardMarkup:
 - 👤 Профиль (profile)
 
 paywall_keyboard(token: str, report_type: str) — для мини-разбора:
-- 🔮 Полный разбор за 590 ₽ (pay_full_report:{token})
+- 🔮 Полный разбор за 690 ₽ (pay_full_report:{token})
 - 🏠 В меню (main_menu)
 
 compatibility_paywall_keyboard(token: str):
