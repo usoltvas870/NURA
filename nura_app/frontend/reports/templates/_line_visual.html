@@ -1,0 +1,14 @@
+<div class="line-visual {{ line_class }}">
+  <div class="line-visual-header">
+    <span class="line-visual-emoji">{{ line_emoji }}</span>
+    <span class="line-visual-title">{{ line_title }}</span>
+  </div>
+  <div class="line-visual-pips">
+    {% for arcana in line_data %}
+    <div class="line-pip">
+      <span class="line-pip-num">{{ arcana }}</span>
+    </div>
+    {% if not loop.last %}<span class="line-pip-connector"></span>{% endif %}
+    {% endfor %}
+  </div>
+</div>

@@ -3,9 +3,17 @@
 {% block content %}
   {% include '_cover.html' %}
 
+  {% include '_dashboard.html' %}
+
   {% with section_class='archetype', section_title='Архетип личности', section_text=analysis.main_archetype %}
     {% include '_section_card.html' %}
   {% endwith %}
+
+  {% include '_section_karmic_tail.html' %}
+
+  {% include '_section_ancestral.html' %}
+
+  {% include '_section_purpose.html' %}
 
   {% with section_class='strengths', section_title='Сильные стороны', section_text=analysis.strengths %}
     {% include '_section_card.html' %}
@@ -19,19 +27,29 @@
     {% include '_section_card.html' %}
   {% endwith %}
 
+  {% if matrix.relationship_line %}
+    {% with line_class='line-relationship', line_title='Линия отношений', line_data=matrix.relationship_line, line_emoji='💞' %}
+      {% include '_line_visual.html' %}
+    {% endwith %}
+  {% endif %}
+
   {% with section_class='money', section_title='Деньги и карьера', section_text=analysis.financial_scenario %}
     {% include '_section_card.html' %}
   {% endwith %}
+
+  {% if matrix.money_line %}
+    {% with line_class='line-money', line_title='Линия денег', line_data=matrix.money_line, line_emoji='💰' %}
+      {% include '_line_visual.html' %}
+    {% endwith %}
+  {% endif %}
+
+  {% include '_section_forecast.html' %}
 
   {% with section_class='mistakes', section_title='Повторяющиеся сценарии', section_text=analysis.recurring_mistakes %}
     {% include '_section_card.html' %}
   {% endwith %}
 
   {% with section_class='conflicts', section_title='Внутренние конфликты', section_text=analysis.internal_conflicts %}
-    {% include '_section_card.html' %}
-  {% endwith %}
-
-  {% with section_class='cycles', section_title='Жизненные циклы', section_text=analysis.life_cycles %}
     {% include '_section_card.html' %}
   {% endwith %}
 
