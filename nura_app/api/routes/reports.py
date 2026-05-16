@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Res
 
 from core.database import get_async_sessionmaker
 from core.repositories import ReportRepository, UserRepository
-from core.services.matrix import ARCANA, MatrixService
+from core.services.matrix import ARCANA
 from core.services.report import ReportService
 
 router = APIRouter(prefix="/report")

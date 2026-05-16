@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import random
 import re
 from pathlib import Path
@@ -14,6 +15,8 @@ from core.schemas import (
     FullReportResult,
     MiniAnalysisResult,
 )
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine

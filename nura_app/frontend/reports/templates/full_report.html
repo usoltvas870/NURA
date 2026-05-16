@@ -28,7 +28,7 @@
   {% endwith %}
 
   {% if matrix.relationship_line %}
-    {% with line_class='line-relationship', line_title='Линия отношений', line_data=matrix.relationship_line, line_emoji='💞' %}
+    {% with line_class='relationship', line_title='Линия отношений', line_data=matrix.relationship_line, line_emoji='💞' %}
       {% include '_line_visual.html' %}
     {% endwith %}
   {% endif %}
@@ -38,7 +38,7 @@
   {% endwith %}
 
   {% if matrix.money_line %}
-    {% with line_class='line-money', line_title='Линия денег', line_data=matrix.money_line, line_emoji='💰' %}
+    {% with line_class='money', line_title='Линия денег', line_data=matrix.money_line, line_emoji='💰' %}
       {% include '_line_visual.html' %}
     {% endwith %}
   {% endif %}

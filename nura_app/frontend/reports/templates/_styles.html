@@ -272,82 +272,6 @@ small { font-size: var(--small-size); color: var(--muted); }
 
 .section-compatibility .section-accent-bar { background: var(--gold); }
 
-.section-karmic-tail .section-accent-bar { background: var(--gold); }
-.section-ancestral .section-accent-bar { background: var(--gold); }
-.section-purpose .section-accent-bar { background: var(--orange); }
-.section-forecast .section-accent-bar { background: var(--green); }
-
-/* Karmic chain */
-.karmic-chain {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-top: var(--space-lg);
-  padding: var(--space-md);
-  background: rgba(140, 106, 59, 0.06);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(140, 106, 59, 0.15);
-}
-
-.karmic-link {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 80px;
-}
-
-.karmic-link-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--muted);
-}
-
-.karmic-link-num {
-  font-family: var(--font-heading);
-  font-size: 28px;
-  color: var(--white);
-}
-
-.karmic-link.cause .karmic-link-num { color: var(--gold); }
-.karmic-link.effect .karmic-link-num { color: var(--orange); }
-.karmic-link.lesson .karmic-link-num { color: var(--green); }
-
-.karmic-arrow {
-  font-size: 22px;
-  color: var(--muted);
-  opacity: 0.5;
-  padding-bottom: 16px;
-}
-
-/* Year arcana block */
-.year-arcana-block {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
-  padding: var(--space-md) var(--space-lg);
-  background: rgba(53, 92, 77, 0.08);
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(53, 92, 77, 0.2);
-}
-
-.year-label {
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--muted);
-}
-
-.year-value {
-  font-family: var(--font-heading);
-  font-size: 22px;
-  color: var(--green);
-}
-
 /* Logo mark */
 .logo-mark {
   width: 34px;
@@ -592,6 +516,10 @@ small { font-size: var(--small-size); color: var(--muted); }
 .karmic-chain {
   display: flex; align-items: center; justify-content: center;
   gap: var(--space-sm); margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: rgba(140, 106, 59, 0.06);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(140, 106, 59, 0.15);
 }
 .karmic-link {
   width: 64px; height: 64px; border-radius: 50%;
@@ -675,6 +603,119 @@ small { font-size: var(--small-size); color: var(--muted); }
   .card-lesson .card-number { color: #D97A32 !important; print-color-adjust: exact; }
   .card-resource .card-number { color: #355C4D !important; print-color-adjust: exact; }
   .dashboard-card, .karmic-link, .year-arcana-block, .line-visual { page-break-inside: avoid; }
+}
+
+/* --- Блок 7: Matrix 3x3 expanded (lines) --- */
+.matrix-cell-name {
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.matrix-lines {
+  margin-top: var(--space-md);
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.matrix-line {
+  display: flex; align-items: center; gap: var(--space-sm);
+}
+
+.matrix-line-label {
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+  min-width: 60px; text-align: right;
+}
+
+.matrix-line-dots {
+  display: flex; align-items: center; gap: 4px;
+}
+
+.matrix-line-dot {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-heading); font-size: 15px;
+  color: var(--white); background: rgba(245,243,238,0.04);
+}
+
+.matrix-line-connector {
+  width: 16px; height: 1px; background: var(--line);
+}
+
+.matrix-line.sky .matrix-line-dot { border-color: rgba(217,122,50,0.3); }
+.matrix-line.earth .matrix-line-dot { border-color: rgba(140,106,59,0.3); }
+.matrix-line.relationship .matrix-line-dot { border-color: rgba(217,122,50,0.3); }
+.matrix-line.money .matrix-line-dot { border-color: rgba(53,92,77,0.3); }
+
+.matrix-karmic-chain {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-top: var(--space-sm);
+}
+
+.matrix-karmic-dot {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid rgba(140,106,59,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-heading); font-size: 16px;
+  color: var(--white); background: rgba(140,106,59,0.08);
+}
+
+.matrix-karmic-arrow {
+  font-size: 16px; color: var(--muted); opacity: 0.4;
+}
+
+.matrix-relationship-point {
+  display: flex; align-items: center; justify-content: center;
+  gap: var(--space-sm); margin-top: var(--space-sm);
+}
+
+.matrix-relationship-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--orange);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-heading); font-size: 14px;
+  color: var(--orange);
+}
+
+.matrix-relationship-label {
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+
+/* --- Блок 8: Mini report cards --- */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 28px;
+  margin-bottom: 16px;
+  page-break-inside: avoid;
+}
+
+.card h2 {
+  font-size: 18px;
+  color: var(--orange);
+  margin-bottom: 10px;
+  font-family: var(--font-heading);
+}
+
+.card p {
+  font-size: 15px;
+  color: rgba(245,243,238,0.85);
+  line-height: 1.7;
+}
+
+.mini-cta {
+  text-align: center; padding: 40px 20px; margin-top: 20px;
+  border: 1px solid rgba(217,122,50,0.24);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(circle at 80% 20%, rgba(217,122,50,0.14), transparent 36%), rgba(17,17,17,0.5);
+  page-break-inside: avoid;
+}
+
+/* --- Блок 9: Footer text --- */
+.footer-text {
+  font-size: 12px; color: var(--muted);
 }
 
 /* Print */
@@ -768,4 +809,26 @@ small { font-size: var(--small-size); color: var(--muted); }
   .report-footer {
     color: #999;
   }
+
+  .card {
+    background: transparent !important;
+    border: 1px solid #ddd !important;
+  }
+
+  .card h2 { color: #1a1a1a !important; }
+  .card p { color: #333333 !important; }
+
+  .mini-cta {
+    background: transparent !important;
+    border: 1px solid #ddd !important;
+  }
+
+  .footer-text { color: #999; }
+
+  .matrix-line-dot { border-color: #ccc !important; color: #1a1a1a !important; }
+  .matrix-karmic-dot { border-color: #ccc !important; color: #1a1a1a !important; }
+
+  .matrix-cell-name,
+  .matrix-line-label,
+  .matrix-relationship-label { color: #999; }
 }

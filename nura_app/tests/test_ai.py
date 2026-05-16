@@ -102,6 +102,8 @@ class TestFullReport:
             "relationship_dynamics", "financial_scenario",
             "recurring_mistakes", "internal_conflicts",
             "life_cycles", "ai_recommendations",
+            "karmic_tail_analysis", "ancestral_programs",
+            "life_purpose", "life_forecast",
         }
 
     async def test_fallback_on_invalid_json(self, sample_matrix):
