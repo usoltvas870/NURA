@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from api.admin import setup_admin
 from api.deps import limiter
 from api.routes.reports import router as reports_router
 from api.routes.webhook import router as webhook_router
@@ -25,6 +26,8 @@ app.add_middleware(
 app.include_router(webhook_router)
 app.include_router(reports_router)
 app.include_router(payment_router)
+
+setup_admin(app)
 
 
 @app.on_event("startup")

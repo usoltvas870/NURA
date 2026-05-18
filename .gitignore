@@ -27,3 +27,5 @@ Thumbs.db
 # Project
 *.db
 *.sqlite3
+
+videos/

@@ -530,3 +530,19 @@ async def _downgrade_expired_subscriptions_async() -> dict:
         await session.commit()
 
     return {"downgraded": downgraded, "total_expired": len(users)}
+
+
+@celery_app.task(name="core.tasks.assemble_video")
+def assemble_video(scenario_name: str) -> dict:
+    import json
+
+    from core.services.video_assembler import NURA_ROOT, ScenarioConfig, assemble
+
+    scenario_path = NURA_ROOT / "scenarios" / f"{scenario_name}.json"
+    if not scenario_path.exists():
+        raise FileNotFoundError(f"Scenario not found: {scenario_path}")
+
+    raw = json.loads(scenario_path.read_text("utf-8"))
+    cfg = ScenarioConfig.model_validate(raw)
+    output = assemble(cfg)
+    return {"output": str(output)}

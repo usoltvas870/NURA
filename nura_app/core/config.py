@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     # Subscription
     subscription_price_rub: int = 390
 
+    # Admin panel
+    admin_username: str = "admin"
+    admin_password: str = "admin"
+
     # Test mode — all paid features free
     test_mode: bool = True
 
