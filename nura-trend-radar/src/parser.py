@@ -26,6 +26,8 @@ def extract_from_api_responses(
         for item in items:
             if not isinstance(item, dict):
                 continue
+            if 'item' in item and isinstance(item.get('item'), dict):
+                item = item['item']
             video = _parse_item(item)
             if video and video.get('url'):
                 video['source_type'] = source_type
@@ -35,9 +37,19 @@ def extract_from_api_responses(
         if videos:
             return videos
 
-    if playlist_fallback:
-        return _parse_playlist_items(playlist_fallback, source_type, source_value)
+    return []
 
+
+def extract_playlists_from_api(
+    api_data: list[dict], source_type: str, source_value: str
+) -> list[dict]:
+    for body in api_data:
+        items = body.get('itemList') or body.get('data') or body.get('items') or []
+        if items:
+            continue
+        pitems = body.get('playList')
+        if pitems:
+            return _parse_playlist_items(pitems, source_type, source_value)
     return []
 
 
@@ -69,6 +81,7 @@ def _parse_playlist_items(
             'author_followers': None,
             'source_type': source_type,
             'source_value': source_value,
+            'is_playlist': True,
         })
 
     return playlists
@@ -233,18 +246,65 @@ def _parse_item(item: dict) -> Optional[dict]:
 async def _extract_from_dom(page: Any) -> list[dict]:
     videos = []
     try:
-        links = await page.query_selector_all('a[href*="/video/"]')
-        seen: set[str] = set()
-        for link in links:
-            href = await link.get_attribute('href')
-            if not href:
+        cards = await page.evaluate('''
+            () => {
+                const results = [];
+                const links = document.querySelectorAll('a[href*="/video/"]');
+                const seen = new Set();
+                for (const link of links) {
+                    const href = link.getAttribute('href') || link.href;
+                    if (!href) continue;
+                    const m = href.match(/\\/video\\/(\\d+)/);
+                    if (!m || seen.has(m[1])) continue;
+                    seen.add(m[1]);
+
+                    const card = {
+                        video_id: m[1],
+                        url: href.startsWith('http') ? href : 'https://www.tiktok.com' + href,
+                    };
+
+                    const container = link.closest('div[class*="DivItemContainer"], '
+                        + 'div[class*="search"], div[data-e2e="search-video-item"], '
+                        + 'div[data-e2e="user-post-item"]') || link.parentElement;
+                    const text = (container && container.innerText) || link.innerText || '';
+
+                    const countMatch = text.match(/([\\d.]+\\s*[KMB]?)\\s*(?:views|просмотр)/i);
+                    if (countMatch) card.views_raw = countMatch[1];
+
+                    const authorEl = container
+                        ? container.querySelector('[data-e2e="search-video-author"], p[class*="unique"], span[class*="nickname"]')
+                        : null;
+                    if (authorEl) card.author = authorEl.textContent.trim();
+
+                    const descEl = container
+                        ? container.querySelector('[data-e2e="search-video-desc"], div[class*="desc"], span[class*="caption"]')
+                        : null;
+                    if (descEl) card.caption = descEl.textContent.trim();
+
+                    results.push(card);
+                }
+                return results;
+            }
+        ''')
+
+        for card in cards:
+            video_id = card.get('video_id')
+            url = card.get('url')
+            if not video_id or not url:
                 continue
-            url = _resolve_url(href)
-            video_id = _extract_video_id(url)
-            if not video_id or video_id in seen:
-                continue
-            seen.add(video_id)
-            videos.append({'video_id': video_id, 'url': url})
+            author = (card.get('author') or '').lstrip('@').strip()
+            videos.append({
+                'video_id': video_id,
+                'url': url,
+                'author_username': author or None,
+                'caption': card.get('caption'),
+                'views': _parse_count(card.get('views_raw')),
+                'likes': None,
+                'comments': None,
+                'shares': None,
+                'publish_time': '',
+                'author_followers': None,
+            })
             if len(videos) >= 50:
                 break
     except Exception as e:
@@ -295,9 +355,69 @@ def _safe_int(value: Any) -> Optional[int]:
         return None
 
 
+def _parse_count(raw: str | None) -> int | None:
+    if not raw:
+        return None
+    raw = raw.upper().strip().replace('\u00a0', '').replace(' ', '')
+    try:
+        if 'K' in raw:
+            return int(float(raw.replace('K', '')) * 1000)
+        if 'M' in raw:
+            return int(float(raw.replace('M', '')) * 1_000_000)
+        if 'B' in raw:
+            return int(float(raw.replace('B', '')) * 1_000_000_000)
+        return int(float(raw))
+    except (ValueError, TypeError):
+        return None
+
+
 def _resolve_url(href: str) -> str:
     if href.startswith('http'):
         return href
     if href.startswith('/'):
         return f'https://www.tiktok.com{href}'
     return f'https://www.tiktok.com/{href}'
+
+
+def parse_detail_page_stats(json_data: dict) -> dict | None:
+    items = _find_items_detail(json_data)
+    if not items:
+        return None
+    return _parse_item(items[0])
+
+
+def _find_items_detail(data: dict | list) -> list[dict]:
+    if isinstance(data, list):
+        return [d for d in data if isinstance(d, dict)]
+
+    paths = [
+        lambda d: (
+            d.get('__DEFAULT_SCOPE__', {})
+            .get('webapp.video-detail', {})
+            .get('itemInfo', {})
+            .get('itemStruct')
+        ),
+        lambda d: (
+            d.get('__DEFAULT_SCOPE__', {})
+            .get('webapp.video-detail', {})
+            .get('itemInfo', {})
+        ),
+        lambda d: d.get('props', {}).get('pageProps', {}).get('itemInfo', {}).get('itemStruct'),
+        lambda d: d.get('props', {}).get('pageProps', {}).get('itemInfo', {}),
+        lambda d: d.get('ItemModule', {}),
+        lambda d: d.get('itemList', []),
+    ]
+
+    for fn in paths:
+        try:
+            result = fn(data)
+            if result:
+                if isinstance(result, dict):
+                    if result.get('id') or result.get('video', {}).get('id'):
+                        return [result]
+                    return list(result.values())
+                if isinstance(result, list):
+                    return result
+        except Exception:
+            continue
+    return []

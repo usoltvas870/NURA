@@ -1,0 +1,7 @@
+.env
+data/
+__pycache__/
+*.pyc
+.node/
+
+.ruff_cache/

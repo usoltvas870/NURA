@@ -227,3 +227,23 @@ Report immediately if found:
 - Network calls to non-project endpoints
 - Obfuscated code
 - Hidden files or directories appearing
+
+## Trend Radar
+
+Проект `nura-trend-radar/` — локальный инструмент сбора TikTok-видео по 50 источникам.
+
+### Быстрый старт
+```bash
+cd nura-trend-radar
+# 1. Убедись что Chrome запущен с --remote-debugging-port=9222
+# 2. Войди в TikTok в этом Chrome
+python run_radar.py
+```
+
+### Частые проблемы
+- **Топ из плейлистов** → `rm data/videos.db` (удалить БД)
+- **Все 0 видео** → куки протухли, переэкспорт или CHROME_DEBUG_PORT
+- **AI пустой** → баланс DeepSeek или ключ
+- **networkidle таймаут** → уже пофиксено (load + fallback)
+
+Полная документация: `nura-trend-radar/docs/radar_guide.md`

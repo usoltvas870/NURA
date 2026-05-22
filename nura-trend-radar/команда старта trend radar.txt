@@ -1,0 +1,2 @@
+﻿cd C:\git\NURA\nura-trend-radar; python run_radar.py
+
