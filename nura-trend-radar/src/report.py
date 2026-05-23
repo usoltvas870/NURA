@@ -271,6 +271,50 @@ def _parse_scenario_block(text: str) -> list[dict]:
     return scenarios
 
 
+def _parse_carousel_block(text: str) -> str | None:
+    m = re.search(
+        r'={3,}\s*КАРУСЕЛЬ\s*={3,}\s*\n(.*?)\n[\s]*={3,}\s*/КАРУСЕЛЬ\s*={3,}',
+        text, re.DOTALL | re.IGNORECASE,
+    )
+    if not m:
+        m = re.search(
+            r'={3,}\s*КАРУСЕЛЬ\s*={3,}\s*\n(.*?)(?:\n\s*={3,}|\Z)',
+            text, re.DOTALL | re.IGNORECASE,
+        )
+    if m:
+        content = m.group(1).strip()
+        if content and 'не применимо' not in content.lower()[:20]:
+            return content
+    return None
+
+
+def save_carousel_texts(
+    top_videos: list[dict], analysis_map: dict | None = None
+) -> str | None:
+    if not analysis_map:
+        return None
+    dir_path = REPORTS_DIR.parent / 'carousel_texts'
+    dir_path.mkdir(parents=True, exist_ok=True)
+    saved = 0
+    for i, v in enumerate(top_videos[:10], 1):
+        video_id = v.get('video_id', 'unknown')
+        analysis = ''
+        if video_id in analysis_map:
+            analysis = analysis_map[video_id].get('ai_analysis', '') or ''
+        carousel_text = _parse_carousel_block(analysis)
+        if not carousel_text:
+            continue
+        caption = (v.get('caption') or 'Без описания')[:40]
+        safe_caption = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', caption).strip('._ ')[:40] or 'nocaption'
+        safe_name = f'{i:02d}_{video_id}_{safe_caption}'[:100]
+        path = dir_path / f'{safe_name}.carousel.txt'
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(carousel_text)
+        saved += 1
+    logger.info(f'Carousel texts saved: {saved} files to {dir_path}')
+    return str(dir_path)
+
+
 def save_scenarios_xlsx(top_videos: list[dict], analysis_map: dict | None = None) -> str | None:
     try:
         from openpyxl import Workbook

@@ -21,7 +21,7 @@ from collector import TikTokCollector
 from scoring import compute_scores
 from ai_analyzer import analyze_top_videos
 from telegram import send_digest
-from report import generate_report, save_report, save_xlsx, save_ai_analyses, save_scenarios_xlsx
+from report import generate_report, save_report, save_xlsx, save_ai_analyses, save_scenarios_xlsx, save_carousel_texts
 
 logger = logging.getLogger('run_radar')
 
@@ -155,6 +155,12 @@ async def main():
             logger.error(f'Failed to save scenarios XLSX: {e}')
             scenarios_path = None
 
+        try:
+            carousel_dir = save_carousel_texts(top_videos, analysis_map)
+        except Exception as e:
+            logger.error(f'Failed to save carousel texts: {e}')
+            carousel_dir = None
+
         print()
         logger.info('=' * 60)
         logger.info(f'REPORT: {report_path}')
@@ -164,6 +170,8 @@ async def main():
             logger.info(f'AI:     {ai_dir}')
         if scenarios_path:
             logger.info(f'SCENARIOS: {scenarios_path}')
+        if carousel_dir:
+            logger.info(f'CAROUSELS: {carousel_dir}')
         logger.info('=' * 60)
         print()
         print(f'\u2502 Sources:     {total}')
@@ -185,7 +193,6 @@ async def main():
         # ── export top-10 for Video Pipeline ──
         try:
             import json as _json
-            from datetime import datetime as _dt
 
             trend_data_path = Path(__file__).parent / 'data' / 'trend_top.json'
             trend_data_path.parent.mkdir(parents=True, exist_ok=True)

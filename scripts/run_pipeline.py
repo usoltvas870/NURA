@@ -23,6 +23,7 @@ Usage:
 import argparse
 import asyncio
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -45,6 +46,8 @@ async def main():
                         help="Этап 2: собрать видео по всем сценариям (после dry-run)")
     parser.add_argument("--to-xlsx", action="store_true",
                         help="Экспортировать все JSON-сценарии в Excel для просмотра")
+    parser.add_argument("--parse-carousels", action="store_true",
+                        help="Сгенерировать .carousel.json из carousel_texts/ (через AI parser)")
 
     args = parser.parse_args()
 
@@ -54,6 +57,10 @@ async def main():
 
     if args.to_xlsx:
         _export_xlsx()
+        return
+
+    if args.parse_carousels:
+        await _parse_carousels()
         return
 
     pipeline = VideoPipeline(
@@ -204,6 +211,96 @@ def _export_xlsx():
 
     wb.save(str(out_path))
     print(f"Excel: {out_path}")
+
+
+async def _parse_carousels():
+    import httpx
+    from pathlib import Path as _Path
+
+    from core.config import settings
+
+    prompts_dir = _Path(__file__).resolve().parent.parent / "nura_app" / "core" / "prompts"
+    trend_data_dir = NURA_ROOT.parent / "nura-trend-radar" / "data" / "carousel_texts"
+    if not trend_data_dir.exists():
+        print("Нет файлов каруселей. Сначала запусти trend radar.")
+        print(f"Ожидаемая папка: {trend_data_dir}")
+        return
+
+    files = sorted(trend_data_dir.glob("*.carousel.txt"))
+    if not files:
+        print("Нет .carousel.txt файлов для обработки.")
+        return
+
+    parser_prompt = (prompts_dir / "carousel_parser.txt").read_text("utf-8")
+    scenarios_dir = NURA_ROOT / "scenarios"
+    scenarios_dir.mkdir(parents=True, exist_ok=True)
+
+    ok = 0
+    for fp in files:
+        name_base = fp.stem  # removes .carousel.txt
+        carousel_json_path = scenarios_dir / f"{name_base}.carousel.json"
+        if carousel_json_path.exists():
+            print(f"  ✓ (уже есть) {carousel_json_path.name}")
+            ok += 1
+            continue
+
+        text = fp.read_text("utf-8").strip()
+        if not text:
+            print(f"  ✗ пустой файл: {fp.name}")
+            continue
+
+        print(f"  → AI парсинг: {fp.name}...")
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                r = await client.post(
+                    f"{settings.deepseek_base_url}/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {settings.deepseek_api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": settings.deepseek_model,
+                        "messages": [
+                            {"role": "system", "content": parser_prompt},
+                            {"role": "user", "content": text},
+                        ],
+                        "temperature": 0.3,
+                        "max_tokens": 4000,
+                    },
+                )
+                r.raise_for_status()
+                raw = r.json()["choices"][0]["message"]["content"]
+
+            parsed = _try_parse_json(raw)
+            if parsed is None:
+                print("    ✗ AI вернул не JSON")
+                continue
+
+            if parsed.get("error"):
+                print(f"    ✗ AI: {parsed['error']}")
+                continue
+
+            with open(carousel_json_path, "w", encoding="utf-8") as f:
+                json.dump(parsed, f, ensure_ascii=False, indent=2)
+            print(f"    ✓ {carousel_json_path.name} ({len(parsed.get('slides', []))} слайдов)")
+            ok += 1
+        except Exception as e:
+            print(f"    ✗ ошибка: {e}")
+
+    print(f"\nГотово: {ok}/{len(files)} каруселей")
+
+
+def _try_parse_json(text: str) -> dict | None:
+    m = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
+    if m:
+        try:
+            return json.loads(m.group(1))
+        except json.JSONDecodeError:
+            pass
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return None
 
 
 if __name__ == "__main__":
