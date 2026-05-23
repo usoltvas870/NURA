@@ -190,6 +190,31 @@ class TikTokCollector:
                 logger.error(f"Keyword '{keyword}' failed: {e}")
             await async_random_sleep(3, 6)
 
+        rotational = sources.get('rotational', {})
+        for entry in rotational.get('hashtags', []):
+            try:
+                videos = await self.collect_from_hashtag(entry)
+                for v in videos:
+                    url = v.get('url', '')
+                    if url and url not in seen_urls:
+                        seen_urls.add(url)
+                        all_videos.append(v)
+            except Exception as e:
+                logger.error(f'Rotational hashtag #{entry} failed: {e}')
+            await async_random_sleep(3, 6)
+
+        for entry in rotational.get('keywords', []):
+            try:
+                videos = await self.collect_from_keyword(entry)
+                for v in videos:
+                    url = v.get('url', '')
+                    if url and url not in seen_urls:
+                        seen_urls.add(url)
+                        all_videos.append(v)
+            except Exception as e:
+                logger.error(f"Rotational keyword '{entry}' failed: {e}")
+            await async_random_sleep(3, 6)
+
         return all_videos
 
     async def _dismiss_overlays(self, page) -> None:
@@ -476,16 +501,9 @@ class TikTokCollector:
         return await self._navigate_and_extract(url, 'competitor', name)
 
     async def collect_from_hashtag(self, hashtag: str) -> list[dict]:
-        if self._hashtag_blocked:
-            logger.debug(f'Hashtag #{hashtag} skipped (hashtag block cached)')
-            return []
         tag = hashtag.replace('#', '').strip()
         url = f'https://www.tiktok.com/tag/{tag}'
-        videos = await self._navigate_and_extract(url, 'hashtag', tag)
-        if not videos:
-            self._hashtag_blocked = True
-            logger.info('Hashtag block cached — remaining hashtags will be skipped')
-        return videos
+        return await self._navigate_and_extract(url, 'hashtag', tag)
 
     async def collect_from_keyword(self, keyword: str) -> list[dict]:
         url = f'https://www.tiktok.com/search?q={quote(keyword)}'

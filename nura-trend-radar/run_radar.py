@@ -37,18 +37,24 @@ async def main():
     competitors = read_source_file('competitors.txt')
     hashtags = read_source_file('hashtags.txt')
     keywords = read_source_file('keywords.txt')
+    rotational_raw = read_source_file('rotational.txt')
+
+    rotational_h = [e for e in rotational_raw if len(e.split()) == 1]
+    rotational_k = [e for e in rotational_raw if len(e.split()) > 1]
 
     logger.info(f'Competitors: {len(competitors)}, '
                 f'Hashtags: {len(hashtags)}, '
-                f'Keywords: {len(keywords)}')
+                f'Keywords: {len(keywords)}, '
+                f'Rotational: {len(rotational_h)} hashtags + {len(rotational_k)} keywords')
 
     sources = {
         'competitors': competitors,
         'hashtags': hashtags,
         'keywords': keywords,
+        'rotational': {'hashtags': rotational_h, 'keywords': rotational_k},
     }
 
-    total = len(competitors) + len(hashtags) + len(keywords)
+    total = len(competitors) + len(hashtags) + len(keywords) + len(rotational_raw)
     if total == 0:
         logger.warning('No sources found. Fill config files in config/')
         return
