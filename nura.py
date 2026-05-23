@@ -79,7 +79,7 @@ def all_pipeline() -> bool:
             print(f"  ! Остановлено на шаге: {title}")
             return False
     print(f"\n{'=' * 60}")
-    print(f"  + Полный цикл завершён")
+    print("  + Полный цикл завершён")
     print(f"{'=' * 60}")
     return True
 
