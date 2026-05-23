@@ -182,6 +182,39 @@ async def main():
                       f'@{v.get("author_username", "?")}')
                 print()
 
+        # ── export top-10 for Video Pipeline ──
+        try:
+            import json as _json
+            from datetime import datetime as _dt
+
+            trend_data_path = Path(__file__).parent / 'data' / 'trend_top.json'
+            trend_data_path.parent.mkdir(parents=True, exist_ok=True)
+            export_data = []
+            for v in top_videos[:10]:
+                export_data.append({
+                    'video_id': v.get('video_id'),
+                    'url': v.get('url'),
+                    'author_username': v.get('author_username'),
+                    'caption': v.get('caption'),
+                    'views': v.get('views'),
+                    'likes': v.get('likes'),
+                    'comments': v.get('comments'),
+                    'shares': v.get('shares'),
+                    'engagement_rate': v.get('engagement_rate'),
+                    'comment_density': v.get('comment_density'),
+                    'viral_score': v.get('viral_score'),
+                    'final_score': v.get('final_score'),
+                    'subscriber_potential': v.get('subscriber_potential'),
+                    'source_type': v.get('source_type'),
+                    'source_value': v.get('source_value'),
+                    'ai_analysis': v.get('ai_analysis'),
+                })
+            with open(trend_data_path, 'w', encoding='utf-8') as f:
+                _json.dump(export_data, f, ensure_ascii=False, indent=2)
+            logger.info(f"Trend top-10 exported: {trend_data_path}")
+        except Exception as e:
+            logger.warning(f"Failed to export trend top-10: {e}")
+
         if get_config_bool('ENABLE_TELEGRAM', False):
             logger.info('Sending Telegram digest...')
             await send_digest(top_videos, ai_analyses)

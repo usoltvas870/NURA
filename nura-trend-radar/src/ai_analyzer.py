@@ -91,7 +91,7 @@ async def analyze_video(video: dict) -> Optional[str]:
                         {'role': 'user', 'content': user_prompt},
                     ],
                     'temperature': 0.7,
-                    'max_tokens': 2000,
+                    'max_tokens': 8000,
                 },
             )
             resp.raise_for_status()

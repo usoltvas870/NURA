@@ -103,6 +103,8 @@ Overlay = TextOverlay | VideoOverlay | ImageOverlay | ZoomEffect
 
 
 class Scene(BaseModel):
+    source: str | None = None
+    source_keywords: list[str] = []
     start: float = 0.0
     duration: float
     transition: Transition | None = None
@@ -339,9 +341,21 @@ def assemble(cfg: ScenarioConfig) -> Path:
                     extra_inputs.append(p)
                     extra_path_set.add(str(p))
 
+    # ── collect scene-level source files (full-screen stock) ──
+    scene_sources: dict[str, int] = {}
+    scene_source_info: dict[int, Path] = {}
+    for sc in cfg.scenes:
+        if sc.source:
+            sp = str(_resolve(sc.source))
+            if sp not in scene_sources:
+                idx = len(scene_sources) + 1
+                scene_sources[sp] = idx
+                scene_source_info[idx] = _resolve(sc.source)
+
     # ── build filter_complex ──
+    n_extra = len(extra_inputs) + len(scene_source_info)
     print(f"[3/6] Building filter graph ({len(cfg.scenes)} scene(s), "
-          f"{len(extra_inputs)} extra input(s))...")
+          f"{n_extra} extra input(s))...")
 
     parts: list[str] = []
     label_ctr = 0
@@ -356,20 +370,39 @@ def assemble(cfg: ScenarioConfig) -> Path:
     scene_a_labels: list[str] = []
 
     for si, sc in enumerate(cfg.scenes):
-        sd = sc.duration if sc.duration > 0 else (total_dur - sc.start)
+        if sc.source:
+            src_idx = scene_sources[str(_resolve(sc.source))]
+            input_v_tag = f"[{src_idx}:v]"
+            input_a_tag = f"[{src_idx}:a]"
+            src_total = _probe_duration(_resolve(sc.source))
+        else:
+            input_v_tag = "[0:v]"
+            input_a_tag = "[0:a]"
+            src_total = total_dur
+
+        sd = sc.duration if sc.duration > 0 else (src_total - sc.start)
         parts_v: list[str] = []
 
         # trim
         parts_v.append(
-            f"[0:v]trim=start={sc.start}:duration={sd},"
+            f"{input_v_tag}trim=start={sc.start}:duration={sd},"
             f"setpts=PTS-STARTPTS,fps=fps={FPS}{_nl('v')}"
         )
         parts_v.append(
-            f"[0:a]atrim=start={sc.start}:duration={sd},"
+            f"{input_a_tag}atrim=start={sc.start}:duration={sd},"
             f"asetpts=PTS-STARTPTS{_nl('a')}"
         )
         cv = f"[n{label_ctr - 2}v]"
         ca = f"[n{label_ctr - 1}a]"
+
+        # scale full-screen stock scenes to main resolution
+        if sc.source:
+            scale_lbl = _nl('v')
+            parts_v.append(
+                f"{cv}scale=width={W}:height={H}:force_original_aspect_ratio=1,"
+                f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black{scale_lbl}"
+            )
+            cv = scale_lbl
 
         # zoom
         for ov in sc.overlays:
@@ -586,6 +619,10 @@ def assemble(cfg: ScenarioConfig) -> Path:
     cmd = [
         str(_FFMPEG), "-y", "-hide_banner",
         "-i", str(vp),
+    ]
+    for idx in sorted(scene_source_info):
+        cmd += ["-i", str(scene_source_info[idx])]
+    cmd += [
         "-filter_complex", filter_str,
         "-map", fv,
         "-map", fa,
