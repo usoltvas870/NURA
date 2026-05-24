@@ -8,9 +8,7 @@ from bot.texts.matrix import (
 )
 from bot.texts.compatibility import (
     explanation_text,
-    ask_first_date_text,
-    ask_second_date_text,
-    dates_match_error_text,
+    ask_partner_date_text,
     loading_steps as compatibility_loading_steps,
     mini_compatibility_text,
 )
@@ -71,9 +69,7 @@ __all__ = [
     "matrix_loading_steps",
     "mini_analysis_text",
     "explanation_text",
-    "ask_first_date_text",
-    "ask_second_date_text",
-    "dates_match_error_text",
+    "ask_partner_date_text",
     "compatibility_loading_steps",
     "mini_compatibility_text",
     "no_matrix_text",

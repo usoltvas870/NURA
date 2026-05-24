@@ -297,9 +297,9 @@ def generate_full_report(user_id: str, birth_date: str, report_token: str) -> di
 
 
 @celery_app.task(name="core.tasks.generate_compatibility_report")
-def generate_compatibility_report(user_id: str, date1: str, date2: str) -> dict:
+def generate_compatibility_report(user_id: str, partner_date: str) -> dict:
     async def _run_all():
-        result = await _process_compatibility_report(user_id, date1, date2)
+        result = await _process_compatibility_report(user_id, partner_date)
         telegram_id = await _get_user_telegram_id(user_id)
         if telegram_id:
             await _notify_compatibility(telegram_id, result["token"])
@@ -308,22 +308,26 @@ def generate_compatibility_report(user_id: str, date1: str, date2: str) -> dict:
 
 
 async def _process_compatibility_report(
-    user_id: str, date1: str, date2: str
+    user_id: str, partner_date: str
 ) -> dict:
     uid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
     report_repo = ReportRepository(session_factory)
     user_repo = UserRepository(session_factory)
 
-    matrix1 = MatrixService.calculate(date1)
-    matrix2 = MatrixService.calculate(date2)
+    user = await user_repo.get(uid)
+    if user is None or not user.birth_date:
+        raise ValueError(f"User {user_id} has no birth_date set")
+    user_date = user.birth_date
+
+    matrix1 = MatrixService.calculate(user_date)
+    matrix2 = MatrixService.calculate(partner_date)
     analysis = await AIService.generate_compatibility(
-        date1, matrix1, date2, matrix2
+        user_date, matrix1, partner_date, matrix2
     )
     token = ReportService.generate_token()
 
-    user = await user_repo.get(uid)
-    user_name = user.first_name or user.username or "пользователь" if user else "пользователь"
+    user_name = user.first_name or user.username or "пользователь"
     archetype_first_name = MatrixService.get_archetype_name(matrix1.center)
     archetype_second_name = MatrixService.get_archetype_name(matrix2.center)
 

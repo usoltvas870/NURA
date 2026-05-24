@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from aiogram import F, Router
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from celery.result import AsyncResult
@@ -10,8 +11,6 @@ from bot.handlers.validators import validate_date
 from bot.keyboards.main_menu import compatibility_paywall_keyboard
 from bot.states.compatibility_state import CompatibilityStates
 from bot.texts.compatibility import (
-    ask_second_date_text,
-    dates_match_error_text,
     explanation_text,
     loading_steps,
     mini_compatibility_text,
@@ -33,36 +32,23 @@ MAX_POLL_SECONDS = 90
 @router.callback_query(F.data == "compatibility")
 async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
-    await state.set_state(CompatibilityStates.waiting_first_date)
+    await state.set_state(CompatibilityStates.waiting_partner_date)
     await callback.message.edit_text(explanation_text())
 
 
-@router.message(CompatibilityStates.waiting_first_date)
-async def process_first_date(message: Message, state: FSMContext) -> None:
+@router.message(Command("start", "menu", "help"), CompatibilityStates.waiting_partner_date)
+async def exit_compatibility(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    from bot.handlers.onboarding import cmd_start
+    await cmd_start(message, state)
+
+
+@router.message(CompatibilityStates.waiting_partner_date)
+async def process_partner_date(message: Message, state: FSMContext) -> None:
     date_str = message.text.strip()
 
     if not validate_date(date_str):
         await message.answer(invalid_format_text())
-        return
-
-    await state.update_data(first_date=date_str)
-    await state.set_state(CompatibilityStates.waiting_second_date)
-    await message.answer(ask_second_date_text())
-
-
-@router.message(CompatibilityStates.waiting_second_date)
-async def process_second_date(message: Message, state: FSMContext) -> None:
-    date_str = message.text.strip()
-
-    if not validate_date(date_str):
-        await message.answer(invalid_format_text())
-        return
-
-    data = await state.get_data()
-    first_date = data["first_date"]
-
-    if date_str == first_date:
-        await message.answer(dates_match_error_text())
         return
 
     await state.clear()
@@ -83,7 +69,7 @@ async def process_second_date(message: Message, state: FSMContext) -> None:
         return
 
     task = generate_compatibility_report.delay(
-        str(user.id), first_date, date_str
+        str(user.id), date_str
     )
 
     result = None
