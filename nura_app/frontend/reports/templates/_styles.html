@@ -1648,8 +1648,289 @@ small { font-size: var(--small-size); color: var(--muted); }
 /* Section matrix full */
 .section-matrix-full .section-accent-bar { background: var(--orange); }
 
+/* --- Block 15: Kitchen toggle --- */
+.kitchen-toggle {
+  margin: 0 var(--space-sm) var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: rgba(245,243,238,0.015);
+  page-break-inside: avoid;
+}
+
+.kitchen-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 10px var(--space-md);
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  letter-spacing: 0.5px;
+}
+
+.kitchen-btn:hover { color: var(--white); }
+
+.kitchen-arrow {
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.kitchen-content.open .kitchen-arrow { transform: rotate(180deg); }
+
+.kitchen-content {
+  display: none;
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: rgba(245,243,238,0.6);
+  line-height: 1.6;
+}
+
+.kitchen-content.open { display: block; }
+
+.kitchen-positions,
+.kitchen-energies,
+.kitchen-logic {
+  margin-bottom: 6px;
+}
+
+.kitchen-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+/* --- Block 16: Practices --- */
+.practices-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.practice-card {
+  background: rgba(245,243,238,0.02);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  page-break-inside: avoid;
+}
+
+.practice-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.practice-icon { font-size: 20px; }
+
+.practice-card-header h4 {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  color: var(--white);
+  margin: 0;
+  flex: 1;
+}
+
+.practice-arcana {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.practice-card p {
+  font-size: 13px;
+  color: rgba(245,243,238,0.7);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* --- Block 17: Psychological blocks fallback (blocks-grid) --- */
+.blocks-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.block-card {
+  background: rgba(245,243,238,0.02);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  page-break-inside: avoid;
+}
+
+.block-arcana {
+  font-size: 12px;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--space-sm);
+}
+
+.block-belief {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  color: var(--white);
+  margin-bottom: var(--space-sm);
+}
+
+.block-manifestation,
+.block-strategy {
+  margin-top: var(--space-sm);
+}
+
+.block-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.block-manifestation p,
+.block-strategy p {
+  font-size: 14px;
+  color: rgba(245,243,238,0.85);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.block-strategy p { color: var(--green); font-style: italic; }
+
+/* --- Block 18: Chakra icon + health accent --- */
+.chakra-icon { font-size: 22px; line-height: 1; }
+.health-accent { background: var(--green); }
+
+/* --- Block 19: Diamond rows + diamond-side --- */
+.diamond-row.row-0,
+.diamond-row.row-2,
+.diamond-row.row-4 { justify-content: center; }
+.diamond-row.row-1,
+.diamond-row.row-3 { justify-content: center; }
+.diamond-side { border-color: rgba(140,106,59,0.3); }
+
+/* --- Block 20: Nav sidebar + TOC --- */
+.nav-sidebar {
+  position: sticky;
+  top: 20px;
+  max-width: 220px;
+  padding: var(--space-md);
+  background: rgba(11,11,11,0.85);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  z-index: 10;
+}
+
+.nav-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--line);
+}
+
+.nav-title {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  color: var(--white);
+}
+
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-link {
+  display: block;
+  padding: 6px 10px;
+  color: var(--muted);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+  font-size: 12px;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--orange);
+  background: rgba(217,122,50,0.08);
+}
+
+.toc {
+  page-break-before: always;
+  padding: var(--space-2xl) 0;
+}
+
+.toc-title {
+  font-family: var(--font-heading);
+  font-size: var(--h2-size);
+  color: var(--white);
+  margin-bottom: var(--space-lg);
+}
+
+.toc-list {
+  list-style: decimal;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toc-list li {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+@media print {
+  .toc { page-break-after: always; }
+  .toc-title { color: #1a1a1a !important; }
+  .toc-list li { color: #333 !important; }
+  .nav-sidebar { display: none; }
+}
+
+/* --- Print overrides for new blocks --- */
+@media print {
+  .kitchen-toggle { border: 1px solid #eee; background: transparent; }
+  .kitchen-btn { color: #999; }
+  .kitchen-label { color: #999; }
+  .practice-card { border: 1px solid #eee; background: transparent; }
+  .practice-card-header h4 { color: #1a1a1a; }
+  .block-card { border: 1px solid #eee; background: transparent; }
+  .block-belief { color: #1a1a1a; }
+  .block-manifestation p,
+  .block-strategy p { color: #333; }
+  .block-label { color: #999; }
+  .chakra-icon { color: #1a1a1a; }
+}
+
 @media (max-width: 768px) {
   .purposes-grid { grid-template-columns: 1fr; }
+  .practices-grid { grid-template-columns: 1fr; }
+  .nav-sidebar { display: none; }
   .diamond-cell { width: 56px; height: 56px; }
   .diamond-center { width: 64px; height: 64px; }
   .diamond-num { font-size: 18px; }
@@ -1659,6 +1940,7 @@ small { font-size: var(--small-size); color: var(--muted); }
   .matrix-age.age-30 { right: -20px; }
   .matrix-age.age-70 { left: -20px; }
   .chakra-triple { flex-direction: column; gap: 4px; }
+  .practice-card { padding: var(--space-sm); }
 }
 
 
