@@ -152,6 +152,10 @@ async def _process_mini_report(user_id: str, birth_date: str) -> dict:
     token = ReportService.generate_token()
     archetype_name = MatrixService.get_archetype_name(matrix.center)
 
+    existing = await report_repo.get_by_user_id_and_type(uid, ReportType.MINI)
+    if existing is not None:
+        await report_repo.delete(existing.id)
+
     report = await report_repo.create(
         user_id=uid,
         report_type=ReportType.MINI,
@@ -256,6 +260,10 @@ async def _process_full_report(
     )
     pdf = await ReportService.generate_pdf(html)
     paths = ReportService.save_report_files(token, html, pdf)
+
+    existing = await report_repo.get_by_user_id_and_type(uid, ReportType.FULL)
+    if existing is not None:
+        await report_repo.delete(existing.id)
 
     matrix_dict = matrix.model_dump()
     report = await report_repo.create(

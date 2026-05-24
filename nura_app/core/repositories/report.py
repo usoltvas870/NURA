@@ -26,6 +26,18 @@ class ReportRepository(SQLAlchemyRepository[Report]):
             )
             return list(result.scalars().all())
 
+    async def get_by_user_id_and_type(
+        self, user_id: uuid.UUID, report_type: ReportType
+    ) -> Report | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(Report).where(
+                    Report.user_id == user_id,
+                    Report.report_type == report_type.value,
+                )
+            )
+            return result.scalar_one_or_none()
+
     async def create(
         self,
         user_id: uuid.UUID,

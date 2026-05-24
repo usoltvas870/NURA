@@ -19,6 +19,7 @@ from bot.texts.onboarding import (
     onboarding_loading_text,
 )
 from core.database import get_async_sessionmaker
+from core.models import ReportType
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.services.matrix import MatrixService
@@ -124,8 +125,7 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
         portrait_zone=arcana["portrait_zone"],
     )
 
-    reports = await report_repo.get_by_user_id(user.id)
-    mini_report = next((r for r in reports if r.report_type == "mini"), None)
+    mini_report = await report_repo.get_by_user_id_and_type(user.id, ReportType.MINI)
 
     if mini_report and mini_report.ai_analysis:
         analysis = mini_report.ai_analysis or {}
