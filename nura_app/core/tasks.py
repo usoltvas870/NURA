@@ -14,6 +14,7 @@ from core.models import ReportType, User
 from core.repositories import ReportRepository, UserRepository
 from core.services.ai import AIService
 from core.services.insights_data import INSIGHTS_BY_ARCHETYPE
+from core.services.daily_arcana import get_today_arcana_with_name
 from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
 
@@ -292,6 +293,7 @@ async def _process_full_report(
             "life_periods": MatrixService.calculate_life_periods(bd),
             "year_forecast": MatrixService.calculate_year_forecast(bd, current_year),
             "current_year_arcana": MatrixService.calculate_year_arcana(bd, current_year),
+            "daily_tarot_arcana": get_today_arcana_with_name(birth_date, matrix.arcana_names),
             "chakra_data": chakra_data,
             "psych_blocks": psych_blocks,
         },

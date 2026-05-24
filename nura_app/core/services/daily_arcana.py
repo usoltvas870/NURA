@@ -16,6 +16,12 @@ def calculate_daily_arcana(birth_date: str) -> int:
     return total
 
 
+def get_today_arcana_with_name(birth_date: str, arcana_names: dict) -> dict:
+    number = calculate_daily_arcana(birth_date)
+    name = arcana_names.get(str(number), arcana_names.get(number, f"Аркан {number}"))
+    return {"number": number, "name": name}
+
+
 def calculate_spread_arcanas(birth_date: str, count: int = 3) -> list[int]:
     daily = calculate_daily_arcana(birth_date)
     return [(daily + i * 7) % 22 + 1 for i in range(count)]
