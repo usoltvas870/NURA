@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Быстрая проверка ротационных записей через API TikTok."""
-import asyncio, json, sys, re, logging
+import asyncio
+import json
+import sys
+import re
+import logging
 from pathlib import Path
 from urllib.parse import quote
 
 logging.basicConfig(level=logging.WARNING, format='%(message)s')
 
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
-from utils import load_env, get_cookie_path
+from utils import load_env
 
 async def check_entry(sem, client, entry: str, mode: str) -> dict:
     async with sem:
@@ -21,7 +25,6 @@ async def check_entry(sem, client, entry: str, mode: str) -> dict:
             r = await client.get(url, headers=headers, timeout=10, follow_redirects=True)
             text = r.text.lower()
             # Если в HTML есть SSR данные с видео
-            import re as _re
             has_video_links = '/video/' in text
             video_count = text.count('/video/')
             return {'entry': entry, 'found': min(video_count, 999), 'status': 'OK' if has_video_links else 'FAIL'}

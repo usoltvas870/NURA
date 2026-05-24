@@ -46,7 +46,7 @@ def expired_text() -> str:
 
 def daily_insight_text(name: str, insight: str) -> str:
     return (
-        f"<b>🌅 Доброе утро, {name}.</b>\n\n"
+        f"<b>🌅 Привет, {name}.</b>\n\n"
         f"{insight}\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "✨ Хочешь глубже? Открой полный отчёт или\n"

@@ -33,6 +33,7 @@ class ReportRepository(SQLAlchemyRepository[Report]):
         token: str,
         matrix_data: dict[str, Any] | None = None,
         ai_analysis: dict[str, Any] | None = None,
+        kitchen_analysis: dict[str, Any] | None = None,
     ) -> Report:
         report = Report(
             id=uuid.uuid4(),
@@ -41,5 +42,6 @@ class ReportRepository(SQLAlchemyRepository[Report]):
             token=token,
             matrix_data=matrix_data,
             ai_analysis=ai_analysis,
+            kitchen_analysis=kitchen_analysis,
         )
         return await self.add(report)

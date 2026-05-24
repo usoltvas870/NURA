@@ -90,7 +90,7 @@ def main():
         candidates = list(DRAFTS.glob(f"{name}*"))
         project_dir = candidates[0] if candidates else project_dir
 
-    print(f"2. Fix Timelines UUID...")
+    print("2. Fix Timelines UUID...")
     new_id = fix_timelines(project_dir)
     print(f"   project_id={new_id[:8]}, timelines synced")
 
@@ -120,7 +120,7 @@ def main():
         ("Slow 0.5x",       []),
     ]
 
-    print(f"4. Applying keyframes...")
+    print("4. Applying keyframes...")
     for idx, (label, props) in enumerate(effects):
         ts = idx * SEG
         te = min((idx + 1) * SEG, dur_sec)

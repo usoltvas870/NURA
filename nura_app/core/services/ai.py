@@ -13,6 +13,7 @@ from core.schemas import (
     CompatibilityFullResult,
     DailyInsightResult,
     FullReportResult,
+    KitchenReportResult,
     MiniAnalysisResult,
 )
 
@@ -415,6 +416,66 @@ class AIService:
             return validated.model_dump()
         except Exception:
             return FALLBACK_FULL
+
+    FALLBACK_KITCHEN: dict[str, dict] = {
+        key: {"positions": [], "energies": [], "logic": "Не удалось подготовить объяснение. Попробуй ещё раз."}
+        for key in [
+            "main_archetype", "strengths", "shadow_side", "relationship_dynamics",
+            "financial_scenario", "recurring_mistakes", "internal_conflicts",
+            "life_cycles", "karmic_tail_analysis", "ancestral_programs",
+            "life_purpose", "life_forecast",
+        ]
+    }
+
+    @staticmethod
+    async def generate_kitchen_report(
+        birth_date: str, matrix_data: "MatrixData | dict"
+    ) -> dict:
+        from core.services.matrix import MatrixService
+
+        md = AIService._to_matrix_data(matrix_data)
+        matrix_text = MatrixService.format_for_prompt(md)
+        cot = AIService._load_prompt("cot_instruction.txt")
+        template = AIService._load_prompt("kitchen_report.txt")
+        user_content = template.format(chain_of_thought=cot, matrix_text=matrix_text)
+
+        async def _retry_callback(bad: str) -> str:
+            return await AIService.chat(
+                [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                    {"role": "assistant", "content": bad},
+                    {
+                        "role": "user",
+                        "content": (
+                            "Твой ответ содержит невалидный JSON. "
+                            "Исправь и выдай ТОЛЬКО валидный JSON, "
+                            "строго по схеме, без markdown-блоков."
+                        ),
+                    },
+                ]
+            )
+
+        try:
+            response = await AIService.chat(
+                [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                ],
+                api_params={
+                    "temperature": 0.3,
+                    "max_tokens": 8000,
+                    "top_p": 0.9,
+                    "frequency_penalty": 0.0,
+                    "presence_penalty": 0.0,
+                },
+            )
+            result = await AIService._parse_json_response(response, _retry_callback)
+            validated = KitchenReportResult(**result)
+            return validated.model_dump()
+        except Exception as e:
+            logger.error("generate_kitchen_report failed: %s", e, exc_info=True)
+            return AIService.FALLBACK_KITCHEN
 
     @staticmethod
     async def generate_compatibility(

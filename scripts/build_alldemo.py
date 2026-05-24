@@ -53,7 +53,7 @@ def main():
         dur_sec = 10.0
     dur_us = int(dur_sec * 1_000_000)
 
-    print(f"1. Copy seed...")
+    print("1. Copy seed...")
     if project_dir.exists():
         shutil.rmtree(project_dir)
     shutil.copytree(SEED, project_dir, ignore=shutil.ignore_patterns("*.bak", "*.tmp"))
@@ -72,7 +72,7 @@ def main():
             shutil.rmtree(tl_new)
         shutil.move(str(tl_old), str(tl_new))
 
-    print(f"3. Copy video...")
+    print("3. Copy video...")
     local_path = project_dir / "assets" / "video" / video.name
     local_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(video, local_path)
@@ -309,7 +309,7 @@ def main():
         meta_path.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
 
     # --- Post-processing via capcut-cli ---
-    print(f"4. Applying effects via capcut-cli...")
+    print("4. Applying effects via capcut-cli...")
     seg_ids_list = list(post_ops.keys())
 
     for idx, (seg_id, (label, extra, start_s, dur_s)) in enumerate(post_ops.items()):
@@ -329,7 +329,7 @@ def main():
 
     # Transition between seg 10 and 11
     if len(seg_ids_list) > 10:
-        print(f"   Transition dissolve on seg 11")
+        print("   Transition dissolve on seg 11")
         capcut("transition", str(project_dir), seg_ids_list[10], "dissolve", "--duration", "0.5s")
 
     # Text animation on first 4 text labels

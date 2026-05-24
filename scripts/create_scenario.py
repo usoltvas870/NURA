@@ -4,7 +4,6 @@ Usage:
     python scripts/create_scenario.py
 """
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -23,7 +22,7 @@ def _pick_file(prompt: str, folder: str, pattern: str) -> str:
     for i, f in enumerate(files, 1):
         sz = f.stat().st_size / 1024 / 1024
         print(f"    [{i}] {f.name} ({sz:.0f} MB)")
-    print(f"    [0] Enter custom path")
+    print("    [0] Enter custom path")
     choice = input(f"  Choose [{len(files)}]: ").strip()
     if choice.isdigit() and 0 < int(choice) <= len(files):
         return str(files[int(choice) - 1].relative_to(NURA_ROOT).as_posix())

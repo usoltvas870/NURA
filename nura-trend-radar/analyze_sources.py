@@ -5,15 +5,18 @@
 собирает поисковые подсказки и выдаёт рекомендации.
 """
 
-import asyncio, json, logging, sys, re
+import asyncio
+import json
+import logging
+import sys
+import re
 from pathlib import Path
 from collections import Counter
 from urllib.parse import quote
 
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
-from utils import load_env, setup_logging, read_source_file, get_cookie_path, get_config
+from utils import load_env, setup_logging, read_source_file
 from collector import TikTokCollector
-from playwright.async_api import async_playwright
 
 logger = logging.getLogger('analyze')
 

@@ -60,7 +60,7 @@ def main():
         dur_sec = 10.0
     dur_us = int(dur_sec * 1_000_000)
 
-    print(f"1. Copy seed 0517...")
+    print("1. Copy seed 0517...")
     if project_dir.exists():
         shutil.rmtree(project_dir)
     shutil.copytree(SEED, project_dir, ignore=shutil.ignore_patterns("*.bak", "*.tmp"))
@@ -69,7 +69,7 @@ def main():
     print(f"2. Replace UUID: {old_id[:8]} -> {new_id[:8]}")
     replace_all_uuids(project_dir, old_id, new_id)
 
-    print(f"3. Copy video...")
+    print("3. Copy video...")
     local_path = project_dir / "assets" / "video" / video.name
     local_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(video, local_path)
@@ -136,7 +136,7 @@ def main():
     def capcut_cli(*args: str) -> None:
         r = subprocess.run(["npx.cmd", "capcut-cli", *args], capture_output=True, text=True, cwd=NURA_ROOT, shell=True)
 
-    print(f"5. Keyframes...")
+    print("5. Keyframes...")
     for idx, (label, props) in enumerate(effects):
         ts = idx * SEG
         te = min((idx + 1) * SEG, dur_sec)

@@ -138,6 +138,27 @@ class FullReportResult(BaseModel):
     )
 
 
+class KitchenEntry(BaseModel):
+    positions: list[str]
+    energies: list[str]
+    logic: str
+
+
+class KitchenReportResult(BaseModel):
+    main_archetype: KitchenEntry
+    strengths: KitchenEntry
+    shadow_side: KitchenEntry
+    relationship_dynamics: KitchenEntry
+    financial_scenario: KitchenEntry
+    recurring_mistakes: KitchenEntry
+    internal_conflicts: KitchenEntry
+    life_cycles: KitchenEntry
+    karmic_tail_analysis: KitchenEntry
+    ancestral_programs: KitchenEntry
+    life_purpose: KitchenEntry
+    life_forecast: KitchenEntry
+
+
 class ReportResponse(BaseModel):
     id: UUID
     token: str
@@ -197,6 +218,8 @@ __all__ = [
     "UserResponse",
     "MatrixData",
     "MiniAnalysisResult",
+    "KitchenEntry",
+    "KitchenReportResult",
     "FullReportResult",
     "ReportResponse",
     "PaymentCreate",

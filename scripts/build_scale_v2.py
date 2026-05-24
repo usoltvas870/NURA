@@ -4,7 +4,6 @@ import json
 import shutil
 import subprocess
 import sys
-import tempfile
 import uuid
 from pathlib import Path
 
@@ -87,7 +86,7 @@ def main():
     n_segs = max(1, min(8, int(dur_sec * 1_000_000 / SEG_DUR_US)))
     actual_dur = n_segs * SEG_DUR_S
 
-    print(f"Copying seed (0517)...")
+    print("Copying seed (0517)...")
     if project_dir.exists():
         shutil.rmtree(project_dir)
     shutil.copytree(SEED, project_dir, ignore=shutil.ignore_patterns("*.bak", "*.tmp"))

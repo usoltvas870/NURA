@@ -50,7 +50,7 @@ def main():
         dur_sec = 10.0
     dur_us = int(dur_sec * 1_000_000)
 
-    print(f"1. Copy seed...")
+    print("1. Copy seed...")
     if project_dir.exists():
         shutil.rmtree(project_dir)
     shutil.copytree(SEED, project_dir, ignore=shutil.ignore_patterns("*.bak", "*.tmp"))
@@ -69,7 +69,7 @@ def main():
             shutil.rmtree(tl_new)
         shutil.move(str(tl_old), str(tl_new))
 
-    print(f"3. Copy video...")
+    print("3. Copy video...")
     local_path = project_dir / "assets" / "video" / video.name
     local_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(video, local_path)
@@ -204,7 +204,7 @@ def main():
         meta_path.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
 
     # --- Speed via capcut-cli ---
-    print(f"4. Setting speed via capcut-cli...")
+    print("4. Setting speed via capcut-cli...")
     for i in [6, 7]:
         seg_id = video_segments[i]["id"]
         val = "2.0" if i == 6 else "0.5"

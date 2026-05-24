@@ -89,6 +89,18 @@ async def serve_report_pdf(token: str):
                     headers={"Content-Disposition": f"inline; filename=nura-report-{token[:8]}.pdf"})
 
 
+@router.get("/{token}/kitchen")
+async def serve_kitchen_analysis(token: str):
+    session_factory = get_async_sessionmaker()
+    report_repo = ReportRepository(session_factory)
+    report = await report_repo.get_by_token(token)
+
+    if report is None or report.kitchen_analysis is None:
+        return PlainTextResponse("Kitchen analysis not found", status_code=404)
+
+    return report.kitchen_analysis
+
+
 async def _render_report_html(report, session_factory):
     matrix_data = report.matrix_data or {}
     analysis = report.ai_analysis or {}

@@ -105,14 +105,14 @@ def main():
         dur_sec = 10.0
     dur_us = int(dur_sec * 1_000_000)
 
-    print(f"1. Copy seed 0517...")
+    print("1. Copy seed 0517...")
     copy_seed(SEED, project_dir)
 
     old_id = json.loads((project_dir / "draft_content.json").read_text("utf-8")).get("id")
     print(f"2. Replace UUID: {old_id[:8]} -> {new_id[:8]}")
     replace_all_uuids(project_dir, old_id, new_id)
 
-    print(f"3. Copy video...")
+    print("3. Copy video...")
     local_path = project_dir / "assets" / "video" / video.name
     local_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(video, local_path)

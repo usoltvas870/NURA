@@ -5,6 +5,7 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 
 from celery import Celery
+from celery.schedules import crontab
 from sqlalchemy import select
 
 from core.config import settings
@@ -35,7 +36,7 @@ celery_app.conf.update(
 celery_app.conf.beat_schedule = {
     "send-daily-insights": {
         "task": "core.tasks.send_daily_insights",
-        "schedule": 60 * 60 * 6,
+        "schedule": crontab(hour=9, minute=0),
     },
     "check-expiring-subscriptions": {
         "task": "core.tasks.check_expiring_subscriptions",
@@ -203,7 +204,10 @@ async def _process_full_report(
     user_repo = UserRepository(session_factory)
 
     matrix = MatrixService.calculate(birth_date)
-    analysis = await AIService.generate_full_report(birth_date, matrix)
+    from asyncio import gather
+    analysis_task = AIService.generate_full_report(birth_date, matrix)
+    kitchen_task = AIService.generate_kitchen_report(birth_date, matrix)
+    analysis, kitchen_analysis = await gather(analysis_task, kitchen_task)
     token = ReportService.generate_token()
 
     user = await user_repo.get(uid)
@@ -260,6 +264,7 @@ async def _process_full_report(
         token=token,
         matrix_data=matrix_dict,
         ai_analysis=analysis,
+        kitchen_analysis=kitchen_analysis,
     )
 
     return {

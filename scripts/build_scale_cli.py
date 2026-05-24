@@ -84,7 +84,7 @@ def main():
     if dur_sec <= 0:
         dur_sec = 10.0
 
-    print(f"1. Init project from template...")
+    print("1. Init project from template...")
     _run("init", name, "--template", str(TEMPLATE_DIR), "--drafts", str(DRAFTS_DIR.parent.parent))
 
     # Find the actual project dir
@@ -124,7 +124,7 @@ def main():
         print("   Could not find segment ID")
         sys.exit(1)
 
-    print(f"3. Creating segments with scale effects...")
+    print("3. Creating segments with scale effects...")
 
     # Use trim + shift via capcut-cli to create segments, or
     # better: use keyframe batch to animate scale per-segment.
@@ -213,7 +213,7 @@ def main():
         print("   Keyframes applied")
 
     # Add text labels for each segment
-    print(f"5. Adding text labels...")
+    print("5. Adding text labels...")
     for t_start, t_end, label in labels_data:
         dur = t_end - t_start
         _run(

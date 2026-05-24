@@ -59,7 +59,7 @@ def main():
         candidates = list(DRAFTS.glob(f"{name}*"))
         project = candidates[0] if candidates else project
 
-    print(f"2. Add video")
+    print("2. Add video")
     cmd(f'npx.cmd capcut-cli add-video "{project}" {video} 0 {dur_sec:.2f}s')
 
     # Get segment info
@@ -161,7 +161,7 @@ def main():
         meta_path.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
 
     # --- Add text labels via capcut-cli ---
-    print(f"4. Adding labels...")
+    print("4. Adding labels...")
     for i, (label, _) in enumerate(effects):
         ts = i * SEG_S
         te = min((i + 1) * SEG_S, dur_sec)

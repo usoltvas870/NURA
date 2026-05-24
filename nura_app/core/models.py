@@ -71,6 +71,7 @@ class Report(Base):
     )
     matrix_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     ai_analysis: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    kitchen_analysis: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

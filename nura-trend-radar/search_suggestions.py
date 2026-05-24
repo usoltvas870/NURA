@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Собрать поисковые подсказки TikTok и составить итоговый отчёт."""
-import asyncio, json, sys, logging
+import asyncio
+import json
+import sys
+import logging
 from pathlib import Path
 from urllib.parse import quote
 
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
-from utils import load_env, setup_logging, read_source_file
+from utils import load_env, setup_logging
 
 logger = logging.getLogger('suggest')
 

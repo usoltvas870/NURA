@@ -82,7 +82,7 @@ def main():
     project_dir = DRAFTS_DIR / name
     new_id = uid()
 
-    print(f"1. Copy seed 0517...")
+    print("1. Copy seed 0517...")
     if project_dir.exists():
         shutil.rmtree(project_dir)
     shutil.copytree(SEED, project_dir, ignore=shutil.ignore_patterns("*.bak", "*.tmp"))
@@ -91,7 +91,7 @@ def main():
     print(f"2. Replace UUID: {old_id[:8]} -> {new_id[:8]}")
     replace_uuid(project_dir, old_id, new_id)
 
-    print(f"3. Copy video to assets...")
+    print("3. Copy video to assets...")
     local_path = copy_to_assets(video, project_dir)
 
     dur_sec = probe_duration(video)
@@ -157,7 +157,7 @@ def main():
     print(f"   Segment ID: {seg_id[:12]}...")
 
     # Apply keyframes via capcut-cli
-    print(f"5. Adding zoom in keyframes...")
+    print("5. Adding zoom in keyframes...")
     SEG_DUR = min(3.0, dur_sec / 8)
     n_segs = max(1, min(8, int(dur_sec / SEG_DUR)))
     zoom_levels = [
