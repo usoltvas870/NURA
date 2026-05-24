@@ -91,11 +91,15 @@ def subscription_keyboard() -> InlineKeyboardMarkup:
 
 def reports_keyboard(reports: list, page: int = 0) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    for report in reports:
+    for i, report in enumerate(reports, 1):
         token = report.get("token", "")
         has_pdf = report.get("has_pdf", False)
+        rtype = report.get("type", "Матрица")
+        date = report.get("date", "")
+        emoji = "❤️" if "совместимость" in rtype.lower() else "🎭"
+        label = f"{emoji} {rtype} {date}"
         buttons = []
-        buttons.append(InlineKeyboardButton(text="👁 Открыть", callback_data=f"open_report:{token}"))
+        buttons.append(InlineKeyboardButton(text=label, callback_data=f"open_report:{token}"))
         if has_pdf:
             buttons.append(InlineKeyboardButton(text="📄 PDF", callback_data=f"download_pdf:{token}"))
         if buttons:
