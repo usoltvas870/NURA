@@ -1,0 +1,76 @@
+<style>
+.toc-page {
+  display: none;
+}
+
+@media print {
+  .toc-page {
+    display: block;
+    page-break-after: always;
+    padding: var(--space-2xl) 0;
+  }
+
+  .toc-page h2 {
+    font-family: var(--font-heading);
+    font-size: 28px;
+    color: #1a1a1a;
+    margin-bottom: var(--space-xl);
+    text-align: center;
+  }
+
+  .toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto;
+    max-width: 400px;
+  }
+
+  .toc-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dotted #ccc;
+    font-size: 14px;
+    color: #333;
+  }
+
+  .toc-item:last-child {
+    border-bottom: none;
+  }
+
+  .toc-num {
+    font-weight: 600;
+    color: #D97A32;
+    min-width: 24px;
+  }
+
+  .toc-title {
+    flex: 1;
+    padding: 0 12px;
+  }
+}
+</style>
+
+<section class="toc-page" id="toc">
+  <h2>Содержание</h2>
+  <ol class="toc-list">
+    <li class="toc-item"><span class="toc-num">1</span><span class="toc-title">Обложка</span></li>
+    <li class="toc-item"><span class="toc-num">2</span><span class="toc-title">Матрица судьбы</span></li>
+    <li class="toc-item"><span class="toc-num">3</span><span class="toc-title">Dashboard</span></li>
+    <li class="toc-item"><span class="toc-num">4</span><span class="toc-title">Архетип личности</span></li>
+    <li class="toc-item"><span class="toc-num">5</span><span class="toc-title">Кармический хвост</span></li>
+    <li class="toc-item"><span class="toc-num">6</span><span class="toc-title">Карта здоровья</span></li>
+    <li class="toc-item"><span class="toc-num">7</span><span class="toc-title">Предназначение</span></li>
+    <li class="toc-item"><span class="toc-num">8</span><span class="toc-title">Родовые программы</span></li>
+    <li class="toc-item"><span class="toc-num">9</span><span class="toc-title">Сильные стороны</span></li>
+    <li class="toc-item"><span class="toc-num">10</span><span class="toc-title">Теневая сторона</span></li>
+    <li class="toc-item"><span class="toc-num">11</span><span class="toc-title">Динамика отношений</span></li>
+    <li class="toc-item"><span class="toc-num">12</span><span class="toc-title">Деньги и карьера</span></li>
+    <li class="toc-item"><span class="toc-num">13</span><span class="toc-title">Жизненные периоды</span></li>
+    <li class="toc-item"><span class="toc-num">14</span><span class="toc-title">Психологические блоки</span></li>
+    <li class="toc-item"><span class="toc-num">15</span><span class="toc-title">Повторяющиеся сценарии</span></li>
+    <li class="toc-item"><span class="toc-num">16</span><span class="toc-title">Внутренние конфликты</span></li>
+    <li class="toc-item"><span class="toc-num">17</span><span class="toc-title">Твои 7 дней</span></li>
+  </ol>
+</section>
