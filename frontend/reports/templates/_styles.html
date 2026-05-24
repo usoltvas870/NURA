@@ -858,6 +858,9 @@ small { font-size: var(--small-size); color: var(--muted); }
 
 .section-compatibility .section-accent-bar { background: var(--gold); }
 
+.section-reflection .section-accent-bar,
+.reflection-accent { background: var(--gold); }
+
 /* Psychology blocks */
 :root {
   --deep-purple: #4a2c6e;
@@ -1140,6 +1143,54 @@ small { font-size: var(--small-size); color: var(--muted); }
   color: var(--muted);
   margin-bottom: var(--space-md);
   margin-top: calc(-1 * var(--space-xs));
+}
+
+/* Reflection lines */
+.reflection-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reflection-line {
+  height: 32px;
+  border-bottom: 1px dashed rgba(245, 243, 238, 0.25);
+}
+
+.reflection-prompts {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.reflection-prompt {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.reflection-prompt-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #140C06;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.reflection-prompt .reflection-line {
+  flex: 1;
+}
+
+@media print {
+  .reflection-line {
+    border-bottom-color: #999;
+  }
 }
 
 /* Cover accent glow on sections */
