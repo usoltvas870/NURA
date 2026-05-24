@@ -8,6 +8,7 @@
   --muted: #B7B2A8;
   --orange: #D97A32;
   --gold: #8C6A3B;
+  --deep-purple: #4a2c6e;
   --line: rgba(245, 243, 238, 0.12);
   --shadow: 0 30px 90px rgba(0, 0, 0, 0.45);
 
@@ -856,6 +857,170 @@ small { font-size: var(--small-size); color: var(--muted); }
 .psych-accent { background: var(--gold); }
 
 .section-compatibility .section-accent-bar { background: var(--gold); }
+
+/* Psychology blocks */
+:root {
+  --deep-purple: #4a2c6e;
+  --psych-purple: #6b3fa0;
+  --psych-purple-soft: rgba(74, 44, 110, 0.15);
+  --psych-purple-glow: rgba(74, 44, 110, 0.25);
+}
+
+.psych-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.psych-card {
+  background: rgba(245, 243, 238, 0.02);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  page-break-inside: avoid;
+}
+
+.psych-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--psych-purple-soft);
+  border-bottom: 1px solid rgba(74, 44, 110, 0.2);
+}
+
+.psych-arcana-num {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--deep-purple);
+  color: var(--white);
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 16px var(--psych-purple-glow);
+}
+
+.psych-arcana-generic {
+  font-size: 16px;
+  background: rgba(74, 44, 110, 0.4);
+}
+
+.psych-arcana-name {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  color: var(--white);
+  font-weight: 500;
+}
+
+.psych-card-body {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.psych-belief,
+.psych-manifestation,
+.psych-strategy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.psych-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.psych-label::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.psych-belief .psych-label::before { background: var(--deep-purple); }
+.psych-manifestation .psych-label::before { background: var(--gold); }
+.psych-strategy .psych-label::before { background: var(--green); }
+
+.psych-belief p,
+.psych-manifestation p,
+.psych-strategy p {
+  font-size: 14px;
+  color: rgba(245, 243, 238, 0.85);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.psych-strategy p {
+  color: var(--green);
+  font-style: italic;
+}
+
+.psych-fallback {
+  padding: var(--space-md);
+  background: rgba(245, 243, 238, 0.03);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.psych-fallback p {
+  font-size: 14px;
+  color: rgba(245, 243, 238, 0.8);
+  line-height: 1.7;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .psych-card-header {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .psych-card-body {
+    padding: var(--space-sm) var(--space-md);
+  }
+  .psych-arcana-num {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+  }
+  .psych-arcana-name {
+    font-size: 16px;
+  }
+}
+
+@media print {
+  .psych-card {
+    border: 1px solid #ddd !important;
+    background: transparent !important;
+  }
+  .psych-card-header {
+    background: #f3eef8 !important;
+    border-bottom-color: #ddd !important;
+  }
+  .psych-arcana-num {
+    background: #4a2c6e !important;
+    color: #ffffff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .psych-label::before {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .psych-strategy p {
+    color: #355C4D !important;
+  }
+}
 
 /* Logo mark */
 .logo-mark {

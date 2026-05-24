@@ -221,6 +221,11 @@ async def _process_full_report(
         analysis.get("ai_recommendations", "")
     )
 
+    psych_blocks = ReportService.parse_psych_blocks(
+        analysis.get("psychological_blocks", ""),
+        arcana_names=matrix.arcana_names,
+    )
+
     chakra_data = MatrixService.calculate_chakras(matrix)
 
     matrix_raw = {
@@ -262,6 +267,7 @@ async def _process_full_report(
             "year_forecast": MatrixService.calculate_year_forecast(bd, current_year),
             "current_year_arcana": MatrixService.calculate_year_arcana(bd, current_year),
             "chakra_data": chakra_data,
+            "psych_blocks": psych_blocks,
         },
     )
     pdf = await ReportService.generate_pdf(html)

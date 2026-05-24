@@ -124,6 +124,11 @@ async def _render_report_html(report, session_factory):
         analysis.get("ai_recommendations", "")
     )
 
+    psych_blocks = ReportService.parse_psych_blocks(
+        analysis.get("psychological_blocks", ""),
+        arcana_names=matrix_data.get("arcana_names", {}),
+    )
+
     matrix_raw = {
         "center": matrix_data.get("center"),
         "top": matrix_data.get("top"),
@@ -150,6 +155,7 @@ async def _render_report_html(report, session_factory):
         "archetype_name": archetype_name,
         "archetype_number": archetype_number,
         "recommendations_parsed": recommendations_parsed,
+        "psych_blocks": psych_blocks,
     }
 
     return ReportService.generate_html_report(report_data)

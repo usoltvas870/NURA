@@ -82,3 +82,63 @@ class ReportService:
 
             result.append({"number": i, "text": cleaned, "category": category})
         return result
+
+    @staticmethod
+    def parse_psych_blocks(raw_text: str, arcana_names: dict[str, str] | None = None) -> list[dict]:
+        if not raw_text or not raw_text.strip():
+            return [{"arcana": "", "arcana_name": "", "belief": raw_text or "", "manifestation": "", "strategy": ""}]
+
+        import re
+
+        arcana_names = arcana_names or {}
+        blocks: list[dict] = []
+
+        sections = re.split(
+            r"(?:^|\n)\s*(?:\d+[\.\)]\s*)*(?:Аркан\s*(\d+)|(\d+)-?(?:й|ой|ий)?\s*аркан)",
+            raw_text.strip(), flags=re.IGNORECASE,
+        )
+        sections = [s.strip() for s in sections if s and s.strip() and not s.strip().isdigit()]
+
+        if not sections:
+            sections = [raw_text.strip()]
+
+        for section in sections:
+            block: dict[str, str] = {"arcana": "", "arcana_name": "", "belief": "", "manifestation": "", "strategy": ""}
+
+            arcana_match = re.search(r"Аркан\s*(\d+)|(\d+)-?(?:й|ой|ий)?\s*аркан", section, re.IGNORECASE)
+            if arcana_match:
+                num = arcana_match.group(1) or arcana_match.group(2)
+                block["arcana"] = num
+                from core.services.matrix import ARCANA
+                block["arcana_name"] = arcana_names.get(num, ARCANA.get(int(num), {}).get("name", ""))
+
+            def _extract(label_pattern: str, next_labels: list[str]) -> str:
+                pat = rf"(?:{label_pattern})\s*[:\-–—]?\s*(.+?)(?=(?:{'|'.join(next_labels)})|$)"
+                m = re.search(pat, section, re.IGNORECASE | re.DOTALL)
+                return m.group(1).strip() if m else ""
+
+            block["belief"] = _extract(
+                r"убеждени[ея]|установк[аи]",
+                [r"как\s+проявляет", r"проявлени", r"в\s+поведени", r"пример", r"стратеги", r"перепрограммир"],
+            )
+            block["manifestation"] = _extract(
+                r"как\s+проявляет|проявлени[ея]|в\s+поведении|пример[ы]\s*в\s+жизни",
+                [r"стратеги", r"перепрограммир", r"как\s+изменить", r"шаг", r"действи", r"практик"],
+            )
+            block["strategy"] = _extract(
+                r"стратеги[яю]|перепрограммир|как\s+изменить|шаг[и]?|действи[ея]|практик[аи]",
+                [],
+            )
+
+            if any(v for v in block.values()):
+                blocks.append(block)
+            else:
+                blocks.append({
+                    "arcana": block["arcana"],
+                    "arcana_name": block["arcana_name"],
+                    "belief": section,
+                    "manifestation": "",
+                    "strategy": "",
+                })
+
+        return blocks if blocks else [{"arcana": "", "arcana_name": "", "belief": raw_text, "manifestation": "", "strategy": ""}]
