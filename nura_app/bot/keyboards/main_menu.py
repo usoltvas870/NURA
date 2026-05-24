@@ -2,11 +2,16 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-def main_menu_keyboard(has_matrix: bool = True) -> InlineKeyboardMarkup:
+def main_menu_keyboard(has_matrix: bool = True, has_tarot: bool = False) -> InlineKeyboardMarkup:
     matrix_btn = (
         InlineKeyboardButton(text="🔮 Моя матрица", callback_data="my_matrix")
         if has_matrix
         else InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")
+    )
+    tarot_btn = (
+        InlineKeyboardButton(text="🃏 Ритуалы дня", callback_data="tarot_menu")
+        if has_tarot
+        else InlineKeyboardButton(text="🃏 Карта дня", callback_data="ritual")
     )
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -15,6 +20,7 @@ def main_menu_keyboard(has_matrix: bool = True) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="🌒 Инсайты", callback_data="insights"),
             ],
             [
+                tarot_btn,
                 InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura"),
                 InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
             ],
