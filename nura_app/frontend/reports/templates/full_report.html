@@ -10,26 +10,66 @@
   {% with section_class='archetype', section_title='Архетип личности', section_text=analysis.main_archetype %}
     {% include '_section_card.html' %}
   {% endwith %}
+  {% if kitchen_analysis and kitchen_analysis.main_archetype %}
+    {% with section_key='main_archetype', kitchen_data=kitchen_analysis.main_archetype %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% include '_section_karmic_tail.html' %}
+  {% if kitchen_analysis and kitchen_analysis.karmic_tail_analysis %}
+    {% with section_key='karmic_tail_analysis', kitchen_data=kitchen_analysis.karmic_tail_analysis %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% include '_health_map.html' %}
+  {% if kitchen_analysis and kitchen_analysis.health_analysis %}
+    {% with section_key='health_analysis', kitchen_data=kitchen_analysis.health_analysis %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% include '_section_purposes.html' %}
+  {% if kitchen_analysis and kitchen_analysis.life_purpose %}
+    {% with section_key='life_purpose', kitchen_data=kitchen_analysis.life_purpose %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% include '_section_ancestral.html' %}
+  {% if kitchen_analysis and kitchen_analysis.ancestral_programs %}
+    {% with section_key='ancestral_programs', kitchen_data=kitchen_analysis.ancestral_programs %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% with section_class='strengths', section_title='Сильные стороны', section_text=analysis.strengths %}
     {% include '_section_card.html' %}
   {% endwith %}
+  {% if kitchen_analysis and kitchen_analysis.strengths %}
+    {% with section_key='strengths', kitchen_data=kitchen_analysis.strengths %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% with section_class='shadow', section_title='Теневая сторона', section_text=analysis.shadow_side %}
     {% include '_section_card.html' %}
   {% endwith %}
+  {% if kitchen_analysis and kitchen_analysis.shadow_side %}
+    {% with section_key='shadow_side', kitchen_data=kitchen_analysis.shadow_side %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% with section_class='relationships', section_title='Динамика отношений', section_text=analysis.relationship_dynamics %}
     {% include '_section_card.html' %}
   {% endwith %}
+  {% if kitchen_analysis and kitchen_analysis.relationship_dynamics %}
+    {% with section_key='relationship_dynamics', kitchen_data=kitchen_analysis.relationship_dynamics %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% if matrix.relationship_line %}
     {% with line_class='relationship', line_title='Линия отношений', line_data=matrix.relationship_line, line_emoji='💞' %}
@@ -40,6 +80,11 @@
   {% with section_class='money', section_title='Деньги и карьера', section_text=analysis.financial_scenario %}
     {% include '_section_card.html' %}
   {% endwith %}
+  {% if kitchen_analysis and kitchen_analysis.financial_scenario %}
+    {% with section_key='financial_scenario', kitchen_data=kitchen_analysis.financial_scenario %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% if matrix.money_line %}
     {% with line_class='money', line_title='Линия денег', line_data=matrix.money_line, line_emoji='💰' %}
@@ -48,14 +93,29 @@
   {% endif %}
 
   {% include '_section_forecast.html' %}
+  {% if kitchen_analysis and kitchen_analysis.life_forecast %}
+    {% with section_key='life_forecast', kitchen_data=kitchen_analysis.life_forecast %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% with section_class='mistakes', section_title='Повторяющиеся сценарии', section_text=analysis.recurring_mistakes %}
     {% include '_section_card.html' %}
   {% endwith %}
+  {% if kitchen_analysis and kitchen_analysis.recurring_mistakes %}
+    {% with section_key='recurring_mistakes', kitchen_data=kitchen_analysis.recurring_mistakes %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   {% with section_class='conflicts', section_title='Внутренние конфликты', section_text=analysis.internal_conflicts %}
     {% include '_section_card.html' %}
   {% endwith %}
+  {% if kitchen_analysis and kitchen_analysis.internal_conflicts %}
+    {% with section_key='internal_conflicts', kitchen_data=kitchen_analysis.internal_conflicts %}
+      {% include '_kitchen_toggle.html' %}
+    {% endwith %}
+  {% endif %}
 
   <section class="report-section section-recommendations">
     <div class="section-header">

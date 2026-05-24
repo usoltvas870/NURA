@@ -145,6 +145,7 @@ async def _render_report_html(report, session_factory):
     report_data = {
         "matrix": matrix_raw,
         "analysis": analysis,
+        "kitchen_analysis": report.kitchen_analysis,
         "user_name": user_name,
         "archetype_name": archetype_name,
         "archetype_number": archetype_number,

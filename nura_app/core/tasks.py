@@ -253,6 +253,7 @@ async def _process_full_report(
         report_data={
             "matrix": matrix_raw,
             "analysis": analysis,
+            "kitchen_analysis": kitchen_analysis,
             "user_name": user_name,
             "archetype_name": archetype_name,
             "archetype_number": matrix.center,
