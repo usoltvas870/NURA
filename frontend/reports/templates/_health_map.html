@@ -1,0 +1,33 @@
+<section class="report-section section-health">
+  <div class="section-header">
+    <div class="section-accent-bar health-accent"></div>
+    <h2>Карта здоровья</h2>
+  </div>
+  <p class="section-subtitle">7 чакр — энергетические центры организма</p>
+
+  <div class="chakra-list">
+    {% for chakra in health_map %}
+    <div class="chakra-item chakra-status-{{ chakra.status }}">
+      <div class="chakra-header">
+        <span class="chakra-name">{{ chakra.name }}</span>
+        <span class="chakra-arcana">{{ chakra.arcana }} аркан</span>
+        <span class="chakra-indicator chakra-{{ chakra.status }}"></span>
+      </div>
+
+      <div class="chakra-organs">
+        <small>Органы: {{ chakra.organs | join(', ') }}</small>
+      </div>
+
+      <div class="chakra-body">
+        <p>{{ chakra.analysis }}</p>
+      </div>
+
+      {% if chakra.practice %}
+      <div class="chakra-practice">
+        <small>Практика: {{ chakra.practice }}</small>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>

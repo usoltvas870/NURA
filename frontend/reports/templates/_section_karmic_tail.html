@@ -1,0 +1,35 @@
+<section class="report-section section-karmic-tail">
+  <div class="section-header">
+    <div class="section-accent-bar karmic-accent"></div>
+    <h2>Кармический хвост</h2>
+  </div>
+  <p class="section-subtitle">Цепочка причина → следствие → урок</p>
+
+  <div class="karmic-chain">
+    <div class="karmic-link">
+      <div class="karmic-circle cause-circle">
+        <span class="karmic-circle-label">Причина</span>
+        <span class="karmic-circle-arcana">{{ karmic_tail.cause_arcana }}</span>
+        <span class="karmic-circle-name">{{ karmic_tail.cause_name }}</span>
+      </div>
+      <div class="karmic-arrow">→</div>
+      <div class="karmic-circle effect-circle">
+        <span class="karmic-circle-label">Следствие</span>
+        <span class="karmic-circle-arcana">{{ karmic_tail.effect_arcana }}</span>
+        <span class="karmic-circle-name">{{ karmic_tail.effect_name }}</span>
+      </div>
+      <div class="karmic-arrow">→</div>
+      <div class="karmic-circle lesson-circle">
+        <span class="karmic-circle-label">Урок</span>
+        <span class="karmic-circle-arcana">{{ karmic_tail.lesson_arcana }}</span>
+        <span class="karmic-circle-name">{{ karmic_tail.lesson_name }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-body">
+    <p>{{ karmic_tail.text }}</p>
+  </div>
+
+  <blockquote class="section-insight">{{ karmic_tail.key_insight }}</blockquote>
+</section>

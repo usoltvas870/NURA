@@ -1,0 +1,58 @@
+<section class="report-section section-forecast">
+  <div class="section-header">
+    <div class="section-accent-bar forecast-accent"></div>
+    <h2>Прогноз</h2>
+  </div>
+
+  <div class="forecast-current-year">
+    <h3 class="forecast-year-title">Текущий год — {{ forecast.current_year.year }} ({{ forecast.current_year.arcana_name }})</h3>
+    <p class="forecast-year-text">{{ forecast.current_year.text }}</p>
+
+    <div class="forecast-spheres">
+      <div class="forecast-sphere">
+        <span class="sphere-label">Карьера</span>
+        <p class="sphere-text">{{ forecast.current_year.career }}</p>
+      </div>
+      <div class="forecast-sphere">
+        <span class="sphere-label">Отношения</span>
+        <p class="sphere-text">{{ forecast.current_year.relationships }}</p>
+      </div>
+      <div class="forecast-sphere">
+        <span class="sphere-label">Здоровье</span>
+        <p class="sphere-text">{{ forecast.current_year.health }}</p>
+      </div>
+      <div class="forecast-sphere">
+        <span class="sphere-label">Деньги</span>
+        <p class="sphere-text">{{ forecast.current_year.money }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="forecast-timeline">
+    <h3 class="forecast-timeline-title">Твои ключевые возраста</h3>
+    <div class="timeline-track">
+      {% for age in forecast.timeline %}
+      <div class="timeline-node">
+        <span class="timeline-age">{{ age.age }}</span>
+        <div class="timeline-dot">
+          <span class="timeline-arcana-icon">{{ age.arcana_icon }}</span>
+        </div>
+        <span class="timeline-arcana-name">{{ age.arcana_name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="forecast-three-years">
+    <h3 class="forecast-three-title">Прогноз на 3 года</h3>
+    <div class="forecast-three-grid">
+      {% for year in forecast.three_years %}
+      <div class="forecast-year-card">
+        <span class="forecast-year-num">{{ year.year }}</span>
+        <span class="forecast-year-arcana">{{ year.arcana_name }}</span>
+        <p class="forecast-year-body">{{ year.text }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>

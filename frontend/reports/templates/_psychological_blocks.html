@@ -1,0 +1,24 @@
+<section class="report-section section-psychological">
+  <div class="section-header">
+    <div class="section-accent-bar psych-accent"></div>
+    <h2>Почему это происходит</h2>
+  </div>
+  <p class="section-subtitle">Психологические блоки, которые мешают</p>
+
+  <div class="blocks-grid">
+    {% for block in psychological_blocks %}
+    <div class="block-card block-accent-{{ loop.index }}">
+      <div class="block-arcana">{{ block.arcana }} аркан</div>
+      <h3 class="block-belief">{{ block.belief }}</h3>
+      <div class="block-manifestation">
+        <span class="block-label">Проявление в жизни</span>
+        <p>{{ block.manifestation }}</p>
+      </div>
+      <div class="block-strategy">
+        <span class="block-label">Стратегия изменения</span>
+        <p>{{ block.strategy }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>

@@ -1,0 +1,39 @@
+<section class="report-section section-ancestral">
+  <div class="section-header">
+    <div class="section-accent-bar ancestral-accent"></div>
+    <h2>Родовые сценарии</h2>
+  </div>
+  <p class="section-subtitle">Влияние родовых линий на твою судьбу</p>
+
+  <div class="ancestral-columns">
+    <div class="ancestral-col">
+      <h3 class="ancestral-col-title father-title">Линия отца</h3>
+      {% if ancestral.father.arcana %}
+      <div class="ancestral-card">
+        <span class="ancestral-arcana-num">{{ ancestral.father.arcana }}</span>
+        <span class="ancestral-arcana-name">{{ ancestral.father.name }}</span>
+        <p class="ancestral-arcana-desc">{{ ancestral.father.description }}</p>
+      </div>
+      {% endif %}
+      <div class="ancestral-body">
+        <p>{{ ancestral.father_text }}</p>
+      </div>
+    </div>
+
+    <div class="ancestral-divider"></div>
+
+    <div class="ancestral-col">
+      <h3 class="ancestral-col-title mother-title">Линия матери</h3>
+      {% if ancestral.mother.arcana %}
+      <div class="ancestral-card">
+        <span class="ancestral-arcana-num">{{ ancestral.mother.arcana }}</span>
+        <span class="ancestral-arcana-name">{{ ancestral.mother.name }}</span>
+        <p class="ancestral-arcana-desc">{{ ancestral.mother.description }}</p>
+      </div>
+      {% endif %}
+      <div class="ancestral-body">
+        <p>{{ ancestral.mother_text }}</p>
+      </div>
+    </div>
+  </div>
+</section>

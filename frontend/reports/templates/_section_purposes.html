@@ -1,0 +1,22 @@
+<section class="report-section section-purposes">
+  <div class="section-header">
+    <div class="section-accent-bar purposes-accent"></div>
+    <h2>4 уровня предназначения</h2>
+  </div>
+  <p class="section-subtitle">Личное, социальное, духовное и кармическое</p>
+
+  <div class="purposes-grid">
+    {% for purpose in purposes %}
+    <div class="purpose-card purpose-{{ purpose.level }}">
+      <div class="purpose-card-header">
+        <span class="purpose-level-label">{{ purpose.level_label }}</span>
+        <span class="purpose-arcana-num">{{ purpose.arcana }}</span>
+        <span class="purpose-arcana-name">{{ purpose.name }}</span>
+      </div>
+      <div class="purpose-card-body">
+        <p>{{ purpose.text }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
