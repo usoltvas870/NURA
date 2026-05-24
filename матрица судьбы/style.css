@@ -232,6 +232,74 @@ body {
     margin-bottom: var(--space-xl);
 }
 
+.matrix-lines-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.line-outer-diamond {
+    fill: none;
+    stroke: rgba(217, 122, 50, 0.25);
+    stroke-width: 0.5;
+    stroke-dasharray: 2, 2;
+}
+
+.line-inner-square {
+    fill: none;
+    stroke: rgba(53, 92, 77, 0.3);
+    stroke-width: 0.5;
+}
+
+.line-sky {
+    stroke: rgba(217, 122, 50, 0.15);
+    stroke-width: 0.4;
+    stroke-dasharray: 1.5, 2.5;
+}
+
+.line-earth {
+    stroke: rgba(140, 106, 59, 0.15);
+    stroke-width: 0.4;
+    stroke-dasharray: 1.5, 2.5;
+}
+
+.line-connector {
+    stroke: rgba(245, 243, 238, 0.08);
+    stroke-width: 0.3;
+}
+
+.line-connector-center {
+    stroke: rgba(245, 243, 238, 0.06);
+    stroke-width: 0.3;
+    stroke-dasharray: 1, 2;
+}
+
+/* Zone labels */
+.zone-label {
+    position: absolute;
+    font-size: 9px;
+    color: rgba(183, 178, 168, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    pointer-events: none;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+.zone-nebo { top: -8px; left: 50%; transform: translateX(-50%); }
+.zone-zemlya { bottom: -8px; left: 50%; transform: translateX(-50%); }
+.zone-muzh { top: 50%; left: -8px; transform: translateY(-50%); }
+.zone-zhen { top: 50%; right: -8px; transform: translateY(-50%); }
+.zone-f { top: 18%; left: 11%; }
+.zone-talent { top: 18%; right: 11%; }
+.zone-comfort { bottom: 18%; left: 11%; }
+.zone-portrait { bottom: 18%; right: 11%; }
+.zone-center-label { top: 42%; left: 60%; font-size: 8px; }
+
 .matrix-grid {
     position: relative;
     width: 100%;
@@ -254,10 +322,6 @@ body {
     border: 2px solid transparent;
     z-index: 5;
     padding: 4px;
-}
-
-.matrix-node:hover {
-    transform: scale(1.08);
 }
 
 .matrix-node .node-number {
@@ -1241,6 +1305,17 @@ footer {
     .age-40 { right: 12%; }
     .age-60 { left: 12%; }
     .age-70 { left: -35px; }
+
+    .zone-label { font-size: 7px; }
+    .zone-f { top: 16%; left: 9%; }
+    .zone-talent { top: 16%; right: 9%; }
+    .zone-comfort { bottom: 16%; left: 9%; }
+    .zone-portrait { bottom: 16%; right: 9%; }
+    .zone-center-label { top: 41%; left: 63%; }
+    .zone-nebo { top: -6px; }
+    .zone-zemlya { bottom: -6px; }
+    .zone-muzh { left: -6px; }
+    .zone-zhen { right: -6px; }
     
     .purposes-grid { grid-template-columns: 1fr; }
     .dashboard { grid-template-columns: repeat(2, 1fr); }

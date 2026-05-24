@@ -1401,6 +1401,86 @@ small { font-size: var(--small-size); color: var(--muted); }
   }
 }
 
+/* 1. Навигация */
+.report-nav { position: fixed; left: 0; top: 0; width: 240px; height: 100vh; overflow-y: auto; background: rgba(11,11,11,0.95); border-right: 1px solid var(--line); padding: var(--space-lg); z-index: 100; }
+.report-nav a { display: block; padding: 6px 0; color: var(--muted); text-decoration: none; font-size: 13px; border-left: 2px solid transparent; padding-left: 12px; }
+.report-nav a.active { color: var(--orange); border-left-color: var(--orange); }
+.report-nav a:hover { color: var(--white); }
+main.report-with-nav { margin-left: 240px; }
+@media (max-width: 1024px) { .report-nav { display: none; } main.report-with-nav { margin-left: 0; } }
+
+/* 2. Оглавление */
+.toc { display: none; }
+@media print { .toc { display: block; page-break-after: always; } }
+
+/* 3. Kitchen toggle */
+.kitchen-toggle { margin-top: var(--space-md); }
+.kitchen-btn { background: transparent; border: 1px solid var(--line); color: var(--muted); padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.kitchen-btn:hover { border-color: var(--orange); color: var(--orange); }
+.kitchen-content { display: none; margin-top: var(--space-sm); padding: var(--space-md); background: rgba(255,255,255,0.03); border-radius: var(--radius-sm); border-left: 2px solid var(--orange); font-size: 13px; }
+.kitchen-content.open { display: block; }
+.kitchen-label { font-weight: 600; color: var(--orange); margin-right: 6px; }
+.kitchen-positions, .kitchen-energies, .kitchen-logic { margin-bottom: 8px; line-height: 1.5; }
+
+/* 4. Таро-блок */
+.section-tarot .section-accent-bar { background: var(--tarot-gold); }
+
+/* 5. Карта здоровья */
+.chakra-row { display: flex; gap: var(--space-md); padding: var(--space-md); border-bottom: 1px solid var(--line); align-items: flex-start; }
+.chakra-indicator { width: 6px; min-height: 60px; border-radius: 3px; background: linear-gradient(to bottom, var(--green), var(--orange), #8b0000); position: relative; flex-shrink: 0; }
+.chakra-indicator::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: calc(100% - var(--fill)); background: rgba(11,11,11,0.8); }
+.chakra-icon { font-size: 24px; flex-shrink: 0; }
+.chakra-info h4 { margin: 0 0 4px 0; font-family: var(--font-heading); font-size: 16px; }
+.chakra-arcana { font-size: 12px; color: var(--muted); }
+.chakra-organs { font-size: 12px; color: var(--green); margin: 4px 0; }
+.chakra-analysis { font-size: 14px; line-height: 1.6; }
+.chakra-practice { font-size: 13px; color: var(--orange); font-style: italic; }
+
+/* 6. Психологические блоки */
+.psych-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-md); }
+.psych-card { background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+.psych-card-header { padding: var(--space-sm) var(--space-md); background: rgba(74,44,110,0.3); display: flex; align-items: center; gap: 12px; }
+.psych-arcana-num { font-family: var(--font-heading); font-size: 24px; color: var(--deep-purple); }
+.psych-card-body { padding: var(--space-md); display: flex; flex-direction: column; gap: 12px; }
+.psych-label { font-size: 11px; color: var(--deep-purple); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px; }
+
+/* 7. Страницы рефлексии */
+.reflection-lines, .reflection-prompt { display: flex; flex-direction: column; gap: 24px; }
+.reflection-line { border-bottom: 1px dashed var(--line); height: 36px; }
+.reflection-prompt { display: flex; align-items: center; gap: 12px; }
+.reflection-prompt-num { font-family: var(--font-heading); font-size: 20px; color: var(--orange); width: 28px; text-align: center; }
+.reflection-prompt .reflection-line { flex: 1; }
+
+/* 8. Практики */
+.practices-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-md); }
+.practice-card { background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-md); }
+.practice-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.practice-icon { font-size: 20px; }
+.practice-arcana { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+/* 9. Кнопка «Наверх» */
+.back-to-top { position: fixed; bottom: 24px; right: 24px; width: 40px; height: 40px; background: var(--orange); color: var(--black); border: none; border-radius: 50%; cursor: pointer; font-size: 18px; display: none; z-index: 200; align-items: center; justify-content: center; }
+.back-to-top.visible { display: flex; }
+
+/* 10. Section insight (pull-quote) */
+.section-insight { margin: var(--space-md) 0; padding: var(--space-md) var(--space-lg); border-left: 3px solid var(--orange); font-family: var(--font-heading); font-size: 18px; line-height: 1.4; color: var(--orange); background: rgba(217,122,50,0.05); }
+
+/* 11. Print styles для всех новых элементов */
+@media print {
+  .report-nav { display: none; }
+  .kitchen-btn { display: none; }
+  .kitchen-content { display: block !important; border-left-color: #999; font-size: 11px; }
+  .back-to-top { display: none; }
+  .tarot-card-daily { border: 1px solid #ccc; }
+  .tarot-cta { display: none; }
+  .tarot-cta-btn { display: none; }
+  .chakra-row { border-color: #ddd; page-break-inside: avoid; }
+  .psych-card { border: 1px solid #ddd; page-break-inside: avoid; }
+  .reflection-line { border-color: #ccc; }
+  .section-insight { border-left-color: #999; color: #333; }
+  .practice-card { border: 1px solid #ddd; page-break-inside: avoid; }
+}
+
 @media print {
   body {
     font-size: 11pt;
