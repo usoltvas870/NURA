@@ -219,6 +219,46 @@ class DailyInsightResult(BaseModel):
     focus_area: str
 
 
+class TarotDailyCardResult(BaseModel):
+    card_number: int
+    card_name: str
+    key_phrase: str
+    interpretation: str
+    matrix_link: str
+    advice: str
+    affirmation: str
+
+
+class TarotWeeklyPosition(BaseModel):
+    card_number: int
+    card_name: str
+    energy: str
+    interpretation: str
+    practice: str
+
+
+class TarotWeeklySpreadResult(BaseModel):
+    body: TarotWeeklyPosition
+    mind: TarotWeeklyPosition
+    spirit: TarotWeeklyPosition
+    overall: str
+
+
+class TarotQuestionPosition(BaseModel):
+    card_number: int
+    card_name: str
+    meaning: str
+    how_it_relates: str
+
+
+class TarotQuestionResult(BaseModel):
+    past: TarotQuestionPosition
+    present: TarotQuestionPosition
+    future: TarotQuestionPosition
+    summary: str
+    advice: str
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"
 
@@ -241,5 +281,10 @@ __all__ = [
     "CompatibilityMiniResult",
     "CompatibilityFullResult",
     "DailyInsightResult",
+    "TarotDailyCardResult",
+    "TarotWeeklyPosition",
+    "TarotWeeklySpreadResult",
+    "TarotQuestionPosition",
+    "TarotQuestionResult",
     "HealthResponse",
 ]

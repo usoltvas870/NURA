@@ -45,6 +45,77 @@ TAROT_TEASER_TEXT = (
 )
 
 
+def _format_daily_card(data: dict) -> str:
+    lines = [
+        f"🃏 Твоя карта дня — {data['card_name']} ({data['card_number']} аркан)",
+        "",
+        data["key_phrase"],
+        "",
+        data["interpretation"],
+    ]
+    if data.get("matrix_link"):
+        lines.extend(["", data["matrix_link"]])
+    lines.extend([
+        "",
+        f"💡 Совет: {data['advice']}",
+        f"🌀 Аффирмация: {data['affirmation']}",
+    ])
+    return "\n".join(lines)
+
+
+def _format_weekly_spread(data: dict) -> str:
+    body = data["body"]
+    mind = data["mind"]
+    spirit = data["spirit"]
+    lines = [
+        "📅 Расклад недели",
+        "",
+        f"🫀 Тело — {body['card_name']} ({body['card_number']} аркан)",
+        body["energy"],
+        body["interpretation"],
+        f"→ {body['practice']}",
+        "",
+        f"🧠 Ум — {mind['card_name']} ({mind['card_number']} аркан)",
+        mind["energy"],
+        mind["interpretation"],
+        f"→ {mind['practice']}",
+        "",
+        f"🌟 Дух — {spirit['card_name']} ({spirit['card_number']} аркан)",
+        spirit["energy"],
+        spirit["interpretation"],
+        f"→ {spirit['practice']}",
+        "",
+        data["overall"],
+    ]
+    return "\n".join(lines)
+
+
+def _format_question(data: dict) -> str:
+    past = data["past"]
+    present = data["present"]
+    future = data["future"]
+    lines = [
+        "❓ Расклад по твоему вопросу",
+        "",
+        f"Прошлое — {past['card_name']} ({past['card_number']} аркан)",
+        past["meaning"],
+        past["how_it_relates"],
+        "",
+        f"Настоящее — {present['card_name']} ({present['card_number']} аркан)",
+        present["meaning"],
+        present["how_it_relates"],
+        "",
+        f"Будущее — {future['card_name']} ({future['card_number']} аркан)",
+        future["meaning"],
+        future["how_it_relates"],
+        "",
+        data["summary"],
+        "",
+        f"💡 Совет: {data['advice']}",
+    ]
+    return "\n".join(lines)
+
+
 @router.message(Command("ritual"))
 async def cmd_ritual(message: Message) -> None:
     user, has_sub = await _check_tarot_subscription(message.from_user.id)
@@ -105,8 +176,9 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
         )
         return
     try:
-        result = await AIService.generate_tarot_daily_card(user.birth_date)
-        await callback.message.edit_text(result, reply_markup=tarot_menu_keyboard())
+        result = await AIService.generate_tarot_daily_card(user.birth_date, user)
+        text = _format_daily_card(result)
+        await callback.message.edit_text(text, reply_markup=tarot_menu_keyboard())
     except Exception as e:
         logger.error("tarot_daily_card failed: %s", e, exc_info=True)
         await callback.message.edit_text(
@@ -138,8 +210,9 @@ async def show_tarot_weekly_spread(callback: CallbackQuery) -> None:
         )
         return
     try:
-        result = await AIService.generate_tarot_weekly_spread(user.birth_date)
-        await callback.message.edit_text(result, reply_markup=tarot_menu_keyboard())
+        result = await AIService.generate_tarot_weekly_spread(user.birth_date, user)
+        text = _format_weekly_spread(result)
+        await callback.message.edit_text(text, reply_markup=tarot_menu_keyboard())
     except Exception as e:
         logger.error("tarot_weekly_spread failed: %s", e, exc_info=True)
         await callback.message.edit_text(
@@ -196,8 +269,9 @@ async def handle_tarot_question(message: Message, state: FSMContext) -> None:
         await message.answer("Напиши свой вопрос текстом.")
         return
     try:
-        result = await AIService.generate_tarot_question(user.birth_date, question)
-        await message.answer(result, reply_markup=tarot_menu_keyboard())
+        result = await AIService.generate_tarot_question(user.birth_date, question, user)
+        text = _format_question(result)
+        await message.answer(text, reply_markup=tarot_menu_keyboard())
     except Exception as e:
         logger.error("tarot_question failed: %s", e, exc_info=True)
         await message.answer(

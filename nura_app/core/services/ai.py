@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
 
+    from core.models import User
     from core.schemas import MatrixData
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
@@ -202,6 +203,74 @@ FALLBACK_COMPATIBILITY = {
 }
 
 FALLBACK_CHAT = "Мне нужно чуть больше времени. Спроси ещё раз?"
+
+TAROT_DAILY_MODEL = settings.deepseek_model
+TAROT_SPREAD_MODEL = settings.deepseek_model
+TAROT_QUESTION_MODEL = settings.deepseek_model
+
+FALLBACK_TAROT_DAILY = {
+    "card_number": 0,
+    "card_name": "Аркан не определён",
+    "key_phrase": "Сегодня — день тишины и внутреннего внимания.",
+    "interpretation": (
+        "Энергия дня не поддаётся точному определению. "
+        "Прислушайся к себе — твой внутренний компас подскажет верное направление."
+    ),
+    "matrix_link": "",
+    "advice": "Сделай паузу и задай себе вопрос: «Что для меня сейчас важнее всего?»",
+    "affirmation": "Я доверяю своему внутреннему знанию.",
+}
+
+FALLBACK_TAROT_SPREAD = {
+    "body": {
+        "card_number": 0,
+        "card_name": "Аркан не определён",
+        "energy": "Энергия тела требует внимания.",
+        "interpretation": "Прислушайся к своему телу — оно знает ответы.",
+        "practice": "Сделай несколько глубоких вдохов и почувствуй своё тело.",
+    },
+    "mind": {
+        "card_number": 0,
+        "card_name": "Аркан не определён",
+        "energy": "Энергия ума ищет ясность.",
+        "interpretation": "Твои мысли ищут порядок — дай им время сложиться в картину.",
+        "practice": "Запиши три главные мысли дня.",
+    },
+    "spirit": {
+        "card_number": 0,
+        "card_name": "Аркан не определён",
+        "energy": "Энергия духа зовёт к тишине.",
+        "interpretation": "Твой дух просит паузы — остановись на минуту и просто будь.",
+        "practice": "Побудь в тишине 5 минут.",
+    },
+    "overall": (
+        "Неделя приглашает тебя замедлиться и прислушаться к себе. "
+        "Твоё тело, ум и дух ищут гармонию — дай им время найти её."
+    ),
+}
+
+FALLBACK_TAROT_QUESTION = {
+    "past": {
+        "card_number": 0,
+        "card_name": "Аркан не определён",
+        "meaning": "Прошлое содержит ключи к твоему вопросу.",
+        "how_it_relates": "Оглянись назад — паттерн уже был в твоей жизни.",
+    },
+    "present": {
+        "card_number": 0,
+        "card_name": "Аркан не определён",
+        "meaning": "Настоящее показывает, где ты сейчас.",
+        "how_it_relates": "Ты в процессе — и это нормально.",
+    },
+    "future": {
+        "card_number": 0,
+        "card_name": "Аркан не определён",
+        "meaning": "Будущее открывается через твой выбор.",
+        "how_it_relates": "То, что ты делаешь сейчас, формирует следующий шаг.",
+    },
+    "summary": "У тебя есть всё, чтобы найти ответ внутри себя.",
+    "advice": "Сделай один маленький шаг в направлении, которое чувствуется правильным.",
+}
 
 DEFAULT_PARAMS = {
     "temperature": 0.7,
@@ -586,6 +655,239 @@ class AIService:
                 insight="Сегодня — день новых возможностей. Откройся им.",
                 focus_area="саморазвитие",
             )
+
+    @staticmethod
+    async def _get_matrix_context(user: "User") -> str:
+        from sqlalchemy import select
+
+        from core.database import get_async_sessionmaker
+        from core.models import Report, ReportType
+
+        session_factory = get_async_sessionmaker()
+        async with session_factory() as session:
+            result = await session.execute(
+                select(Report).where(
+                    Report.user_id == user.id,
+                    Report.report_type == ReportType.FULL.value,
+                    Report.matrix_data.isnot(None),
+                ).order_by(Report.created_at.desc()).limit(1)
+            )
+            report = result.scalar_one_or_none()
+
+        if report is None or report.matrix_data is None:
+            return ""
+
+        md = AIService._to_matrix_data(report.matrix_data)
+        lines = []
+
+        pos_map: dict[str, str] = {
+            "center": "центр (архетип личности)",
+            "top": "верх (духовная задача)",
+            "bottom": "низ (материальная задача)",
+            "left": "лево (энергия рода, прошлое)",
+            "right": "право (энергия настоящего и будущего)",
+            "talent_zone": "зона талантов",
+            "comfort_zone": "зона комфорта",
+            "portrait_zone": "портретная зона",
+            "relationship_point": "точка отношений",
+            "inner_f": "внутренняя точка F (дар)",
+            "inner_g": "внутренняя точка G (линия отца)",
+            "inner_h": "внутренняя точка H (денежный канал)",
+            "inner_i": "внутренняя точка I (линия матери)",
+        }
+        for attr, pos_name in pos_map.items():
+            value = getattr(md, attr, None)
+            if value is not None:
+                if isinstance(value, list):
+                    vals = ", ".join(str(v) for v in value)
+                    lines.append(f"В твоей матрице аркан {vals} стоит в позиции {pos_name}.")
+                else:
+                    lines.append(f"В твоей матрице аркан {value} стоит в позиции {pos_name}.")
+
+        list_fields: list[tuple[str, str]] = [
+            ("sky_line", "линия неба"),
+            ("earth_line", "линия земли"),
+            ("relationship_line", "линия отношений"),
+            ("money_line", "линия денег"),
+            ("karmic_tail", "кармический хвост"),
+        ]
+        for attr, pos_name in list_fields:
+            value = getattr(md, attr, None)
+            if value:
+                vals = ", ".join(str(v) for v in value)
+                lines.append(f"В твоей матрице аркан {vals} стоит в позиции {pos_name}.")
+
+        return "\n".join(lines)
+
+    @staticmethod
+    async def _calculate_question_spread(birth_date: str, question: str) -> list[int]:
+        from core.services.daily_arcana import calculate_daily_arcana
+
+        base = calculate_daily_arcana(birth_date)
+        seed_hash = sum(ord(c) for c in question)
+        return [(base + seed_hash + i * 7) % 22 + 1 for i in range(3)]
+
+    @staticmethod
+    async def generate_tarot_daily_card(
+        birth_date: str,
+        user: "User",
+    ) -> dict:
+        from core.services.daily_arcana import calculate_daily_arcana
+
+        daily_arcana = calculate_daily_arcana(birth_date)
+        matrix_context = await AIService._get_matrix_context(user)
+        user_name = user.first_name or user.username or "пользователь"
+
+        template = AIService._load_prompt("tarot_daily_card.txt")
+        user_content = template.format(
+            user_name=user_name,
+            birth_date=birth_date,
+            daily_arcana=daily_arcana,
+            matrix_context=matrix_context if matrix_context else "(нет данных матрицы)",
+        )
+
+        async def _retry_callback(bad: str) -> str:
+            return await AIService.chat(
+                [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                    {"role": "assistant", "content": bad},
+                    {
+                        "role": "user",
+                        "content": (
+                            "Твой ответ содержит невалидный JSON. "
+                            "Исправь и выдай ТОЛЬКО валидный JSON, "
+                            "строго по схеме, без markdown-блоков."
+                        ),
+                    },
+                ],
+                api_params={"model": TAROT_DAILY_MODEL, **DEFAULT_PARAMS},
+            )
+
+        try:
+            response = await AIService.chat(
+                [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                ],
+                api_params={"model": TAROT_DAILY_MODEL, **DEFAULT_PARAMS},
+            )
+            result = await AIService._parse_json_response(response, _retry_callback)
+            from core.schemas import TarotDailyCardResult
+
+            validated = TarotDailyCardResult(**result)
+            return validated.model_dump()
+        except Exception as e:
+            logger.error("generate_tarot_daily_card failed: %s", e, exc_info=True)
+            return dict(FALLBACK_TAROT_DAILY)
+
+    @staticmethod
+    async def generate_tarot_weekly_spread(
+        birth_date: str,
+        user: "User",
+    ) -> dict:
+        from core.services.daily_arcana import calculate_spread_arcanas
+
+        three_arcana = calculate_spread_arcanas(birth_date, 3)
+        matrix_context = await AIService._get_matrix_context(user)
+        user_name = user.first_name or user.username or "пользователь"
+
+        template = AIService._load_prompt("tarot_weekly_spread.txt")
+        user_content = template.format(
+            user_name=user_name,
+            birth_date=birth_date,
+            three_arcana=three_arcana,
+            matrix_context=matrix_context if matrix_context else "(нет данных матрицы)",
+        )
+
+        async def _retry_callback(bad: str) -> str:
+            return await AIService.chat(
+                [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                    {"role": "assistant", "content": bad},
+                    {
+                        "role": "user",
+                        "content": (
+                            "Твой ответ содержит невалидный JSON. "
+                            "Исправь и выдай ТОЛЬКО валидный JSON, "
+                            "строго по схеме, без markdown-блоков."
+                        ),
+                    },
+                ],
+                api_params={"model": TAROT_SPREAD_MODEL, **DEFAULT_PARAMS},
+            )
+
+        try:
+            response = await AIService.chat(
+                [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                ],
+                api_params={"model": TAROT_SPREAD_MODEL, **DEFAULT_PARAMS},
+            )
+            result = await AIService._parse_json_response(response, _retry_callback)
+            from core.schemas import TarotWeeklySpreadResult
+
+            validated = TarotWeeklySpreadResult(**result)
+            return validated.model_dump()
+        except Exception as e:
+            logger.error("generate_tarot_weekly_spread failed: %s", e, exc_info=True)
+            return dict(FALLBACK_TAROT_SPREAD)
+
+    @staticmethod
+    async def generate_tarot_question(
+        birth_date: str,
+        question: str,
+        user: "User",
+    ) -> dict:
+        three_arcana = await AIService._calculate_question_spread(birth_date, question)
+        matrix_context = await AIService._get_matrix_context(user)
+        user_name = user.first_name or user.username or "пользователь"
+
+        template = AIService._load_prompt("tarot_question.txt")
+        user_content = template.format(
+            user_name=user_name,
+            birth_date=birth_date,
+            question=question,
+            three_arcana=three_arcana,
+            matrix_context=matrix_context if matrix_context else "(нет данных матрицы)",
+        )
+
+        async def _retry_callback(bad: str) -> str:
+            return await AIService.chat(
+                [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                    {"role": "assistant", "content": bad},
+                    {
+                        "role": "user",
+                        "content": (
+                            "Твой ответ содержит невалидный JSON. "
+                            "Исправь и выдай ТОЛЬКО валидный JSON, "
+                            "строго по схеме, без markdown-блоков."
+                        ),
+                    },
+                ],
+                api_params={"model": TAROT_QUESTION_MODEL, **DEFAULT_PARAMS},
+            )
+
+        try:
+            response = await AIService.chat(
+                [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_content},
+                ],
+                api_params={"model": TAROT_QUESTION_MODEL, **DEFAULT_PARAMS},
+            )
+            result = await AIService._parse_json_response(response, _retry_callback)
+            from core.schemas import TarotQuestionResult
+
+            validated = TarotQuestionResult(**result)
+            return validated.model_dump()
+        except Exception as e:
+            logger.error("generate_tarot_question failed: %s", e, exc_info=True)
+            return dict(FALLBACK_TAROT_QUESTION)
 
     @staticmethod
     async def chat_response(

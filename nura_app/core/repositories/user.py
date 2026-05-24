@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from core.models import User
+from core.models import Report, ReportType, User
 from core.repositories.base import SQLAlchemyRepository
 
 
@@ -108,3 +108,22 @@ class UserRepository(SQLAlchemyRepository[User]):
             await session.commit()
             await session.refresh(user)
             return user
+
+    async def get_users_with_tarot(self) -> list[User]:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User).where(User.tarot_subscription == True)  # noqa: E712
+            )
+            return list(result.scalars().all())
+
+    async def get_has_matrix(self, user_id: uuid.UUID) -> bool:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(Report).where(
+                    Report.user_id == user_id,
+                    Report.report_type == ReportType.FULL.value,
+                    Report.matrix_data.isnot(None),
+                ).limit(1)
+            )
+            report = result.scalar_one_or_none()
+            return report is not None
