@@ -1,0 +1,36 @@
+<section class="report-section section-practices">
+  <div class="section-header">
+    <div class="section-accent-bar"></div>
+    <h2>Практики для интеграции</h2>
+  </div>
+  <p class="section-subtitle">Три направления работы — по зонам твоей матрицы</p>
+
+  <div class="practices-grid">
+    <div class="practice-card">
+      <div class="practice-card-header">
+        <span class="practice-icon">☀</span>
+        <h4>Небо — Духовный путь</h4>
+        <span class="practice-arcana">Аркан {{ matrix.sky_line[0] if matrix.sky_line else '' }}</span>
+      </div>
+      <p>Практика для соединения с высшим смыслом. Медитация, наблюдение, тишина.</p>
+    </div>
+
+    <div class="practice-card">
+      <div class="practice-card-header">
+        <span class="practice-icon">🌍</span>
+        <h4>Земля — Родовые корни</h4>
+        <span class="practice-arcana">Аркан {{ matrix.earth_line[0] if matrix.earth_line else '' }}</span>
+      </div>
+      <p>Практика для проработки родовых сценариев. Письмо предкам, ритуал благодарности.</p>
+    </div>
+
+    <div class="practice-card">
+      <div class="practice-card-header">
+        <span class="practice-icon">⭐</span>
+        <h4>Центр — Личная сила</h4>
+        <span class="practice-arcana">Аркан {{ matrix.center }}</span>
+      </div>
+      <p>Практика для укрепления центра. Ежедневный ритуал возвращения к себе.</p>
+    </div>
+  </div>
+</section>
