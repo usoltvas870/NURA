@@ -221,6 +221,8 @@ async def _process_full_report(
         analysis.get("ai_recommendations", "")
     )
 
+    chakra_data = MatrixService.calculate_chakras(matrix)
+
     matrix_raw = {
         "center": matrix.center,
         "top": matrix.top,
@@ -241,9 +243,11 @@ async def _process_full_report(
         "inner_h": matrix.inner_h,
         "inner_i": matrix.inner_i,
         "arcana_names": matrix.arcana_names,
+        "chakra_map": chakra_data,
     }
 
-    chakra_data = MatrixService.calculate_chakras(matrix)
+    bd = date(*(int(x) for x in reversed(birth_date.split("."))))
+    current_year = date.today().year
 
     html = ReportService.generate_html_report(
         report_data={
@@ -253,13 +257,9 @@ async def _process_full_report(
             "archetype_name": archetype_name,
             "archetype_number": matrix.center,
             "recommendations_parsed": recommendations_parsed,
-            "life_periods": MatrixService.calculate_life_periods(
-                date(*(int(x) for x in reversed(birth_date.split("."))))
-            ),
-            "current_year_arcana": MatrixService.calculate_year_arcana(
-                date(*(int(x) for x in reversed(birth_date.split(".")))),
-                date.today().year,
-            ),
+            "life_periods": MatrixService.calculate_life_periods(bd),
+            "year_forecast": MatrixService.calculate_year_forecast(bd, current_year),
+            "current_year_arcana": MatrixService.calculate_year_arcana(bd, current_year),
             "chakra_data": chakra_data,
         },
     )
