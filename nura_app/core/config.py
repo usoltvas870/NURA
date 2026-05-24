@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     # Telegram
     telegram_bot_token: str = ""
     telegram_webhook_url: str = ""
+    bot_username: str = "Nura_ai_bot"
 
     # DeepSeek
     deepseek_api_key: str = ""

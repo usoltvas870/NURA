@@ -23,6 +23,7 @@ class ReportService:
             **report_data,
             report_base_url=settings.report_base_url,
             generated_at=date.today().strftime("%d.%m.%Y"),
+            bot_username=settings.bot_username,
         )
 
     @classmethod
