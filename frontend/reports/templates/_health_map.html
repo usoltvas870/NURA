@@ -5,29 +5,170 @@
   </div>
   <p class="section-subtitle">7 чакр — энергетические центры организма</p>
 
+  {% set arcana_names = {
+    1: "Маг", 2: "Верховная Жрица", 3: "Императрица", 4: "Император",
+    5: "Иерофант", 6: "Влюблённые", 7: "Колесница", 8: "Сила",
+    9: "Отшельник", 10: "Колесо Фортуны", 11: "Справедливость", 12: "Повешенный",
+    13: "Смерть", 14: "Умеренность", 15: "Дьявол", 16: "Башня",
+    17: "Звезда", 18: "Луна", 19: "Солнце", 20: "Суд",
+    21: "Мир", 22: "Шут"
+  } %}
+
+  {% set chakras = [
+    {
+      'id': 'sahasrara', 'name': 'Сахасрара', 'sanskrit': 'सहस्रार',
+      'icon': '🕉', 'color': '#8E44AD', 'loc': 'Макушка',
+      'organs': 'мозг, нервная система',
+      'sky': chakra_data.sahasrara_sky|default('—'),
+      'earth': chakra_data.sahasrara_earth|default('—'),
+      'key': chakra_data.sahasrara_key|default('—'),
+    },
+    {
+      'id': 'ajna', 'name': 'Аджна', 'sanskrit': 'आज्ञा',
+      'icon': '👁', 'color': '#7B68C8', 'loc': 'Третий глаз',
+      'organs': 'глаза, гипофиз, интуиция',
+      'sky': chakra_data.ajna_sky|default('—'),
+      'earth': chakra_data.ajna_earth|default('—'),
+      'key': chakra_data.ajna_key|default('—'),
+    },
+    {
+      'id': 'vishudha', 'name': 'Вишудха', 'sanskrit': 'विशुद्ध',
+      'icon': '🔊', 'color': '#4A90D9', 'loc': 'Горло',
+      'organs': 'горло, щитовидная железа, голосовые связки',
+      'sky': chakra_data.vishudha_sky|default('—'),
+      'earth': chakra_data.vishudha_earth|default('—'),
+      'key': chakra_data.vishudha_key|default('—'),
+    },
+    {
+      'id': 'anahata', 'name': 'Анахата', 'sanskrit': 'अनाहत',
+      'icon': '💚', 'color': '#2ECC71', 'loc': 'Сердце',
+      'organs': 'сердце, лёгкие, вилочковая железа',
+      'sky': chakra_data.anahata_sky|default('—'),
+      'earth': chakra_data.anahata_earth|default('—'),
+      'key': chakra_data.anahata_key|default('—'),
+    },
+    {
+      'id': 'manipura', 'name': 'Манипура', 'sanskrit': 'मणिपूर',
+      'icon': '🔥', 'color': '#F1C40F', 'loc': 'Солнечное сплетение',
+      'organs': 'желудок, печень, поджелудочная железа',
+      'sky': chakra_data.manipura_sky|default('—'),
+      'earth': chakra_data.manipura_earth|default('—'),
+      'key': chakra_data.manipura_key|default('—'),
+    },
+    {
+      'id': 'svadhisthana', 'name': 'Свадхистана', 'sanskrit': 'स्वाधिष्ठान',
+      'icon': '💧', 'color': '#E67E22', 'loc': 'Низ живота',
+      'organs': 'репродуктивная система, почки',
+      'sky': chakra_data.svadhisthana_sky|default('—'),
+      'earth': chakra_data.svadhisthana_earth|default('—'),
+      'key': chakra_data.svadhisthana_key|default('—'),
+    },
+    {
+      'id': 'muladhara', 'name': 'Муладхара', 'sanskrit': 'मूलाधार',
+      'icon': '🪨', 'color': '#E74C3C', 'loc': 'Корень',
+      'organs': 'позвоночник, кости, ноги, иммунитет',
+      'sky': chakra_data.muladhara_sky|default('—'),
+      'earth': chakra_data.muladhara_earth|default('—'),
+      'key': chakra_data.muladhara_key|default('—'),
+    },
+  ] %}
+
   <div class="chakra-list">
-    {% for chakra in health_map %}
-    <div class="chakra-item chakra-status-{{ chakra.status }}">
-      <div class="chakra-header">
-        <span class="chakra-name">{{ chakra.name }}</span>
-        <span class="chakra-arcana">{{ chakra.arcana }} аркан</span>
-        <span class="chakra-indicator chakra-{{ chakra.status }}"></span>
-      </div>
-
-      <div class="chakra-organs">
-        <small>Органы: {{ chakra.organs | join(', ') }}</small>
-      </div>
-
-      <div class="chakra-body">
-        <p>{{ chakra.analysis }}</p>
-      </div>
-
-      {% if chakra.practice %}
-      <div class="chakra-practice">
-        <small>Практика: {{ chakra.practice }}</small>
-      </div>
+    {% for ch in chakras %}
+      {% set key_num = ch.key|string|int %}
+      {% if key_num <= 7 %}
+        {% set fill_pct = 100 %}
+        {% set status = 'high' %}
+      {% elif key_num <= 14 %}
+        {% set fill_pct = 60 %}
+        {% set status = 'medium' %}
+      {% elif key_num <= 22 %}
+        {% set fill_pct = 25 %}
+        {% set status = 'low' %}
+      {% else %}
+        {% set fill_pct = 0 %}
+        {% set status = 'unknown' %}
       {% endif %}
-    </div>
+
+      <div
+        class="chakra-row status-{{ status }}"
+        style="--chakra-color: {{ ch.color }}; --fill: {{ fill_pct }}%"
+      >
+        <div class="chakra-indicator">
+          <div class="chakra-indicator-fill"></div>
+        </div>
+        <div class="chakra-icon-wrap">
+          <span class="chakra-icon">{{ ch.icon }}</span>
+        </div>
+        <div class="chakra-info">
+          <div class="chakra-header">
+            <h4>{{ ch.name }}</h4>
+            <span class="chakra-sanskrit">{{ ch.sanskrit }}</span>
+            <span class="chakra-loc">{{ ch.loc }}</span>
+          </div>
+          <div class="chakra-positions">
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Небо</span>
+              <span class="chakra-pos-val">{{ ch.sky }} — {{ arcana_names[ch.sky|int]|default(ch.sky) }}</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Земля</span>
+              <span class="chakra-pos-val">{{ ch.earth }} — {{ arcana_names[ch.earth|int]|default(ch.earth) }}</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Ключ</span>
+              <span class="chakra-pos-val">{{ ch.key }} — {{ arcana_names[ch.key|int]|default(ch.key) }}</span>
+            </span>
+          </div>
+          <div class="chakra-organs">
+            <span class="chakra-organs-label">Органы:</span> {{ ch.organs }}
+          </div>
+          <p class="chakra-analysis">{{ analysis.health_analysis|default('') }}</p>
+          <p class="chakra-practice">{{ ch.practice|default('') }}</p>
+        </div>
+      </div>
     {% endfor %}
+  </div>
+
+  {# Организм (итог) #}
+  <div class="chakra-organism-block">
+    <div class="chakra-row organism-row">
+      <div class="chakra-icon-wrap">
+        <span class="chakra-icon">🧬</span>
+      </div>
+      <div class="chakra-info">
+        <div class="chakra-header">
+          <h4>Организм</h4>
+          <span class="chakra-loc">Общий ресурс</span>
+        </div>
+        <div class="chakra-positions">
+          <span class="chakra-pos-item">
+            <span class="chakra-pos-label">Небо</span>
+            <span class="chakra-pos-val">{{ chakra_data.organism_sky|default('—') }}</span>
+          </span>
+          <span class="chakra-pos-item">
+            <span class="chakra-pos-label">Земля</span>
+            <span class="chakra-pos-val">{{ chakra_data.organism_earth|default('—') }}</span>
+          </span>
+          <span class="chakra-pos-item">
+            <span class="chakra-pos-label">Ключ</span>
+            <span class="chakra-pos-val">{{ chakra_data.organism_key|default('—') }}</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Мини-практика для всего раздела #}
+  {% if analysis.health_analysis %}
+  <div class="chakra-global-analysis">
+    <h4>🧠 Разбор энергетики здоровья</h4>
+    <p>{{ analysis.health_analysis }}</p>
+  </div>
+  {% endif %}
+
+  <div class="chakra-global-practice">
+    <h4>🌿 Общая практика</h4>
+    <p>Выбери чакру с наименьшим показателем (красный уровень) и удели ей 5 минут в день: визуализируй её цвет, дыши в эту зону, повторяй аффирмацию «Я в балансе».</p>
   </div>
 </section>
