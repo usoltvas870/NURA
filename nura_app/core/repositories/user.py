@@ -78,3 +78,33 @@ class UserRepository(SQLAlchemyRepository[User]):
             await session.commit()
             await session.refresh(user)
             return user
+
+    async def update_tarot_subscription(
+        self,
+        user_id: uuid.UUID,
+        active: bool,
+        until: datetime | None = None,
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.tarot_subscription = active
+            user.tarot_subscription_until = until
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def update_has_matrix(
+        self,
+        user_id: uuid.UUID,
+        has_matrix: bool,
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.subscription_status = "premium" if has_matrix else user.subscription_status
+            await session.commit()
+            await session.refresh(user)
+            return user

@@ -59,6 +59,8 @@ class Settings(BaseSettings):
 
     # Subscription
     subscription_price_rub: int = 390
+    tarot_subscription_price_rub: int = 390
+    matrix_one_time_price_rub: int = 890
 
     # Admin panel
     admin_username: str = "admin"

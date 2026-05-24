@@ -21,7 +21,7 @@ async def payment_webhook(request: Request):
     metadata = payment_obj.get("metadata", {})
 
     telegram_id = metadata.get("telegram_id")
-    is_subscription = metadata.get("subscription") == "true"
+    payment_type = metadata.get("payment_type", "subscription")
 
     if not telegram_id or not yookassa_id:
         raise HTTPException(status_code=400, detail="Missing telegram_id or payment id")
@@ -36,12 +36,18 @@ async def payment_webhook(request: Request):
 
     await payment_repo.update_status(payment.id, "succeeded")
 
-    if is_subscription:
-        user = await user_repo.get_by_telegram_id(telegram_id)
-        if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
-        from datetime import datetime, timedelta, timezone
-        until = datetime.now(timezone.utc) + timedelta(days=30)
+    user = await user_repo.get_by_telegram_id(telegram_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    from datetime import datetime, timedelta, timezone
+    until = datetime.now(timezone.utc) + timedelta(days=30)
+
+    if payment_type == "tarot":
+        await user_repo.update_tarot_subscription(user.id, True, until)
+    elif payment_type == "matrix":
+        await user_repo.update_has_matrix(user.id, True)
+    else:
         await user_repo.update_subscription(user.id, "premium", until)
 
     return {"ok": True}

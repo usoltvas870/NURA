@@ -47,6 +47,12 @@ class User(Base):
     payment_method_id: Mapped[str | None] = mapped_column(
         String(100), nullable=True
     )
+    tarot_subscription: Mapped[bool] = mapped_column(
+        default=False, nullable=False
+    )
+    tarot_subscription_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -94,6 +100,9 @@ class Payment(Base):
     )
     yookassa_id: Mapped[str | None] = mapped_column(
         String(100), unique=True, nullable=True
+    )
+    payment_type: Mapped[str] = mapped_column(
+        String(20), default="subscription", nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
