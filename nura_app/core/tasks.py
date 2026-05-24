@@ -253,8 +253,13 @@ async def _process_full_report(
             "archetype_name": archetype_name,
             "archetype_number": matrix.center,
             "recommendations_parsed": recommendations_parsed,
-            "life_periods": MatrixService.calculate_life_periods(birth_date),
-            "current_year_arcana": MatrixService.calculate_year_arcana(birth_date, date.today().year),
+            "life_periods": MatrixService.calculate_life_periods(
+                date(*(int(x) for x in reversed(birth_date.split("."))))
+            ),
+            "current_year_arcana": MatrixService.calculate_year_arcana(
+                date(*(int(x) for x in reversed(birth_date.split(".")))),
+                date.today().year,
+            ),
             "chakra_data": chakra_data,
         },
     )

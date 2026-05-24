@@ -123,20 +123,27 @@ class MatrixService:
         )
 
     @staticmethod
-    def calculate_year_arcana(birth_date: str, target_year: int) -> int:
-        day, month, year = parse_birth_date(birth_date)
-        age = target_year - year
+    def calculate_year_arcana(birth_date: date, target_year: int) -> int:
+        age = target_year - birth_date.year
         if age <= 0:
             return 22
         return sum_digits(age)
 
     @staticmethod
-    def calculate_life_periods(birth_date: str) -> dict:
-        day, month, year = parse_birth_date(birth_date)
+    def calculate_life_periods(birth_date: date) -> dict:
         periods = {}
-        for age in [0, 17, 25, 33, 40, 50, 60, 70]:
-            periods[f"age_{age}"] = MatrixService.calculate_year_arcana(birth_date, year + age)
+        for age in [0, 7, 14, 21, 28, 35, 42, 49, 56, 63, 70]:
+            target_year = birth_date.year + age
+            periods[f"age_{age}"] = MatrixService.calculate_year_arcana(birth_date, target_year)
         return periods
+
+    @staticmethod
+    def calculate_year_forecast(birth_date: date, target_year: int) -> dict:
+        return {
+            "current": MatrixService.calculate_year_arcana(birth_date, target_year),
+            "next": MatrixService.calculate_year_arcana(birth_date, target_year + 1),
+            "next_next": MatrixService.calculate_year_arcana(birth_date, target_year + 2),
+        }
 
     @staticmethod
     def calculate_chakras(matrix_data: "MatrixData | dict") -> dict:
@@ -195,6 +202,9 @@ class MatrixService:
         if isinstance(matrix_data, dict):
             matrix_data = MatrixData(**matrix_data)
         md = matrix_data
+        day, month, year = parse_birth_date(md.birth_date)
+        birth_date_obj = date(year, month, day)
+
         lines = [
             f"Дата рождения: {md.birth_date}",
             "",
@@ -231,13 +241,43 @@ class MatrixService:
             "",
             "== Жизненные периоды ==",
         ]
-        periods = MatrixService.calculate_life_periods(md.birth_date)
+        periods = MatrixService.calculate_life_periods(birth_date_obj)
         for key, arcana_num in periods.items():
             age = key.replace("age_", "")
             lines.append(f"{age} лет: {ARCANA[arcana_num]['name']} ({arcana_num}) {ARCANA[arcana_num]['emoji']}")
         current_year = date.today().year
-        year_arcana = MatrixService.calculate_year_arcana(md.birth_date, current_year)
-        lines.append(f"Текущий год ({current_year}): {ARCANA[year_arcana]['name']} ({year_arcana}) {ARCANA[year_arcana]['emoji']}")
+        forecast = MatrixService.calculate_year_forecast(birth_date_obj, current_year)
+        lines.append("")
+        lines.append("== Прогноз по годам ==")
+        lines.append(f"Текущий год ({current_year}): {ARCANA[forecast['current']]['name']} ({forecast['current']}) {ARCANA[forecast['current']]['emoji']}")
+        lines.append(f"Следующий год ({current_year + 1}): {ARCANA[forecast['next']]['name']} ({forecast['next']}) {ARCANA[forecast['next']]['emoji']}")
+        lines.append(f"Через 2 года ({current_year + 2}): {ARCANA[forecast['next_next']]['name']} ({forecast['next_next']}) {ARCANA[forecast['next_next']]['emoji']}")
+        lines.append("")
+        lines.append("== Карта здоровья (чакры) ==")
+        chakras = MatrixService.calculate_chakras(md)
+        chakra_names = {
+            "sahasrara": "Сахасрара (теменная)",
+            "ajna": "Аджна (третий глаз)",
+            "vishudha": "Вишудха (горловая)",
+            "anahata": "Анахата (сердечная)",
+            "manipura": "Манипура (солнечное сплетение)",
+            "svadhisthana": "Свадхистхана (сакральная)",
+            "muladhara": "Муладхара (корневая)",
+        }
+        for key_base, name in chakra_names.items():
+            sky_num = chakras[f"{key_base}_sky"]
+            earth_num = chakras[f"{key_base}_earth"]
+            key_num = chakras[f"{key_base}_key"]
+            lines.append(
+                f"{name}: небо={ARCANA[sky_num]['name']} ({sky_num}), "
+                f"земля={ARCANA[earth_num]['name']} ({earth_num}), "
+                f"ключ={ARCANA[key_num]['name']} ({key_num})"
+            )
+        lines.append(
+            f"Организм: небо={ARCANA[chakras['organism_sky']]['name']} ({chakras['organism_sky']}), "
+            f"земля={ARCANA[chakras['organism_earth']]['name']} ({chakras['organism_earth']}), "
+            f"ключ={ARCANA[chakras['organism_key']]['name']} ({chakras['organism_key']})"
+        )
         return "\n".join(lines)
 
     @staticmethod

@@ -16,7 +16,10 @@ def _full_json():
         '{"main_archetype":"a","strengths":"b","shadow_side":"c",'
         '"relationship_dynamics":"d","financial_scenario":"e",'
         '"recurring_mistakes":"f","internal_conflicts":"g",'
-        '"life_cycles":"h","ai_recommendations":"i"}'
+        '"life_cycles":"h","ai_recommendations":"i",'
+        '"karmic_tail_analysis":"j","ancestral_programs":"k",'
+        '"life_purpose":"l","life_forecast":"m",'
+        '"psychological_blocks":"n","health_analysis":"o"}'
     )
 
 
@@ -104,6 +107,7 @@ class TestFullReport:
             "life_cycles", "ai_recommendations",
             "karmic_tail_analysis", "ancestral_programs",
             "life_purpose", "life_forecast",
+            "psychological_blocks", "health_analysis",
         }
 
     async def test_fallback_on_invalid_json(self, sample_matrix):

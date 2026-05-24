@@ -167,6 +167,14 @@ FALLBACK_FULL = {
         "Прогноз жизненных периодов строится на основе твоего архетипа и циклов. "
         "Я уточню расчёты и вернусь с результатом."
     ),
+    "psychological_blocks": (
+        "Психологические блоки зашифрованы в ключевых арканах твоей матрицы. "
+        "Мне нужно время для точного анализа убеждений и их проработки."
+    ),
+    "health_analysis": (
+        "Карта здоровья строится на основе всех позиций твоей матрицы. "
+        "Я подготовлю детальный разбор по чакрам и вернусь."
+    ),
 }
 
 FALLBACK_COMPATIBILITY = {
@@ -205,7 +213,7 @@ DEFAULT_PARAMS = {
 
 FULL_REPORT_PARAMS = {
     "temperature": 0.7,
-    "max_tokens": 16000,
+    "max_tokens": 32000,
     "top_p": 0.9,
     "frequency_penalty": 0.0,
     "presence_penalty": 0.0,
@@ -423,7 +431,7 @@ class AIService:
             "main_archetype", "strengths", "shadow_side", "relationship_dynamics",
             "financial_scenario", "recurring_mistakes", "internal_conflicts",
             "life_cycles", "karmic_tail_analysis", "ancestral_programs",
-            "life_purpose", "life_forecast",
+            "life_purpose", "life_forecast", "psychological_blocks", "health_analysis",
         ]
     }
 
