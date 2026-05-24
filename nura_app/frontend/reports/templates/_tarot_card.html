@@ -5,15 +5,14 @@
   </div>
   <p class="section-subtitle">Энергия, которая ведёт тебя сегодня — на основе твоей матрицы</p>
 
-  {% if current_year_arcana %}
+  {% if daily_tarot_arcana %}
   <div class="tarot-card-daily">
     <div class="tarot-card-visual">
-      <span class="tarot-card-num">{{ current_year_arcana }}</span>
-      <span class="tarot-card-name">{{ arcana_names.get('center', '') if arcana_names else '' }}</span>
+      <span class="tarot-card-num">{{ daily_tarot_arcana.number }}</span>
+      <span class="tarot-card-name">{{ daily_tarot_arcana.name }}</span>
     </div>
     <p class="tarot-card-insight">
-      Сегодня твой день проходит под энергией аркана {{ current_year_arcana }}.
-      Это энергия {{ arcana_names.get(current_year_arcana|string, 'твоего дня') if arcana_names else '' }}.
+      Сегодня твой день проходит под энергией аркана {{ daily_tarot_arcana.number }} — {{ daily_tarot_arcana.name }}.
       Прислушайся: о чём она говорит именно тебе?
     </p>
   </div>
