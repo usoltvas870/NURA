@@ -25,7 +25,6 @@ from bot.texts.insights import (
 from bot.texts.profile import (
     profile_no_matrix_text,
     profile_mini_text,
-    profile_full_report_text,
     profile_subscriber_text,
     reports_list_text,
 )
@@ -85,7 +84,6 @@ __all__ = [
     "no_insights_text",
     "profile_no_matrix_text",
     "profile_mini_text",
-    "profile_full_report_text",
     "profile_subscriber_text",
     "reports_list_text",
     "paywall_text",
