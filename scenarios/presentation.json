@@ -1,0 +1,47 @@
+{
+  "name": "nura_presentation",
+  "nura_video": "videos/media/test.mp4",
+  "subtitles": {
+    "enabled": true,
+    "mode": "auto",
+    "font_size": 52,
+    "color": "#FFFFFF",
+    "stroke_color": "#000000",
+    "stroke_width": 3.0,
+    "y_position": 0.33
+  },
+  "scenes": [
+    {
+      "start": 0,
+      "duration": 0,
+      "overlays": [
+        {
+          "type": "video",
+          "src": "videos/media/11384843-hd_1080_1920_25fps.mp4",
+          "start": 3,
+          "end": 7,
+          "x": 0,
+          "y": 0,
+          "width": 1.0
+        },
+        {
+          "type": "video",
+          "src": "videos/media/19806007-uhd_2160_4096_60fps.mp4",
+          "start": 10,
+          "end": 15,
+          "x": 0,
+          "y": 0,
+          "width": 1.0
+        },
+        {
+          "type": "zoom",
+          "start": 21.0,
+          "duration": 0.05,
+          "from_scale": 1.0,
+          "to_scale": 1.5,
+          "easing": "cubic-in-out"
+        }
+      ]
+    }
+  ]
+}

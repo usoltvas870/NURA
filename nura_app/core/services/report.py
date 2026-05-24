@@ -22,7 +22,6 @@ class ReportService:
         return tmpl.render(
             **report_data,
             report_base_url=settings.report_base_url,
-            report_price_rub=settings.report_price_rub,
             generated_at=date.today().strftime("%d.%m.%Y"),
         )
 

@@ -48,26 +48,14 @@ async def _get_user_matrix_data(telegram_id: int):
     return user, matrix_report, reports
 
 
-def _has_chat_access(user, reports) -> bool:
-    if settings.test_mode:
-        return True
-    if user.subscription_status == "premium":
-        return True
-    for r in reports:
-        if r.report_type == "full":
-            return True
-    return False
+def _has_chat_access(user) -> bool:
+    return True
 
 
-def _has_unlimited_chat(user, reports) -> bool:
+def _has_unlimited_chat(user) -> bool:
     if settings.test_mode:
         return True
-    if user.subscription_status == "premium":
-        return True
-    for r in reports:
-        if r.report_type == "full":
-            return True
-    return False
+    return user.subscription_status == "premium"
 
 
 @router.callback_query(F.data == "chat_with_nura")
@@ -82,7 +70,7 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         )
         return
 
-    if not _has_chat_access(user, reports):
+    if not _has_chat_access(user):
         text = paywall_text()
         await callback.message.edit_text(text, reply_markup=subscription_keyboard())
         return
@@ -97,7 +85,7 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(matrix_data=matrix_report.matrix_data)
     await state.update_data(user_name=name)
 
-    if _has_unlimited_chat(user, reports):
+    if _has_unlimited_chat(user):
         await state.update_data(chat_messages_left=-1)
         text = greeting_text_unlimited(name, archetype_name)
     else:

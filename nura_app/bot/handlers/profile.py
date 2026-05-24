@@ -6,7 +6,6 @@ from aiogram.types import CallbackQuery, Message
 
 from bot.keyboards.main_menu import profile_keyboard, reports_keyboard, subscription_keyboard
 from bot.texts.profile import (
-    profile_full_report_text,
     profile_mini_text,
     profile_no_matrix_text,
     profile_subscriber_text,
@@ -60,17 +59,14 @@ async def _show_profile(message: Message, user, reports) -> None:
 
     if not user.main_archetype:
         text = profile_no_matrix_text(name)
-        kb = profile_keyboard(has_matrix=False, has_full_report=False, is_subscriber=False)
+        kb = profile_keyboard(has_matrix=False, is_subscriber=False)
     elif user.subscription_status == "premium":
         until_str = user.subscription_until.strftime("%d.%m.%Y") if user.subscription_until else "—"
         text = profile_subscriber_text(name, user.main_archetype, until_str, reports_count)
-        kb = profile_keyboard(has_matrix=True, has_full_report=True, is_subscriber=True)
-    elif any(r.report_type == "full" for r in reports):
-        text = profile_full_report_text(name, user.main_archetype, reports_count)
-        kb = profile_keyboard(has_matrix=True, has_full_report=True, is_subscriber=False)
+        kb = profile_keyboard(has_matrix=True, is_subscriber=True)
     else:
         text = profile_mini_text(name, user.main_archetype, reports_count)
-        kb = profile_keyboard(has_matrix=True, has_full_report=False, is_subscriber=False)
+        kb = profile_keyboard(has_matrix=True, is_subscriber=False)
 
     await message.answer(text, reply_markup=kb)
 

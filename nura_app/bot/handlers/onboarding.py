@@ -160,7 +160,7 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
         text,
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="🔮 Полный разбор за 690 ₽", callback_data="full_report_pay")],
+                [InlineKeyboardButton(text="💎 Полный разбор по подписке", callback_data="buy_subscription")],
                 [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
             ]
         ),

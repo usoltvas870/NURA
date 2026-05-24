@@ -10,6 +10,7 @@ from core.repositories import (
 from core.services.matrix import MatrixService
 from core.services.ai import AIService
 from core.services.report import ReportService
+from core.services.carousel_assembler import CarouselAssembler
 from core.services.payment import PaymentService
 
 __all__ = [
@@ -17,6 +18,7 @@ __all__ = [
     "Base",
     "get_async_sessionmaker",
     "ReportType",
+    "CarouselAssembler",
     "MatrixService",
     "AIService",
     "ReportService",

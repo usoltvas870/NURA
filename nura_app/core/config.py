@@ -55,7 +55,6 @@ class Settings(BaseSettings):
 
     # Report
     report_base_url: str = "https://nura-ai.ru"
-    report_price_rub: int = 690
 
     # Subscription
     subscription_price_rub: int = 390

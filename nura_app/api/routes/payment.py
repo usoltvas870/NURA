@@ -1,40 +1,10 @@
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
 
 from api.deps import limiter
 from core.database import get_async_sessionmaker
 from core.repositories import PaymentRepository, UserRepository
-from core.services.payment import PaymentService
-from core.services.report import ReportService
-from core.tasks import generate_full_report
 
 router = APIRouter(prefix="/api/v1/payment")
-
-
-class PaymentCreateRequest(BaseModel):
-    telegram_id: int
-
-
-class PaymentCreateResponse(BaseModel):
-    payment_id: str
-    payment_url: str
-    report_token: str
-
-
-@router.post("")
-async def create_payment(body: PaymentCreateRequest):
-    report_token = ReportService.generate_token()
-    try:
-        result = await PaymentService.create_payment(
-            body.telegram_id, report_token
-        )
-        return PaymentCreateResponse(
-            payment_id=result["id"],
-            payment_url=result["payment_url"],
-            report_token=report_token,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/webhook")
@@ -51,7 +21,7 @@ async def payment_webhook(request: Request):
     metadata = payment_obj.get("metadata", {})
 
     telegram_id = metadata.get("telegram_id")
-    report_token = metadata.get("report_token")
+    is_subscription = metadata.get("subscription") == "true"
 
     if not telegram_id or not yookassa_id:
         raise HTTPException(status_code=400, detail="Missing telegram_id or payment id")
@@ -66,12 +36,12 @@ async def payment_webhook(request: Request):
 
     await payment_repo.update_status(payment.id, "succeeded")
 
-    if report_token:
+    if is_subscription:
         user = await user_repo.get_by_telegram_id(telegram_id)
-        if user is None or not user.birth_date:
-            raise HTTPException(
-                status_code=404, detail="User not found or birth date missing"
-            )
-        generate_full_report.delay(str(user.id), user.birth_date, report_token)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        from datetime import datetime, timedelta, timezone
+        until = datetime.now(timezone.utc) + timedelta(days=30)
+        await user_repo.update_subscription(user.id, "premium", until)
 
     return {"ok": True}

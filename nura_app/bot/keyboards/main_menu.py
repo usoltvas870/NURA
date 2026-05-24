@@ -7,20 +7,20 @@ def main_menu_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="🔮 Моя матрица", callback_data="my_matrix"),
-                InlineKeyboardButton(text="📖 Полный разбор", callback_data="full_report_pay"),
-            ],
-            [
-                InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura"),
                 InlineKeyboardButton(text="🌒 Инсайты", callback_data="insights"),
             ],
             [
+                InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura"),
                 InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
+            ],
+            [
+                InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
             ],
         ]
     )
 
 
-def compatibility_paywall_keyboard(token: str) -> InlineKeyboardMarkup:
+def compatibility_paywall_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="💎 Полный разбор по подписке 390 ₽/мес", callback_data="buy_subscription")],
@@ -29,7 +29,7 @@ def compatibility_paywall_keyboard(token: str) -> InlineKeyboardMarkup:
     )
 
 
-def profile_keyboard(has_matrix: bool, has_full_report: bool, is_subscriber: bool) -> InlineKeyboardMarkup:
+def profile_keyboard(has_matrix: bool, is_subscriber: bool) -> InlineKeyboardMarkup:
     if not has_matrix:
         return InlineKeyboardMarkup(
             inline_keyboard=[
@@ -47,19 +47,9 @@ def profile_keyboard(has_matrix: bool, has_full_report: bool, is_subscriber: boo
             ]
         )
 
-    if has_full_report:
-        return InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura")],
-                [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
-                [InlineKeyboardButton(text="💎 Преимущества подписки", callback_data="subscription")],
-                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
-            ]
-        )
-
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✨ Полный отчёт 690 ₽", callback_data="full_report_pay")],
+            [InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura")],
             [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
             [InlineKeyboardButton(text="💎 О подписке", callback_data="subscription")],
             [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],

@@ -1,0 +1,35 @@
+{
+  "name": "nura_test_auto",
+  "nura_video": "videos/media/test.mp4",
+  "subtitles": {
+    "enabled": true,
+    "mode": "auto",
+    "font_size": 50,
+    "color": "#FFFFFF",
+    "stroke_color": "#000000",
+    "stroke_width": 3.0,
+    "y_position": 0.7
+  },
+  "scenes": [
+    {
+      "start": 0,
+      "duration": 0,
+      "overlays": [
+        {
+          "type": "zoom",
+          "start": 2,
+          "duration": 3,
+          "from_scale": 1.0,
+          "to_scale": 1.12
+        },
+        {
+          "type": "zoom",
+          "start": 20,
+          "duration": 4,
+          "from_scale": 1.0,
+          "to_scale": 1.18
+        }
+      ]
+    }
+  ]
+}

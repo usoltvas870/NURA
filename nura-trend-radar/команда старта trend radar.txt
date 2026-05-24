@@ -1,2 +1,2 @@
-﻿cd C:\git\NURA\nura-trend-radar; python run_radar.py
-
+﻿python nura.py radar        # только тренды
+python nura.py assemble     # склейка видео после загрузки видео исходников

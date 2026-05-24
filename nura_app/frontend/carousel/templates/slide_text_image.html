@@ -1,0 +1,83 @@
+{% extends '_slide_base.html' %}
+
+{% block content %}
+<div class="slide">
+  {% if slide and slide.slide_number %}
+  <div class="slide-number">{{ slide.slide_number }}</div>
+  {% endif %}
+
+  <div class="slide-text-image-grid">
+    <div class="slide-text-image-left">
+      {% if slide and slide.heading %}
+      <h2 class="slide-text-image-heading">{{ slide.heading }}</h2>
+      {% endif %}
+      {% if slide and slide.body %}
+      <div class="slide-divider"></div>
+      <p class="slide-text-image-body">{{ slide.body }}</p>
+      {% endif %}
+    </div>
+    <div class="slide-text-image-right">
+      {% if slide and slide.visual_hint %}
+      <div class="slide-text-image-placeholder">
+        <span class="slide-text-image-hint">{{ slide.visual_hint }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% include '_slide_logo.html' %}
+</div>
+{% endblock %}
+
+{% block head_extra %}
+<style>
+  .slide-text-image-grid {
+    display: flex;
+    gap: 60px;
+    align-items: center;
+    max-width: 900px;
+  }
+
+  .slide-text-image-left {
+    flex: 0 0 45%;
+  }
+
+  .slide-text-image-right {
+    flex: 0 0 55%;
+  }
+
+  .slide-text-image-heading {
+    font-family: var(--font-heading);
+    font-size: var(--fs-heading);
+    color: var(--orange);
+    line-height: 1.2;
+  }
+
+  .slide-text-image-body {
+    font-family: var(--font-body);
+    font-size: var(--fs-body);
+    color: rgba(245, 243, 238, 0.85);
+    line-height: 1.7;
+  }
+
+  .slide-text-image-placeholder {
+    aspect-ratio: 3 / 4;
+    background: rgba(245, 243, 238, 0.04);
+    border: 1px dashed rgba(245, 243, 238, 0.1);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+
+  .slide-text-image-hint {
+    font-family: var(--font-body);
+    font-size: var(--fs-small);
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+</style>
+{% endblock %}

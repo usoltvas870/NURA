@@ -125,4 +125,4 @@ async def process_second_date(message: Message, state: FSMContext) -> None:
             ),
         )
     else:
-        await msg.edit_text(text, reply_markup=compatibility_paywall_keyboard(token))
+        await msg.edit_text(text, reply_markup=compatibility_paywall_keyboard())

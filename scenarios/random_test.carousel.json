@@ -1,0 +1,70 @@
+{
+  "name": "random_test",
+  "format": "carousel",
+  "brand": {
+    "primary_color": "#D97A32",
+    "accent_color": "#8C6A3B",
+    "bg_dark": "#0B0B0B",
+    "bg_gradient": "radial-gradient(circle at 30% 20%, rgba(217, 122, 50, 0.08), transparent 60%), linear-gradient(135deg, #0B0B0B, #0F1A17)",
+    "font_heading": "'Cormorant Garamond', Georgia, serif",
+    "font_body": "'DM Sans', Arial, sans-serif"
+  },
+  "slides": [
+    {
+      "slide_number": 1,
+      "template_id": "cover",
+      "heading": "Твой архетип уже всё решил за тебя",
+      "subheading": "Матрица судьбы показывает код, который ты носишь с рождения",
+      "body": "",
+      "cta": "",
+      "visual_hint": "золотые линии, тёмный фон, сакральная геометрия",
+      "tone": "mystical"
+    },
+    {
+      "slide_number": 2,
+      "template_id": "quote",
+      "heading": "Императрица (3 аркан)",
+      "body": "Ты можешь годами прорабатывать мышление, но если твоя ведущая энергия заблокирована — перемен не будет. Женщины с архетипом Императрицы часто уходят в тотальный контроль и пахоту, выжигая свою женскую суть.",
+      "cta": "",
+      "visual_hint": "тёмный фон, мягкий золотой свет",
+      "tone": "premium-dark"
+    },
+    {
+      "slide_number": 3,
+      "template_id": "list",
+      "heading": "3 шага к изобилию",
+      "list_items": [
+        "Осознай свой архетип через матрицу судьбы",
+        "Сними тотальный контроль — доверься пространству",
+        "Переключи тумблер с «выживания» на «изобилие»"
+      ],
+      "cta": "",
+      "visual_hint": "золотые буллиты, минимализм",
+      "tone": "warm"
+    },
+    {
+      "slide_number": 4,
+      "template_id": "text_image",
+      "heading": "Что скрывает твоя дата рождения",
+      "body": "В ней закодированы: твои таланты, кармический хвост, денежный канал, линия отношений и предназначение. Нура расшифровывает это за 30 секунд.",
+      "cta": "",
+      "visual_hint": "абстрактные золотые линии, сакральная геометрия, тёмный фон",
+      "tone": "mystical"
+    },
+    {
+      "slide_number": 5,
+      "template_id": "cta",
+      "heading": "Готова узнать свой код?",
+      "body": "Бесплатный мини-разбор матрицы судьбы ждёт тебя в профиле",
+      "cta": "Перейти к разбору",
+      "visual_hint": "тёмный премиум, золотые искры",
+      "tone": "premium-dark"
+    }
+  ],
+  "settings": {
+    "width": 1080,
+    "height": 1350,
+    "format": "instagram_portrait",
+    "font_scale": 1.0
+  }
+}

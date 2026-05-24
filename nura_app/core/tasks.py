@@ -118,7 +118,7 @@ async def _notify_mini_report(telegram_id: int, token: str) -> None:
     )
     keyboard = {
         "inline_keyboard": [
-            [{"text": "✨ Полный разбор за 690 ₽", "callback_data": f"pay_full_report:{token}"}],
+            [{"text": "💎 Полный разбор по подписке", "callback_data": "buy_subscription"}],
             [{"text": "🏠 В меню", "callback_data": "main_menu"}],
         ],
     }
@@ -133,7 +133,6 @@ async def _notify_compatibility(telegram_id: int, token: str) -> None:
     )
     keyboard = {
         "inline_keyboard": [
-            [{"text": "✨ Полная матрица 690 ₽", "callback_data": f"pay_compatibility:{token}"}],
             [{"text": "💎 Подписка 390 ₽/мес", "callback_data": "buy_subscription"}],
             [{"text": "🏠 В меню", "callback_data": "main_menu"}],
         ],
@@ -546,3 +545,20 @@ def assemble_video(scenario_name: str) -> dict:
     cfg = ScenarioConfig.model_validate(raw)
     output = assemble(cfg)
     return {"output": str(output)}
+
+
+@celery_app.task(name="core.tasks.assemble_carousel")
+def assemble_carousel(scenario_name: str) -> dict:
+    import json
+
+    from core.schemas.carousel import CarouselConfig
+    from core.services.carousel_assembler import NURA_ROOT, CarouselAssembler
+
+    carousel_path = NURA_ROOT / "scenarios" / f"{scenario_name}.carousel.json"
+    if not carousel_path.exists():
+        raise FileNotFoundError(f"Carousel config not found: {carousel_path}")
+
+    raw = json.loads(carousel_path.read_text("utf-8"))
+    cfg = CarouselConfig.model_validate(raw)
+    paths = _run_async(CarouselAssembler.assemble(cfg))
+    return {"output": [str(p) for p in paths], "count": len(paths)}

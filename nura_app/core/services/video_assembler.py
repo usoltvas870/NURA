@@ -13,6 +13,17 @@ from pydantic import BaseModel
 
 FPS = 24
 NURA_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+
+_DEFAULT_FONT = None
+for _fp in [
+    "C\\:/Windows/Fonts/arial.ttf",
+    "C\\:/Windows/Fonts/calibri.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+]:
+    if Path(_fp.replace("\\:", ":")).exists():
+        _DEFAULT_FONT = _fp
+        break
 _FFMPEG = Path(imageio_ffmpeg.get_ffmpeg_exe())
 
 
@@ -65,6 +76,9 @@ class TextOverlay(BaseModel):
     font_size: int = 24
     color: str = "#FF6B00"
     font: str | None = None
+    border_color: str = "#000000"
+    border_width: int = 4
+    letter_spacing: int = 0
 
 
 class VideoOverlay(BaseModel):
@@ -125,6 +139,7 @@ class SubtitlesConfig(BaseModel):
 
 class ScenarioConfig(BaseModel):
     name: str = "nura_video"
+    format_type: str = "type1"
     nura_video: str
     scenes: list[Scene]
     subtitles: SubtitlesConfig = SubtitlesConfig()
@@ -175,6 +190,15 @@ def _probe_duration(path: Path) -> float:
         + int(m.group(3))
         + int(m.group(4)) / (10 ** len(m.group(4)))
     )
+
+
+def _has_audio(path: Path) -> bool:
+    r = subprocess.run(
+        [str(_FFMPEG), "-hide_banner", "-i", str(path)],
+        capture_output=True, text=True,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    return "Audio:" in r.stderr
 
 
 def _has_gpu() -> bool:
@@ -360,6 +384,8 @@ def assemble(cfg: ScenarioConfig) -> Path:
     parts: list[str] = []
     label_ctr = 0
 
+    has_audio = _has_audio(vp)
+
     def _nl(kind: str = "v") -> str:
         nonlocal label_ctr
         lbl = f"[n{label_ctr}{kind}]"
@@ -369,6 +395,13 @@ def assemble(cfg: ScenarioConfig) -> Path:
     scene_v_labels: list[str] = []
     scene_a_labels: list[str] = []
 
+    # silence source for audio-less inputs
+    if not has_audio:
+        silence_tag = _nl("s")
+        parts.append(
+            f"aevalsrc=0:d={total_dur}:s=44100{silence_tag}"
+        )
+
     for si, sc in enumerate(cfg.scenes):
         if sc.source:
             src_idx = scene_sources[str(_resolve(sc.source))]
@@ -377,7 +410,7 @@ def assemble(cfg: ScenarioConfig) -> Path:
             src_total = _probe_duration(_resolve(sc.source))
         else:
             input_v_tag = "[0:v]"
-            input_a_tag = "[0:a]"
+            input_a_tag = silence_tag if not has_audio else "[0:a]"
             src_total = total_dur
 
         sd = sc.duration if sc.duration > 0 else (src_total - sc.start)
@@ -422,14 +455,19 @@ def assemble(cfg: ScenarioConfig) -> Path:
             px = _pos_px(ov.x, W)
             py = _pos_px(ov.y, H)
             c = ov.color.lstrip("#")
+            bc = ov.border_color.lstrip("#")
+            bw = ov.border_width
             s = ov.start
             e = ov.end if ov.end is not None else sd
             if e <= s:
                 continue
             txt = _esc(ov.text)
+            ff = ov.font or _DEFAULT_FONT
+            ff_arg = f"fontfile='{ff}':" if ff else ""
             parts_v.append(
-                f"{cv}drawtext=text='{txt}':fontsize={ov.font_size}:"
-                f"fontcolor=0x{c}:x={px}:y={py}:"
+                f"{cv}drawtext={ff_arg}text='{txt}':fontsize={ov.font_size}:"
+                f"fontcolor=0x{c}:bordercolor=0x{bc}:borderw={bw}:"
+                f"x={px}:y={py}:"
                 f"enable='between(t,{s},{e})'{_nl('v')}"
             )
             cv = f"[n{label_ctr - 1}v]"
@@ -507,8 +545,8 @@ def assemble(cfg: ScenarioConfig) -> Path:
             px = _pos_px(ov.x, W)
             py = _pos_px(ov.y, H)
             parts_v.append(
-                f"movie='{_ffpath_filter(ip)}':loop=1:duration={iid}[im_{si}_{ov.start}];"
-                f"[im_{si}_{ov.start}]setpts=PTS-STARTPTS,"
+                f"movie='{_ffpath_filter(ip)}'[im_{si}_{ov.start}];"
+                f"[im_{si}_{ov.start}]trim=duration={iid},setpts=PTS-STARTPTS,"
                 f"scale=width={ow}:height=-2,setpts=PTS+{ov.start}/TB{_nl('i')};"
                 f"{cv}[n{label_ctr - 1}i]overlay=x={px}:y={py}:"
                 f"enable='between(t,{ov.start},{ov.end or sd})'{_nl('v')}"
