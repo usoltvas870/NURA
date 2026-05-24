@@ -63,6 +63,8 @@ class ReportService:
 
     @staticmethod
     def parse_recommendations(ai_recommendations: str) -> list[dict]:
+        import re
+
         lines = [ln.strip() for ln in ai_recommendations.strip().split("\n") if ln.strip()]
         result = []
         for i, line in enumerate(lines, 1):
@@ -73,14 +75,26 @@ class ReportService:
             lower = cleaned.lower()
             if any(w in lower for w in ["тело", "физическ", "йог", "дыхание", "спорт", "сон", "движение", "тренировк", "прогулк"]):
                 category = "Тело"
-            elif any(w in lower for w in ["ум", "мысл", "анализ", "изучени", "чтение", "план", "интеллект", "обучени", "запис"]):
+            elif any(w in lower for w in ["ум", "мысл", "анализ", "изучени", "чтение", "план", "интеллект", "обучени", "запис", "внимание"]):
                 category = "Ум"
-            elif any(w in lower for w in ["дух", "медитаци", "осознанност", "тишина", "благодарност", "духовн", "молитв"]):
+            elif any(w in lower for w in ["дух", "медитаци", "осознанност", "тишина", "благодарност", "духовн", "молитв", "смысл"]):
                 category = "Дух"
             else:
                 category = "Практика"
 
-            result.append({"number": i, "text": cleaned, "category": category})
+            effect = ""
+            m = re.search(
+                r"(?:ожидаемый\s+)?эффект\s*[:\-–—]\s*(.+?)$",
+                cleaned, re.IGNORECASE,
+            )
+            if m:
+                effect = m.group(1).strip().rstrip(".")
+                cleaned = re.sub(
+                    r"\s*(?:ожидаемый\s+)?эффект\s*[:\-–—]\s*.+?$",
+                    "", cleaned, flags=re.IGNORECASE,
+                ).strip()
+
+            result.append({"number": i, "text": cleaned, "category": category, "effect": effect})
         return result
 
     @staticmethod
