@@ -2,11 +2,16 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-def main_menu_keyboard() -> InlineKeyboardMarkup:
+def main_menu_keyboard(has_matrix: bool = True) -> InlineKeyboardMarkup:
+    matrix_btn = (
+        InlineKeyboardButton(text="🔮 Моя матрица", callback_data="my_matrix")
+        if has_matrix
+        else InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")
+    )
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="🔮 Моя матрица", callback_data="my_matrix"),
+                matrix_btn,
                 InlineKeyboardButton(text="🌒 Инсайты", callback_data="insights"),
             ],
             [
@@ -29,7 +34,7 @@ def compatibility_paywall_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def profile_keyboard(has_matrix: bool, is_subscriber: bool) -> InlineKeyboardMarkup:
+def profile_keyboard(has_matrix: bool, is_subscriber: bool, has_full_report: bool = False) -> InlineKeyboardMarkup:
     if not has_matrix:
         return InlineKeyboardMarkup(
             inline_keyboard=[
@@ -47,9 +52,19 @@ def profile_keyboard(has_matrix: bool, is_subscriber: bool) -> InlineKeyboardMar
             ]
         )
 
+    if has_full_report:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura")],
+                [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
+                [InlineKeyboardButton(text="💎 О подписке", callback_data="subscription")],
+                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+            ]
+        )
+
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura")],
+            [InlineKeyboardButton(text="💎 Полный отчёт по подписке", callback_data="buy_subscription")],
             [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
             [InlineKeyboardButton(text="💎 О подписке", callback_data="subscription")],
             [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],

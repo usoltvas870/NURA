@@ -23,8 +23,18 @@ def profile_mini_text(name: str, archetype: str, reports_count: int) -> str:
     )
 
 
-
-
+def profile_full_text(name: str, archetype: str, reports_count: int) -> str:
+    return (
+        f"<b>👤 {name}</b>\n\n"
+        f"<b>🎭 Архетип:</b> {archetype}\n"
+        "Статус: 📖 <i>есть полный отчёт</i>\n"
+        f"Отчётов: {reports_count}\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n\n"
+        "У тебя уже есть доступ к полному разбору.\n"
+        "Но матрица меняется каждый день —\n"
+        "инсайты, чат с NURA и ежедневные подсказки\n"
+        "доступны с подпиской."
+    )
 
 def profile_subscriber_text(name: str, archetype: str, until: str, reports_count: int) -> str:
     return (

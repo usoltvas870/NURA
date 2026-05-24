@@ -52,10 +52,16 @@ def _has_chat_access(user) -> bool:
     return True
 
 
-def _has_unlimited_chat(user) -> bool:
+def _has_unlimited_chat(user, reports: list | None = None) -> bool:
     if settings.test_mode:
         return True
-    return user.subscription_status == "premium"
+    if user.subscription_status == "premium":
+        return True
+    if reports:
+        for r in reports:
+            if r.report_type == "full" and r.payment_status == "paid":
+                return True
+    return False
 
 
 @router.callback_query(F.data == "chat_with_nura")
@@ -66,7 +72,7 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
     if user is None:
         await callback.message.edit_text(
             "Пользователь не найден. Начни с /start",
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(has_matrix=False),
         )
         return
 
@@ -85,7 +91,7 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(matrix_data=matrix_report.matrix_data)
     await state.update_data(user_name=name)
 
-    if _has_unlimited_chat(user):
+    if _has_unlimited_chat(user, reports):
         await state.update_data(chat_messages_left=-1)
         text = greeting_text_unlimited(name, archetype_name)
     else:
@@ -180,7 +186,8 @@ async def exit_chat(event: Message | CallbackQuery, state: FSMContext) -> None:
     user = await user_repo.get_by_telegram_id(user_id)
     name = user.first_name or user.username or "пользователь" if user else "пользователь"
 
-    await message.answer(exit_text(name), reply_markup=main_menu_keyboard())
+    has_matrix = user and user.birth_date is not None
+    await message.answer(exit_text(name), reply_markup=main_menu_keyboard(has_matrix=has_matrix))
 
 
 @router.callback_query(F.data == "chat_clear")

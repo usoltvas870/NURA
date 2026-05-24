@@ -168,12 +168,10 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data == "calculate_matrix")
-async def handle_calculate_matrix(callback: CallbackQuery) -> None:
+async def handle_calculate_matrix(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
-    await callback.message.edit_text(
-        "Введи /start чтобы рассчитать свою матрицу ✶",
-        reply_markup=main_menu_keyboard(),
-    )
+    await state.set_state(OnboardingStates.waiting_for_birth_date)
+    await callback.message.edit_text(ask_birth_date_onboarding_text())
 
 
 async def _show_authenticated_menu(message: Message, user) -> None:
