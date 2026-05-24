@@ -191,6 +191,248 @@ small { font-size: var(--small-size); color: var(--muted); }
   color: var(--orange);
 }
 
+.matrix-cell-name {
+  font-size: 9px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.2;
+  margin-top: 2px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.matrix-lines-section {
+  margin-top: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.matrix-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(11, 11, 11, 0.4);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid transparent;
+}
+
+.matrix-line.sky { border-left-color: #7EB8DA; }
+.matrix-line.earth { border-left-color: #6B8E5A; }
+.matrix-line.relationship { border-left-color: #D97A32; }
+.matrix-line.money { border-left-color: #D4AF37; }
+
+.matrix-line-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.matrix-line-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.matrix-line-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--card-soft);
+  border: 1px solid rgba(245, 243, 238, 0.15);
+  color: var(--white);
+}
+
+.matrix-line.sky .matrix-line-dot { border-color: rgba(126, 184, 218, 0.3); color: #7EB8DA; }
+.matrix-line.earth .matrix-line-dot { border-color: rgba(107, 142, 90, 0.3); color: #6B8E5A; }
+.matrix-line.relationship .matrix-line-dot { border-color: rgba(217, 122, 50, 0.3); color: #D97A32; }
+.matrix-line.money .matrix-line-dot { border-color: rgba(212, 175, 55, 0.3); color: #D4AF37; }
+
+.matrix-line-connector {
+  width: 16px;
+  height: 1px;
+  background: rgba(245, 243, 238, 0.15);
+  flex-shrink: 0;
+}
+
+.matrix-line.sky .matrix-line-connector { background: rgba(126, 184, 218, 0.25); }
+.matrix-line.earth .matrix-line-connector { background: rgba(107, 142, 90, 0.25); }
+.matrix-line.relationship .matrix-line-connector { background: rgba(217, 122, 50, 0.25); }
+.matrix-line.money .matrix-line-connector { background: rgba(212, 175, 55, 0.25); }
+
+.karmic-chain {
+  margin-top: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: rgba(11, 11, 11, 0.4);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(245, 243, 238, 0.06);
+}
+
+.karmic-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  min-width: 80px;
+  position: relative;
+}
+
+.karmic-link.cause { background: rgba(217, 122, 50, 0.08); border: 1px solid rgba(217, 122, 50, 0.2); }
+.karmic-link.effect { background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.2); }
+.karmic-link.lesson { background: rgba(126, 184, 218, 0.08); border: 1px solid rgba(126, 184, 218, 0.2); }
+
+.karmic-link-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.karmic-link-num {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.karmic-link.cause .karmic-link-num { color: #D97A32; }
+.karmic-link.effect .karmic-link-num { color: #D4AF37; }
+.karmic-link.lesson .karmic-link-num { color: #7EB8DA; }
+
+.karmic-link-name {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.karmic-arrow {
+  font-size: 20px;
+  color: rgba(245, 243, 238, 0.25);
+  flex-shrink: 0;
+}
+
+.matrix-relationship-point {
+  margin-top: var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(217, 122, 50, 0.06);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(217, 122, 50, 0.15);
+}
+
+.matrix-relationship-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.matrix-relationship-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--orange);
+  background: rgba(217, 122, 50, 0.1);
+  border: 2px solid rgba(217, 122, 50, 0.3);
+}
+
+.dashboard {
+  margin-bottom: var(--space-xl);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-sm);
+}
+
+.dashboard-card {
+  background: var(--card-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.dashboard-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  opacity: 0.6;
+}
+
+.card-archetype::before { background: var(--orange); }
+.card-talent::before { background: var(--gold); }
+.card-challenge::before { background: #D97A32; }
+.card-lesson::before { background: #7EB8DA; }
+.card-resource::before { background: #6B8E5A; }
+
+.card-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+
+.card-number {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  color: var(--white);
+  line-height: 1;
+}
+
+.card-name {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.card-description {
+  font-size: 12px;
+  color: rgba(245, 243, 238, 0.6);
+  line-height: 1.5;
+  margin-top: 6px;
+  font-style: italic;
+}
+
 /* Section card */
 .report-section {
   background: var(--card-bg);

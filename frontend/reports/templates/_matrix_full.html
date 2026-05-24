@@ -1,0 +1,136 @@
+<section class="report-section section-matrix-full">
+  <div class="section-header">
+    <div class="section-accent-bar"></div>
+    <h2>Развёрнутая матрица</h2>
+  </div>
+  <p class="section-subtitle">Полная карта твоих энергий — арканы, линии, кармический хвост</p>
+
+  <div class="cover-matrix">
+    <div class="matrix-grid">
+      <div class="matrix-cell">
+        <span class="matrix-cell-label">небо</span>
+        <span class="matrix-cell-num">{{ matrix.top or '' }}</span>
+        <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('top', '') }}</span>
+      </div>
+      <div class="matrix-cell">
+        <span class="matrix-cell-label">талант</span>
+        <span class="matrix-cell-num">{{ matrix.talent_zone or '' }}</span>
+        <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('talent_zone', '') }}</span>
+      </div>
+      <div class="matrix-cell">
+        <span class="matrix-cell-label">женское</span>
+        <span class="matrix-cell-num">{{ matrix.right or '' }}</span>
+        <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('right', '') }}</span>
+      </div>
+      <div class="matrix-cell">
+        <span class="matrix-cell-label">комфорт</span>
+        <span class="matrix-cell-num">{{ matrix.comfort_zone or '' }}</span>
+        <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('comfort_zone', '') }}</span>
+      </div>
+      <div class="matrix-cell center">
+        <span class="matrix-cell-label">центр</span>
+        <span class="matrix-cell-num">{{ matrix.center or '' }}</span>
+        <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('center', '') }}</span>
+      </div>
+      <div class="matrix-cell">
+        <span class="matrix-cell-label">портрет</span>
+        <span class="matrix-cell-num">{{ matrix.portrait_zone or '' }}</span>
+        <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('portrait_zone', '') }}</span>
+      </div>
+      <div class="matrix-cell">
+        <span class="matrix-cell-label">мужское</span>
+        <span class="matrix-cell-num">{{ matrix.left or '' }}</span>
+        <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('left', '') }}</span>
+      </div>
+      <div class="matrix-cell">
+        <span class="matrix-cell-label">карма</span>
+        <span class="matrix-cell-num">{{ matrix.karmic_tail[1] if matrix.karmic_tail and matrix.karmic_tail|length > 1 else '' }}</span>
+        <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('center', '') }}</span>
+      </div>
+      <div class="matrix-cell">
+        <span class="matrix-cell-label">земля</span>
+        <span class="matrix-cell-num">{{ matrix.bottom or '' }}</span>
+        <span class="matrix-cell-name">{{ (matrix.arcana_names or {}).get('bottom', '') }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="matrix-lines-section">
+    {% if matrix.sky_line and matrix.sky_line|length == 3 %}
+    <div class="matrix-line sky">
+      <span class="matrix-line-label">Небо</span>
+      <div class="matrix-line-dots">
+        {% for n in matrix.sky_line %}
+        <span class="matrix-line-dot">{{ n }}</span>
+        {% if not loop.last %}<span class="matrix-line-connector"></span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if matrix.earth_line and matrix.earth_line|length == 3 %}
+    <div class="matrix-line earth">
+      <span class="matrix-line-label">Земля</span>
+      <div class="matrix-line-dots">
+        {% for n in matrix.earth_line %}
+        <span class="matrix-line-dot">{{ n }}</span>
+        {% if not loop.last %}<span class="matrix-line-connector"></span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if matrix.relationship_line and matrix.relationship_line|length == 3 %}
+    <div class="matrix-line relationship">
+      <span class="matrix-line-label">Отношения</span>
+      <div class="matrix-line-dots">
+        {% for n in matrix.relationship_line %}
+        <span class="matrix-line-dot">{{ n }}</span>
+        {% if not loop.last %}<span class="matrix-line-connector"></span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if matrix.money_line and matrix.money_line|length == 3 %}
+    <div class="matrix-line money">
+      <span class="matrix-line-label">Деньги</span>
+      <div class="matrix-line-dots">
+        {% for n in matrix.money_line %}
+        <span class="matrix-line-dot">{{ n }}</span>
+        {% if not loop.last %}<span class="matrix-line-connector"></span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if matrix.karmic_tail and matrix.karmic_tail|length == 3 %}
+  <div class="karmic-chain">
+    <div class="karmic-link cause">
+      <span class="karmic-link-label">Причина</span>
+      <span class="karmic-link-num">{{ matrix.karmic_tail[0] }}</span>
+      <span class="karmic-link-name">{{ (matrix.arcana_names or {}).get('bottom', '') }}</span>
+    </div>
+    <span class="karmic-arrow">→</span>
+    <div class="karmic-link effect">
+      <span class="karmic-link-label">Следствие</span>
+      <span class="karmic-link-num">{{ matrix.karmic_tail[1] }}</span>
+      <span class="karmic-link-name">{{ (matrix.arcana_names or {}).get('center', '') }}</span>
+    </div>
+    <span class="karmic-arrow">→</span>
+    <div class="karmic-link lesson">
+      <span class="karmic-link-label">Урок</span>
+      <span class="karmic-link-num">{{ matrix.karmic_tail[2] }}</span>
+      <span class="karmic-link-name">{{ (matrix.arcana_names or {}).get('top', '') }}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if matrix.relationship_point is defined and matrix.relationship_point is not none %}
+  <div class="matrix-relationship-point">
+    <span class="matrix-relationship-label">Точка отношений</span>
+    <span class="matrix-relationship-dot">{{ matrix.relationship_point }}</span>
+  </div>
+  {% endif %}
+</section>
