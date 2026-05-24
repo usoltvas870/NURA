@@ -29,7 +29,13 @@ async def _get_user_and_reports(telegram_id: int):
     if user is None:
         return None, []
     reports = await report_repo.get_by_user_id(user.id)
-    return user, reports
+    seen: set[str] = set()
+    deduped: list = []
+    for r in sorted(reports, key=lambda x: x.created_at, reverse=True):
+        if r.report_type not in seen:
+            seen.add(r.report_type)
+            deduped.append(r)
+    return user, deduped
 
 
 @router.message(Command("profile"))

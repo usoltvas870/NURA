@@ -372,6 +372,10 @@ async def _process_compatibility_report(
     pdf = await ReportService.generate_pdf(html)
     paths = ReportService.save_report_files(token, html, pdf)
 
+    existing = await report_repo.get_by_user_id_and_type(uid, ReportType.COMPATIBILITY)
+    if existing is not None:
+        await report_repo.delete(existing.id)
+
     report = await report_repo.create(
         user_id=uid,
         report_type=ReportType.COMPATIBILITY,
