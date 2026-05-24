@@ -38,6 +38,10 @@ celery_app.conf.beat_schedule = {
         "task": "core.tasks.send_daily_insights",
         "schedule": crontab(hour=9, minute=0),
     },
+    "send-daily-tarot-card": {
+        "task": "core.tasks.send_daily_tarot_card",
+        "schedule": crontab(hour=9, minute=15),
+    },
     "check-expiring-subscriptions": {
         "task": "core.tasks.check_expiring_subscriptions",
         "schedule": 60 * 60 * 12,
@@ -139,6 +143,28 @@ async def _notify_compatibility(telegram_id: int, token: str) -> None:
         ],
     }
     await _send_message(telegram_id, text, keyboard)
+
+
+def format_daily_card_message(first_name: str, card: dict) -> str:
+    lines = [
+        f"🃏 Твоя карта дня — {card['card_number']}. {card['card_name']}",
+        "",
+        card['key_phrase'],
+        "",
+        card['interpretation'],
+    ]
+    if card.get('matrix_link'):
+        lines += ["", card['matrix_link']]
+    lines += [
+        "",
+        f"💡 {card['advice']}",
+        "",
+        f"✨ {card['affirmation']}",
+        "",
+        "━━━━━━━━━━━━━━━━━━━━",
+        "Хочешь глубже? Загляни в ритуалы дня.",
+    ]
+    return "\n".join(lines)
 
 
 async def _process_mini_report(user_id: str, birth_date: str) -> dict:
@@ -492,6 +518,49 @@ async def _send_daily_insights_async() -> dict:
             sent += 1
 
     return {"sent": sent, "blocked": blocked, "total": total}
+
+
+@celery_app.task(name="core.tasks.send_daily_tarot_card")
+def send_daily_tarot_card() -> dict:
+    return _run_async(_send_daily_tarot_card_async())
+
+
+async def _send_daily_tarot_card_async() -> dict:
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    users = await user_repo.get_users_with_tarot()
+
+    sent = 0
+    blocked = 0
+    for i, user in enumerate(users):
+        if i > 0 and len(users) > 50:
+            await asyncio.sleep(0.5)
+        if not user.birth_date:
+            continue
+
+        try:
+            card = await AIService.generate_tarot_daily_card(user.birth_date, user)
+        except Exception:
+            continue
+
+        text = format_daily_card_message(user.first_name, card)
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🂠 Расклад недели", "callback_data": "tarot_weekly_spread"}],
+                [{"text": "🏠 В меню", "callback_data": "main_menu"}],
+            ],
+        }
+        ok = await _send_message(user.telegram_id, text, keyboard)
+        if ok:
+            sent += 1
+        else:
+            async with session_factory() as session:
+                db_user = await session.get(User, user.id)
+                if db_user is not None:
+                    db_user.tarot_subscription = False
+                    await session.commit()
+            blocked += 1
+    return {"sent": sent, "blocked": blocked, "total": len(users)}
 
 
 @celery_app.task(name="core.tasks.check_expiring_subscriptions")
