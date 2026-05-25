@@ -127,13 +127,67 @@ async def open_report(callback: CallbackQuery) -> None:
         return
 
     report_url = f"{settings.report_base_url}/report/{token}"
+    buttons = [[InlineKeyboardButton(text="👁 Открыть отчёт", url=report_url)]]
+    if report.kitchen_analysis:
+        buttons.insert(0, [InlineKeyboardButton(text="🧮 Показать расчёт", callback_data=f"kitchen:{token}")])
+    buttons.append([InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")])
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.answer(report_ready_text(), reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("kitchen:"))
+async def show_kitchen_analysis(callback: CallbackQuery) -> None:
+    await callback.answer()
+
+    token = callback.data.split(":", 1)[1]
+    report = await _get_report_by_token(token)
+
+    if report is None or not report.kitchen_analysis:
+        await callback.message.edit_text(
+            "Кухонный слой не найден.",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    ka = report.kitchen_analysis
+    lines = ["<b>🧮 Кухонный слой — как NURA это посчитала</b>\n"]
+    for key, entry in ka.items():
+        if not isinstance(entry, dict):
+            continue
+        title = {
+            "main_archetype": "Архетип",
+            "strengths": "Сильные стороны",
+            "shadow_side": "Теневая сторона",
+            "relationship_dynamics": "Отношения",
+            "financial_scenario": "Деньги и карьера",
+            "recurring_mistakes": "Сценарии",
+            "internal_conflicts": "Конфликты",
+            "life_cycles": "Циклы",
+            "karmic_tail_analysis": "Кармический хвост",
+            "ancestral_programs": "Родовые программы",
+            "life_purpose": "Предназначение",
+            "life_forecast": "Прогноз",
+        }.get(key, key)
+        positions = entry.get("positions", [])
+        energies = entry.get("energies", [])
+        logic = entry.get("logic", "")
+        if not logic:
+            continue
+        lines.append(f"\n<b>{title}</b>")
+        if positions:
+            lines.append(f"📍 Позиции: {', '.join(positions)}")
+        if energies:
+            lines.append(f"🔢 Арканы: {', '.join(energies)}")
+        lines.append(f"💬 {logic}")
+
+    text = "\n".join(lines)
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="👁 Открыть отчёт", url=report_url)],
+            [InlineKeyboardButton(text="🔙 Назад к отчёту", callback_data=f"open_report:{token}")],
             [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
         ]
     )
-    await callback.message.answer(report_ready_text(), reply_markup=kb)
+    await callback.message.edit_text(text, reply_markup=kb)
 
 
 @router.callback_query(F.data.startswith("download_pdf:"))

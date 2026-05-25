@@ -51,6 +51,28 @@ async def cmd_ritual(message: Message) -> None:
     )
 
 
+@router.callback_query(F.data == "ritual")
+async def callback_ritual(callback: CallbackQuery) -> None:
+    await callback.answer()
+    user, has_sub = await _check_tarot_subscription(callback.from_user.id)
+    if user is None:
+        await callback.message.edit_text(
+            "Пользователь не найден. Начни с /start",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+    if not has_sub and not settings.test_mode:
+        await callback.message.edit_text(
+            format_tarot_paywall(),
+            reply_markup=tarot_paywall_keyboard(),
+        )
+        return
+    await callback.message.edit_text(
+        "🃏 Ритуалы дня\n\nВыбери, что хочешь узнать сегодня:",
+        reply_markup=tarot_menu_keyboard(),
+    )
+
+
 @router.callback_query(F.data == "tarot_menu")
 async def show_tarot_menu(callback: CallbackQuery) -> None:
     await callback.answer()

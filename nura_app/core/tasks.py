@@ -239,7 +239,7 @@ async def _process_full_report(
     analysis_task = AIService.generate_full_report(birth_date, matrix)
     kitchen_task = AIService.generate_kitchen_report(birth_date, matrix)
     analysis, kitchen_analysis = await gather(analysis_task, kitchen_task)
-    token = ReportService.generate_token()
+    token = report_token or ReportService.generate_token()
 
     user = await user_repo.get(uid)
     user_name = user.first_name or user.username or "пользователь" if user else "пользователь"
