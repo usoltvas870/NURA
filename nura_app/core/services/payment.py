@@ -1,8 +1,12 @@
+from datetime import datetime, timedelta, timezone
 import uuid
 
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from yookassa import Configuration, Payment as YooPayment
 
 from core.config import settings
+from core.repositories.payment import PaymentRepository
+from core.repositories.user import UserRepository
 
 Configuration.account_id = settings.yookassa_shop_id
 Configuration.secret_key = settings.yookassa_secret_key
@@ -104,3 +108,45 @@ class PaymentService:
         from yookassa import PaymentMethod as YooPaymentMethod
 
         YooPaymentMethod.cancel(payment_method_id)
+
+    @staticmethod
+    async def process_webhook(
+        session_factory: async_sessionmaker, data: dict
+    ) -> dict:
+        event = data.get("event")
+        payment_obj = data.get("object", {})
+
+        if event != "payment.succeeded":
+            return {"status": "ignored"}
+
+        yookassa_id = payment_obj.get("id")
+        metadata = payment_obj.get("metadata", {})
+        telegram_id = metadata.get("telegram_id")
+        payment_type = metadata.get("payment_type", "subscription")
+
+        if not telegram_id or not yookassa_id:
+            raise ValueError("Missing telegram_id or payment id")
+
+        payment_repo = PaymentRepository(session_factory)
+        user_repo = UserRepository(session_factory)
+
+        payment = await payment_repo.get_by_yookassa_id(yookassa_id)
+        if payment is None:
+            raise ValueError("Payment not found")
+
+        await payment_repo.update_status(payment.id, "succeeded")
+
+        user = await user_repo.get_by_telegram_id(telegram_id)
+        if user is None:
+            raise ValueError("User not found")
+
+        until = datetime.now(timezone.utc) + timedelta(days=30)
+
+        if payment_type == "tarot":
+            await user_repo.update_tarot_subscription(user.id, True, until)
+        elif payment_type == "matrix":
+            await user_repo.update_has_matrix(user.id, True)
+        else:
+            await user_repo.update_subscription(user.id, "premium", until)
+
+        return {"ok": True}

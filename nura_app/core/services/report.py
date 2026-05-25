@@ -3,6 +3,7 @@ from datetime import date
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.config import settings
 
@@ -60,6 +61,118 @@ class ReportService:
     @staticmethod
     def report_url(token: str) -> str:
         return f"{settings.report_base_url}/report/{token}"
+
+    @staticmethod
+    async def get_report_by_token(session_factory: async_sessionmaker, token: str):
+        from core.repositories.report import ReportRepository
+        repo = ReportRepository(session_factory)
+        return await repo.get_by_token(token)
+
+    @staticmethod
+    async def render_report_html(report, session_factory: async_sessionmaker) -> str | None:
+        from core.repositories.user import UserRepository
+        from core.services.matrix import ARCANA, MatrixService
+        from core.services.daily_arcana import get_today_arcana_with_name
+
+        matrix_data = report.matrix_data or {}
+        analysis = report.ai_analysis or {}
+        user_id = matrix_data.get("user_id") or str(report.user_id)
+        uid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+
+        user_repo = UserRepository(session_factory)
+        user = await user_repo.get(uid)
+
+        if not user:
+            user_name = "пользователь"
+            archetype_name = ARCANA.get(matrix_data.get("center", 0), {}).get("name", "Неизвестный")
+            archetype_number = matrix_data.get("center", 0)
+        else:
+            user_name = user.first_name or user.username or "пользователь"
+            archetype_number = user.main_archetype_number or matrix_data.get("center", 0)
+            archetype_name = user.main_archetype or ARCANA.get(archetype_number, {}).get("name", "Неизвестный")
+
+        recommendations_parsed = ReportService.parse_recommendations(
+            analysis.get("ai_recommendations", "")
+        )
+        psych_blocks = ReportService.parse_psych_blocks(
+            analysis.get("psychological_blocks", ""),
+            arcana_names=matrix_data.get("arcana_names", {}),
+        )
+
+        matrix_obj = None
+        birth_date = matrix_data.get("birth_date", "") or (user.birth_date if user else "")
+        try:
+            if matrix_data.get("center"):
+                from core.schemas import MatrixData
+                matrix_obj = MatrixData(**matrix_data)
+        except Exception:
+            pass
+
+        if matrix_obj:
+            chakra_data = MatrixService.calculate_chakras(matrix_obj)
+            bd_parts = birth_date.split(".")
+            if len(bd_parts) == 3:
+                try:
+                    bd = date(int(bd_parts[2]), int(bd_parts[1]), int(bd_parts[0]))
+                    current_year = date.today().year
+                    life_periods = MatrixService.calculate_life_periods(bd)
+                    year_forecast = MatrixService.calculate_year_forecast(bd, current_year)
+                    current_year_arcana = MatrixService.calculate_year_arcana(bd, current_year)
+                    daily_tarot_arcana = get_today_arcana_with_name(birth_date, matrix_data.get("arcana_names", {}))
+                except Exception:
+                    chakra_data = {}
+                    life_periods = {}
+                    year_forecast = {}
+                    current_year_arcana = 0
+                    daily_tarot_arcana = {}
+            else:
+                chakra_data = {}
+                life_periods = {}
+                year_forecast = {}
+                current_year_arcana = 0
+                daily_tarot_arcana = {}
+        else:
+            chakra_data = {}
+            life_periods = {}
+            year_forecast = {}
+            current_year_arcana = 0
+            daily_tarot_arcana = {}
+
+        matrix_raw = {
+            "center": matrix_data.get("center"),
+            "top": matrix_data.get("top"),
+            "bottom": matrix_data.get("bottom"),
+            "left": matrix_data.get("left"),
+            "right": matrix_data.get("right"),
+            "talent_zone": matrix_data.get("talent_zone"),
+            "comfort_zone": matrix_data.get("comfort_zone"),
+            "portrait_zone": matrix_data.get("portrait_zone"),
+            "karmic_tail": matrix_data.get("karmic_tail"),
+            "sky_line": matrix_data.get("sky_line"),
+            "earth_line": matrix_data.get("earth_line"),
+            "relationship_line": matrix_data.get("relationship_line"),
+            "money_line": matrix_data.get("money_line"),
+            "relationship_point": matrix_data.get("relationship_point"),
+            "arcana_names": matrix_data.get("arcana_names", {}),
+        }
+
+        report_data = {
+            "matrix": matrix_raw,
+            "analysis": analysis,
+            "kitchen_analysis": report.kitchen_analysis,
+            "user_name": user_name,
+            "archetype_name": archetype_name,
+            "archetype_number": archetype_number,
+            "recommendations_parsed": recommendations_parsed,
+            "psych_blocks": psych_blocks,
+            "chakra_data": chakra_data,
+            "life_periods": life_periods,
+            "year_forecast": year_forecast,
+            "current_year_arcana": current_year_arcana,
+            "daily_tarot_arcana": daily_tarot_arcana,
+        }
+
+        return ReportService.generate_html_report(report_data)
 
     @staticmethod
     def parse_recommendations(ai_recommendations: str) -> list[dict]:

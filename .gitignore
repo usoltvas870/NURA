@@ -29,3 +29,14 @@ Thumbs.db
 *.sqlite3
 
 videos/
+
+# Test & lint caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# Carousel test output
+nura_app/frontend/carousel/output/*.png
+
+# Trend radar data (local only)
+nura-trend-radar/data/
