@@ -17,27 +17,27 @@
 5. Тон — поддержка и любопытство, не запугивание.
 
 Верни строго JSON, без markdown-форматирования, без объяснений:
-{
-  "body": {
+{{
+  "body": {{
     "card_number": int,
     "card_name": str,
     "energy": str,
     "interpretation": str,
     "practice": str
-  },
-  "mind": {
+  }},
+  "mind": {{
     "card_number": int,
     "card_name": str,
     "energy": str,
     "interpretation": str,
     "practice": str
-  },
-  "spirit": {
+  }},
+  "spirit": {{
     "card_number": int,
     "card_name": str,
     "energy": str,
     "interpretation": str,
     "practice": str
-  },
+  }},
   "overall": str
-}
+}}

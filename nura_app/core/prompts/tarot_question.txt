@@ -18,25 +18,25 @@
 6. Тон — поддержка и любопытство, не запугивание. Ответ привязан к вопросу пользователя.
 
 Верни строго JSON, без markdown-форматирования, без объяснений:
-{
-  "past": {
+{{
+  "past": {{
     "card_number": int,
     "card_name": str,
     "meaning": str,
     "how_it_relates": str
-  },
-  "present": {
+  }},
+  "present": {{
     "card_number": int,
     "card_name": str,
     "meaning": str,
     "how_it_relates": str
-  },
-  "future": {
+  }},
+  "future": {{
     "card_number": int,
     "card_name": str,
     "meaning": str,
     "how_it_relates": str
-  },
+  }},
   "summary": str,
   "advice": str
-}
+}}

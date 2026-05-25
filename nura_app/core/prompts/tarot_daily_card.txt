@@ -16,7 +16,7 @@
 7. Аффирмация — одна сильная, короткая фраза для дня.
 
 Верни строго JSON, без markdown-форматирования, без объяснений:
-{
+{{
   "card_number": int,
   "card_name": str,
   "key_phrase": str,
@@ -24,4 +24,4 @@
   "matrix_link": str,
   "advice": str,
   "affirmation": str
-}
+}}

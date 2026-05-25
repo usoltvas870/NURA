@@ -123,7 +123,7 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
         await callback.message.edit_text(text, reply_markup=tarot_menu_keyboard())
     except Exception as e:
         logger.error("tarot_daily_card failed: %s", e, exc_info=True)
-        await callback.message.edit_text(
+        await callback.message.answer(
             "Что-то пошло не так. Попробуй ещё раз.",
             reply_markup=tarot_menu_keyboard(),
         )
@@ -157,7 +157,7 @@ async def show_tarot_weekly_spread(callback: CallbackQuery) -> None:
         await callback.message.edit_text(text, reply_markup=tarot_menu_keyboard())
     except Exception as e:
         logger.error("tarot_weekly_spread failed: %s", e, exc_info=True)
-        await callback.message.edit_text(
+        await callback.message.answer(
             "Что-то пошло не так. Попробуй ещё раз.",
             reply_markup=tarot_menu_keyboard(),
         )

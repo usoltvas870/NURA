@@ -37,6 +37,7 @@ async def cmd_start(message: Message, state: FSMContext, user=None) -> None:
     db_user = user or await user_repo.get_by_telegram_id(message.from_user.id)
 
     if db_user and db_user.birth_date:
+        await state.clear()
         await _show_authenticated_menu(message, db_user)
         return
 
