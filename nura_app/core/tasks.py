@@ -2,7 +2,7 @@ import asyncio
 import logging
 import random
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 from celery import Celery
 from celery.schedules import crontab
@@ -14,7 +14,6 @@ from core.models import ReportType, User
 from core.repositories import ReportRepository, UserRepository
 from core.services.ai import AIService
 from core.services.insights_data import INSIGHTS_BY_ARCHETYPE
-from core.services.daily_arcana import get_today_arcana_with_name
 from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
 
@@ -244,60 +243,19 @@ async def _process_full_report(
     user = await user_repo.get(uid)
     user_name = user.first_name or user.username or "пользователь" if user else "пользователь"
     archetype_name = MatrixService.get_archetype_name(matrix.center)
-    recommendations_parsed = ReportService.parse_recommendations(
-        analysis.get("ai_recommendations", "")
+
+    matrix_dict = matrix.model_dump()
+
+    report_data = ReportService._build_v2_report_data(
+        matrix_data=matrix_dict,
+        analysis=analysis,
+        kitchen_analysis=kitchen_analysis,
+        user_name=user_name,
+        archetype_number=matrix.center,
+        archetype_name=archetype_name,
+        token=token,
     )
-
-    psych_blocks = ReportService.parse_psych_blocks(
-        analysis.get("psychological_blocks", ""),
-        arcana_names=matrix.arcana_names,
-    )
-
-    chakra_data = MatrixService.calculate_chakras(matrix)
-
-    matrix_raw = {
-        "center": matrix.center,
-        "top": matrix.top,
-        "bottom": matrix.bottom,
-        "left": matrix.left,
-        "right": matrix.right,
-        "talent_zone": matrix.talent_zone,
-        "comfort_zone": matrix.comfort_zone,
-        "portrait_zone": matrix.portrait_zone,
-        "karmic_tail": matrix.karmic_tail,
-        "sky_line": matrix.sky_line,
-        "earth_line": matrix.earth_line,
-        "relationship_line": matrix.relationship_line,
-        "money_line": matrix.money_line,
-        "relationship_point": matrix.relationship_point,
-        "inner_f": matrix.inner_f,
-        "inner_g": matrix.inner_g,
-        "inner_h": matrix.inner_h,
-        "inner_i": matrix.inner_i,
-        "arcana_names": matrix.arcana_names,
-        "chakra_map": chakra_data,
-    }
-
-    bd = date(*(int(x) for x in reversed(birth_date.split("."))))
-    current_year = date.today().year
-
-    html = ReportService.generate_html_report(
-        report_data={
-            "matrix": matrix_raw,
-            "analysis": analysis,
-            "kitchen_analysis": kitchen_analysis,
-            "user_name": user_name,
-            "archetype_name": archetype_name,
-            "archetype_number": matrix.center,
-            "recommendations_parsed": recommendations_parsed,
-            "life_periods": MatrixService.calculate_life_periods(bd),
-            "year_forecast": MatrixService.calculate_year_forecast(bd, current_year),
-            "current_year_arcana": MatrixService.calculate_year_arcana(bd, current_year),
-            "daily_tarot_arcana": get_today_arcana_with_name(birth_date, matrix.arcana_names),
-            "chakra_data": chakra_data,
-            "psych_blocks": psych_blocks,
-        },
-    )
+    html = ReportService.generate_html_report(report_data, template_name="full_report_v2.html")
     pdf = await ReportService.generate_pdf(html)
     paths = ReportService.save_report_files(token, html, pdf)
 
@@ -305,7 +263,6 @@ async def _process_full_report(
     if existing is not None:
         await report_repo.delete(existing.id)
 
-    matrix_dict = matrix.model_dump()
     report = await report_repo.create(
         user_id=uid,
         report_type=ReportType.FULL,

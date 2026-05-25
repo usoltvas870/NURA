@@ -53,7 +53,7 @@ async def serve_report(token: str):
         with open(paths["html"], "r", encoding="utf-8") as f:
             return Response(content=f.read(), media_type="text/html")
 
-    html = await ReportService.render_report_html(report, session_factory)
+    html = await ReportService.render_report_v2_html(report, session_factory)
     if html is None:
         return HTMLResponse(content=NOT_FOUND_HTML, status_code=404)
     return Response(content=html, media_type="text/html")
@@ -75,7 +75,7 @@ async def serve_report_pdf(token: str):
             filename=f"nura-report-{token[:8]}.pdf",
         )
 
-    html = await ReportService.render_report_html(report, session_factory)
+    html = await ReportService.render_report_v2_html(report, session_factory)
     if html is None:
         return PlainTextResponse("Report not found", status_code=404)
     import sys
