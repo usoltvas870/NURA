@@ -1177,17 +1177,17 @@ small { font-size: var(--small-size); color: var(--muted); }
   left: 0;
   right: 0;
   height: var(--fill);
-  background: linear-gradient(to top, var(--chakra-color), color-mix(in srgb, var(--chakra-color) 60%, transparent));
+  background: linear-gradient(to top, var(--chakra-color), transparent);
   border-radius: 12px;
   transition: height 0.4s ease;
 }
 
 .status-high .chakra-indicator-fill {
-  box-shadow: 0 0 12px color-mix(in srgb, var(--chakra-color) 40%, transparent);
+  box-shadow: 0 0 12px var(--chakra-color);
 }
 
 .status-medium .chakra-indicator-fill {
-  box-shadow: 0 0 8px color-mix(in srgb, var(--chakra-color) 25%, transparent);
+  box-shadow: 0 0 8px var(--chakra-color);
 }
 
 .status-low .chakra-indicator-fill {
@@ -1208,8 +1208,8 @@ small { font-size: var(--small-size); color: var(--muted); }
 }
 
 .chakra-row .chakra-icon-wrap {
-  border-color: color-mix(in srgb, var(--chakra-color) 30%, transparent);
-  background: color-mix(in srgb, var(--chakra-color) 8%, transparent);
+  border-color: var(--chakra-color);
+  background: var(--chakra-color);
 }
 
 .chakra-info {
@@ -1388,7 +1388,7 @@ small { font-size: var(--small-size); color: var(--muted); }
   .chakra-indicator-fill {
     height: 100% !important;
     width: var(--fill);
-    background: linear-gradient(to right, var(--chakra-color), color-mix(in srgb, var(--chakra-color) 60%, transparent));
+    background: linear-gradient(to right, var(--chakra-color), transparent);
     border-radius: 12px;
   }
   .chakra-icon-wrap {

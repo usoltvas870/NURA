@@ -84,8 +84,13 @@ async def serve_report_pdf(token: str):
     html = await _render_report_html(report, session_factory)
     if html is None:
         return PlainTextResponse("Report not found", status_code=404)
+    import sys
+    sys.setrecursionlimit(5000)
     from weasyprint import HTML as WPHTML
-    pdf_bytes = WPHTML(string=html).write_pdf()
+    try:
+        pdf_bytes = WPHTML(string=html).write_pdf()
+    except RecursionError:
+        return PlainTextResponse("PDF generation failed: CSS complexity too high. Please try again later.", status_code=500)
     return Response(content=pdf_bytes, media_type="application/pdf",
                     headers={"Content-Disposition": f"inline; filename=nura-report-{token[:8]}.pdf"})
 
