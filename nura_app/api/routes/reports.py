@@ -6,7 +6,8 @@ from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Res
 
 from core.database import get_async_sessionmaker
 from core.repositories import ReportRepository, UserRepository
-from core.services.matrix import ARCANA
+from core.services.matrix import ARCANA, MatrixService
+from core.services.daily_arcana import get_today_arcana_with_name
 from core.services.report import ReportService
 
 router = APIRouter(prefix="/report")
@@ -129,6 +130,46 @@ async def _render_report_html(report, session_factory):
         arcana_names=matrix_data.get("arcana_names", {}),
     )
 
+    matrix_obj = None
+    birth_date = matrix_data.get("birth_date", "") or (user.birth_date if user else "")
+    try:
+        from datetime import date
+        if matrix_data.get("center"):
+            from core.schemas import MatrixData
+            matrix_obj = MatrixData(**matrix_data)
+    except Exception:
+        pass
+
+    if matrix_obj:
+        chakra_data = MatrixService.calculate_chakras(matrix_obj)
+        bd_parts = birth_date.split(".")
+        if len(bd_parts) == 3:
+            try:
+                bd = date(int(bd_parts[2]), int(bd_parts[1]), int(bd_parts[0]))
+                current_year = date.today().year
+                life_periods = MatrixService.calculate_life_periods(bd)
+                year_forecast = MatrixService.calculate_year_forecast(bd, current_year)
+                current_year_arcana = MatrixService.calculate_year_arcana(bd, current_year)
+                daily_tarot_arcana = get_today_arcana_with_name(birth_date, matrix_data.get("arcana_names", {}))
+            except Exception:
+                chakra_data = {}
+                life_periods = {}
+                year_forecast = {}
+                current_year_arcana = 0
+                daily_tarot_arcana = {}
+        else:
+            chakra_data = {}
+            life_periods = {}
+            year_forecast = {}
+            current_year_arcana = 0
+            daily_tarot_arcana = {}
+    else:
+        chakra_data = {}
+        life_periods = {}
+        year_forecast = {}
+        current_year_arcana = 0
+        daily_tarot_arcana = {}
+
     matrix_raw = {
         "center": matrix_data.get("center"),
         "top": matrix_data.get("top"),
@@ -156,6 +197,11 @@ async def _render_report_html(report, session_factory):
         "archetype_number": archetype_number,
         "recommendations_parsed": recommendations_parsed,
         "psych_blocks": psych_blocks,
+        "chakra_data": chakra_data,
+        "life_periods": life_periods,
+        "year_forecast": year_forecast,
+        "current_year_arcana": current_year_arcana,
+        "daily_tarot_arcana": daily_tarot_arcana,
     }
 
     return ReportService.generate_html_report(report_data)
