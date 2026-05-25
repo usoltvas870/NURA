@@ -1,34 +1,42 @@
-<section class="report-section section-reflection">
-  <div class="section-header">
-    <div class="section-accent-bar reflection-accent"></div>
-    <h2>Мои инсайты</h2>
-  </div>
-  <p class="section-subtitle">Что важного ты узнал(а) о себе из этого отчёта? Запиши — чтобы не забыть.</p>
-  <div class="reflection-lines">
-    {% for i in range(8) %}
-    <div class="reflection-line"></div>
-    {% endfor %}
+﻿<section class="reflection" id="r1">
+  <span class="nbr" style="font-family: 'Cormorant Garamond', serif; font-size: 14px; color: var(--m-accent); letter-spacing: 0.16em; margin-bottom: 14px; display: block;">∙ Страница рефлексии</span>
+  <h2>Мои <em>инсайты</em></h2>
+  <p class="r-sub">Что нового ты увидела о себе, читая этот разбор. Пиши своими словами.</p>
+  <div class="lines">
+    <div class="line"></div>
+    <div class="line"></div>
+    <div class="line mid"></div>
+    <div class="line"></div>
+    <div class="line"></div>
+    <div class="line short"></div>
+    <div class="line"></div>
+    <div class="line"></div>
+    <div class="line mid"></div>
+    <div class="line"></div>
+    <div class="line short"></div>
+    <div class="line"></div>
   </div>
 </section>
 
-<section class="report-section section-reflection">
-  <div class="section-header">
-    <div class="section-accent-bar reflection-accent"></div>
-    <h2>Что я попробую на этой неделе</h2>
+<section class="reflection" id="r2">
+  <span class="nbr" style="font-family: 'Cormorant Garamond', serif; font-size: 14px; color: var(--m-accent); letter-spacing: 0.16em; margin-bottom: 14px; display: block;">∙ Страница рефлексии</span>
+  <h2>Что я попробую <em>на этой неделе</em></h2>
+  <p class="r-sub">Один-два конкретных шага. Чем мельче — тем выше шанс, что произойдёт.</p>
+  <div class="lines">
+    <div class="line"></div>
+    <div class="line mid"></div>
+    <div class="line"></div>
+    <div class="line short"></div>
+    <div class="line"></div>
+    <div class="line"></div>
+    <div class="line mid"></div>
+    <div class="line"></div>
+    <div class="line"></div>
+    <div class="line short"></div>
   </div>
-  <p class="section-subtitle">Выбери 3 практики из отчёта и запиши их сюда.</p>
-  <div class="reflection-prompts">
-    <div class="reflection-prompt">
-      <span class="reflection-prompt-num">1</span>
-      <div class="reflection-line"></div>
-    </div>
-    <div class="reflection-prompt">
-      <span class="reflection-prompt-num">2</span>
-      <div class="reflection-line"></div>
-    </div>
-    <div class="reflection-prompt">
-      <span class="reflection-prompt-num">3</span>
-      <div class="reflection-line"></div>
-    </div>
+
+  <div style="margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--ink-faint);">
+    <span>NURA AI · Матрица Судьбы · отчёт для {{ user_name }}</span>
+    <a href="https://t.me/ai_nura_bot" target="_blank" rel="noopener" style="color: var(--m-accent);">@ai_nura_bot</a>
   </div>
 </section>

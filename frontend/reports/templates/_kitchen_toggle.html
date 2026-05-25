@@ -1,17 +1,15 @@
-<div class="kitchen-toggle">
-  <button class="kitchen-btn" onclick="this.parentElement.querySelector('.kitchen-content').classList.toggle('open')">
-    <span>🔍 Почему я так думаю?</span>
-    <span class="kitchen-arrow">▾</span>
+﻿{% if kitchen_data %}
+<div class="kitchen-toggle" id="kitchen-{{ section_key }}">
+  <button class="kitchen-btn" type="button" data-toggle="kitchen-{{ section_key }}">
+    <span class="arrow">▸</span>
+    <span>Почему я так думаю — данные расчёта</span>
   </button>
-  <div class="kitchen-content">
-    <div class="kitchen-positions">
-      <span class="kitchen-label">Позиции:</span> {{ kitchen_data.positions | join(', ') }}
-    </div>
-    <div class="kitchen-energies">
-      <span class="kitchen-label">Арканы:</span> {{ kitchen_data.energies | join(', ') }}
-    </div>
-    <div class="kitchen-logic">
-      <span class="kitchen-label">Логика AI:</span> {{ kitchen_data.logic }}
+  <div class="kitchen-body">
+    <div class="kc-card">
+      {% for row in kitchen_data %}
+      <div class="kcr"><span class="kck">{{ row.key }}</span><span class="kcv">{{ row.value }}</span></div>
+      {% endfor %}
     </div>
   </div>
 </div>
+{% endif %}

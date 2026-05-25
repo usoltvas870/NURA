@@ -1,19 +1,11 @@
-<div class="rec-day">
-  <div class="rec-day-check">
-    <input type="checkbox" id="day-{{ day.number }}" class="rec-checkbox">
-    <label for="day-{{ day.number }}" class="rec-check-label"></label>
+﻿<div class="day" data-day="{{ day.number }}">
+  <div class="checkbox"></div>
+  <div class="d-meta">
+    <span class="d-cat">
+      {% if day.category == 'Тело' %}💪{% elif day.category == 'Ум' %}🧠{% elif day.category == 'Дух' %}🌟{% endif %}
+      {{ day.category if day.category else 'Практика' }}
+    </span>
+    <span class="d-name">День {{ day.number }}</span>
   </div>
-  <div class="rec-day-content">
-    <div class="rec-day-header">
-      <span class="rec-day-num">День {{ day.number }}</span>
-      <span class="rec-day-category">
-        {% if day.category == 'Тело' %}💪 {% elif day.category == 'Ум' %}🧠 {% elif day.category == 'Дух' %}🌟 {% endif %}
-        {{ day.category if day.category else 'Практика' }}
-      </span>
-    </div>
-    <div class="rec-day-text">{{ day.text }}</div>
-    {% if day.effect %}
-    <div class="rec-day-effect">Ожидаемый эффект: {{ day.effect }}</div>
-    {% endif %}
-  </div>
+  <div class="d-task">{{ day.text }}</div>
 </div>

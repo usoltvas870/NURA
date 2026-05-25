@@ -1,191 +1,113 @@
-{% extends '_base.html' %}
-
-{% block head_extra %}
-<style>
-@media (min-width: 1200px) {
-  .container {
-    margin-left: 240px;
-  }
-}
-
-.scroll-top {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--orange);
-  color: #140C06;
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
-  display: grid;
-  place-items: center;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s ease;
-  z-index: 200;
-  box-shadow: 0 4px 16px rgba(217, 122, 50, 0.3);
-}
-.scroll-top.visible {
-  opacity: 1;
-  visibility: visible;
-}
-@media (max-width: 768px) {
-  .scroll-top { bottom: 16px; right: 16px; width: 40px; height: 40px; font-size: 16px; }
-}
-@media print {
-  .scroll-top { display: none !important; }
-}
-</style>
-{% endblock %}
-
-{% block content %}
-{% include '_nav_sidebar.html' %}
-
-{% include '_cover.html' %}
-{% include '_toc.html' %}
-{% include '_matrix_full.html' %}
+﻿{% include '_cover.html' %}
 {% include '_dashboard.html' %}
 
-{% with section_id='archetype', section_class='archetype', section_title='Архетип личности', section_text=analysis.main_archetype %}
-  {% include '_section_card.html' %}
-{% endwith %}
-{% if kitchen_analysis and kitchen_analysis.main_archetype %}
+{% include '_section_card.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('main_archetype') %}
   {% with section_key='main_archetype', kitchen_data=kitchen_analysis.main_archetype %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
 
 {% include '_section_karmic_tail.html' %}
-{% if kitchen_analysis and kitchen_analysis.karmic_tail_analysis %}
+{% if kitchen_analysis and kitchen_analysis.get('karmic_tail_analysis') %}
   {% with section_key='karmic_tail_analysis', kitchen_data=kitchen_analysis.karmic_tail_analysis %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
-{% include '_health_map.html' %}
-{% if kitchen_analysis and kitchen_analysis.health_analysis %}
-  {% with section_key='health_analysis', kitchen_data=kitchen_analysis.health_analysis %}
-    {% include '_kitchen_toggle.html' %}
-  {% endwith %}
-{% endif %}
-{% include '_section_purposes.html' %}
-{% if kitchen_analysis and kitchen_analysis.life_purpose %}
-  {% with section_key='life_purpose', kitchen_data=kitchen_analysis.life_purpose %}
-    {% include '_kitchen_toggle.html' %}
-  {% endwith %}
-{% endif %}
+
 {% include '_section_ancestral.html' %}
-{% if kitchen_analysis and kitchen_analysis.ancestral_programs %}
+{% if kitchen_analysis and kitchen_analysis.get('ancestral_programs') %}
   {% with section_key='ancestral_programs', kitchen_data=kitchen_analysis.ancestral_programs %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
 
-{% with section_id='strengths', section_class='strengths', section_title='Сильные стороны', section_text=analysis.strengths %}
-  {% include '_section_card.html' %}
-{% endwith %}
-{% if kitchen_analysis and kitchen_analysis.strengths %}
+{% include '_section_purposes.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('life_purpose') %}
+  {% with section_key='life_purpose', kitchen_data=kitchen_analysis.life_purpose %}
+    {% include '_kitchen_toggle.html' %}
+  {% endwith %}
+{% endif %}
+
+{% include '_strengths.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('strengths') %}
   {% with section_key='strengths', kitchen_data=kitchen_analysis.strengths %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
 
-{% with section_id='shadow', section_class='shadow', section_title='Теневая сторона', section_text=analysis.shadow_side %}
-  {% include '_section_card.html' %}
-{% endwith %}
-{% if kitchen_analysis and kitchen_analysis.shadow_side %}
+{% include '_shadow.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('shadow_side') %}
   {% with section_key='shadow_side', kitchen_data=kitchen_analysis.shadow_side %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
 
-{% with section_id='relationships', section_class='relationships', section_title='Динамика отношений', section_text=analysis.relationship_dynamics %}
-  {% include '_section_card.html' %}
-{% endwith %}
-{% if kitchen_analysis and kitchen_analysis.relationship_dynamics %}
+{% include '_relationships.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('relationship_dynamics') %}
   {% with section_key='relationship_dynamics', kitchen_data=kitchen_analysis.relationship_dynamics %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
 
-{# _line_visual.html для отношений — ШАГ 8 #}
-
-{% with section_id='money', section_class='money', section_title='Деньги и карьера', section_text=analysis.financial_scenario %}
-  {% include '_section_card.html' %}
-{% endwith %}
-{% if kitchen_analysis and kitchen_analysis.financial_scenario %}
+{% include '_money.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('financial_scenario') %}
   {% with section_key='financial_scenario', kitchen_data=kitchen_analysis.financial_scenario %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
 
-{# _line_visual.html для денег — ШАГ 8 #}
-
 {% include '_section_forecast.html' %}
-{% if kitchen_analysis and kitchen_analysis.life_forecast %}
+{% if kitchen_analysis and kitchen_analysis.get('life_forecast') %}
   {% with section_key='life_forecast', kitchen_data=kitchen_analysis.life_forecast %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
-{% include '_psychological_blocks.html' %}
-{% if kitchen_analysis and kitchen_analysis.psychological_blocks %}
-  {% with section_key='psychological_blocks', kitchen_data=kitchen_analysis.psychological_blocks %}
-    {% include '_kitchen_toggle.html' %}
-  {% endwith %}
-{% endif %}
 
-{% with section_id='mistakes', section_class='mistakes', section_title='Повторяющиеся сценарии', section_text=analysis.recurring_mistakes %}
-  {% include '_section_card.html' %}
-{% endwith %}
-{% if kitchen_analysis and kitchen_analysis.recurring_mistakes %}
+{% include '_patterns.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('recurring_mistakes') %}
   {% with section_key='recurring_mistakes', kitchen_data=kitchen_analysis.recurring_mistakes %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
 
-{% with section_id='conflicts', section_class='conflicts', section_title='Внутренние конфликты', section_text=analysis.internal_conflicts %}
-  {% include '_section_card.html' %}
-{% endwith %}
-{% if kitchen_analysis and kitchen_analysis.internal_conflicts %}
+{% include '_conflicts.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('internal_conflicts') %}
   {% with section_key='internal_conflicts', kitchen_data=kitchen_analysis.internal_conflicts %}
     {% include '_kitchen_toggle.html' %}
   {% endwith %}
 {% endif %}
 
-<section class="report-section section-recommendations" id="recommendations">
-  <div class="section-header">
-    <div class="section-accent-bar"></div>
-    <h2>Твои 7 дней</h2>
+{% include '_health_map.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('health_analysis') %}
+  {% with section_key='health_analysis', kitchen_data=kitchen_analysis.health_analysis %}
+    {% include '_kitchen_toggle.html' %}
+  {% endwith %}
+{% endif %}
+
+{% include '_psychological_blocks.html' %}
+{% if kitchen_analysis and kitchen_analysis.get('psychological_blocks') %}
+  {% with section_key='psychological_blocks', kitchen_data=kitchen_analysis.psychological_blocks %}
+    {% include '_kitchen_toggle.html' %}
+  {% endwith %}
+{% endif %}
+
+<section class="chapter" id="s14">
+  <div class="ch-head">
+    <span class="nbr">14 — Рекомендации на 7 дней</span>
+    <h2>Начни <em>с этой недели</em></h2>
+    <p class="ch-sub">Семь конкретных коротких заданий. Каждое — на 10-20 минут. Отметь сделанное.</p>
   </div>
-  <p class="section-subtitle">Практические шаги, привязанные к твоей матрице</p>
-  <div class="recommendations-list">
+
+  <div class="week" id="week">
     {% for day in recommendations_parsed %}
-      {% with day=day %}
-        {% include '_recommendation_day.html' %}
-      {% endwith %}
+    {% include '_recommendation_day.html' %}
     {% endfor %}
   </div>
+
+  <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
 </section>
 
 {% include '_tarot_card.html' %}
 {% include '_practices.html' %}
 {% include '_reflection.html' %}
-
-{% include '_footer.html' %}
-
-<button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Наверх">↑</button>
-
-<script>
-(function() {
-  var btn = document.querySelector('.scroll-top');
-  if (!btn) return;
-  var toggler = function() {
-    btn.classList.toggle('visible', window.scrollY > 400);
-  };
-  window.addEventListener('scroll', toggler, { passive: true });
-  toggler();
-})();
-</script>
-{% endblock %}

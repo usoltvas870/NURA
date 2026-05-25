@@ -1,50 +1,74 @@
-{% extends '_base.html' %}
+﻿{% extends '_base.html' %}
 
 {% block content %}
-<section class="cover" style="min-height:auto;padding:60px 0 40px;">
-  <div class="cover-inner" style="text-align:center;">
-    <div class="cover-logo" style="justify-content:center;">
-      <span class="logo-mark">✦</span>
-      <span>NURA</span>
+<section class="chapter" id="cover">
+  <div class="cover" style="min-height: auto; padding: 60px 0;">
+    <div class="cv-eye">
+      <span class="ln"></span>
+      <span>Совместимость</span>
+      <span class="dt">{{ generated_at }}</span>
     </div>
-
-    <h1 class="cover-name" style="margin-top:24px;">{{ archetype_first_name }} & {{ archetype_second_name }}</h1>
-
-    <div class="cover-archetype" style="margin-top:8px;font-size:clamp(24px,4vw,36px);color:var(--orange);">
-      {{ archetype_first_number }} аркан &diams; {{ archetype_second_number }} аркан
-    </div>
-
-    <div class="cover-date" style="margin-top:16px;">{{ generated_at }}</div>
-    <div class="cover-divider" style="margin:24px auto 0;"></div>
+    <h1 class="cv-title" style="font-size: clamp(40px, 5vw, 64px);">{{ archetype_first_name }} <em>&</em> {{ archetype_second_name }}</h1>
+    <div class="cv-name" style="font-size: clamp(24px, 3vw, 36px);">{{ archetype_first_number }} аркан · {{ archetype_second_number }} аркан</div>
   </div>
 </section>
 
-{% with section_class='archetype', section_title='Архетип первого', section_text=analysis.archetype_first %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-{% with section_class='strengths', section_title='Архетип второго', section_text=analysis.archetype_second %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-{% with section_class='relationships', section_title='Эмоциональная совместимость', section_text=analysis.emotional_compatibility %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-{% with section_class='shadow', section_title='Зоны конфликтов', section_text=analysis.conflict_zones %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-{% with section_class='money', section_title='Сильные стороны пары', section_text=analysis.pair_strengths %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-<section class="report-section section-recommendations">
-  <div class="section-header">
-    <div class="section-accent-bar" style="background:var(--gold);"></div>
-    <h2>Рекомендация для пары</h2>
+<section class="chapter" id="first">
+  <div class="ch-head">
+    <span class="nbr">01 — Архетип первого</span>
+    <h2>{{ archetype_first_name }}</h2>
   </div>
-  <div class="section-body">
+  <div class="prose">
+    <p>{{ analysis.archetype_first }}</p>
+  </div>
+</section>
+
+<section class="chapter" id="second">
+  <div class="ch-head">
+    <span class="nbr">02 — Архетип второго</span>
+    <h2>{{ archetype_second_name }}</h2>
+  </div>
+  <div class="prose">
+    <p>{{ analysis.archetype_second }}</p>
+  </div>
+</section>
+
+<section class="chapter" id="emotions">
+  <div class="ch-head">
+    <span class="nbr">03 — Эмоциональная совместимость</span>
+    <h2>Как вы <em>чувствуете</em> друг друга</h2>
+  </div>
+  <div class="prose">
+    <p>{{ analysis.emotional_compatibility }}</p>
+  </div>
+</section>
+
+<section class="chapter" id="conflicts">
+  <div class="ch-head">
+    <span class="nbr">04 — Зоны конфликтов</span>
+    <h2>Где вы <em>спотыкаетесь</em></h2>
+  </div>
+  <div class="prose">
+    <p>{{ analysis.conflict_zones }}</p>
+  </div>
+</section>
+
+<section class="chapter" id="strengths">
+  <div class="ch-head">
+    <span class="nbr">05 — Сильные стороны пары</span>
+    <h2>Ваша <em>суперсила</em> вместе</h2>
+  </div>
+  <div class="prose">
+    <p>{{ analysis.pair_strengths }}</p>
+  </div>
+</section>
+
+<section class="chapter" id="recommendation">
+  <div class="ch-head">
+    <span class="nbr">06 — Рекомендация</span>
+    <h2>Что делать <em>дальше</em></h2>
+  </div>
+  <div class="prose">
     <p>{{ analysis.ai_recommendation }}</p>
   </div>
 </section>

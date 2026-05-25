@@ -1,35 +1,39 @@
-<section class="report-section section-karmic-tail" id="karmic-tail">
-  <div class="section-header">
-    <div class="section-accent-bar karmic-accent"></div>
-    <h2>Кармический хвост</h2>
+<section class="chapter" id="s4">
+  <div class="ch-head">
+    <span class="nbr">04 — Кармический хвост</span>
+    <h2>Что ты <em>привезла с собой</em></h2>
+    <p class="ch-sub">Не про прошлые жизни — про устойчивый паттерн, который запустился задолго до твоего решения.</p>
   </div>
-  <p class="section-subtitle">Цепочка причина → следствие → урок</p>
 
-  <div class="karmic-chain">
-    <div class="karmic-link">
-      <div class="karmic-circle cause-circle">
-        <span class="karmic-circle-label">Причина</span>
-        <span class="karmic-circle-arcana">{{ karmic_tail.cause_arcana }}</span>
-        <span class="karmic-circle-name">{{ karmic_tail.cause_name }}</span>
-      </div>
-      <div class="karmic-arrow">→</div>
-      <div class="karmic-circle effect-circle">
-        <span class="karmic-circle-label">Следствие</span>
-        <span class="karmic-circle-arcana">{{ karmic_tail.effect_arcana }}</span>
-        <span class="karmic-circle-name">{{ karmic_tail.effect_name }}</span>
-      </div>
-      <div class="karmic-arrow">→</div>
-      <div class="karmic-circle lesson-circle">
-        <span class="karmic-circle-label">Урок</span>
-        <span class="karmic-circle-arcana">{{ karmic_tail.lesson_arcana }}</span>
-        <span class="karmic-circle-name">{{ karmic_tail.lesson_name }}</span>
-      </div>
+  <div class="timeline">
+    {% set karmic_text = analysis.karmic_tail_analysis | default('') %}
+    {% set paragraphs = karmic_text.split('\n\n') if karmic_text else [] %}
+
+    {% if paragraphs | length >= 3 %}
+    <div class="tl-item">
+      <span class="tl-tag">Причина · прошлое</span>
+      <div class="tl-arc">Аркан {{ matrix.karmic_tail[0] if matrix.karmic_tail else '' }}</div>
+      <h3><em>{{ paragraphs[0].split('.')[0] if paragraphs[0] else '' }}</em></h3>
+      <div class="prose">{{ paragraphs[0] | replace('\n', '</p><p>') | safe }}</div>
     </div>
+    <div class="tl-item now">
+      <span class="tl-tag">Следствие · сейчас</span>
+      <div class="tl-arc">Аркан {{ matrix.karmic_tail[1] if matrix.karmic_tail else '' }}</div>
+      <h3><em>{{ paragraphs[1].split('.')[0] if paragraphs[1] else '' }}</em></h3>
+      <div class="prose">{{ paragraphs[1] | replace('\n', '</p><p>') | safe }}</div>
+    </div>
+    <div class="tl-item">
+      <span class="tl-tag">Урок · трансформация</span>
+      <div class="tl-arc">Аркан {{ matrix.karmic_tail[2] if matrix.karmic_tail else '' }}</div>
+      <h3><em>{{ paragraphs[2].split('.')[0] if paragraphs[2] else '' }}</em></h3>
+      <div class="prose">{{ paragraphs[2] | replace('\n', '</p><p>') | safe }}</div>
+    </div>
+    {% else %}
+    <div class="prose">
+      <p>{{ karmic_text | replace('\n', '</p><p>') | safe }}</p>
+    </div>
+    {% endif %}
   </div>
 
-  <div class="section-body">
-    <p>{{ karmic_tail.text }}</p>
-  </div>
-
-  <blockquote class="section-insight">{{ karmic_tail.key_insight }}</blockquote>
+  <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
 </section>

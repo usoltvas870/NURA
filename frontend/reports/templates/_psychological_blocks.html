@@ -1,9 +1,9 @@
-<section class="report-section section-psychology" id="psychological-blocks">
-  <div class="section-header">
-    <div class="section-accent-bar" style="background: var(--deep-purple);"></div>
-    <h2>Почему это происходит</h2>
+﻿<section class="chapter" id="psych">
+  <div class="ch-head">
+    <span class="nbr">· Психологические блоки</span>
+    <h2>Почему это <em>происходит</em></h2>
+    <p class="ch-sub">Психологические паттерны, которые управляют твоими решениями.</p>
   </div>
-  <p class="section-subtitle">Психологические паттерны, которые управляют твоими решениями</p>
 
   {% if psych_blocks is defined and psych_blocks %}
   <div class="psych-grid">
@@ -20,19 +20,19 @@
       </div>
       <div class="psych-card-body">
         {% if block.belief %}
-        <div class="psych-belief">
+        <div>
           <span class="psych-label">Убеждение</span>
           <p>{{ block.belief }}</p>
         </div>
         {% endif %}
         {% if block.manifestation %}
-        <div class="psych-manifestation">
+        <div>
           <span class="psych-label">Как проявляется</span>
           <p>{{ block.manifestation }}</p>
         </div>
         {% endif %}
         {% if block.strategy %}
-        <div class="psych-strategy">
+        <div>
           <span class="psych-label">Стратегия изменения</span>
           <p>{{ block.strategy }}</p>
         </div>
@@ -41,26 +41,11 @@
     </div>
     {% endfor %}
   </div>
-  {% elif psychological_blocks is defined and psychological_blocks %}
-  <div class="blocks-grid">
-    {% for block in psychological_blocks %}
-    <div class="block-card block-accent-{{ loop.index }}">
-      <div class="block-arcana">{{ block.arcana }} аркан</div>
-      <h3 class="block-belief">{{ block.belief }}</h3>
-      <div class="block-manifestation">
-        <span class="block-label">Проявление в жизни</span>
-        <p>{{ block.manifestation }}</p>
-      </div>
-      <div class="block-strategy">
-        <span class="block-label">Стратегия изменения</span>
-        <p>{{ block.strategy }}</p>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-  {% elif analysis and analysis.psychological_blocks %}
+  {% elif analysis and analysis.get('psychological_blocks') %}
   <div class="psych-fallback">
     <p>{{ analysis.psychological_blocks }}</p>
   </div>
   {% endif %}
+
+  <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
 </section>

@@ -1,18 +1,51 @@
-<section class="cover" id="cover">
-  <div class="cover-inner">
-    <div class="cover-logo">
-      <span class="logo-mark">✦</span>
-      <span>NURA</span>
+<section class="chapter" id="s1">
+  <div class="cover">
+    <div class="cv-eye">
+      <span class="ln"></span>
+      <span>Отчёт Матрицы Судьбы</span>
+      <span class="dt">{{ generated_at }}</span>
     </div>
 
-    <h1 class="cover-name">{{ user_name }}</h1>
+    <h1 class="cv-title">Матрица<br><em>{{ user_name }}</em></h1>
+    <div class="cv-name">{{ archetype_name }}</div>
 
-    <div class="cover-archetype">{{ archetype_name }}</div>
-    <div class="cover-archetype-num">{{ archetype_number }} аркан</div>
+    <div class="cv-grid">
+      <div class="cv-info">
+        <div class="row">
+          <span class="k">Архетип</span>
+          <span class="v accent">{{ archetype_number }} · {{ archetype_name }}</span>
+        </div>
+        <div class="row">
+          <span class="k">Центр матрицы</span>
+          <span class="v mono">{{ matrix.center or '' }}</span>
+        </div>
+        {% if matrix.sky_line %}
+        <div class="row">
+          <span class="k">Линия неба</span>
+          <span class="v mono">{{ matrix.sky_line | join(' — ') }}</span>
+        </div>
+        {% endif %}
+        {% if matrix.earth_line %}
+        <div class="row">
+          <span class="k">Линия земли</span>
+          <span class="v mono">{{ matrix.earth_line | join(' — ') }}</span>
+        </div>
+        {% endif %}
+        {% if matrix.karmic_tail %}
+        <div class="row">
+          <span class="k">Кармический хвост</span>
+          <span class="v mono">{{ matrix.karmic_tail | join(' → ') }}</span>
+        </div>
+        {% endif %}
+        <div class="row">
+          <span class="k">Инструмент</span>
+          <span class="v" style="font-size:16px;">самопознания</span>
+        </div>
+      </div>
 
-    {% include '_matrix_3x3.html' %}
-
-    <div class="cover-date">{{ generated_at }}</div>
-    <div class="cover-divider"></div>
+      <div class="matrix-viz">
+        {% include '_matrix_3x3.html' %}
+      </div>
+    </div>
   </div>
 </section>

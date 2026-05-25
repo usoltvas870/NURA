@@ -1,127 +1,58 @@
-<style>
-.nav-sidebar {
-  display: none;
-}
-
-@media (min-width: 1200px) {
-  .nav-sidebar {
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 220px;
-    height: 100vh;
-    overflow-y: auto;
-    z-index: 100;
-    background: rgba(11, 11, 11, 0.92);
-    border-right: 1px solid rgba(245, 243, 238, 0.08);
-    padding: 24px 0;
-    backdrop-filter: blur(12px);
-  }
-
-  .nav-sidebar-inner {
-    padding: 0 16px;
-  }
-
-  .nav-sidebar-title {
-    font-family: var(--font-heading);
-    font-size: 15px;
-    color: var(--white);
-    padding: 0 8px 16px;
-    margin-bottom: 12px;
-    border-bottom: 1px solid rgba(245, 243, 238, 0.08);
-  }
-
-  .nav-sidebar-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .nav-sidebar-item {
-    margin-bottom: 2px;
-  }
-
-  .nav-sidebar-link {
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    font-size: 13px;
-    color: var(--muted);
-    text-decoration: none;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    line-height: 1.3;
-    border-left: 2px solid transparent;
-  }
-
-  .nav-sidebar-link:hover {
-    color: var(--white);
-    background: rgba(245, 243, 238, 0.04);
-  }
-
-  .nav-sidebar-link.active {
-    color: var(--orange);
-    background: rgba(217, 122, 50, 0.08);
-    border-left-color: var(--orange);
-  }
-}
-
-@media print {
-  .nav-sidebar {
-    display: none !important;
-  }
-}
-</style>
-
-<nav class="nav-sidebar" aria-label="Навигация по отчёту">
-  <div class="nav-sidebar-inner">
-    <div class="nav-sidebar-title">NURA</div>
-    <ul class="nav-sidebar-list">
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#cover">Обложка</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#matrix">Матрица</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#dashboard">Dashboard</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#archetype">Архетип</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#karmic-tail">Кармический хвост</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#health">Здоровье (чакры)</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#purposes">Предназначение</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#ancestral">Родовые программы</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#strengths">Сильные стороны</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#shadow">Теневая сторона</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#relationships">Отношения</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#money">Деньги и карьера</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#forecast">Жизненные периоды</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#psychological-blocks">Психологические блоки</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#mistakes">Повторяющиеся сценарии</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#conflicts">Внутренние конфликты</a></li>
-      <li class="nav-sidebar-item"><a class="nav-sidebar-link" href="#recommendations">Твои 7 дней</a></li>
-    </ul>
+<aside class="sidebar">
+  <div class="sb-brand">
+    <span class="mark">✦</span>
+    <span class="name">NURA</span>
   </div>
-</nav>
 
-<script>
-(function() {
-  var links = document.querySelectorAll('.nav-sidebar-link');
-  var sections = [];
-  links.forEach(function(link) {
-    var href = link.getAttribute('href');
-    if (href && href.charAt(0) === '#') {
-      var el = document.getElementById(href.slice(1));
-      if (el) sections.push({ el: el, link: link });
-    }
-  });
-  if (sections.length === 0) return;
+  <div class="sb-meta">
+    <div class="label">Отчёт для</div>
+    <div class="who">{{ user_name }}</div>
+    <div class="dob">{{ generated_at }}</div>
+    <div class="arc">{{ archetype_number }} · {{ archetype_name }}</div>
+  </div>
 
-  var observer = new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) {
-      if (entry.isIntersecting) {
-        links.forEach(function(l) {
-          l.classList.toggle('active', l.getAttribute('href') === '#' + entry.target.id);
-        });
-      }
-    });
-  }, { rootMargin: '-80px 0px -60% 0px', threshold: 0 });
+  <nav id="sbNav" class="sb-nav">
+    <span class="sb-label">Содержание</span>
+    <a href="#s1" data-target="s1"><span class="num">01</span><span>Обложка</span></a>
+    <a href="#s2" data-target="s2"><span class="num">02</span><span>Сводка</span></a>
+    <a href="#s3" data-target="s3"><span class="num">03</span><span>Архетип</span></a>
+    <a href="#s4" data-target="s4"><span class="num">04</span><span>Кармический хвост</span></a>
+    <a href="#s5" data-target="s5"><span class="num">05</span><span>Родовые программы</span></a>
+    <a href="#s6" data-target="s6"><span class="num">06</span><span>Предназначение</span></a>
+    <a href="#s7" data-target="s7"><span class="num">07</span><span>Сильные стороны</span></a>
+    <a href="#s8" data-target="s8"><span class="num">08</span><span>Теневая сторона</span></a>
+    <a href="#s9" data-target="s9"><span class="num">09</span><span>Отношения</span></a>
+    <a href="#s10" data-target="s10"><span class="num">10</span><span>Деньги и карьера</span></a>
+    <a href="#s11" data-target="s11"><span class="num">11</span><span>Сценарии</span></a>
+    <a href="#s12" data-target="s12"><span class="num">12</span><span>Конфликты</span></a>
+    <a href="#s13" data-target="s13"><span class="num">13</span><span>Циклы и прогноз</span></a>
+    <a href="#s14" data-target="s14"><span class="num">14</span><span>Семь дней</span></a>
+    <a href="#s15" data-target="s15"><span class="num">15</span><span>Карта дня</span></a>
+  </nav>
 
-  sections.forEach(function(s) { observer.observe(s.el); });
-})();
-</script>
+  <div class="sb-footer">
+    <div class="progress"><span id="readProgress" style="width:0%"></span></div>
+    <span>NURA AI · Матрица Судьбы</span>
+  </div>
+</aside>
+
+<div class="mobile-nav" id="mobileNav">
+  <div class="mobile-nav-overlay"></div>
+  <div class="mobile-nav-panel">
+    <div class="sb-brand">
+      <span class="mark">✦</span>
+      <span class="name">NURA</span>
+    </div>
+    <div class="sb-meta">
+      <div class="who">{{ user_name }}</div>
+      <div class="arc">{{ archetype_number }} · {{ archetype_name }}</div>
+    </div>
+    <nav class="sb-nav">
+      <span class="sb-label">Содержание</span>
+      <ul id="mnNav" style="list-style:none;padding:0;margin:0;display:grid;gap:1px;"></ul>
+    </nav>
+  </div>
+  <span class="mn-brand">NURA</span>
+  <span class="mn-current" id="mnCurrent">01 · Обложка</span>
+  <button class="mn-toggle" id="mnToggle" aria-label="Навигация">☰</button>
+</div>

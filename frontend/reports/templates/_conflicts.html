@@ -1,0 +1,13 @@
+﻿<section class="chapter" id="s12">
+  <div class="ch-head">
+    <span class="nbr">12 — Внутренние конфликты</span>
+    <h2>Двойники <em>в диалоге</em></h2>
+    <p class="ch-sub">Пары арканов в твоей карте, которые тянут в противоположные стороны.</p>
+  </div>
+
+  <div class="prose">
+    {{ analysis.internal_conflicts | default('') | replace('\n', '</p><p>') | safe }}
+  </div>
+
+  <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+</section>

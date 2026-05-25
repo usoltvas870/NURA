@@ -1,40 +1,19 @@
-<div class="cover-matrix">
-  <div class="matrix-grid">
-    <div class="matrix-cell">
-      <span class="matrix-cell-label">небо</span>
-      <span class="matrix-cell-num">{{ matrix.top }}</span>
-    </div>
-    <div class="matrix-cell">
-      <span class="matrix-cell-label">талант</span>
-      <span class="matrix-cell-num">{{ matrix.talent_zone }}</span>
-    </div>
-    <div class="matrix-cell">
-      <span class="matrix-cell-label">женское</span>
-      <span class="matrix-cell-num">{{ matrix.right }}</span>
-    </div>
-    <div class="matrix-cell">
-      <span class="matrix-cell-label">комфорт</span>
-      <span class="matrix-cell-num">{{ matrix.comfort_zone }}</span>
-    </div>
-    <div class="matrix-cell center">
-      <span class="matrix-cell-label">центр</span>
-      <span class="matrix-cell-num">{{ matrix.center }}</span>
-    </div>
-    <div class="matrix-cell">
-      <span class="matrix-cell-label">портрет</span>
-      <span class="matrix-cell-num">{{ matrix.portrait_zone }}</span>
-    </div>
-    <div class="matrix-cell">
-      <span class="matrix-cell-label">мужское</span>
-      <span class="matrix-cell-num">{{ matrix.left }}</span>
-    </div>
-    <div class="matrix-cell">
-      <span class="matrix-cell-label">карма</span>
-      <span class="matrix-cell-num">{{ matrix.karmic_tail[1] if matrix.karmic_tail else '' }}</span>
-    </div>
-    <div class="matrix-cell">
-      <span class="matrix-cell-label">земля</span>
-      <span class="matrix-cell-num">{{ matrix.bottom }}</span>
-    </div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:100%;height:100%;">
+  {% set cells = [
+    (matrix.top or '', 'top', 'небо'),
+    (matrix.talent_zone or '', 'talent_zone', 'талант'),
+    (matrix.right or '', 'right', 'женское'),
+    (matrix.comfort_zone or '', 'comfort_zone', 'комфорт'),
+    (matrix.center or '', 'center', 'центр'),
+    (matrix.portrait_zone or '', 'portrait_zone', 'портрет'),
+    (matrix.left or '', 'left', 'мужское'),
+    (matrix.karmic_tail[1] if matrix.karmic_tail and matrix.karmic_tail|length > 1 else '', 'karmic', 'карма'),
+    (matrix.bottom or '', 'bottom', 'земля'),
+  ] %}
+  {% for val, key, label in cells %}
+  <div style="aspect-ratio:1;border:1px solid var(--m-line);border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:rgba(12,19,16,0.6);{% if key == 'center' %}border-color:rgba(201,165,92,0.4);box-shadow:0 0 16px rgba(201,165,92,0.08);{% endif %}">
+    <span style="font-size:7px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.12em;">{{ label }}</span>
+    <span style="font-family:'Cormorant Garamond',serif;font-size:clamp(16px,2.8vw,24px);color:{% if key == 'center' %}var(--m-accent){% else %}var(--ink){% endif %};line-height:1;">{{ val }}</span>
   </div>
+  {% endfor %}
 </div>
