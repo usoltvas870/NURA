@@ -651,6 +651,54 @@ def assemble_video(scenario_name: str) -> dict:
     return {"output": str(output)}
 
 
+@celery_app.task(name="core.tasks.assemble_video_job")
+def assemble_video_job(job_dir: str) -> dict:
+    import json
+    from pathlib import Path
+
+    from core.services.video_assembler import ScenarioConfig, assemble
+    from core.services.asset_validator import (
+        validate_job_assets,
+        format_asset_report,
+    )
+    from core.services.qa_checker import check_video_output, format_qa_result
+    from core.services.packager import build_package
+
+    job_path = Path(job_dir)
+    scenario_path = job_path / "input" / "scenario.json"
+    if not scenario_path.exists():
+        raise FileNotFoundError(f"Scenario not found: {scenario_path}")
+
+    asset_report = validate_job_assets(job_path, scenario_path)
+    logger.info("Asset validation:\n%s", format_asset_report(asset_report))
+    if not asset_report.passed:
+        return {
+            "output": None,
+            "error": "Asset validation failed",
+            "asset_report": format_asset_report(asset_report),
+        }
+
+    raw = json.loads(scenario_path.read_text("utf-8"))
+    cfg = ScenarioConfig.model_validate(raw)
+    output_path = assemble(cfg, job_dir=job_path)
+
+    qa = check_video_output(output_path)
+    logger.info("QA check:\n%s", format_qa_result(qa))
+
+    pkg = build_package(
+        job_path,
+        video_path=output_path,
+        carousel_dir=job_path / "output" / "carousel",
+    )
+
+    return {
+        "output": str(output_path),
+        "qa_passed": qa.passed,
+        "qa_report": format_qa_result(qa),
+        "package_dir": str(pkg.output_dir),
+    }
+
+
 @celery_app.task(name="core.tasks.assemble_carousel")
 def assemble_carousel(scenario_name: str) -> dict:
     import json
@@ -666,3 +714,35 @@ def assemble_carousel(scenario_name: str) -> dict:
     cfg = CarouselConfig.model_validate(raw)
     paths = _run_async(CarouselAssembler.assemble(cfg))
     return {"output": [str(p) for p in paths], "count": len(paths)}
+
+
+@celery_app.task(name="core.tasks.assemble_carousel_job")
+def assemble_carousel_job(job_dir: str) -> dict:
+    import json
+    from pathlib import Path
+
+    from core.schemas.carousel import CarouselConfig
+    from core.services.carousel_assembler import CarouselAssembler
+    from core.services.qa_checker import check_carousel_output, format_qa_result
+
+    job_path = Path(job_dir)
+    carousel_path = job_path / "input" / f"{job_path.name}.carousel.json"
+    if not carousel_path.exists():
+        carousel_paths = sorted(job_path.glob("input/*.carousel.json"))
+        if not carousel_paths:
+            return {"output": None, "error": "No carousel config found"}
+        carousel_path = carousel_paths[0]
+
+    raw = json.loads(carousel_path.read_text("utf-8"))
+    cfg = CarouselConfig.model_validate(raw)
+
+    out_dir = job_path / "output" / "carousel"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    CarouselAssembler.OUTPUT_DIR = out_dir
+
+    paths = _run_async(CarouselAssembler.assemble(cfg))
+
+    qa = check_carousel_output(out_dir)
+    logger.info("Carousel QA:\n%s", format_qa_result(qa, "Carousel"))
+
+    return {"output": [str(p) for p in paths], "count": len(paths), "qa_passed": qa.passed}

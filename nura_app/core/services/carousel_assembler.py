@@ -75,7 +75,12 @@ class CarouselAssembler:
         return output_path
 
     @classmethod
-    async def assemble(cls, cfg: CarouselConfig) -> list[Path]:
+    async def assemble(
+        cls, cfg: CarouselConfig, output_dir: Path | None = None
+    ) -> list[Path]:
+        if output_dir:
+            cls.OUTPUT_DIR = output_dir
+
         total = len(cfg.slides)
         paths: list[Path] = []
 

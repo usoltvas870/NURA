@@ -149,9 +149,19 @@ class ScenarioConfig(BaseModel):
 #  Helpers
 # ──────────────────────────────────────────────
 
-def _resolve(p: str) -> Path:
+def _resolve(p: str, extra_dirs: list[Path] | None = None) -> Path:
     pp = Path(p)
-    return pp if pp.is_absolute() else NURA_ROOT / pp
+    if pp.is_absolute():
+        return pp
+    candidate = NURA_ROOT / pp
+    if candidate.exists():
+        return candidate
+    if extra_dirs:
+        for d in extra_dirs:
+            candidate = d / pp.name
+            if candidate.exists():
+                return candidate
+    return NURA_ROOT / pp
 
 
 def _fmt_time(secs: float) -> str:
@@ -333,13 +343,23 @@ def make_srt(cfg: ScenarioConfig, path: Path) -> str:
 #  Assemble
 # ──────────────────────────────────────────────
 
-def assemble(cfg: ScenarioConfig) -> Path:
-    vp = _resolve(cfg.nura_video)
+def assemble(cfg: ScenarioConfig, job_dir: Path | None = None) -> Path:
+    media_dirs: list[Path] = []
+    if job_dir:
+        media_dirs.append(job_dir / "media")
+
+    vp = _resolve(cfg.nura_video, media_dirs)
     if not vp.exists():
         raise FileNotFoundError(f"Video not found: {vp}")
 
-    out_dir = NURA_ROOT / "videos" / "output"
+    if job_dir:
+        out_dir = job_dir / "output"
+        work_dir = job_dir / "work"
+    else:
+        out_dir = NURA_ROOT / "videos" / "output"
+        work_dir = out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
+    work_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{cfg.name}.mp4"
 
     W, H = _probe_video(vp)
@@ -351,7 +371,7 @@ def assemble(cfg: ScenarioConfig) -> Path:
     if cfg.subtitles.enabled:
         print("[2/6] Generating subtitles...")
         srt = _fix_srt(make_srt(cfg, vp))
-        srt_path = out_dir / f"{cfg.name}_subtitles.srt"
+        srt_path = work_dir / f"{cfg.name}_subtitles.srt"
         srt_path.write_text(srt, encoding="utf-8")
 
     # ── collect overlay video files for extra inputs ──
@@ -360,7 +380,7 @@ def assemble(cfg: ScenarioConfig) -> Path:
     for sc in cfg.scenes:
         for ov in sc.overlays:
             if ov.type == "video":
-                p = _resolve(ov.src)
+                p = _resolve(ov.src, media_dirs)
                 if p.exists() and str(p) not in extra_path_set:
                     extra_inputs.append(p)
                     extra_path_set.add(str(p))
@@ -370,11 +390,11 @@ def assemble(cfg: ScenarioConfig) -> Path:
     scene_source_info: dict[int, Path] = {}
     for sc in cfg.scenes:
         if sc.source:
-            sp = str(_resolve(sc.source))
+            sp = str(_resolve(sc.source, media_dirs))
             if sp not in scene_sources:
                 idx = len(scene_sources) + 1
                 scene_sources[sp] = idx
-                scene_source_info[idx] = _resolve(sc.source)
+                scene_source_info[idx] = _resolve(sc.source, media_dirs)
 
     # ── build filter_complex ──
     n_extra = len(extra_inputs) + len(scene_source_info)
@@ -404,10 +424,10 @@ def assemble(cfg: ScenarioConfig) -> Path:
 
     for si, sc in enumerate(cfg.scenes):
         if sc.source:
-            src_idx = scene_sources[str(_resolve(sc.source))]
+            src_idx = scene_sources[str(_resolve(sc.source, media_dirs))]
             input_v_tag = f"[{src_idx}:v]"
             input_a_tag = f"[{src_idx}:a]"
-            src_total = _probe_duration(_resolve(sc.source))
+            src_total = _probe_duration(_resolve(sc.source, media_dirs))
         else:
             input_v_tag = "[0:v]"
             input_a_tag = silence_tag if not has_audio else "[0:a]"
@@ -476,7 +496,7 @@ def assemble(cfg: ScenarioConfig) -> Path:
         for ov in sc.overlays:
             if ov.type != "video":
                 continue
-            ovp = _resolve(ov.src)
+            ovp = _resolve(ov.src, media_dirs)
             if not ovp.exists():
                 print(f"  Warning: video not found: {ov.src}")
                 continue
@@ -534,7 +554,7 @@ def assemble(cfg: ScenarioConfig) -> Path:
         for ov in sc.overlays:
             if ov.type != "image":
                 continue
-            ip = _resolve(ov.src)
+            ip = _resolve(ov.src, media_dirs)
             if not ip.exists():
                 print(f"  Warning: image not found: {ov.src}")
                 continue

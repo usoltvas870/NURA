@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = "admin"
 
+    # Content pipeline
+    jobs_dir: str = ""
+
     # Test mode — all paid features free
     test_mode: bool = True
 

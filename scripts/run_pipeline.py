@@ -29,7 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "nura_app"))
 
-from core.services.video_pipeline import VideoPipeline, NURA_ROOT
+from core.services.video_pipeline import VideoPipeline, NURA_ROOT, JOBS_DIR
 
 
 async def main():
@@ -48,6 +48,12 @@ async def main():
                         help="Экспортировать все JSON-сценарии в Excel для просмотра")
     parser.add_argument("--parse-carousels", action="store_true",
                         help="Сгенерировать .carousel.json из carousel_texts/ (через AI parser)")
+    parser.add_argument("--use-jobs", action="store_true",
+                        help="Использовать новую job-структуру: jobs/{job_id}/input/media/work/output/")
+    parser.add_argument("--from-job", type=str, default=None,
+                        help="Собрать конкретный job по ID папки (jobs/{job_id})")
+    parser.add_argument("--qa", action="store_true",
+                        help="QA-проверка собранного видео/карусели")
 
     args = parser.parse_args()
 
@@ -63,21 +69,35 @@ async def main():
         await _parse_carousels()
         return
 
+    if args.from_job:
+        await _assemble_single_job(args.from_job)
+        return
+
+    if args.qa:
+        _run_qa_checks(args.from_job)
+        return
+
     pipeline = VideoPipeline(
         trend_data_path=args.from_trend,
         dry_run=args.dry_run,
+        use_jobs_dir=args.use_jobs,
     )
 
     if args.dry_run:
         print("=" * 60)
-        print("  NURA Pipeline — Этап 1: генерация сценариев (dry-run)")
+        mode = "jobs/" if args.use_jobs else "scenarios/"
+        print(f"  NURA Pipeline — Этап 1: генерация ({mode})")
         print("=" * 60)
         generated = await pipeline.run(top_n=args.top)
 
-        print(f"\nСгенерировано сценариев: {len(generated)}")
+        print(f"\nСгенерировано: {len(generated)}")
         for p in generated:
-            valid = pipeline.validate_scenario(p)
-            print(f"  {'✓' if valid else '✗'} {p.name}")
+            if p.is_dir():
+                valid = pipeline.validate_scenario(p / "input" / "scenario.json")
+                print(f"  {'✓' if valid else '✗'} {p.name}")
+            else:
+                valid = pipeline.validate_scenario(p)
+                print(f"  {'✓' if valid else '✗'} {p.name}")
 
         print("\nДалее:")
         print("  1. Запиши видео Нуры по текстам из nura_text")
@@ -90,7 +110,10 @@ async def main():
             print("=" * 60)
             print("  NURA Pipeline — Этап 2: сборка видео")
             print("=" * 60)
-            pipeline.generated = list((NURA_ROOT / "scenarios").glob("*.json"))
+            if args.use_jobs:
+                pipeline.generated = sorted(JOBS_DIR.glob("*/"))
+            else:
+                pipeline.generated = list((NURA_ROOT / "scenarios").glob("*.json"))
             pipeline.dry_run = False
             outputs = await pipeline.assemble_all()
             print(f"\nСобрано видео: {len(outputs)}")
@@ -301,6 +324,103 @@ def _try_parse_json(text: str) -> dict | None:
         return json.loads(text)
     except json.JSONDecodeError:
         return None
+
+
+async def _assemble_single_job(job_id: str):
+    from core.services.video_assembler import ScenarioConfig, assemble
+    from core.services.asset_validator import (
+        validate_job_assets,
+        format_asset_report,
+    )
+    from core.services.qa_checker import check_video_output, format_qa_result
+    from core.services.packager import build_package
+
+    job_dir = JOBS_DIR / job_id
+    if not job_dir.exists():
+        job_dir = Path(job_id)
+        if not job_dir.exists():
+            print(f"Job not found: {job_id}")
+            return
+
+    scenario_path = job_dir / "input" / "scenario.json"
+    if not scenario_path.exists():
+        print(f"No scenario.json in {job_dir}")
+        return
+
+    print("=" * 60)
+    print(f"  Assembling job: {job_dir.name}")
+    print("=" * 60)
+
+    asset_report = validate_job_assets(job_dir, scenario_path)
+    print(format_asset_report(asset_report))
+    if not asset_report.passed:
+        print("\n[FAIL] Fix asset issues and retry.")
+        return
+
+    raw = json.loads(scenario_path.read_text("utf-8"))
+    cfg = ScenarioConfig.model_validate(raw)
+
+    print("\n[1/4] Assembling video...")
+    output_path = assemble(cfg, job_dir=job_dir)
+    print(f"  Video: {output_path}")
+
+    print("\n[2/4] QA check...")
+    qa = check_video_output(output_path)
+    print(format_qa_result(qa))
+
+    print("\n[3/4] Packaging...")
+    pkg = build_package(
+        job_dir,
+        video_path=output_path,
+        carousel_dir=job_dir / "output" / "carousel",
+    )
+    print(f"  Package: {pkg.output_dir}")
+    if pkg.video_path:
+        print(f"  Video: {pkg.video_path.name}")
+    if pkg.caption_path:
+        print(f"  Caption: {pkg.caption_path.name}")
+    if pkg.hashtags_path:
+        print(f"  Hashtags: {pkg.hashtags_path.name}")
+    if pkg.publish_notes_path:
+        print(f"  Notes: {pkg.publish_notes_path.name}")
+
+    print("\n[DONE]")
+
+
+def _run_qa_checks(job_id: str | None = None):
+    from core.services.qa_checker import (
+        check_video_output,
+        check_carousel_output,
+        format_qa_result,
+    )
+
+    if job_id:
+        job_dir = JOBS_DIR / job_id
+        if not job_dir.exists():
+            job_dir = Path(job_id)
+            if not job_dir.exists():
+                print(f"Job not found: {job_id}")
+                return
+
+        video_path = job_dir / "output" / f"{job_dir.name}.mp4"
+        if not video_path.exists():
+            mp4s = sorted(job_dir.glob("output/*.mp4"))
+            video_path = mp4s[0] if mp4s else None
+
+        if video_path and video_path.exists():
+            print(format_qa_result(check_video_output(video_path)))
+        else:
+            print("No video found in output/")
+
+        carousel_dir = job_dir / "output" / "carousel"
+        if carousel_dir.exists():
+            print()
+            print(format_qa_result(check_carousel_output(carousel_dir), "Carousel"))
+    else:
+        videos_dir = NURA_ROOT / "videos" / "output"
+        for mp4 in sorted(videos_dir.glob("*.mp4")):
+            print(format_qa_result(check_video_output(mp4), mp4.name))
+            print()
 
 
 if __name__ == "__main__":

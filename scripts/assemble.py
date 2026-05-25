@@ -3,6 +3,7 @@
 Usage:
     python scripts/assemble.py scenarios/my_video.json
     python scripts/assemble.py scenarios/my_video.json --output my_video.mp4
+    python scripts/assemble.py jobs/job_name   # job dir mode
 """
 import json
 import sys
@@ -18,15 +19,24 @@ def main():
         print(__doc__)
         sys.exit(1)
 
-    json_path = Path(sys.argv[1])
-    if not json_path.exists():
-        print(f"Scenario not found: {json_path}")
+    target = Path(sys.argv[1])
+    if not target.exists():
+        print(f"Not found: {target}")
         sys.exit(1)
 
-    raw = json.loads(json_path.read_text("utf-8"))
-    config = ScenarioConfig.model_validate(raw)
+    if target.is_dir():
+        scenario_path = target / "input" / "scenario.json"
+        if not scenario_path.exists():
+            print(f"No scenario.json in {target}")
+            sys.exit(1)
+        raw = json.loads(scenario_path.read_text("utf-8"))
+        config = ScenarioConfig.model_validate(raw)
+        output = assemble(config, job_dir=target)
+    else:
+        raw = json.loads(target.read_text("utf-8"))
+        config = ScenarioConfig.model_validate(raw)
+        output = assemble(config)
 
-    output = assemble(config)
     print(f"Output: {output}")
 
 
