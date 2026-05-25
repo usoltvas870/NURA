@@ -11,6 +11,7 @@ from bot.texts.payment import (
 )
 from core.config import settings
 from core.database import get_async_sessionmaker
+from core.models import ReportType
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.services.payment import PaymentService
@@ -64,6 +65,17 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
         until_date = datetime.now(timezone.utc) + timedelta(days=30)
         await user_repo.update_subscription(user.id, "premium", until_date)
         until_str = until_date.strftime("%d.%m.%Y")
+
+        if user.birth_date:
+            from core.tasks import generate_full_report
+            from core.repositories.report import ReportRepository
+            report_repo = ReportRepository(session_factory)
+            existing = await report_repo.get_by_user_id_and_type(user.id, ReportType.FULL)
+            if not existing:
+                from core.services.report import ReportService
+                report_token = ReportService.generate_token()
+                generate_full_report.delay(str(user.id), user.birth_date, report_token)
+
         await callback.message.edit_text(
             f"🎉 Подписка активирована!\n"
             f"(тестовый режим — оплата не требуется)\n\n"

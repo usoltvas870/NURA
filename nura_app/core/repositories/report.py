@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.models import Report, ReportType
@@ -34,7 +34,7 @@ class ReportRepository(SQLAlchemyRepository[Report]):
                 select(Report).where(
                     Report.user_id == user_id,
                     Report.report_type == report_type.value,
-                )
+                ).order_by(desc(Report.created_at)).limit(1)
             )
             return result.scalar_one_or_none()
 
