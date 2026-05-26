@@ -112,6 +112,76 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
         )
 
 
+@router.callback_query(F.data == "buy_tarot_subscription")
+async def initiate_tarot_subscription(callback: CallbackQuery) -> None:
+    await callback.answer()
+
+    user = await _get_user(callback.from_user.id)
+    if user is None:
+        await callback.message.edit_text(
+            "Пользователь не найден. Начни с /start",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    if user.tarot_subscription:
+        await callback.message.edit_text(
+            "🃏 Таро-подписка уже активна!\n\n"
+            "У тебя есть доступ к карте дня, раскладу недели и раскладу по вопросу.",
+            reply_markup=main_menu_keyboard(has_tarot=True),
+        )
+        return
+
+    if settings.test_mode:
+        from datetime import datetime, timedelta, timezone
+        session_factory = get_async_sessionmaker()
+        user_repo = UserRepository(session_factory)
+        until_date = datetime.now(timezone.utc) + timedelta(days=30)
+        await user_repo.update_tarot_subscription(user.id, True, until_date)
+
+        await callback.message.edit_text(
+            "🃏 Таро-подписка активирована!\n"
+            "(тестовый режим — оплата не требуется)\n\n"
+            "Теперь тебе доступны:\n"
+            "• Карта дня\n"
+            "• Расклад недели\n"
+            "• Расклад по вопросу",
+            reply_markup=main_menu_keyboard(has_tarot=True),
+        )
+        return
+
+    try:
+        subscription = await PaymentService.create_subscription(
+            telegram_id=user.telegram_id,
+        )
+
+        await callback.message.edit_text(
+            "🃏 Таро-подписка — 390 ₽/мес\n\n"
+            "Что входит:\n"
+            "• Карта дня — аркан привязанный к твоей матрице\n"
+            "• Расклад недели — энергия 7 дней\n"
+            "• Расклад по вопросу — ситуация, отношения, карьера\n"
+            "• Безлимитный AI-чат\n\n"
+            "Не закрывай окно пока платёж не завершится.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="💎 Оплатить 390 ₽/мес",
+                        url=subscription["payment_url"]
+                    )],
+                    [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+                ]
+            ),
+        )
+
+    except Exception:
+        logger.exception("Failed to create tarot subscription for user %s", user.id)
+        await callback.message.edit_text(
+            payment_error_text(),
+            reply_markup=main_menu_keyboard(),
+        )
+
+
 @router.callback_query(F.data.startswith("open_report:"))
 async def open_report(callback: CallbackQuery) -> None:
     await callback.answer()
