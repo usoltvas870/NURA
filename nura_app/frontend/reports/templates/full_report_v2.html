@@ -385,7 +385,7 @@
   }
   .dash-card:hover { border-color: rgba(201, 165, 92, 0.4); transform: translateY(-2px); }
   .dash-card .dc-k {
-    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    font-size: 0.85rem; letter-spacing: 0.18em; text-transform: uppercase;
     color: var(--ink-faint);
   }
   .dash-card .dc-icon {
@@ -395,17 +395,23 @@
     color: var(--m-accent);
     display: grid; place-items: center;
     font-family: 'Cormorant Garamond', serif;
-    font-size: 14px;
+    font-size: 18px;
     margin-bottom: 4px;
   }
   .dash-card .dc-v {
     font-family: 'Cormorant Garamond', serif;
-    font-size: 22px;
+    font-size: 26px;
     line-height: 1.15;
     color: var(--ink);
     margin-top: auto;
   }
-  .dash-card .dc-v em { font-style: italic; color: var(--m-leaf); display: block; font-size: 14px; margin-top: 2px; }
+  .dash-card .dc-v em { font-style: italic; color: var(--m-leaf); display: block; font-size: 13px; margin-top: 2px; }
+  .dash-card .dc-desc {
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-top: 6px;
+    line-height: 1.4;
+  }
 
   /* ===========================================================
      SECTION 3 — ACCORDION
@@ -1527,22 +1533,28 @@
       page-break-inside: avoid;
     }
     .dash-card .dc-k {
-      font-size: 9px;
+      font-size: 11px;
       color: #888;
       letter-spacing: 0.1em;
     }
     .dash-card .dc-icon {
       background: rgba(139, 115, 50, 0.1);
       color: #8B7332;
+      font-size: 15px;
     }
     .dash-card .dc-v {
       font-family: Georgia, serif;
-      font-size: 17px;
+      font-size: 20px;
       color: #1a1a1a;
     }
     .dash-card .dc-v em {
       color: #3D7A4F;
-      font-size: 12px;
+      font-size: 11px;
+    }
+    .dash-card .dc-desc {
+      font-size: 10px;
+      color: #777;
+      margin-top: 4px;
     }
 
     /* --- WHY ACCORDION (always visible in print) --- */
@@ -2042,7 +2054,7 @@
       <div class="ch-head">
         <span class="nbr">02 — За 30 секунд</span>
         <h2>Главное о тебе <em>на одном развороте</em></h2>
-        <p class="ch-sub">Краткая выжимка из расчёта. Если торопишься — читай только её и переходи к секции, которая зацепила.</p>
+        <p class="ch-sub">Пять ключей к твоей матрице — читай, если торопишься</p>
       </div>
 
       <div class="dashboard">
@@ -2050,26 +2062,31 @@
           <div class="dc-icon" style="font-style:italic;">{{ archetype_roman }}</div>
           <div class="dc-k">Архетип</div>
           <div class="dc-v">{{ archetype_name }}<em>центр матрицы</em></div>
+          <div class="dc-desc">{{ archetype_key }}</div>
         </div>
         <div class="dash-card">
           <div class="dc-icon">&triangle;</div>
           <div class="dc-k">Главный талант</div>
           <div class="dc-v">{{ dashboard_talent_title }}<em>{{ dashboard_talent_sub }}</em></div>
+          <div class="dc-desc">Твоя природная сила</div>
         </div>
         <div class="dash-card">
           <div class="dc-icon">&loz;</div>
           <div class="dc-k">Главный блок</div>
           <div class="dc-v">{{ dashboard_block_title }}<em>{{ dashboard_block_sub }}</em></div>
+          <div class="dc-desc">Что требует осознанной работы</div>
         </div>
         <div class="dash-card">
           <div class="dc-icon">&#10022;</div>
           <div class="dc-k">Предназначение</div>
           <div class="dc-v">{{ dashboard_purpose_title }}<em>{{ dashboard_purpose_sub }}</em></div>
+          <div class="dc-desc">Направление твоего пути</div>
         </div>
         <div class="dash-card">
           <div class="dc-icon" style="font-style:italic;">{{ year_arcana_roman }}</div>
           <div class="dc-k">Аркан {{ current_year }}</div>
           <div class="dc-v">{{ year_arcana_name }}<em>год структуры</em></div>
+          <div class="dc-desc">Энергия текущего года</div>
         </div>
       </div>
     </section>

@@ -712,17 +712,19 @@ small { font-size: var(--small-size); color: var(--muted); }
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-height: 140px;
   page-break-inside: avoid;
 }
 .card-label {
-  font-size: 11px; color: var(--muted);
+  font-size: 0.85rem; color: var(--muted);
   text-transform: uppercase; letter-spacing: 1px;
 }
 .card-number {
   font-family: var(--font-heading);
-  font-size: 36px; line-height: 1;
+  font-size: 2.5rem; line-height: 1;
 }
 .card-name { font-size: 14px; color: rgba(245,243,238,0.7); }
+.card-desc { font-size: 11px; color: rgba(245,243,238,0.42); margin-top: 4px; line-height: 1.4; }
 .card-archetype .card-number { color: var(--orange); }
 .card-talent .card-number { color: var(--green); }
 .card-challenge .card-number { color: var(--gold); }
