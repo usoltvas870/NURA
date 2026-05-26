@@ -4,25 +4,22 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 def main_menu_keyboard(has_matrix: bool = True, has_tarot: bool = False) -> InlineKeyboardMarkup:
     matrix_btn = (
-        InlineKeyboardButton(text="🔮 Моя матрица", callback_data="my_matrix")
+        InlineKeyboardButton(text="◈ Моя матрица", callback_data="my_matrix")
         if has_matrix
         else InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")
-    )
-    tarot_btn = (
-        InlineKeyboardButton(text="🃏 Ритуалы дня", callback_data="tarot_menu")
-        if has_tarot
-        else InlineKeyboardButton(text="🃏 Карта дня", callback_data="ritual")
     )
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 matrix_btn,
-                InlineKeyboardButton(text="🌒 Инсайты", callback_data="insights"),
+                InlineKeyboardButton(text="🌒 Таро", callback_data="tarot_menu"),
             ],
             [
-                tarot_btn,
                 InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura"),
                 InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
+            ],
+            [
+                InlineKeyboardButton(text="📄 Пример отчёта", callback_data="sample_report"),
             ],
             [
                 InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
@@ -83,29 +80,6 @@ def profile_keyboard(has_matrix: bool, is_subscriber: bool, has_full_report: boo
             [InlineKeyboardButton(text="💎 Полный отчёт по подписке", callback_data="buy_subscription")],
             [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
             [InlineKeyboardButton(text="💎 О подписке", callback_data="subscription")],
-            [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
-        ]
-    )
-
-
-def insight_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="📋 Поделиться", callback_data="share_insight"),
-                InlineKeyboardButton(text="🔄 Ещё", callback_data="another_insight"),
-            ],
-            [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
-        ]
-    )
-
-
-def insight_keyboard_subscriber() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="📋 Поделиться", callback_data="share_insight"),
-            ],
             [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
         ]
     )

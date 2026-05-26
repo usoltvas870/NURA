@@ -11,7 +11,6 @@ from aiogram.types import BotCommand, BotCommandScopeDefault, MenuButtonCommands
 from bot.handlers.chat import router as chat_router
 from bot.handlers.compatibility import router as compatibility_router
 from bot.handlers.errors import global_error_handler
-from bot.handlers.insights import router as insights_router
 from bot.handlers.onboarding import router as onboarding_router
 from bot.handlers.payment import router as payment_router
 from bot.handlers.profile import router as profile_router
@@ -59,7 +58,6 @@ async def main():
 
     dp.include_router(chat_router)
     dp.include_router(compatibility_router)
-    dp.include_router(insights_router)
     dp.include_router(onboarding_router)
     dp.include_router(payment_router)
     dp.include_router(profile_router)

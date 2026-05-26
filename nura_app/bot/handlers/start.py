@@ -54,6 +54,14 @@ async def callback_main_menu(callback: CallbackQuery) -> None:
     )
 
 
+@router.callback_query(F.data == "sample_report")
+async def callback_sample_report(callback: CallbackQuery) -> None:
+    await callback.answer()
+    await callback.message.answer(
+        "📄 Пример отчёта — скоро"
+    )
+
+
 @router.message()
 async def unknown_message(message: Message) -> None:
     from bot.texts.start import unknown_message_text

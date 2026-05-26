@@ -12,14 +12,6 @@ from bot.texts.compatibility import (
     loading_steps as compatibility_loading_steps,
     mini_compatibility_text,
 )
-from bot.texts.insights import (
-    no_matrix_text,
-    insight_of_day_text,
-    share_insight_text,
-    insight_copied_text,
-    insights_exhausted_text,
-    no_insights_text,
-)
 from bot.texts.profile import (
     profile_no_matrix_text,
     profile_mini_text,
@@ -72,12 +64,6 @@ __all__ = [
     "ask_partner_date_text",
     "compatibility_loading_steps",
     "mini_compatibility_text",
-    "no_matrix_text",
-    "insight_of_day_text",
-    "share_insight_text",
-    "insight_copied_text",
-    "insights_exhausted_text",
-    "no_insights_text",
     "profile_no_matrix_text",
     "profile_mini_text",
     "profile_subscriber_text",
