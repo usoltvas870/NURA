@@ -171,3 +171,9 @@
 - Launch checklist: 40.5ч доделок вне основных планов → `docs/launch-checklist.md`
 - Обновлён `docs/pricing.md`, `docs/STATE.md`
 - Общий объём работ: ~161.5 часов
+- **26.05.2026 — Сессия 10** — DeepSeek V4 Pro
+- Точечные улучшения отчёта:
+  - Промпт `full_report.txt`: строгий 7-дневный формат ai_recommendations, добавлены `archetype_name` + `archetype_key` в JSON-схему
+  - `parse_recommendations()`: переписан под split по `\n(?=\d+\.)`, fallback если 0 элементов
+  - `full_report_v2.html` (+ `_dashboard.html` + `_styles.html`): увеличен дашборд (подзаголовок, font-size, описания карточек, min-height)
+  - `render_report_html` + `_build_v2_report_data`: `archetype_key`, `year_arcana_name`, `current_year` передаются в контекст
