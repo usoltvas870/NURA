@@ -1,3 +1,17 @@
+def profile_tarot_text(name: str, archetype: str, reports_count: int) -> str:
+    return (
+        f"<b>👤 {name}</b>\n\n"
+        f"<b>🎭 Архетип:</b> {archetype}\n"
+        "🃏 Таро-подписка: активна\n"
+        f"Отчётов: {reports_count}\n\n"
+        "У тебя есть доступ к ежедневным ритуалам:\n"
+        "• Карта дня\n"
+        "• Расклад недели\n"
+        "• Расклад по вопросу\n"
+        "• Безлимитный чат с NURA"
+    )
+
+
 def profile_no_matrix_text(name: str) -> str:
     return (
         f"<b>👤 {name}</b>\n\n"

@@ -40,11 +40,21 @@ def compatibility_paywall_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def profile_keyboard(has_matrix: bool, is_subscriber: bool, has_full_report: bool = False) -> InlineKeyboardMarkup:
+def profile_keyboard(has_matrix: bool, is_subscriber: bool, has_full_report: bool = False, has_tarot: bool = False) -> InlineKeyboardMarkup:
     if not has_matrix:
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")],
+                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+            ]
+        )
+
+    if has_tarot and not is_subscriber:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🃏 Ритуалы дня", callback_data="tarot_menu")],
+                [InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura")],
+                [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
                 [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
             ]
         )

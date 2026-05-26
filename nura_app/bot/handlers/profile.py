@@ -10,6 +10,7 @@ from bot.texts.profile import (
     profile_mini_text,
     profile_no_matrix_text,
     profile_subscriber_text,
+    profile_tarot_text,
     reports_list_text,
 )
 from bot.texts.subscription import subscription_offer_text
@@ -73,6 +74,9 @@ async def _show_profile(message: Message, user, reports) -> None:
         until_str = user.subscription_until.strftime("%d.%m.%Y") if user.subscription_until else "—"
         text = profile_subscriber_text(name, user.main_archetype, until_str, reports_count)
         kb = profile_keyboard(has_matrix=True, is_subscriber=True)
+    elif user.tarot_subscription:
+        text = profile_tarot_text(name, user.main_archetype, reports_count)
+        kb = profile_keyboard(has_matrix=True, is_subscriber=False, has_tarot=True)
     elif has_full:
         text = profile_full_text(name, user.main_archetype, reports_count)
         kb = profile_keyboard(has_matrix=True, is_subscriber=False, has_full_report=True)
