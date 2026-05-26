@@ -505,7 +505,7 @@ async def _send_daily_tarot_card_async() -> dict:
         text = format_daily_card_message(user.first_name, card)
         keyboard = {
             "inline_keyboard": [
-                [{"text": "🂠 Расклад недели", "callback_data": "tarot_weekly_spread"}],
+                [{"text": "✦ Расклад недели", "callback_data": "tarot_weekly"}],
                 [{"text": "🏠 В меню", "callback_data": "main_menu"}],
             ],
         }

@@ -84,8 +84,8 @@
 ## Известные блокеры
 - 🔴 Нужен реальный Telegram Bot Token (в .env стоит рабочий, не менять без необходимости)
 - 🔴 Нужен DeepSeek API Key (в .env стоит рабочий, не менять без необходимости)
-- 🔴 Страница отчёта — частично выполнена: V2 шаблон, печатный CSS, TOC. Остались: kitchen frontend, psychological_blocks/health_analysis секции
-- 🔴 Таро-ритуалы не реализованы (40ч) — без этого подписка не удержит пользователей
+- ✅ Страница отчёта — `psychological_blocks` и `health_analysis` подключены, диспетчер переключён на модульный `full_report.html`
+- 🟡 Таро-ритуалы — структура бота готова (menu, paywall, FSM), расклады — заглушки (TODO: AI промпты)
 - 🟡 Настроить Celery result backend — Redis reconnect warning
 - 🟡 Alembic первая миграция (сейчас таблицы создаются через init_db.py)
 - 🟡 PEXELS_API_KEY не добавлен в .env — автопоиск стоков не работает
@@ -145,35 +145,51 @@
 3. **Architecture decisions** — если принял новое ADR
 4. **Последняя сессия** — кратко (1-3 строки): номер, модель, что сделано
 
-### Последняя сессия
-- **26.05.2026 — Сессия 9** — DeepSeek V4 Pro
-- Фикс пустого отчёта + PDF:
-  - API: диспетчеризация рендеринга по `report_type` (MINI→mini_report.html, FULL→V2, FALLBACK→202)
-  - `_is_fallback_analysis()`: детект FALLBACK_FULL по маркерам
-  - `FullReportResult`: убраны min_length/max_length (слишком строгие)
-  - `KitchenReportResult.psychological_blocks`/`health_analysis`: стали опциональными
-  - `httpx timeout`: увеличен до 300с для full/kitchen/compat (было 30с → ReadTimeout на 32K токенах)
-  - V2 шаблон: комплексный `@media print` (светлая тема, A4, page-breaks, системные шрифты)
-  - Печатное оглавление с якорными ссылками на 17 секций
-  - Удалены старые PDF/HTML кэши, сгенерирован новый FULL-отчёт с реальным AI-текстом
-- **26.05.2026 — Сессия 8** — DeepSeek V4 Pro
-- Исправление навигации бота NURA:
-  - Удалён пустой `bot/handlers/matrix.py` (роутер без хендлеров) → убран из `bot/main.py`
-  - `has_tarot` передаётся в `main_menu_keyboard()` из `start.py`, `onboarding.py`, `payment.py`
-  - Добавлен обработчик `buy_tarot_subscription` в `payment.py` (тест-режим + боевой через `PaymentService.create_subscription`)
-  - Таро-статус в профиле: новый блок `profile_tarot_text`, ветка в `profile_keyboard`, проверка в `_show_profile`
+### История сессий (хронология)
+
 - **24.05.2026 — Сессия 7** — DeepSeek V4 Pro
-- Стратегический бенчмарк: парсинг 8 конкурентов + 956 отзывов → `docs/benchmark-competitors.md`
-- Зафиксирована продуктовая модель: матрица 890₽ (разово) + таро-ритуалы 390₽/мес (подписка)
-- Глоссарий: лендинг / бот / страница отчёта / User Layer / Kitchen Layer
-- Стратегия симбиоза Матрицы и Таро → `docs/tarot-integration-plan.md`
-- План апгрейда страницы отчёта: 10 шагов → 16 шагов → `docs/report-upgrade-sessions.md`
-- Launch checklist: 40.5ч доделок вне основных планов → `docs/launch-checklist.md`
-- Обновлён `docs/pricing.md`, `docs/STATE.md`
-- Общий объём работ: ~161.5 часов
+  - Стратегический бенчмарк: парсинг 8 конкурентов + 956 отзывов → `docs/benchmark-competitors.md`
+  - Зафиксирована продуктовая модель: матрица 890₽ (разово) + таро-ритуалы 390₽/мес (подписка)
+  - Стратегия симбиоза Матрицы и Таро → `docs/tarot-integration-plan.md`
+  - Launch checklist → `docs/launch-checklist.md`. Общий объём работ: ~161.5 часов
+
+- **26.05.2026 — Сессия 8** — DeepSeek V4 Pro
+  - Исправление навигации бота NURA
+  - Удалён пустой `bot/handlers/matrix.py` → убран из `bot/main.py`
+  - `has_tarot` передаётся в `main_menu_keyboard()` из `start.py`, `onboarding.py`, `payment.py`
+  - Добавлен обработчик `buy_tarot_subscription` в `payment.py`
+  - Таро-статус в профиле: `profile_tarot_text`, ветка в `profile_keyboard`
+
+- **26.05.2026 — Сессия 9** — DeepSeek V4 Pro
+  - Фикс пустого отчёта + PDF
+  - API: диспетчеризация по `report_type` (MINI/FULL/FALLBACK→202)
+  - `_is_fallback_analysis()`: детект FALLBACK_FULL по маркерам
+  - `httpx timeout`: увеличен до 300с (было 30с → ReadTimeout на 32K токенах)
+  - V2 шаблон: `@media print`, печатное оглавление с якорями на 17 секций
+
 - **26.05.2026 — Сессия 10** — DeepSeek V4 Pro
-- Точечные улучшения отчёта:
-  - Промпт `full_report.txt`: строгий 7-дневный формат ai_recommendations, добавлены `archetype_name` + `archetype_key` в JSON-схему
-  - `parse_recommendations()`: переписан под split по `\n(?=\d+\.)`, fallback если 0 элементов
-  - `full_report_v2.html` (+ `_dashboard.html` + `_styles.html`): увеличен дашборд (подзаголовок, font-size, описания карточек, min-height)
-  - `render_report_html` + `_build_v2_report_data`: `archetype_key`, `year_arcana_name`, `current_year` передаются в контекст
+  - Точечные улучшения отчёта
+  - Промпт `full_report.txt`: строгий 7-дневный формат, `archetype_name` + `archetype_key`
+  - `parse_recommendations()`: переписан, fallback если 0 элементов
+  - `_dashboard.html` + `_styles.html`: увеличен дашборд (font-size, описания, min-height)
+  - `render_report_html`: `archetype_key`, `year_arcana_name`, `current_year` в контекст
+
+- **26.05.2026 — Сессия 11** — Claude Sonnet 4.6 (claude.ai)
+  - Аудит и синхронизация документации
+  - `bot-spec.md` + `bot-ux-map.md`: 🔮→◈ (8 вхождений), ценовая модель 890₽/390₽ (16 CTA)
+  - `bot-ux-map.md`: флоу совместимости — убраны 2 лишних экрана, оставлен 1 ввод даты
+  - `tone-of-voice.md`: добавлен §10 Исключения, исключение для «чакры» в `health_analysis`
+  - `report-spec.md`: переписан с нуля под V2 (17 секций ✅, 5 📋)
+  - `_psychological_blocks.html`: подключён к `full_report.html`
+  - `_health_map.html`: эмодзи приведены к разрешённому списку tone-of-voice
+  - Диспетчер: `render_report_v2_html` → `render_report_html` (модульная архитектура)
+  - `STATE.md`: перенесён в корень проекта, хронология сессий исправлена
+  - `README.md`: переписан под реальную структуру `docs/`
+
+- **27.05.2026 — Сессия 12** — Claude Sonnet 4.6 (claude.ai)
+  - Реализован полный handler раздела Таро (bot-spec §5)
+  - `tarot_state.py`: `waiting_question` → `waiting_for_question`, добавлен `waiting_for_sphere`
+  - `tarot_keyboard.py`: `tarot_menu_keyboard(has_tarot)` с двумя режимами (free: замки + CTA / subscribed: все расклады), новые `tarot_back_keyboard`, `tarot_paywall_keyboard`, `tarot_spheres_keyboard`
+  - `tarot.py`: 11 handlers — `tarot_menu`, `tarot_daily_card` (free, алгоритм по дате), `tarot_weekly/question/spheres/twins/portal/yes_no` (paywall или заглушка), `tarot_sphere_*`, `handle_question_input` (FSM)
+  - `settings.test_mode` bypass во всех 6 paywall-проверках
+  - `core/tasks.py`: callback `tarot_weekly_spread` → `tarot_weekly` в Celery daily card
