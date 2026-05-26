@@ -88,9 +88,10 @@ async def process_onboarding_birth_date(
     generate_mini_report.delay(str(db_user.id), date_str, username)
 
     await asyncio.sleep(0.5)
+    has_tarot = bool(db_user.tarot_subscription) if db_user else False
     await loading_msg.edit_text(
         onboarding_done_text(archetype_name, archetype_number),
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(has_tarot=has_tarot),
     )
 
 
@@ -180,7 +181,8 @@ async def _show_authenticated_menu(message: Message, user) -> None:
 
     name = user.first_name or user.username or "пользователь"
     archetype = user.main_archetype or "не определён"
+    has_tarot = bool(user.tarot_subscription) if user else False
     await message.answer(
         welcome_back_text(name=name, archetype=archetype),
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(has_tarot=has_tarot),
     )

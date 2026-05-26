@@ -22,9 +22,10 @@ async def cmd_menu(message: Message) -> None:
 
     name = user.first_name or user.username or "пользователь"
     archetype = user.main_archetype or "не определён"
+    has_tarot = bool(user.tarot_subscription) if user else False
     await message.answer(
         welcome_back_text(name=name, archetype=archetype),
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(has_matrix=bool(user and user.birth_date), has_tarot=has_tarot),
     )
 
 
@@ -46,9 +47,10 @@ async def callback_main_menu(callback: CallbackQuery) -> None:
 
     name = user.first_name or user.username or "пользователь"
     archetype = user.main_archetype or "не определён"
+    has_tarot = bool(user.tarot_subscription) if user else False
     await callback.message.edit_text(
         welcome_back_text(name=name, archetype=archetype),
-        reply_markup=main_menu_keyboard(),
+        reply_markup=main_menu_keyboard(has_matrix=bool(user and user.birth_date), has_tarot=has_tarot),
     )
 
 
