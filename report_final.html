@@ -1,0 +1,2268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Матрица Судьбы — Анна · 15.06.1990 · NURA AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           #0A0E0C;
+    --bg-page:      #0C1310;
+    --bg-soft:      #111613;
+    --bg-card:      #0E1A14;
+    --ink:          #F2EFE7;
+    --ink-soft:     rgba(242, 239, 231, 0.78);
+    --ink-mute:     rgba(242, 239, 231, 0.52);
+    --ink-faint:    rgba(242, 239, 231, 0.32);
+    --line:         rgba(242, 239, 231, 0.08);
+    --line-strong:  rgba(242, 239, 231, 0.16);
+
+    --m-bg:         #0E2419;
+    --m-bg-soft:    #143527;
+    --m-line:       rgba(151, 197, 161, 0.18);
+    --m-accent:     #C9A55C;
+    --m-accent-soft: rgba(201, 165, 92, 0.16);
+    --m-leaf:       #6BA37A;
+
+    --t-bg:         #0F1830;
+    --t-accent:     #D8B36A;
+    --t-violet:     #7E7AC8;
+
+    --reading-w:    720px;
+    --radius-lg:    20px;
+    --radius-md:    14px;
+    --radius-sm:    10px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--bg-page);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.6;
+  }
+  ::selection { background: rgba(201, 165, 92, 0.32); color: var(--ink); }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; }
+
+  /* ---------- Typography ---------- */
+  .serif { font-family: 'Cormorant Garamond', Georgia, serif; letter-spacing: -0.01em; }
+  h1, h2, h3, h4, h5 { font-family: 'Cormorant Garamond', Georgia, serif; margin: 0; font-weight: 500; letter-spacing: -0.02em; }
+  .eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--m-accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 18px; height: 1px; background: currentColor; opacity: 0.6;
+  }
+
+  /* ---------- Layout shell ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  aside.sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 32px 24px 24px 32px;
+    border-right: 1px solid var(--line);
+    background: linear-gradient(180deg, #0B1410 0%, #0A0E0C 100%);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  aside.sidebar::-webkit-scrollbar { width: 6px; }
+  aside.sidebar::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+
+  .sb-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 22px;
+  }
+  .sb-brand .mark {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--m-accent), #B08948);
+    color: #14110A;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .sb-brand .name {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.18em;
+  }
+
+  .sb-meta {
+    margin-bottom: 26px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sb-meta .label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-faint); margin-bottom: 6px;
+  }
+  .sb-meta .who {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px; line-height: 1.1;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .sb-meta .dob {
+    font-size: 12px; color: var(--ink-mute); font-variant-numeric: tabular-nums;
+  }
+  .sb-meta .arc {
+    margin-top: 14px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    background: var(--m-accent-soft);
+    color: var(--m-accent);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+
+  .sb-nav { list-style: none; padding: 0; margin: 0; display: grid; gap: 1px; }
+  .sb-nav .sb-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-faint); margin-bottom: 10px;
+  }
+  .sb-nav a {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--ink-mute);
+    transition: all 0.18s ease;
+    border-left: 2px solid transparent;
+    margin-left: -2px;
+  }
+  .sb-nav a .num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .sb-nav a:hover { color: var(--ink-soft); background: rgba(242, 239, 231, 0.03); }
+  .sb-nav a.active {
+    color: var(--m-accent);
+    border-left-color: var(--m-accent);
+    background: var(--m-accent-soft);
+  }
+  .sb-nav a.active .num { color: var(--m-accent); }
+
+  .sb-footer {
+    margin-top: 28px; padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--ink-faint);
+    line-height: 1.5;
+  }
+  .sb-footer .progress {
+    height: 2px; border-radius: 2px;
+    background: var(--line-strong);
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .sb-footer .progress span {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, var(--m-leaf), var(--m-accent));
+    transition: width 0.25s ease;
+  }
+
+  /* ---------- Mobile nav ---------- */
+  .mobile-nav { display: none; }
+
+  /* ---------- Main content ---------- */
+  main.content {
+    padding: 0 56px 120px;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  section.chapter {
+    max-width: var(--reading-w);
+    margin: 0 auto;
+    padding: 120px 0 60px;
+    scroll-margin-top: 40px;
+  }
+  section.chapter:first-of-type { padding-top: 60px; }
+
+  .ch-head { margin-bottom: 40px; }
+  .ch-head .nbr {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    color: var(--m-accent);
+    letter-spacing: 0.16em;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .ch-head h2 {
+    font-size: clamp(38px, 4vw, 52px);
+    line-height: 1.04;
+    margin-bottom: 16px;
+  }
+  .ch-head h2 em { font-style: italic; color: var(--m-leaf); }
+  .ch-head .ch-sub {
+    font-size: 16px;
+    color: var(--ink-mute);
+    max-width: 56ch;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  .prose { color: var(--ink-soft); }
+  .prose p {
+    font-size: 17px;
+    line-height: 1.75;
+    margin: 0 0 1.2em;
+    font-weight: 400;
+  }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .prose em {
+    color: var(--m-leaf);
+    font-style: italic;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05em;
+    letter-spacing: 0;
+  }
+
+  .pull {
+    margin: 36px 0;
+    padding: 4px 0 4px 24px;
+    border-left: 2px solid var(--m-accent);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 22px;
+    line-height: 1.4;
+    color: var(--ink);
+    font-weight: 400;
+  }
+
+  .disclaimer {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    font-style: italic;
+  }
+
+  /* ===========================================================
+     SECTION 1 — COVER
+     =========================================================== */
+  .cover {
+    min-height: calc(100vh - 0px);
+    padding: 80px 0 60px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    max-width: 880px;
+    position: relative;
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    inset: -10% -20% -10% -20%;
+    background:
+      radial-gradient(ellipse 40% 50% at 75% 50%, rgba(201, 165, 92, 0.12), transparent 60%),
+      radial-gradient(ellipse 40% 45% at 15% 20%, rgba(107, 163, 122, 0.10), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .cover > * { position: relative; z-index: 1; }
+
+  .cv-eye {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px;
+    font-size: 11px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--m-accent);
+    font-weight: 500;
+  }
+  .cv-eye .ln { flex: 0 0 60px; height: 1px; background: currentColor; opacity: 0.5; }
+  .cv-eye .dt { font-family: 'JetBrains Mono', monospace; color: var(--ink-mute); letter-spacing: 0.16em; font-size: 11px; text-transform: none; }
+
+  .cv-title {
+    font-size: clamp(56px, 8vw, 96px);
+    line-height: 0.96;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  .cv-title em { font-style: italic; color: var(--m-leaf); }
+  .cv-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(32px, 4.4vw, 48px);
+    color: var(--m-accent);
+    letter-spacing: -0.02em;
+    margin-bottom: 56px;
+  }
+
+  .cv-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .cv-info { display: grid; gap: 18px; }
+  .cv-info .row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 20px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .cv-info .row:last-child { border-bottom: none; }
+  .cv-info .k {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .cv-info .v {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .cv-info .v.accent { color: var(--m-accent); font-style: italic; }
+  .cv-info .v.mono { font-family: 'JetBrains Mono', monospace; font-size: 16px; letter-spacing: 0.04em; color: var(--ink-soft); }
+
+  /* 3x3 matrix viz */
+  .matrix-viz {
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 1;
+    margin-left: auto;
+    position: relative;
+  }
+  .matrix-viz svg { width: 100%; height: 100%; display: block; }
+
+  /* ===========================================================
+     SECTION 2 — DASHBOARD
+     =========================================================== */
+  .dashboard {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .dash-card {
+    background: linear-gradient(160deg, rgba(20, 53, 39, 0.6), rgba(14, 36, 25, 0.3));
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    padding: 22px 18px;
+    display: flex; flex-direction: column; gap: 10px;
+    min-height: 180px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .dash-card:hover { border-color: rgba(201, 165, 92, 0.4); transform: translateY(-2px); }
+  .dash-card .dc-k {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .dash-card .dc-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--m-accent-soft);
+    color: var(--m-accent);
+    display: grid; place-items: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .dash-card .dc-v {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    line-height: 1.15;
+    color: var(--ink);
+    margin-top: auto;
+  }
+  .dash-card .dc-v em { font-style: italic; color: var(--m-leaf); display: block; font-size: 14px; margin-top: 2px; }
+
+  /* ===========================================================
+     SECTION 3 — ACCORDION
+     =========================================================== */
+  .why {
+    margin-top: 36px;
+    border-top: 1px solid var(--line);
+    padding-top: 24px;
+  }
+  .why-btn {
+    background: transparent;
+    border: none;
+    color: var(--m-accent);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+  }
+  .why-btn .arrow {
+    transition: transform 0.25s ease;
+    display: inline-block;
+  }
+  .why.open .arrow { transform: rotate(90deg); }
+  .why-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, margin 0.3s ease;
+    margin-top: 0;
+  }
+  .why.open .why-body {
+    max-height: 800px;
+    margin-top: 18px;
+  }
+  .why-body .why-card {
+    background: rgba(20, 53, 39, 0.4);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    padding: 22px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--ink-soft);
+  }
+  .why-body .why-card .row { display: grid; grid-template-columns: 220px 1fr; gap: 16px; padding: 4px 0; }
+  .why-body .why-card .row .k { color: var(--ink-faint); }
+  .why-body .why-card .row .v { color: var(--m-accent); }
+
+  /* ===========================================================
+     SECTION 4 — KARMIC TAIL (vertical timeline)
+     =========================================================== */
+  .timeline {
+    position: relative;
+    padding-left: 36px;
+    margin-top: 16px;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 8px; top: 12px; bottom: 12px;
+    width: 1px;
+    background: linear-gradient(180deg, var(--m-accent) 0%, var(--m-leaf) 50%, var(--m-accent) 100%);
+    opacity: 0.5;
+  }
+  .tl-item {
+    position: relative;
+    margin-bottom: 48px;
+  }
+  .tl-item:last-child { margin-bottom: 0; }
+  .tl-item::before {
+    content: "";
+    position: absolute;
+    left: -36px; top: 8px;
+    width: 17px; height: 17px;
+    border-radius: 50%;
+    background: var(--bg-page);
+    border: 2px solid var(--m-accent);
+  }
+  .tl-item.now::before { background: var(--m-accent); box-shadow: 0 0 0 4px rgba(201, 165, 92, 0.18); }
+  .tl-tag {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--m-accent); font-weight: 600;
+    margin-bottom: 6px; display: block;
+  }
+  .tl-arc {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    color: var(--ink-faint);
+    font-style: italic;
+    margin-bottom: 14px;
+  }
+  .tl-item h3 {
+    font-size: 28px;
+    margin-bottom: 12px;
+    line-height: 1.15;
+  }
+  .tl-item h3 em { font-style: italic; color: var(--m-leaf); }
+
+  /* ===========================================================
+     SECTION 5 — TWO COLUMNS (ROD)
+     =========================================================== */
+  .rod {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 12px;
+  }
+  .rod-col {
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+  }
+  .rod-col h4 {
+    font-size: 24px;
+    margin-bottom: 4px;
+    line-height: 1.1;
+  }
+  .rod-col .rod-arcs {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--m-accent);
+    letter-spacing: 0.12em;
+    margin-bottom: 22px;
+    display: block;
+  }
+  .rod-col .prose p { font-size: 15.5px; }
+
+  /* ===========================================================
+     SECTION 6 — DESTINY (featured)
+     =========================================================== */
+  .destiny-chapter {
+    max-width: 820px;
+  }
+  .destiny-chapter .ch-head h2 {
+    font-size: clamp(48px, 6vw, 72px);
+  }
+  .destiny-emblem {
+    display: flex; align-items: center;
+    gap: 18px;
+    margin: 16px 0 36px;
+  }
+  .destiny-emblem .line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--m-accent), transparent);
+  }
+  .destiny-emblem .star {
+    width: 24px; height: 24px;
+    color: var(--m-accent);
+  }
+  .destiny-chapter .prose p {
+    font-size: 19px;
+    line-height: 1.75;
+  }
+  .destiny-chapter .prose p:first-of-type::first-letter {
+    font-family: 'Cormorant Garamond', serif;
+    float: left;
+    font-size: 72px;
+    line-height: 0.85;
+    padding: 6px 12px 0 0;
+    color: var(--m-accent);
+    font-style: italic;
+    font-weight: 500;
+  }
+  .sky-line {
+    margin: 36px 0;
+    padding: 24px 28px;
+    background: rgba(201, 165, 92, 0.06);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(201, 165, 92, 0.20);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .sky-line .sl-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--m-accent); flex: 0 0 auto;
+  }
+  .sky-line .sl-nums {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    color: var(--ink);
+    letter-spacing: 0.1em;
+    font-variant-numeric: tabular-nums;
+  }
+  .sky-line .sl-nums span:nth-child(2) {
+    color: var(--m-accent); margin: 0 16px;
+  }
+
+  /* ===========================================================
+     SECTION 7 — TALENTS LIST
+     =========================================================== */
+  .talents { display: grid; gap: 4px; margin-top: 8px; }
+  .talent {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 20px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .talent:last-child { border-bottom: none; }
+  .talent .t-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-style: italic;
+    color: var(--m-accent);
+    line-height: 1;
+  }
+  .talent h4 {
+    font-size: 22px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  .talent p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 15.5px;
+    line-height: 1.65;
+  }
+
+  /* ===========================================================
+     SECTION 9 — RELATIONSHIPS / COMPAT
+     =========================================================== */
+  .compat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 28px;
+  }
+  .compat {
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    padding: 22px 20px;
+  }
+  .compat .c-arc {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: var(--m-accent);
+    line-height: 1.15;
+    font-style: italic;
+    margin-bottom: 8px;
+  }
+  .compat .c-level {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--m-leaf); font-weight: 600;
+    margin-bottom: 12px; display: block;
+  }
+  .compat p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
+  /* ===========================================================
+     SECTION 10 — MONEY / blocks
+     =========================================================== */
+  .money-blocks {
+    display: grid;
+    gap: 14px;
+    margin-top: 28px;
+  }
+  .money-block {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 24px;
+    padding: 24px;
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    align-items: start;
+  }
+  .money-block .mb-tag {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 28px;
+    color: var(--m-accent);
+    line-height: 1;
+  }
+  .money-block h4 {
+    font-size: 20px;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .money-block p {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .pros-list {
+    margin: 20px 0 28px;
+    padding: 22px 26px;
+    background: rgba(201, 165, 92, 0.06);
+    border-left: 2px solid var(--m-accent);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  }
+  .pros-list .pl-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--m-accent); margin-bottom: 12px; display: block;
+  }
+  .pros-list ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+  .pros-list li {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 19px;
+    color: var(--ink);
+    line-height: 1.3;
+    padding-left: 22px;
+    position: relative;
+  }
+  .pros-list li::before {
+    content: "—";
+    position: absolute;
+    left: 0; top: 0;
+    color: var(--m-accent);
+  }
+
+  /* ===========================================================
+     SECTION 11 — PATTERNS
+     =========================================================== */
+  .pattern {
+    margin: 0 0 28px;
+    padding: 28px 30px;
+    background: rgba(20, 53, 39, 0.28);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    position: relative;
+  }
+  .pattern:last-child { margin-bottom: 0; }
+  .pattern .p-num {
+    position: absolute; top: 22px; right: 24px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 36px;
+    color: var(--m-accent);
+    opacity: 0.4;
+    line-height: 1;
+  }
+  .pattern h4 {
+    font-size: 22px;
+    margin-bottom: 10px;
+    padding-right: 44px;
+    color: var(--ink);
+  }
+  .pattern p {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+  }
+  .pattern .ex {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-style: italic;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    color: var(--ink-soft);
+  }
+  .pattern .ex::before {
+    content: "Пример. ";
+    font-style: normal;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--m-accent);
+    margin-right: 6px;
+  }
+
+  /* ===========================================================
+     SECTION 12 — CONFLICTS
+     =========================================================== */
+  .conflict {
+    margin-bottom: 28px;
+    padding: 32px;
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-lg);
+  }
+  .conflict:last-child { margin-bottom: 0; }
+  .conflict .c-head {
+    display: flex; align-items: center;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .conflict .c-bubble {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--m-accent-soft);
+    border: 1px solid rgba(201, 165, 92, 0.4);
+    display: grid; place-items: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--m-accent);
+  }
+  .conflict .c-bubble.b2 {
+    background: rgba(107, 163, 122, 0.12);
+    border-color: rgba(107, 163, 122, 0.45);
+    color: var(--m-leaf);
+  }
+  .conflict .c-vs {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--ink-faint);
+    font-size: 18px;
+  }
+  .conflict h4 {
+    font-size: 22px;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+  .conflict .c-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 18px;
+  }
+  .conflict .c-grid h5 {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--m-accent);
+    margin-bottom: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+  }
+  .conflict .c-grid p {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+  }
+
+  /* ===========================================================
+     SECTION 13 — CYCLES / TIMELINE
+     =========================================================== */
+  .cycle-track {
+    position: relative;
+    margin: 30px 0 32px;
+    padding: 40px 0 30px;
+  }
+  .cycle-line {
+    position: relative;
+    height: 2px;
+    background: var(--line-strong);
+    border-radius: 2px;
+  }
+  .cycle-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 70%;
+    background: linear-gradient(90deg, var(--m-leaf), var(--m-accent));
+    border-radius: 2px;
+  }
+  .cycle-dots {
+    display: flex;
+    justify-content: space-between;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    transform: translateY(-50%);
+  }
+  .cycle-dot {
+    position: relative;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--bg-page);
+    border: 2px solid var(--m-leaf);
+  }
+  .cycle-dot.passed { background: var(--m-leaf); }
+  .cycle-dot.now {
+    width: 20px; height: 20px;
+    background: var(--m-accent);
+    border-color: var(--m-accent);
+    box-shadow: 0 0 0 5px rgba(201, 165, 92, 0.18);
+  }
+  .cycle-dot .age {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 14px);
+    transform: translateX(-50%);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .cycle-dot.now .age { color: var(--m-accent); font-weight: 500; }
+  .cycle-dot .arc {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 12px);
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .cycle-dot.now .arc { color: var(--m-accent); }
+
+  .forecast {
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .fcast {
+    padding: 22px 20px;
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+  }
+  .fcast .yr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--m-accent);
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+  }
+  .fcast h5 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .fcast p {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+
+  /* ===========================================================
+     SECTION 14 — 7 DAYS
+     =========================================================== */
+  .week {
+    display: grid;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .day {
+    display: grid;
+    grid-template-columns: 24px 100px 1fr;
+    gap: 18px;
+    padding: 20px 22px;
+    background: rgba(20, 53, 39, 0.28);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    align-items: start;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .day:hover { border-color: rgba(201, 165, 92, 0.32); }
+  .day.done {
+    background: rgba(107, 163, 122, 0.08);
+    border-color: rgba(107, 163, 122, 0.3);
+  }
+  .day.done .d-task { color: var(--ink-faint); text-decoration: line-through; }
+  .day.done .d-name { color: var(--m-leaf); }
+
+  .checkbox {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 1.5px solid var(--line-strong);
+    background: transparent;
+    position: relative;
+    margin-top: 1px;
+    flex: 0 0 22px;
+    transition: all 0.15s ease;
+  }
+  .day:hover .checkbox { border-color: var(--m-accent); }
+  .day.done .checkbox {
+    background: var(--m-leaf);
+    border-color: var(--m-leaf);
+  }
+  .day.done .checkbox::after {
+    content: "";
+    position: absolute;
+    left: 6px; top: 2px;
+    width: 6px; height: 11px;
+    border: solid #0A0E0C;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .d-meta { display: flex; flex-direction: column; gap: 6px; }
+  .d-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 19px;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .d-cat {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--m-accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .d-task {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    padding-top: 3px;
+  }
+
+  /* ===========================================================
+     SECTION 15 — TAROT TEASER
+     =========================================================== */
+  .tarot-teaser {
+    margin: 40px 0 0;
+    padding: 56px 48px;
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(ellipse 60% 80% at 90% 10%, rgba(126, 122, 200, 0.20), transparent 60%),
+      radial-gradient(ellipse 70% 60% at 10% 90%, rgba(216, 179, 106, 0.10), transparent 60%),
+      linear-gradient(160deg, #0F1830 0%, #19244A 100%);
+    border: 1px solid rgba(216, 179, 106, 0.28);
+    position: relative;
+    overflow: hidden;
+  }
+  .tarot-teaser .tt-eye {
+    font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--t-accent); font-weight: 500;
+    margin-bottom: 22px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .tarot-teaser .tt-eye::before {
+    content: ""; width: 24px; height: 1px; background: currentColor;
+  }
+  .tarot-teaser .tt-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+  .tt-card {
+    aspect-ratio: 0.62;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #1a2548 0%, #0f1830 100%);
+    border: 1px solid rgba(216, 179, 106, 0.4);
+    padding: 20px 14px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .tt-card::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(216, 179, 106, 0.25);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .tt-card .tc-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--t-accent);
+  }
+  .tt-card .tc-sym {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 56px;
+    color: var(--t-accent);
+    line-height: 1;
+    font-style: italic;
+  }
+  .tt-card .tc-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    color: var(--t-accent);
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .tt-text h3 {
+    font-size: 36px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .tt-text h3 em { color: var(--t-accent); font-style: italic; }
+  .tt-text .tt-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--t-accent);
+    font-size: 16px;
+    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+  }
+  .tt-text p {
+    margin: 0 0 22px;
+    font-size: 15.5px;
+    color: rgba(242, 239, 231, 0.82);
+    line-height: 1.65;
+  }
+  .tt-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--t-accent), #B89252);
+    color: #14110A;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+  .tt-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(216, 179, 106, 0.28); }
+  .tt-cta .price {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 16px;
+  }
+
+  /* ===========================================================
+     REFLECTION PAGES
+     =========================================================== */
+  .reflection {
+    max-width: var(--reading-w);
+    margin: 0 auto;
+    padding: 100px 0 60px;
+  }
+  .reflection h2 {
+    font-size: clamp(38px, 4vw, 52px);
+    margin-bottom: 8px;
+    line-height: 1.04;
+  }
+  .reflection h2 em { font-style: italic; color: var(--m-leaf); }
+  .reflection .r-sub {
+    color: var(--ink-mute);
+    font-size: 15px;
+    margin-bottom: 36px;
+    max-width: 48ch;
+    line-height: 1.6;
+  }
+  .lines {
+    display: grid;
+    gap: 28px;
+  }
+  .lines .line {
+    height: 24px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .lines .line.short { width: 55%; }
+  .lines .line.mid { width: 75%; }
+
+  /* ---------- Back to top ---------- */
+  .to-top {
+    position: fixed;
+    right: 28px;
+    bottom: 28px;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--m-accent);
+    color: #14110A;
+    display: grid; place-items: center;
+    font-size: 18px; font-weight: 700;
+    border: none;
+    z-index: 40;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 8px 24px rgba(201, 165, 92, 0.32);
+  }
+  .to-top.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .to-top:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(201, 165, 92, 0.42); }
+
+  /* ===========================================================
+     RESPONSIVE
+     =========================================================== */
+  @media (max-width: 1100px) {
+    .shell { grid-template-columns: 240px 1fr; }
+    main.content { padding: 0 40px 100px; }
+    .cv-grid { gap: 32px; }
+  }
+
+  @media (max-width: 880px) {
+    .shell { grid-template-columns: 1fr; }
+    aside.sidebar { display: none; }
+
+    .mobile-nav {
+      display: block;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(10, 14, 12, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
+    }
+    .mobile-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      gap: 12px;
+    }
+    .mobile-nav .sb-brand {
+      padding: 0; margin: 0; border: none;
+    }
+    .mobile-nav .mn-current {
+      flex: 1;
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--m-accent);
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .mobile-nav .mn-toggle {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--m-accent-soft);
+      border: 1px solid rgba(201, 165, 92, 0.32);
+      color: var(--m-accent);
+      display: grid; place-items: center;
+    }
+    .mobile-nav .mn-toggle svg { width: 16px; height: 16px; }
+    .mobile-nav-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.32s ease;
+      border-top: 1px solid var(--line);
+    }
+    .mobile-nav.open .mobile-nav-panel { max-height: 80vh; overflow-y: auto; }
+    .mobile-nav-panel ul {
+      list-style: none; padding: 14px 20px 22px; margin: 0;
+      display: grid; gap: 2px;
+    }
+    .mobile-nav-panel a {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--ink-mute);
+    }
+    .mobile-nav-panel a .num {
+      font-family: 'Cormorant Garamond', serif;
+      color: var(--ink-faint);
+    }
+    .mobile-nav-panel a.active {
+      color: var(--m-accent); background: var(--m-accent-soft);
+    }
+
+    main.content { padding: 0 24px 80px; }
+    section.chapter { padding: 80px 0 40px; }
+
+    .cv-grid { grid-template-columns: 1fr; gap: 28px; }
+    .matrix-viz { margin: 0 auto; }
+    .dashboard { grid-template-columns: repeat(2, 1fr); }
+    .rod { grid-template-columns: 1fr; gap: 16px; }
+    .compat-grid { grid-template-columns: 1fr; }
+    .forecast { grid-template-columns: 1fr; }
+    .tarot-teaser { padding: 36px 24px; }
+    .tarot-teaser .tt-grid { grid-template-columns: 1fr; gap: 28px; }
+    .tt-card { max-width: 180px; margin: 0 auto; }
+    .conflict .c-grid { grid-template-columns: 1fr; gap: 16px; }
+    .money-block { grid-template-columns: 1fr; gap: 8px; }
+    .day { grid-template-columns: 22px 1fr; }
+    .day .d-task { grid-column: 2 / -1; }
+    .cycle-dot .age { font-size: 14px; }
+    .cycle-dot .arc { display: none; }
+    .destiny-chapter .prose p:first-of-type::first-letter {
+      font-size: 56px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    main.content { padding: 0 18px 60px; }
+    .cv-title { font-size: 44px; }
+    .cv-name { font-size: 28px; margin-bottom: 36px; }
+    .cv-info .row { grid-template-columns: 100px 1fr; gap: 12px; }
+    .dashboard { grid-template-columns: 1fr; }
+    .why-body .why-card .row { grid-template-columns: 1fr; }
+    .ch-head h2 { font-size: 32px; }
+    .destiny-chapter .ch-head h2 { font-size: 40px; }
+    .tarot-teaser { padding: 28px 20px; }
+    .tt-text h3 { font-size: 28px; }
+  }
+
+  /* Print friendly */
+  @media print {
+    aside.sidebar, .mobile-nav, .to-top { display: none; }
+    .shell { grid-template-columns: 1fr; }
+    main.content { padding: 0; }
+    section.chapter { page-break-inside: avoid; padding: 30px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" data-screen-label="Sidebar">
+    <div class="sb-brand">
+      <span class="mark">N</span>
+      <span class="name">NURA AI</span>
+    </div>
+
+    <div class="sb-meta">
+      <div class="label">Отчёт для</div>
+      <div class="who">Анна</div>
+      <div class="dob">15.06.1990 · 35 лет</div>
+      <div class="arc">VII · Колесница</div>
+    </div>
+
+    <div class="sb-label" style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;">Содержание</div>
+    <nav>
+      <ul class="sb-nav" id="sbNav">
+        <li><a href="#s1"  data-target="s1"><span class="num">01</span><span>Обложка</span></a></li>
+        <li><a href="#s2"  data-target="s2"><span class="num">02</span><span>За 30 секунд</span></a></li>
+        <li><a href="#s3"  data-target="s3"><span class="num">03</span><span>Архетип личности</span></a></li>
+        <li><a href="#s4"  data-target="s4"><span class="num">04</span><span>Кармический хвост</span></a></li>
+        <li><a href="#s5"  data-target="s5"><span class="num">05</span><span>Родовые программы</span></a></li>
+        <li><a href="#s6"  data-target="s6"><span class="num">06</span><span>Предназначение</span></a></li>
+        <li><a href="#s7"  data-target="s7"><span class="num">07</span><span>Таланты и сила</span></a></li>
+        <li><a href="#s8"  data-target="s8"><span class="num">08</span><span>Теневая сторона</span></a></li>
+        <li><a href="#s9"  data-target="s9"><span class="num">09</span><span>Отношения</span></a></li>
+        <li><a href="#s10" data-target="s10"><span class="num">10</span><span>Деньги и карьера</span></a></li>
+        <li><a href="#s11" data-target="s11"><span class="num">11</span><span>Сценарии</span></a></li>
+        <li><a href="#s12" data-target="s12"><span class="num">12</span><span>Внутренние конфликты</span></a></li>
+        <li><a href="#s13" data-target="s13"><span class="num">13</span><span>Циклы и прогноз</span></a></li>
+        <li><a href="#s14" data-target="s14"><span class="num">14</span><span>Семь дней</span></a></li>
+        <li><a href="#s15" data-target="s15"><span class="num">15</span><span>Карта дня</span></a></li>
+        <li style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px;"><a href="#r1" data-target="r1"><span class="num">∙</span><span>Мои инсайты</span></a></li>
+        <li><a href="#r2" data-target="r2"><span class="num">∙</span><span>Что я попробую</span></a></li>
+      </ul>
+    </nav>
+
+    <div class="sb-footer">
+      <div class="progress"><span id="readProgress" style="width:0%"></span></div>
+      <div>Сгенерировано 25 мая 2026 · NURA AI</div>
+    </div>
+  </aside>
+
+  <!-- ============ MOBILE NAV ============ -->
+  <div class="mobile-nav" id="mobileNav">
+    <div class="mobile-nav-bar">
+      <div class="sb-brand">
+        <span class="mark">N</span>
+        <span class="name" style="font-size:12px;">NURA AI</span>
+      </div>
+      <div class="mn-current" id="mnCurrent">01 · Обложка</div>
+      <button class="mn-toggle" id="mnToggle" aria-label="Меню">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+    <div class="mobile-nav-panel">
+      <ul id="mnNav"></ul>
+    </div>
+  </div>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <main class="content">
+
+    <!-- ===========================================
+         01 · COVER
+         =========================================== -->
+    <section class="chapter cover" id="s1" data-screen-label="01 Обложка">
+      <div class="cv-eye">
+        <span class="ln"></span>
+        <span>Матрица Судьбы · Полный разбор</span>
+        <span class="dt">№ NR-2026-0525-АН</span>
+      </div>
+
+      <h1 class="cv-title">Разбор для<br><em>Анны</em></h1>
+      <div class="cv-name">15 июня 1990 года</div>
+
+      <div class="cv-grid">
+        <div class="cv-info">
+          <div class="row">
+            <div class="k">Имя</div>
+            <div class="v">Анна</div>
+          </div>
+          <div class="row">
+            <div class="k">Дата рождения</div>
+            <div class="v mono">15.06.1990</div>
+          </div>
+          <div class="row">
+            <div class="k">Архетип</div>
+            <div class="v accent">VII. Колесница</div>
+          </div>
+          <div class="row">
+            <div class="k">Линия неба</div>
+            <div class="v mono">6 — 7 — 9</div>
+          </div>
+          <div class="row">
+            <div class="k">Аркан 2026</div>
+            <div class="v">IV. Император</div>
+          </div>
+          <div class="row">
+            <div class="k">Сгенерировано</div>
+            <div class="v mono">25.05.2026</div>
+          </div>
+        </div>
+
+        <div class="matrix-viz" aria-hidden="true">
+          <svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="cellGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.22"/>
+                <stop offset="100%" stop-color="#C9A55C" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="line-g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#6BA37A" stop-opacity="0.25"/>
+              </linearGradient>
+            </defs>
+
+            <!-- connecting lines between cells (3x3 grid) -->
+            <g stroke="url(#line-g)" stroke-width="1">
+              <!-- horizontal rows -->
+              <line x1="90" y1="90"  x2="270" y2="90"/>
+              <line x1="90" y1="180" x2="270" y2="180"/>
+              <line x1="90" y1="270" x2="270" y2="270"/>
+              <!-- vertical columns -->
+              <line x1="90"  y1="90" x2="90"  y2="270"/>
+              <line x1="180" y1="90" x2="180" y2="270"/>
+              <line x1="270" y1="90" x2="270" y2="270"/>
+              <!-- diagonals through center -->
+              <line x1="90"  y1="90"  x2="270" y2="270"/>
+              <line x1="270" y1="90"  x2="90"  y2="270"/>
+            </g>
+
+            <!-- center glow -->
+            <circle cx="180" cy="180" r="60" fill="url(#cellGlow)"/>
+
+            <!-- cells: 3x3 grid -->
+            <g font-family="Cormorant Garamond, Georgia, serif" text-anchor="middle" dominant-baseline="central">
+              <!-- TOP ROW: 3, 6, 9 -->
+              <rect x="72"  y="72"  width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="90"  y="90"  fill="#C9A55C" font-size="22" font-style="italic">3</text>
+
+              <rect x="162" y="72"  width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="180" y="90"  fill="#C9A55C" font-size="22" font-style="italic">6</text>
+
+              <rect x="252" y="72"  width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="270" y="90"  fill="#C9A55C" font-size="22" font-style="italic">9</text>
+
+              <!-- MIDDLE ROW: 5, 7 (center), 2 -->
+              <rect x="72"  y="162" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="90"  y="180" fill="#C9A55C" font-size="22" font-style="italic">5</text>
+
+              <!-- center cell — larger, brighter -->
+              <rect x="154" y="154" width="52" height="52" rx="4" fill="#143527" stroke="#E8C078" stroke-opacity="0.95" stroke-width="1.5"/>
+              <text x="180" y="180" fill="#F5D78A" font-size="34" font-weight="500">7</text>
+
+              <rect x="252" y="162" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="270" y="180" fill="#C9A55C" font-size="22" font-style="italic">2</text>
+
+              <!-- BOTTOM ROW: 4, 1, 8 -->
+              <rect x="72"  y="252" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="90"  y="270" fill="#C9A55C" font-size="22" font-style="italic">4</text>
+
+              <rect x="162" y="252" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="180" y="270" fill="#C9A55C" font-size="22" font-style="italic">1</text>
+
+              <rect x="252" y="252" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="270" y="270" fill="#C9A55C" font-size="22" font-style="italic">8</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="disclaimer" style="margin-top:80px;">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         02 · DASHBOARD
+         =========================================== -->
+    <section class="chapter" id="s2" data-screen-label="02 За 30 секунд">
+      <div class="ch-head">
+        <span class="nbr">02 — За 30 секунд</span>
+        <h2>Главное о тебе <em>на одном развороте</em></h2>
+        <p class="ch-sub">Краткая выжимка из расчёта. Если торопишься — читай только её и переходи к секции, которая зацепила.</p>
+      </div>
+
+      <div class="dashboard">
+        <div class="dash-card">
+          <div class="dc-icon" style="font-style:italic;">VII</div>
+          <div class="dc-k">Архетип</div>
+          <div class="dc-v">Колесница<em>центр матрицы</em></div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-icon">△</div>
+          <div class="dc-k">Главный талант</div>
+          <div class="dc-v">Целеустремлённость <em>в хаосе</em></div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-icon">◐</div>
+          <div class="dc-k">Главный блок</div>
+          <div class="dc-v">Контроль <em>вместо доверия</em></div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-icon">✦</div>
+          <div class="dc-k">Предназначение</div>
+          <div class="dc-v">Прокладывать путь <em>для других</em></div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-icon" style="font-style:italic;">IV</div>
+          <div class="dc-k">Аркан 2026</div>
+          <div class="dc-v">Император<em>год структуры</em></div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         03 · ARCHETYPE
+         =========================================== -->
+    <section class="chapter" id="s3" data-screen-label="03 Архетип личности">
+      <div class="ch-head">
+        <span class="nbr">03 — Архетип личности</span>
+        <h2>Колесница <em>в центре</em> карты</h2>
+        <p class="ch-sub">Главный аркан матрицы. Объясняет, почему ты двигаешься так, как двигаешься — и почему это работает.</p>
+      </div>
+
+      <div class="prose">
+        <p>Анна, твой архетип — это человек, который умеет двигаться вперёд даже когда внутри всё сопротивляется. Не потому что не чувствует страха — а потому что научилась действовать сквозь него. Для тебя «справиться» давно стало синонимом «существовать», и большая часть энергии уходит на то, чтобы тащить ситуацию туда, где, как ты считаешь, ей правильно быть.</p>
+
+        <p>В психологическом профиле Колесницы есть два режима. Первый — когда ты в фокусе: ясная цель, понятный маршрут, и ты собранно идёшь к нему, обходя препятствия как опытный водитель — взглядом, корпусом, чуть-чуть рулём. Второй — когда цели нет: тогда ты создаёшь её сама, искусственно, лишь бы не оставаться в неподвижности. Неподвижность воспринимается тобой почти как угроза, и это важный момент для дальнейших секций.</p>
+
+        <p>Сила архетипа — в способности <strong>удерживать направление при сильном сопротивлении среды</strong>. Там, где другие останавливаются, чтобы пересмотреть план, ты дожимаешь. Это не упрямство — это особый тип внимания: ты видишь не препятствие, а проход рядом с ним. Поэтому тебе легко даются проекты, в которых вначале «непонятно как», но конечная точка ясна.</p>
+
+        <div class="pull">«Я не уверена, что мне нужно туда — но я уже почти доехала, разворачиваться поздно.» Знакомое ощущение?</div>
+
+        <p>Оборотная сторона — ты часто берёшь на себя больше, чем комфортно, и молчишь об этом до момента взрыва. В отношениях это выглядит так: ты соглашаешься, тащишь, не жалуешься, потом резко выходишь из контакта или из самих отношений — на удивление окружающих, которые «вообще ничего такого не замечали». Для тебя это не была импульсивная реакция, ты просто наконец позволила себе её показать.</p>
+
+        <p>Колесница — это аркан движения, но не аркан остановки. Тебе сложно отдыхать без чувства вины и сложно признавать, что устала, до того момента, когда уже физически перестаёшь функционировать. Внутри есть установка, что «отдых нужно заслужить», и тело регулярно становится единственным способом, которым ты разрешаешь себе остановиться.</p>
+
+        <p>Важно: Колесница — это не «военный» аркан, как часто считают. Это аркан <strong>координации</strong>. Внутри тебя живёт минимум две противоположные силы (мы разберём их подробно в секции 12), и твоя задача — не победить одну из них, а научиться вести их одновременно. Когда у тебя получается — ты непобедима. Когда не получается — ты разрываешься, и это считывается окружающими как «холодность» или «недоступность».</p>
+
+        <p>Что с этим делать. Замечать первые сигналы перегрева: не последние, когда уже всё, а ранние. Учиться формулировать недовольство в моменте, не накапливая. И — самое сложное для тебя — давать себе разрешение на остановку без причины. Не потому что плохо, не потому что заслужила, а просто потому что захотелось.</p>
+
+        <div class="why" id="why-arch">
+          <button class="why-btn" type="button" data-toggle="why-arch">
+            <span class="arrow">▸</span>
+            <span>Почему я так думаю — технические данные расчёта</span>
+          </button>
+          <div class="why-body">
+            <div class="why-card">
+              <div class="row"><div class="k">// Центральная позиция матрицы</div><div class="v">7 (Колесница)</div></div>
+              <div class="row"><div class="k">// Аркан небесного канала</div><div class="v">6 (Влюблённые)</div></div>
+              <div class="row"><div class="k">// Аркан земного канала</div><div class="v">2 (Жрица)</div></div>
+              <div class="row"><div class="k">// Линия неба</div><div class="v">6 — 7 — 9</div></div>
+              <div class="row"><div class="k">// Линия земли</div><div class="v">5 — 7 — 2</div></div>
+              <div class="row"><div class="k">// Повторяющийся аркан</div><div class="v">7 встречается 3 раза</div></div>
+              <div class="row"><div class="k">// Сильные точки</div><div class="v">центр, правая (9. Отшельник)</div></div>
+              <div class="row"><div class="k">// Слабые точки</div><div class="v">нижняя (2. Жрица — тень)</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         04 · KARMIC TAIL
+         =========================================== -->
+    <section class="chapter" id="s4" data-screen-label="04 Кармический хвост">
+      <div class="ch-head">
+        <span class="nbr">04 — Кармический хвост</span>
+        <h2>Что ты <em>привезла с собой</em></h2>
+        <p class="ch-sub">Не про прошлые жизни и не про вину предков — про устойчивый паттерн, который запустился задолго до твоего решения и теперь требует осознанной работы.</p>
+      </div>
+
+      <div class="timeline">
+        <div class="tl-item">
+          <span class="tl-tag">Причина · прошлое</span>
+          <div class="tl-arc">Аркан 2 — низ матрицы · Жрица в тени</div>
+          <h3>Привычка <em>знать молча</em></h3>
+          <div class="prose">
+            <p>В твоём роду — и в твоём раннем детстве — было нормально знать, но не говорить. Видеть, что отец устал, и не подходить. Слышать, как мать злится, но «делать вид, что всё хорошо». Это создало в тебе глубокий навык считывания контекста без слов — и одновременно установку, что озвучивать увиденное нельзя или опасно.</p>
+            <p>Ты выросла с ощущением, что твоё знание — это что-то, что нужно прятать, потому что «никто не оценит» или «получишь по голове». Это и есть кармический хвост: не наказание, а недоразвитый канал, который нужно разморозить.</p>
+          </div>
+        </div>
+
+        <div class="tl-item now">
+          <span class="tl-tag">Следствие · сейчас</span>
+          <div class="tl-arc">Аркан 7 — центр матрицы · Колесница</div>
+          <h3>Бесконечное <em>«я сама»</em></h3>
+          <div class="prose">
+            <p>Та самая Жрица, которую в детстве научили молчать, превратилась в Колесницу, которая делает. Ты не просишь о помощи не потому что гордая — а потому что искренне не веришь, что её услышат. Это не убеждение, это телесная память: «когда я говорила, никто не реагировал, значит говорить бессмысленно».</p>
+            <p>В моменте это выглядит как сверхсамостоятельность, и окружающие тобой восхищаются. Но цена такая: ты выгораешь, потому что не делегируешь, и одинока, потому что не впускаешь. Партнёры и коллеги долго не понимают, что ты вообще нуждаешься — пока не становится поздно.</p>
+            <p>Это <strong>центральная задача твоей карты</strong> — научиться возвращать функцию голоса. Не «жаловаться», а формулировать свои потребности и наблюдения вслух, в моменте, не дожидаясь, что заметят сами.</p>
+          </div>
+        </div>
+
+        <div class="tl-item">
+          <span class="tl-tag">Урок · трансформация</span>
+          <div class="tl-arc">Аркан 6 — верх матрицы · Влюблённые</div>
+          <h3>Учиться <em>выбирать вслух</em></h3>
+          <div class="prose">
+            <p>Урок верхней позиции — это не «найти любовь». Это научиться делать выбор и не отзывать его обратно. Аркан Влюблённых наверху твоей карты говорит, что твой главный трансформационный навык — не способность тащить, а способность останавливаться у развилки и честно выбирать одну из дорог. Без «а вдруг», «надо подумать ещё», «давай я сделаю и то, и то».</p>
+            <p>Когда ты делаешь явный выбор и объявляешь его — Колесница перестаёт разрываться, Жрица перестаёт молчать, Влюблённые перестают сомневаться. Это и есть выход из кармического треугольника твоей карты.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         05 · RODOVYE
+         =========================================== -->
+    <section class="chapter" id="s5" data-screen-label="05 Родовые программы">
+      <div class="ch-head">
+        <span class="nbr">05 — Родовые программы</span>
+        <h2>Что унаследовано <em>по линиям</em></h2>
+        <p class="ch-sub">Слабые места и сильные опоры, переданные тебе с двух сторон. Унаследовать — не значит обязательно повторять.</p>
+      </div>
+
+      <div class="rod">
+        <div class="rod-col">
+          <h4>Линия отца</h4>
+          <span class="rod-arcs">арканы 5 — 7 — 9</span>
+          <div class="prose">
+            <p>По отцовской линии тебе достался <strong>каркас движения</strong>: способность ставить цели и доводить их до конца, не разваливаясь по дороге. Это твой ресурс, и ты пользуешься им автоматически.</p>
+            <p>Теневая сторона той же линии — <strong>невозможность остановиться, когда уже хватит</strong>. Мужчины в твоём роду работали на износ и считали это нормой. Ты впитала это как фон, не сомневаясь. Сейчас твоя задача — пересобрать саму идею «достаточно»: что это не лень и не сдача, а взрослый расчёт ресурса.</p>
+            <p>Девятка справа (Отшельник) даёт тебе сильный навык работы с собой в одиночку. Это хорошо, пока не становится способом избегать обращения за помощью к живым людям. Спрашивай.</p>
+          </div>
+        </div>
+
+        <div class="rod-col">
+          <h4>Линия матери</h4>
+          <span class="rod-arcs">арканы 3 — 7 — 8</span>
+          <div class="prose">
+            <p>По материнской линии — <strong>чувствительность как профессиональный инструмент</strong>. Женщины в твоём роду различали оттенки настроений в комнате с порога, и ты тоже. Это огромный ресурс в общении, в работе с людьми, в любом деле, где важно «увидеть, что человек на самом деле имел в виду».</p>
+            <p>Теневая часть — <strong>привычка обслуживать чужие состояния в ущерб своему</strong>. Замечать чужую тревогу и тут же её гасить, забывая, что у тебя тоже есть свои дела. У тебя, скорее всего, не было разрешения злиться открыто — и сейчас тебе сложно дать его себе.</p>
+            <p>Восьмёрка (Справедливость) — переданное умение видеть, где нарушены границы. Используй её на себя, а не только на других.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         06 · DESTINY (featured)
+         =========================================== -->
+    <section class="chapter destiny-chapter" id="s6" data-screen-label="06 Предназначение">
+      <div class="ch-head">
+        <span class="nbr">06 — Предназначение</span>
+        <h2>Прокладывать путь <em>для тех, кто пойдёт следом</em></h2>
+        <div class="destiny-emblem">
+          <span class="line"></span>
+          <svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/>
+          </svg>
+          <span class="line"></span>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>Главная задача твоей карты — не быть быстрее всех, не быть лучше всех и не выгрызать себе место на пьедестале. Главная задача звучит проще и труднее одновременно: <strong>пройти первой и оставить дорогу размеченной для тех, кто пойдёт следом.</strong> Это и есть смысл твоей линии неба — 6, 7, 9: выбрать (Влюблённые), пройти (Колесница), осмыслить и передать (Отшельник).</p>
+
+        <div class="sky-line">
+          <span class="sl-label">Линия неба</span>
+          <div class="sl-nums"><span>6</span><span>—</span><span>7</span><span>—</span><span>9</span></div>
+        </div>
+
+        <p>Большинство людей не способны делать то, что делаешь ты в обычный четверг. Это не комплимент — это техническое наблюдение. Когда ты говоришь «да это любой бы сделал», ты ошибаешься, и это не скромность, это слепое пятно. Тебе кажется обычным то, что для других — навык, который они только мечтают развить. Из этого вырастает первая часть предназначения: <em>научиться видеть свою норму как ценность</em>, а не как базовый уровень.</p>
+
+        <p>Вторая часть — <em>передавать</em>. Колесница в центре + Отшельник справа — это формула наставника. Не учителя в смысле «знаю и расскажу», а человека, который своим способом проживания показывает другим: «так можно». Тебе не обязательно открывать школу или вести курсы (хотя ты можешь). Достаточно начать рассказывать про то, как ты делаешь — в постах, в разговорах, в работе. Без героизма, без «у меня всё легко», а с разбором: вот тут было трудно, вот так я справилась, вот что не сработало.</p>
+
+        <p>Третья часть — <em>стоять</em>. Не убегать в новое, не разменивать накопленный опыт на следующий проект, в котором всё опять с нуля. Твой возраст 35+ — это период, когда тебе пора начать капитализировать то, что ты уже сделала. Не строить ещё одну Колесницу, а превратить уже построенную в систему, из которой можно жить, не сжигая себя каждый день.</p>
+
+        <p>Это не «миссия» в патетическом смысле. Это конкретная инженерная задача: научиться делать своё дело так, чтобы оно работало без твоего ежедневного героического присутствия — и чтобы рядом с тобой росли люди, которые благодаря тебе получили доступ к тому, что ты умеешь.</p>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         07 · TALENTS
+         =========================================== -->
+    <section class="chapter" id="s7" data-screen-label="07 Таланты">
+      <div class="ch-head">
+        <span class="nbr">07 — Таланты и сильные стороны</span>
+        <h2>Что ты <em>правда умеешь</em></h2>
+        <p class="ch-sub">Не «лидерские качества» и не «коммуникабельность». Конкретные навыки, на которых стоит строить дело и репутацию.</p>
+      </div>
+
+      <div class="talents">
+        <div class="talent">
+          <span class="t-num">01</span>
+          <div>
+            <h4>Удерживать фокус, когда вокруг хаос</h4>
+            <p>Когда у всех остальных горит, опускаются руки или начинается паника, ты продолжаешь видеть, что нужно сделать сейчас, что — потом, и что — никогда. Это не хладнокровие, это твой способ обработки стресса: ты не глушишь его, а превращаешь в список действий. Команды это считывают мгновенно и идут за тобой.</p>
+          </div>
+        </div>
+        <div class="talent">
+          <span class="t-num">02</span>
+          <div>
+            <h4>Принимать решения без полной информации</h4>
+            <p>Ты не парализуешься от того, что данных мало. Ты делаешь следующий шаг с тем, что есть, а недостающее добираешь по ходу. Это качество стоит очень дорого в любой работе, где важна скорость — от управления до клиентских проектов с горящими сроками.</p>
+          </div>
+        </div>
+        <div class="talent">
+          <span class="t-num">03</span>
+          <div>
+            <h4>Видеть структуру там, где другие видят кашу</h4>
+            <p>Дашь тебе ворох разрозненных задач, чужой проект в плохом состоянии или непонятный текст — ты автоматически разбираешь это на блоки, выстраиваешь приоритеты и возвращаешь упорядоченным. Это редкий навык: большинство людей либо паникуют, либо чинят первое попавшееся, не глядя на целое.</p>
+          </div>
+        </div>
+        <div class="talent">
+          <span class="t-num">04</span>
+          <div>
+            <h4>Поднимать людей за собой, не уговаривая</h4>
+            <p>Тебе не нужно делать вдохновляющих речей. Достаточно того, что ты сама двигаешься. Люди рядом с тобой подтягиваются — не потому что ты их заставляешь, а потому что рядом с твоей собранностью оставаться расхлябанным неудобно. Это сильная управленческая мускулатура, даже если ты ей пока не пользуешься.</p>
+          </div>
+        </div>
+        <div class="talent">
+          <span class="t-num">05</span>
+          <div>
+            <h4>Возвращаться после провала быстрее среднего</h4>
+            <p>Ты горюешь по нерабочему сценарию короче, чем большинство, и быстрее переключаешься в режим «что делаем дальше». Это не равнодушие — это твоя восстановительная биомеханика. Стоит вкладываться в проекты с риском: твоя цена ошибки психологически ниже, чем у людей вокруг.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         08 · SHADOW
+         =========================================== -->
+    <section class="chapter" id="s8" data-screen-label="08 Теневая сторона">
+      <div class="ch-head">
+        <span class="nbr">08 — Теневая сторона</span>
+        <h2>Цена <em>твоей силы</em></h2>
+        <p class="ch-sub">Это не недостатки — это оборотная сторона твоих сильных качеств. Их нельзя «убрать», но можно научиться видеть и не давать им рулить.</p>
+      </div>
+
+      <div class="prose">
+        <p>Первое и главное — <strong>гиперконтроль</strong>. Ты держишь в голове и в ладони слишком много одновременно. Чужие задачи, чужие настроения, расписание, риски, запасной план B и план C. Это даёт устойчивость в моменте, но через несколько лет такой жизни тело начинает требовать остановки доступными ему средствами: бессонница, спина, желудок, странные сбои иммунитета. Контроль — твой способ справляться с тревогой, и пока ты не разрешишь себе тревогу как таковую, контроль будет нарастать.</p>
+
+        <p>Второе — <strong>сложность с делегированием</strong>. Ты искренне считаешь, что «быстрее сделать самой», и каждый раз убеждаешь себя, что в этот раз — особый случай. На самом деле в особый случай попадают примерно все случаи. Это не недоверие к людям — это очень глубокая установка из детства, что отвечать в итоге будешь ты, и значит лучше уж сразу делать самой. Эта установка перестаёт быть верной задолго до того, как ты её замечаешь.</p>
+
+        <p>Третье — <strong>эмоциональное закрытие при перегрузке</strong>. Когда тебе становится слишком много, ты не плачешь и не злишься открыто. Ты тише, собраннее, отстранённее. Снаружи это выглядит как «всё хорошо», и окружающие охотно соглашаются, что всё хорошо. Это удобная маска, но платишь за неё ты — потому что эмоция, которую не выпустили, никуда не девается, она просто откладывается и накапливается до момента, когда ты резко уходишь из ситуации, человека или проекта.</p>
+
+        <p>Четвёртое — <strong>сравнение себя с прошлой собой</strong>. Колесница не любит остановок, и любое замедление ты автоматически интерпретируешь как «съезжаю». Внутренний счётчик «я делаю меньше, чем месяц назад» включается слишком часто, и из него вырастает чувство вины — за выходной, за отказ, за то, что не дотянулась. Это не объективная оценка, это привычный механизм самоконтроля. Замечай его и не подчиняйся каждому разу.</p>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         09 · RELATIONSHIPS
+         =========================================== -->
+    <section class="chapter" id="s9" data-screen-label="09 Отношения">
+      <div class="ch-head">
+        <span class="nbr">09 — Отношения</span>
+        <h2>Кого <em>притягивает</em> Колесница</h2>
+        <p class="ch-sub">Тип партнёра, сценарий входа и выхода, и — самое полезное — с кем у вас будет ресурсный контакт, а с кем сложный.</p>
+      </div>
+
+      <div class="prose">
+        <p>Тебя притягивают люди, которые сначала кажутся независимыми и сложными — а через пару месяцев оказываются нуждающимися. Это закономерно: твоя Колесница ищет того, кого можно немного «довезти», и считывает потенциал «довоза» как химию. На входе в отношения ты часто берёшь больше, чем тебе предлагают, и сама не замечаешь, как становишься опорой раньше, чем партнёр успел показать, кто он на самом деле.</p>
+
+        <p>Паттерн входа — стремительный. Ты быстро принимаешь решение, что «этот человек — мой», и начинаешь под него подстраиваться. Шаги, которые обычно делают за полгода, ты делаешь за месяц. Это не наивность, это твоя манера принимать решения: ты не любишь висеть в неопределённости. Минус в том, что ты часто инвестируешься в человека до того, как он показал, способен ли он инвестироваться в ответ.</p>
+
+        <p>Паттерн выхода — резкий и обычно односторонний. Накапливается невысказанное недовольство, ты пытаешься намекать, партнёр не считывает (часто действительно не считывает, а не игнорирует), и в какой-то момент ты просто выходишь. Без скандала, без длинного разговора — просто перестаёшь быть. Партнёры воспринимают это как «холодную жестокость», но это не жестокость, это аварийный выход того, кто молчал слишком долго.</p>
+
+        <p>Ресурсный сценарий — партнёр, у которого есть собственная устойчивость и который умеет говорить «мне не нравится» в момент, а не через три недели. Тебе не нужен «такой же сильный, как ты» (это рецепт двух Колесниц, которые в итоге разойдутся через шесть месяцев из-за невозможности договориться о направлении). Тебе нужен <strong>спокойный и говорящий</strong>. С такими людьми ты впервые в жизни сможешь не нести всё одна.</p>
+
+        <h3 style="font-size:24px;margin:36px 0 8px;color:var(--ink);">Совместимость с архетипами</h3>
+      </div>
+
+      <div class="compat-grid">
+        <div class="compat">
+          <div class="c-arc">II. Жрица</div>
+          <span class="c-level">Глубокая</span>
+          <p>Она видит тебя насквозь и не пугается. Молчаливый партнёр, который умеет давать тебе паузу. Риск: вы оба молчите о важном.</p>
+        </div>
+        <div class="compat">
+          <div class="c-arc">IV. Император</div>
+          <span class="c-level">Ресурсная</span>
+          <p>Структура и опора. Он закрывает фон, ты двигаешь вперёд. Хорошо в браке, в общем деле. Риск: рутина и потеря химии.</p>
+        </div>
+        <div class="compat">
+          <div class="c-arc">XIX. Солнце</div>
+          <span class="c-level">Сложная</span>
+          <p>Лёгкий, тёплый, заразительный. Тебя тянет к его свободе, но ты быстро начинаешь его «организовывать». Совместимость требует работы.</p>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         10 · MONEY
+         =========================================== -->
+    <section class="chapter" id="s10" data-screen-label="10 Деньги и карьера">
+      <div class="ch-head">
+        <span class="nbr">10 — Деньги и карьера</span>
+        <h2>Где тебе <em>естественно</em> зарабатывать</h2>
+        <p class="ch-sub">Конкретные роли, в которых твой архетип реализуется без насилия над собой, и три денежных блока, которые повторяются у Колесниц чаще всего.</p>
+      </div>
+
+      <div class="prose">
+        <p>Твоя финансовая логика — высокий чек, средняя нагрузка, прямая ответственность. Ты лучше всего зарабатываешь, когда у тебя зона полномочий, по которой видно, что именно ты её ведёшь. Размытые роли и распылённые задачи — антинатуральная среда для Колесницы; ты в них теряешь и деньги, и интерес.</p>
+
+        <div class="pros-list">
+          <span class="pl-label">Три конкретные траектории</span>
+          <ul>
+            <li>Операционный директор — наводить и держать порядок там, где растёт компания.</li>
+            <li>Кризис-менеджер или интерим — заходить в сложную ситуацию, разруливать, выходить.</li>
+            <li>Предприниматель в B2B-услугах — своё дело со средним и крупным чеком, без масс-маркета.</li>
+          </ul>
+        </div>
+
+        <p>Финансовая стратегия — не диверсифицироваться по чуть-чуть, а концентрироваться. Ты лучше зарабатываешь на одном крупном направлении, чем на трёх средних. И ты лучше зарабатываешь на 10 клиентах за дорого, чем на 100 за дёшево — у тебя нет «массового» режима, и попытки в него уйти всегда заканчиваются выгоранием.</p>
+      </div>
+
+      <div class="money-blocks">
+        <div class="money-block">
+          <span class="mb-tag">₽1</span>
+          <div>
+            <h4>Брать ответственность, не повышая цену</h4>
+            <p>Ты дотаскиваешь чужие зоны, потому что «никто кроме» — и не пересматриваешь свой контракт. В итоге работаешь за две роли с зарплатой одной. Это не великодушие, это финансовый просчёт. Раз в полгода — пересмотр.</p>
+          </div>
+        </div>
+        <div class="money-block">
+          <span class="mb-tag">₽2</span>
+          <div>
+            <h4>Не повышать чек, потому что «и так платят»</h4>
+            <p>Колесница часто застревает на цене, которая работала пять лет назад. Рынок ушёл, ты — нет. Каждый год — плановое повышение, не «когда заметят», а просто как часть профессиональной гигиены.</p>
+          </div>
+        </div>
+        <div class="money-block">
+          <span class="mb-tag">₽3</span>
+          <div>
+            <h4>Откладывать инвестиции до «спокойного периода»</h4>
+            <p>Спокойного периода у тебя не будет — Колесница так не работает. Деньги, которые не инвестируются, сами не превращаются в актив. Минимальная регулярная сумма ежемесячно, без героизма, дисциплинированно.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         11 · PATTERNS
+         =========================================== -->
+    <section class="chapter" id="s11" data-screen-label="11 Сценарии">
+      <div class="ch-head">
+        <span class="nbr">11 — Повторяющиеся сценарии</span>
+        <h2>Что ты <em>проигрываешь</em> снова и снова</h2>
+        <p class="ch-sub">Четыре конкретных сюжета, которые узнают почти все Колесницы. Если узнаёшь себя — это не приговор, это точка для работы.</p>
+      </div>
+
+      <div class="pattern">
+        <span class="p-num">01</span>
+        <h4>«Спасатель в чужом проекте»</h4>
+        <p>Тебя зовут «помочь разрулить» в проект, который тонет. Ты заходишь, вытаскиваешь, наводишь порядок, всем становится хорошо — и через пару месяцев твою роль начинают воспринимать как должное. Цена твоего входа забывается, договорённости размываются, и ты остаёшься тащить уже не из чувства интереса, а из неловкости уйти.</p>
+        <p class="ex">Подруга открывает проект, просит «на месяц помочь с операцинкой», ты соглашаешься. Через полгода ты половину её бизнеса ведёшь, но юридически — никто. Когда говоришь «давай оформим», получаешь обиду.</p>
+      </div>
+
+      <div class="pattern">
+        <span class="p-num">02</span>
+        <h4>«Молчу — взрываюсь — ухожу»</h4>
+        <p>Накапливаешь маленькие раздражения месяцами, не озвучивая. Объясняешь себе, что «это мелочь, не стоит из-за этого». Потом одна капля — и ты выходишь из ситуации полностью, обрубая всё. Окружающие в шоке: «всё же было нормально». Для тебя — нет, не было, ты просто молчала.</p>
+        <p class="ex">Партнёр шесть месяцев не предлагает планировать отпуск вдвоём. Ты ничего не говоришь, потому что «не хочу давить». Потом он спрашивает «а ты на майские что-то планируешь?» — и ты вдруг говоришь, что хочешь расстаться.</p>
+      </div>
+
+      <div class="pattern">
+        <span class="p-num">03</span>
+        <h4>«Я сама — но потом обижусь»</h4>
+        <p>На предложение помощи — рефлекторное «не надо, я сама». Помощник отступает, ты делаешь, устаёшь, и потом тихо злишься, что никто не помог. Внутри ощущение, что «никто никогда не подхватывает», но снаружи ты ни разу не дала возможности подхватить.</p>
+        <p class="ex">Муж предлагает «давай вместе с детьми в выходные», ты отвечаешь «не, у меня свои планы». В понедельник на работе говоришь «я вообще выгорела, у меня даже выходных нормальных нет».</p>
+      </div>
+
+      <div class="pattern">
+        <span class="p-num">04</span>
+        <h4>«Не останавливаюсь, пока не сломаюсь»</h4>
+        <p>Ты не умеешь останавливаться по календарю — только по факту того, что больше не можешь. Усталость не считается легитимной причиной для паузы, причиной считается температура 38,5. Тело раз в год примерно так и устраивает себе принудительный отпуск.</p>
+        <p class="ex">Перед каждым крупным проектом — две недели «дотащить любой ценой», после сдачи — три дня лежишь с гриппом, и это случайно.</p>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         12 · CONFLICTS
+         =========================================== -->
+    <section class="chapter" id="s12" data-screen-label="12 Внутренние конфликты">
+      <div class="ch-head">
+        <span class="nbr">12 — Внутренние конфликты</span>
+        <h2>Двойники <em>в диалоге</em></h2>
+        <p class="ch-sub">Пары арканов в твоей карте, которые тянут в противоположные стороны. Цель — не победа одного из них, а налаженный диалог.</p>
+      </div>
+
+      <div class="conflict">
+        <div class="c-head">
+          <div class="c-bubble">VII</div>
+          <div class="c-vs">↔</div>
+          <div class="c-bubble b2">II</div>
+          <h4 style="margin-left:auto;margin-bottom:0;">Колесница и Жрица</h4>
+        </div>
+        <div class="prose"><p>Колесница хочет ехать. Жрица хочет понять, куда. Колесница теряет терпение, когда Жрица «слишком долго думает». Жрица грустит, когда Колесница опять выехала, не выслушав. Результат — ты часто действуешь раньше, чем услышала собственную интуицию, а потом удивляешься, что «как-то всё не туда».</p></div>
+        <div class="c-grid">
+          <div>
+            <h5>Как проявляется</h5>
+            <p>Резкие решения, о которых через неделю жалеешь. Согласия, данные слишком быстро. Ощущение «я разогналась раньше, чем поняла, зачем».</p>
+          </div>
+          <div>
+            <h5>Как гармонизировать</h5>
+            <p>Правило 24 часов на важные «да». Записывай ощущение «не туда» сразу же, как уловила — даже если ехать уже начала. Это не отмена движения, это сверка курса.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="conflict">
+        <div class="c-head">
+          <div class="c-bubble">VI</div>
+          <div class="c-vs">↔</div>
+          <div class="c-bubble b2">IX</div>
+          <h4 style="margin-left:auto;margin-bottom:0;">Влюблённые и Отшельник</h4>
+        </div>
+        <div class="prose"><p>Сверху карты Влюблённые — тяга к контакту, желание выбора с кем-то. Справа — Отшельник, потребность в одиночестве и тишине. Это два равных голоса, и они часто не дают друг другу слова. Ты или погружаешься в отношения настолько, что теряешь себя, или закрываешься так, что близкие воспринимают это как стену.</p></div>
+        <div class="c-grid">
+          <div>
+            <h5>Как проявляется</h5>
+            <p>Циклы: интенсивные периоды близости с партнёром, потом резкая дистанция. Партнёры читают как «то горячая, то холодная». Внутри — изматывающие качели.</p>
+          </div>
+          <div>
+            <h5>Как гармонизировать</h5>
+            <p>Объяви этот ритм вслух. Договорённость «мне иногда нужно три часа одной» — не отвержение, а инфраструктура близости. Тогда Отшельник перестанет молча воровать твоё время у Влюблённых.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         13 · CYCLES
+         =========================================== -->
+    <section class="chapter" id="s13" data-screen-label="13 Циклы и прогноз">
+      <div class="ch-head">
+        <span class="nbr">13 — Жизненные циклы и прогноз</span>
+        <h2>Где ты <em>сейчас</em> и куда идёт линия</h2>
+        <p class="ch-sub">Ключевые семилетние развороты в твоей карте. Текущий период — особое окно для пересборки опоры.</p>
+      </div>
+
+      <div class="cycle-track">
+        <div class="cycle-line">
+          <div class="cycle-fill"></div>
+        </div>
+        <div class="cycle-dots">
+          <div class="cycle-dot passed">
+            <span class="age">7 лет</span>
+            <span class="arc">Дурак</span>
+          </div>
+          <div class="cycle-dot passed">
+            <span class="age">14</span>
+            <span class="arc">Жрица</span>
+          </div>
+          <div class="cycle-dot passed">
+            <span class="age">21</span>
+            <span class="arc">Влюблённые</span>
+          </div>
+          <div class="cycle-dot passed">
+            <span class="age">28</span>
+            <span class="arc">Колесница</span>
+          </div>
+          <div class="cycle-dot now">
+            <span class="age">35 · сейчас</span>
+            <span class="arc">Сила</span>
+          </div>
+          <div class="cycle-dot">
+            <span class="age">42</span>
+            <span class="arc">Отшельник</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>В 7 лет ты впервые поняла, что мир не подстраивается под тебя — и начала подстраиваться под него. В 14 училась считывать взрослых раньше, чем они скажут. В 21 — первый серьёзный выбор, в 28 — первый цикл активного «тащить». Сейчас, в 35, ты вошла в аркан Силы — это <strong>не про напор, а про мягкую устойчивость</strong>. Это период, когда нужно перестроить опору с «я могу» на «у меня есть».</p>
+        <p>Ближайшие три года — это окно, в котором решения становятся структурными. То, что ты заложишь сейчас, будет работать на тебя следующие 7 лет, до перехода в Отшельника (42 года) — фазы, в которой основная задача будет передавать, не строить с нуля.</p>
+      </div>
+
+      <h3 style="font-size:22px;color:var(--ink);margin:36px 0 0;">Прогноз 2026 — 2028 по сферам</h3>
+      <div class="forecast">
+        <div class="fcast">
+          <div class="yr">2026 — 2027</div>
+          <h5>Отношения</h5>
+          <p>Год Императора подсветит, у кого из твоего окружения есть структура, а у кого только разговоры. Сократишь круг — найдёшь близких, кому действительно можно опереться. С партнёром (или новым контактом) — этап договорённостей, а не романтического тумана.</p>
+        </div>
+        <div class="fcast">
+          <div class="yr">2026 — 2027</div>
+          <h5>Деньги</h5>
+          <p>Подходящее время для повышения чека и формализации того, чем ты уже занимаешься. Не самое подходящее — для запуска принципиально нового направления. Капитализируй накопленное.</p>
+        </div>
+        <div class="fcast">
+          <div class="yr">2027 — 2028</div>
+          <h5>Развитие</h5>
+          <p>Появится тяга учить, говорить, оформлять опыт. Не игнорируй её — это включается линия 6—7—9. Конкретный шаг: первая регулярная публикация или формат, в котором ты делишься своим способом работы.</p>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         14 · 7 DAYS
+         =========================================== -->
+    <section class="chapter" id="s14" data-screen-label="14 Семь дней">
+      <div class="ch-head">
+        <span class="nbr">14 — Рекомендации на 7 дней</span>
+        <h2>Начни <em>с этой недели</em></h2>
+        <p class="ch-sub">Семь конкретных коротких заданий. Каждое — на 10–20 минут. Это не «работа над собой» в патетическом смысле, это эксперимент. Отметь сделанное.</p>
+      </div>
+
+      <div class="week" id="week">
+        <div class="day" data-day="1">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">🧠 Ум</span>
+            <span class="d-name">Понедельник</span>
+          </div>
+          <div class="d-task">Запиши 3 решения, которые ты откладываешь дольше месяца. Не анализируй причины — просто зафиксируй, что именно висит. Этот список понадобится в среду.</div>
+        </div>
+        <div class="day" data-day="2">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">💪 Тело</span>
+            <span class="d-name">Вторник</span>
+          </div>
+          <div class="d-task">Запланируй один час в течение недели, в который ты ничего не должна. Не отдых «после дел» — а защищённый блок в календаре. Не плати ему задачами.</div>
+        </div>
+        <div class="day" data-day="3">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">🧠 Ум</span>
+            <span class="d-name">Среда</span>
+          </div>
+          <div class="d-task">Возьми один пункт из понедельничного списка и сделай по нему один — любой — шаг сегодня. Не закрывай вопрос целиком, просто запусти движение.</div>
+        </div>
+        <div class="day" data-day="4">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">🌟 Дух</span>
+            <span class="d-name">Четверг</span>
+          </div>
+          <div class="d-task">Напиши одному человеку короткое сообщение о том, что ты ему благодарна — без повода и без длинных формулировок. Конкретно за что, в одной фразе.</div>
+        </div>
+        <div class="day" data-day="5">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">💪 Тело</span>
+            <span class="d-name">Пятница</span>
+          </div>
+          <div class="d-task">В одном разговоре сегодня скажи вслух то, что ты обычно проглатываешь. Не обязательно конфликт — просто «мне это не подходит» или «мне это важно». Один раз за день.</div>
+        </div>
+        <div class="day" data-day="6">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">🌟 Дух</span>
+            <span class="d-name">Суббота</span>
+          </div>
+          <div class="d-task">Перечитай секцию «Предназначение» этого отчёта и запиши одну фразу, которая тебя зацепила сильнее остальных. Без интерпретации, просто фиксируй.</div>
+        </div>
+        <div class="day" data-day="7">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">🧠 Ум</span>
+            <span class="d-name">Воскресенье</span>
+          </div>
+          <div class="d-task">Подведи итог недели в двух предложениях. Что было новым в твоём поведении? Что хочется попробовать на следующей неделе ещё раз?</div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         15 · TAROT TEASER
+         =========================================== -->
+    <section class="chapter" id="s15" data-screen-label="15 Карта дня">
+      <div class="ch-head">
+        <span class="nbr">15 — Карта дня</span>
+        <h2>Продолжение <em>каждое утро</em></h2>
+        <p class="ch-sub">Матрица — это карта местности. Карта дня — компас, который помогает идти по ней на коротком отрезке.</p>
+      </div>
+
+      <div class="tarot-teaser">
+        <div class="tt-eye">Пример карты на сегодня</div>
+        <div class="tt-grid">
+          <div class="tt-card">
+            <div class="tc-num">VII</div>
+            <div class="tc-sym" style="font-family:'Cormorant Garamond',serif; font-size:64px; font-style:italic; color:var(--t-accent); line-height:1; opacity:0.9;">VII</div>
+            <div class="tc-name">Колесница</div>
+          </div>
+          <div class="tt-text">
+            <h3>VII. <em>Колесница</em></h3>
+            <div class="tt-sub">Твоя карта дня</div>
+            <p>Сегодня лучшее, что ты можешь сделать, — это сократить количество одновременных направлений. Колесница даёт силу, только когда вожжи в одних руках. Если ты сейчас тянешь три проекта и общаешься с пятью людьми параллельно, останови два из них до завтра. Это не уход — это перегруппировка.</p>
+            <a class="tt-cta" href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">
+              Получать карту дня каждое утро
+              <span class="price">· 390 ₽/мес</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         REFLECTION PAGES
+         =========================================== -->
+    <section class="reflection" id="r1" data-screen-label="R1 Мои инсайты">
+      <span class="nbr" style="font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--m-accent);letter-spacing:0.16em;margin-bottom:14px;display:block;">∙ Страница рефлексии</span>
+      <h2>Мои <em>инсайты</em></h2>
+      <p class="r-sub">Что нового ты увидела о себе, читая этот разбор. Не нужно «правильных» формулировок — пиши своими словами, как думается.</p>
+      <div class="lines">
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line mid"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line short"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line mid"></div>
+        <div class="line"></div>
+        <div class="line short"></div>
+        <div class="line"></div>
+      </div>
+    </section>
+
+    <section class="reflection" id="r2" data-screen-label="R2 Что я попробую">
+      <span class="nbr" style="font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--m-accent);letter-spacing:0.16em;margin-bottom:14px;display:block;">∙ Страница рефлексии</span>
+      <h2>Что я попробую <em>на этой неделе</em></h2>
+      <p class="r-sub">Один-два конкретных шага. Не «начну жить иначе», а «во вторник напишу N. сообщение». Чем мельче и конкретнее, тем выше шанс, что произойдёт.</p>
+      <div class="lines">
+        <div class="line"></div>
+        <div class="line mid"></div>
+        <div class="line"></div>
+        <div class="line short"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line mid"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line short"></div>
+      </div>
+
+      <div style="margin-top:80px;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--ink-faint);">
+        <span>NURA AI · Матрица Судьбы · отчёт для Анны</span>
+        <a href="https://t.me/ai_nura_bot" target="_blank" rel="noopener" style="color:var(--m-accent);">@ai_nura_bot</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<button class="to-top" id="toTop" aria-label="Наверх">↑</button>
+
+<script>
+(function(){
+  // Build mobile nav from sidebar
+  const sbLinks = document.querySelectorAll('#sbNav a');
+  const mnList = document.getElementById('mnNav');
+  sbLinks.forEach(a => {
+    const li = document.createElement('li');
+    li.innerHTML = `<a href="${a.getAttribute('href')}" data-target="${a.dataset.target}"><span class="num">${a.querySelector('.num').textContent}</span><span>${a.querySelectorAll('span')[1].textContent}</span></a>`;
+    mnList.appendChild(li);
+  });
+
+  // Mobile toggle
+  const mnEl = document.getElementById('mobileNav');
+  document.getElementById('mnToggle').addEventListener('click', () => {
+    mnEl.classList.toggle('open');
+  });
+  mnList.addEventListener('click', e => {
+    if (e.target.closest('a')) mnEl.classList.remove('open');
+  });
+
+  // Scroll spy
+  const sections = Array.from(document.querySelectorAll('section[id]'));
+  const allLinks = document.querySelectorAll('[data-target]');
+  const mnCurrent = document.getElementById('mnCurrent');
+  const progressBar = document.getElementById('readProgress');
+
+  function onScroll() {
+    const scrollY = window.scrollY + window.innerHeight * 0.30;
+    let current = sections[0];
+    for (const s of sections) {
+      if (s.offsetTop <= scrollY) current = s;
+    }
+    if (current) {
+      const id = current.id;
+      allLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
+      // mobile current label
+      const active = document.querySelector(`#sbNav a[data-target="${id}"]`);
+      if (active) {
+        const num = active.querySelector('.num').textContent;
+        const name = active.querySelectorAll('span')[1].textContent;
+        mnCurrent.textContent = `${num} · ${name}`;
+      }
+    }
+    // progress
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = Math.max(0, Math.min(100, (window.scrollY / max) * 100));
+    progressBar.style.width = pct + '%';
+
+    // back to top visibility
+    const toTop = document.getElementById('toTop');
+    toTop.classList.toggle('visible', window.scrollY > 500);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Back to top
+  document.getElementById('toTop').addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Why accordion
+  document.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.toggle);
+      if (target) target.classList.toggle('open');
+    });
+  });
+
+  // 7-day checkboxes (session-only, no persistence)
+  const week = document.getElementById('week');
+  week.querySelectorAll('.day').forEach(d => {
+    d.addEventListener('click', () => {
+      d.classList.toggle('done');
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
