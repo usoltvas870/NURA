@@ -17,7 +17,7 @@
   {% set chakras = [
     {
       'id': 'sahasrara', 'name': 'Сахасрара', 'sanskrit': 'सहस्रार',
-      'icon': '🕉', 'color': '#8E44AD', 'loc': 'Макушка',
+      'icon': '☯', 'color': '#8E44AD', 'loc': 'Макушка',
       'organs': 'мозг, нервная система',
       'sky': chakra_data.sahasrara_sky|default('—'),
       'earth': chakra_data.sahasrara_earth|default('—'),
@@ -33,7 +33,7 @@
     },
     {
       'id': 'vishudha', 'name': 'Вишудха', 'sanskrit': 'विशुद्ध',
-      'icon': '🔊', 'color': '#4A90D9', 'loc': 'Горло',
+      'icon': '', 'color': '#4A90D9', 'loc': 'Горло',
       'organs': 'горло, щитовидная железа, голосовые связки',
       'sky': chakra_data.vishudha_sky|default('—'),
       'earth': chakra_data.vishudha_earth|default('—'),
@@ -41,7 +41,7 @@
     },
     {
       'id': 'anahata', 'name': 'Анахата', 'sanskrit': 'अनाहत',
-      'icon': '💚', 'color': '#2ECC71', 'loc': 'Сердце',
+      'icon': '', 'color': '#2ECC71', 'loc': 'Сердце',
       'organs': 'сердце, лёгкие, вилочковая железа',
       'sky': chakra_data.anahata_sky|default('—'),
       'earth': chakra_data.anahata_earth|default('—'),
@@ -49,7 +49,7 @@
     },
     {
       'id': 'manipura', 'name': 'Манипура', 'sanskrit': 'मणिपूर',
-      'icon': '🔥', 'color': '#F1C40F', 'loc': 'Солнечное сплетение',
+      'icon': '', 'color': '#F1C40F', 'loc': 'Солнечное сплетение',
       'organs': 'желудок, печень, поджелудочная железа',
       'sky': chakra_data.manipura_sky|default('—'),
       'earth': chakra_data.manipura_earth|default('—'),
@@ -57,7 +57,7 @@
     },
     {
       'id': 'svadhisthana', 'name': 'Свадхистана', 'sanskrit': 'स्वाधिष्ठान',
-      'icon': '💧', 'color': '#E67E22', 'loc': 'Низ живота',
+      'icon': '', 'color': '#E67E22', 'loc': 'Низ живота',
       'organs': 'репродуктивная система, почки',
       'sky': chakra_data.svadhisthana_sky|default('—'),
       'earth': chakra_data.svadhisthana_earth|default('—'),
@@ -65,7 +65,7 @@
     },
     {
       'id': 'muladhara', 'name': 'Муладхара', 'sanskrit': 'मूलाधार',
-      'icon': '🪨', 'color': '#E74C3C', 'loc': 'Корень',
+      'icon': '', 'color': '#E74C3C', 'loc': 'Корень',
       'organs': 'позвоночник, кости, ноги, иммунитет',
       'sky': chakra_data.muladhara_sky|default('—'),
       'earth': chakra_data.muladhara_earth|default('—'),
@@ -134,7 +134,7 @@
   <div class="chakra-organism-block">
     <div class="chakra-row organism-row">
       <div class="chakra-icon-wrap">
-        <span class="chakra-icon">🧬</span>
+        <span class="chakra-icon">◈</span>
       </div>
       <div class="chakra-info">
         <div class="chakra-header">
@@ -162,13 +162,13 @@
   {# Мини-практика для всего раздела #}
   {% if analysis.health_analysis %}
   <div class="chakra-global-analysis">
-    <h4>🧠 Разбор энергетики здоровья</h4>
+    <h4>Разбор энергетики здоровья</h4>
     <p>{{ analysis.health_analysis }}</p>
   </div>
   {% endif %}
 
   <div class="chakra-global-practice">
-    <h4>🌿 Общая практика</h4>
+    <h4>Общая практика</h4>
     <p>Выбери чакру с наименьшим показателем (красный уровень) и удели ей 5 минут в день: визуализируй её цвет, дыши в эту зону, повторяй аффирмацию «Я в балансе».</p>
   </div>
 </section>

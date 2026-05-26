@@ -140,7 +140,7 @@ async def _render_report_by_type(report, session_factory) -> str | None:
         analysis = getattr(report, "ai_analysis", None) or {}
         if ReportService._is_fallback_analysis(analysis):
             return None
-        return await ReportService.render_report_v2_html(report, session_factory)
+        return await ReportService.render_report_html(report, session_factory)
 
     if report_type == ReportType.COMPATIBILITY.value:
         return await ReportService.render_report_html(report, session_factory)
