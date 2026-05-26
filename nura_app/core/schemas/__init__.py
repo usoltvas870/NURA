@@ -60,92 +60,62 @@ class MiniAnalysisResult(BaseModel):
 class FullReportResult(BaseModel):
     main_archetype: str = Field(
         ...,
-        min_length=600,
-        max_length=2500,
         description="глубокий разбор: ключевая фраза, жизненная стратегия, стиль решений, проявление в работе/отношениях/деньгах",
     )
     strengths: str = Field(
         ...,
-        min_length=500,
-        max_length=2000,
         description="сильные стороны, таланты, ресурсы, примеры реализации",
     )
     shadow_side: str = Field(
         ...,
-        min_length=500,
-        max_length=2000,
         description="теневая сторона, слепые пятна, психологические защиты",
     )
     relationship_dynamics: str = Field(
         ...,
-        min_length=600,
-        max_length=3000,
         description="динамика отношений: тип партнёра (точка отношений), паттерн входа/выхода, совместимость с архетипами",
     )
     financial_scenario: str = Field(
         ...,
-        min_length=600,
-        max_length=3000,
         description="финансовый сценарий: 2-3 профессии/ниши, стратегия дохода, конкретные денежные блоки",
     )
     recurring_mistakes: str = Field(
         ...,
-        min_length=400,
-        max_length=1500,
         description="повторяющиеся сценарии, циклы и причины",
     )
     internal_conflicts: str = Field(
         ...,
-        min_length=500,
-        max_length=2000,
         description="внутренние конфликты между энергиями матрицы, путь разрешения",
     )
     life_cycles: str = Field(
         ...,
-        min_length=400,
-        max_length=1500,
         description="жизненные циклы, периоды подъёма и спада",
     )
     ai_recommendations: str = Field(
         ...,
-        min_length=500,
-        max_length=3000,
         description="7 дней рекомендаций в категориях тело/ум/дух, каждый с конкретным арканом и действием",
     )
     karmic_tail_analysis: str = Field(
         ...,
-        min_length=800,
-        max_length=4000,
         description="детальный разбор: причина→следствие→урок, история трёх арканов, практический выход из цикла",
     )
     ancestral_programs: str = Field(
         ...,
-        min_length=800,
-        max_length=4000,
         description="родовые программы: линия отца (G) и матери (I), их влияние, ресурс vs блоки, путь проработки",
     )
     life_purpose: str = Field(
         ...,
-        min_length=1000,
-        max_length=5000,
         description="предназначение: 4 уровня (личное/социальное/духовное/кармическое), кармический дар (F), денежный канал (H), конкретные сферы реализации",
     )
     life_forecast: str = Field(
         ...,
-        min_length=1000,
-        max_length=5000,
         description="прогноз: текущий год по сферам (карьера/отношения/здоровье/деньги), прогноз 3 года, ключевые возраста и их энергии",
     )
     psychological_blocks: str = Field(
         ...,
-        min_length=800,
-        max_length=3500,
         description="психологические блоки: какие убеждения формирует каждый ключевой аркан, к каким ситуациям приводит, как изменить",
     )
     health_analysis: str = Field(
         ...,
-        min_length=1000,
-        max_length=5000,
         description="карта здоровья: 7 чакр с детальным разбором — состояние, причина дисбаланса, органы под управлением, практика восстановления (на основе арканов матрицы)",
     )
 
@@ -169,8 +139,8 @@ class KitchenReportResult(BaseModel):
     ancestral_programs: KitchenEntry
     life_purpose: KitchenEntry
     life_forecast: KitchenEntry
-    psychological_blocks: KitchenEntry
-    health_analysis: KitchenEntry
+    psychological_blocks: KitchenEntry = Field(default_factory=lambda: KitchenEntry(positions=[], energies=[], logic=""))
+    health_analysis: KitchenEntry = Field(default_factory=lambda: KitchenEntry(positions=[], energies=[], logic=""))
 
 
 class ReportResponse(BaseModel):

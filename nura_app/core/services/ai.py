@@ -441,7 +441,8 @@ class AIService:
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": user_content},
                 ],
-                api_params=DEFAULT_PARAMS,
+                api_params=FULL_REPORT_PARAMS,
+                timeout=300.0,
             )
             result = await AIService._parse_json_response(response, _retry_callback)
             validated = MiniAnalysisResult(**result)
@@ -487,11 +488,13 @@ class AIService:
                     {"role": "user", "content": user_content},
                 ],
                 api_params=FULL_REPORT_PARAMS,
+                timeout=300.0,
             )
             result = await AIService._parse_json_response(response, _retry_callback)
             validated = FullReportResult(**result)
             return validated.model_dump()
         except Exception:
+            logger.exception("generate_full_report failed — returning FALLBACK_FULL")
             return FALLBACK_FULL
 
     FALLBACK_KITCHEN: dict[str, dict] = {
@@ -530,7 +533,9 @@ class AIService:
                             "строго по схеме, без markdown-блоков."
                         ),
                     },
-                ]
+                ],
+                api_params=FULL_REPORT_PARAMS,
+                timeout=300.0,
             )
 
         try:
@@ -546,6 +551,7 @@ class AIService:
                     "frequency_penalty": 0.0,
                     "presence_penalty": 0.0,
                 },
+                timeout=180.0,
             )
             result = await AIService._parse_json_response(response, _retry_callback)
             validated = KitchenReportResult(**result)
@@ -599,6 +605,7 @@ class AIService:
                     {"role": "user", "content": user_content},
                 ],
                 api_params=FULL_REPORT_PARAMS,
+                timeout=300.0,
             )
             result = await AIService._parse_json_response(response, _retry_callback)
             validated = CompatibilityFullResult(**result)
@@ -761,7 +768,8 @@ class AIService:
                         ),
                     },
                 ],
-                api_params={"model": TAROT_DAILY_MODEL, **DEFAULT_PARAMS},
+                api_params=FULL_REPORT_PARAMS,
+                timeout=300.0,
             )
 
         try:

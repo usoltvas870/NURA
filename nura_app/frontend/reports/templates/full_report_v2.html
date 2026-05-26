@@ -1294,14 +1294,595 @@
 
   /* Print friendly */
   @media print {
-    aside.sidebar, .mobile-nav, .to-top { display: none; }
-    .shell { grid-template-columns: 1fr; }
-    main.content { padding: 0; }
-    section.chapter { page-break-inside: avoid; padding: 30px 0; }
+    @page {
+      size: A4;
+      margin: 20mm 18mm 22mm 18mm;
+    }
+    @page :first {
+      margin-top: 12mm;
+    }
+
+    /* --- Reset to light printable theme (WeasyPrint: no var() / clamp() / sticky / backdrop-filter) --- */
+    html { font-size: 13px; }
+    body {
+      background: #fff;
+      color: #1a1a1a;
+      font-family: Georgia, 'Times New Roman', serif;
+      line-height: 1.65;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Hide interactive & dark-only elements */
+    aside.sidebar,
+    .mobile-nav,
+    .to-top,
+    .why-btn,
+    .disclaimer,
+    .sb-footer .progress,
+    script {
+      display: none !important;
+    }
+
+    /* Full-width single column */
+    .shell {
+      display: block !important;
+      grid-template-columns: none;
+    }
+    main.content {
+      max-width: none;
+      padding: 0;
+      overflow: visible;
+    }
+
+    /* Section spacing */
+    section.chapter {
+      max-width: none;
+      padding: 28px 0 20px;
+      page-break-inside: avoid;
+      scroll-margin-top: 0;
+    }
+    section.chapter:first-of-type { padding-top: 0; }
+    section.chapter + section.chapter { page-break-before: always; }
+
+    /* --- Typography --- */
+    .serif, h1, h2, h3, h4, h5 {
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    .eyebrow {
+      font-family: Georgia, serif;
+      font-size: 10px;
+      color: #8B7332;
+      letter-spacing: 0.12em;
+    }
+    .eyebrow::before { width: 14px; }
+
+    .ch-head { margin-bottom: 20px; }
+    .ch-head .nbr {
+      font-family: Georgia, serif;
+      font-size: 12px;
+      color: #8B7332;
+      letter-spacing: 0.1em;
+    }
+    .ch-head h2 {
+      font-size: 26px;
+      line-height: 1.12;
+      color: #1a1a1a;
+    }
+    .ch-head h2 em { color: #3D7A4F; font-style: italic; }
+    .ch-head .ch-sub {
+      font-size: 14px;
+      color: #555;
+      max-width: none;
+    }
+
+    .prose { color: #333; }
+    .prose p {
+      font-size: 14px;
+      line-height: 1.65;
+      margin: 0 0 0.9em;
+    }
+    .prose strong { color: #1a1a1a; }
+    .prose em {
+      color: #3D7A4F;
+      font-style: italic;
+      font-family: Georgia, serif;
+      font-size: 1em;
+    }
+
+    .pull {
+      margin: 20px 0;
+      border-left: 2px solid #8B7332;
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 18px;
+      color: #1a1a1a;
+      padding-left: 16px;
+    }
+
+    .disclaimer {
+      display: block;
+      margin-top: 16px;
+      padding-top: 8px;
+      border-top: 1px solid #ddd;
+      font-size: 9px;
+      color: #aaa;
+      font-style: italic;
+    }
+
+    /* --- Print-only TOC --- */
+    .print-toc {
+      display: block !important;
+      page-break-after: always;
+      padding: 0 0 28px;
+    }
+    .print-toc h2 {
+      font-family: Georgia, serif;
+      font-size: 22px;
+      color: #1a1a1a;
+      margin-bottom: 18px;
+      font-weight: 600;
+    }
+    .print-toc ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      columns: 2;
+      column-gap: 24px;
+    }
+    .print-toc li {
+      margin-bottom: 10px;
+      page-break-inside: avoid;
+    }
+    .print-toc a {
+      color: #1a1a1a;
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.4;
+      display: inline-flex;
+      gap: 10px;
+    }
+    .print-toc .toc-num {
+      font-family: Georgia, serif;
+      color: #8B7332;
+      font-size: 12px;
+      min-width: 24px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* --- COVER --- */
+    .cover {
+      min-height: 0;
+      padding: 10px 0 20px;
+      max-width: none;
+    }
+    .cover::before { display: none; }
+    .cv-eye {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: #8B7332;
+      margin-bottom: 18px;
+    }
+    .cv-eye .ln { flex: 0 0 40px; }
+    .cv-eye .dt { font-size: 10px; }
+    .cv-title {
+      font-size: 42px;
+      line-height: 1.05;
+      color: #1a1a1a;
+      margin-bottom: 10px;
+    }
+    .cv-title em { color: #3D7A4F; }
+    .cv-name {
+      font-size: 26px;
+      color: #8B7332;
+      margin-bottom: 30px;
+    }
+    .cv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+    .cv-info .row {
+      grid-template-columns: 110px 1fr;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    .cv-info .k {
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: #888;
+    }
+    .cv-info .v {
+      font-family: Georgia, serif;
+      font-size: 17px;
+      color: #1a1a1a;
+    }
+    .cv-info .v.accent { color: #8B7332; }
+    .cv-info .v.mono { font-family: 'Courier New', monospace; font-size: 13px; color: #555; }
+
+    .matrix-viz { max-width: 240px; }
+    .matrix-viz svg g[stroke*="url"] line {
+      stroke: #8B7332;
+      stroke-opacity: 0.35;
+    }
+    .matrix-viz svg rect { fill: #fafafa; stroke: #8B7332; stroke-opacity: 0.5; }
+    .matrix-viz svg text { fill: #8B7332; }
+    .matrix-viz svg circle[fill*="url"] { fill: rgba(139, 115, 50, 0.12); }
+
+    /* --- DASHBOARD --- */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+    .dash-card {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 14px 12px;
+      min-height: 110px;
+      page-break-inside: avoid;
+    }
+    .dash-card .dc-k {
+      font-size: 9px;
+      color: #888;
+      letter-spacing: 0.1em;
+    }
+    .dash-card .dc-icon {
+      background: rgba(139, 115, 50, 0.1);
+      color: #8B7332;
+    }
+    .dash-card .dc-v {
+      font-family: Georgia, serif;
+      font-size: 17px;
+      color: #1a1a1a;
+    }
+    .dash-card .dc-v em {
+      color: #3D7A4F;
+      font-size: 12px;
+    }
+
+    /* --- WHY ACCORDION (always visible in print) --- */
+    .why {
+      border-top: 1px solid #ddd;
+      padding-top: 14px;
+      margin-top: 18px;
+    }
+    .why-btn { display: none; }
+    .why-body {
+      max-height: none !important;
+      overflow: visible;
+      margin-top: 0;
+    }
+    .why-body .why-card {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 14px 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #555;
+    }
+    .why-body .why-card .row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 12px;
+      padding: 2px 0;
+    }
+    .why-body .why-card .row .k { color: #888; }
+    .why-body .why-card .row .v { color: #8B7332; }
+
+    /* --- KARMIC TAIL --- */
+    .timeline { padding-left: 28px; }
+    .timeline::before {
+      left: 6px;
+      background: #8B7332;
+      opacity: 0.4;
+    }
+    .tl-item { margin-bottom: 28px; page-break-inside: avoid; }
+    .tl-item::before {
+      left: -28px;
+      width: 13px;
+      height: 13px;
+      background: #fff;
+      border-color: #8B7332;
+    }
+    .tl-item.now::before {
+      background: #8B7332;
+      box-shadow: none;
+    }
+    .tl-tag { font-size: 9px; color: #8B7332; }
+    .tl-arc { font-size: 11px; color: #888; }
+    .tl-item h3 { font-size: 22px; }
+
+    /* --- ROD (2-column) --- */
+    .rod {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .rod-col {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 20px;
+      page-break-inside: avoid;
+    }
+    .rod-col h4 { font-size: 20px; }
+    .rod-col .rod-arcs {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #8B7332;
+    }
+
+    /* --- DESTINY --- */
+    .destiny-chapter { max-width: none; }
+    .destiny-chapter .ch-head h2 { font-size: 36px; }
+    .destiny-emblem { margin: 12px 0 22px; }
+    .destiny-emblem .line {
+      background: #8B7332;
+    }
+    .destiny-emblem .star { color: #8B7332; }
+    .sky-line {
+      background: rgba(139, 115, 50, 0.06);
+      border-color: rgba(139, 115, 50, 0.25);
+      margin: 22px 0;
+      padding: 16px 20px;
+    }
+    .sky-line .sl-label { font-size: 9px; color: #8B7332; }
+    .sky-line .sl-nums {
+      font-family: Georgia, serif;
+      font-size: 24px;
+      color: #1a1a1a;
+    }
+    .sky-line .sl-nums span:nth-child(2) { color: #8B7332; }
+
+    /* --- PATTERNS --- */
+    .pattern {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 0 0 18px;
+      padding: 18px 20px;
+      page-break-inside: avoid;
+    }
+    .pattern .p-num { font-size: 28px; color: #8B7332; opacity: 0.3; }
+    .pattern h4 { font-size: 18px; padding-right: 36px; }
+    .pattern p { font-size: 13px; }
+    .pattern .ex {
+      border-top-color: #ddd;
+      font-size: 14px;
+    }
+    .pattern .ex::before { color: #8B7332; font-size: 9px; }
+
+    /* --- CONFLICTS --- */
+    .conflict {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 18px;
+      page-break-inside: avoid;
+    }
+    .conflict .c-bubble {
+      background: rgba(139, 115, 50, 0.1);
+      border-color: rgba(139, 115, 50, 0.4);
+      color: #8B7332;
+    }
+    .conflict .c-bubble.b2 {
+      background: rgba(61, 122, 79, 0.08);
+      border-color: rgba(61, 122, 79, 0.35);
+      color: #3D7A4F;
+    }
+    .conflict .c-vs {
+      color: #888;
+      font-size: 16px;
+    }
+    .conflict h4 { font-size: 18px; }
+    .conflict .c-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .conflict .c-grid h5 {
+      font-size: 10px;
+      color: #8B7332;
+      font-family: Georgia, serif;
+    }
+    .conflict .c-grid p { font-size: 13px; }
+
+    /* --- COMPAT --- */
+    .compat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .compat {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 14px;
+      page-break-inside: avoid;
+    }
+    .compat .c-arc { font-size: 16px; color: #8B7332; }
+    .compat .c-level { font-size: 9px; color: #3D7A4F; }
+    .compat p { font-size: 12px; color: #555; }
+
+    /* --- MONEY --- */
+    .money-blocks { gap: 10px; }
+    .money-block {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 18px;
+      grid-template-columns: 60px 1fr;
+      gap: 16px;
+      page-break-inside: avoid;
+    }
+    .money-block .mb-tag { font-size: 22px; color: #8B7332; }
+    .money-block h4 { font-size: 17px; }
+    .money-block p { font-size: 13px; }
+    .pros-list {
+      background: rgba(139, 115, 50, 0.06);
+      border-left-color: #8B7332;
+    }
+    .pros-list .pl-label { font-size: 9px; color: #8B7332; }
+    .pros-list li { font-size: 16px; color: #1a1a1a; }
+    .pros-list li::before { color: #8B7332; }
+
+    /* --- CYCLES --- */
+    .cycle-track { margin: 18px 0 20px; padding: 30px 0 20px; }
+    .cycle-line { background: #ddd; }
+    .cycle-fill { background: #8B7332; }
+    .cycle-dot {
+      background: #fff;
+      border-color: #3D7A4F;
+    }
+    .cycle-dot.passed { background: #3D7A4F; }
+    .cycle-dot.now { background: #8B7332; border-color: #8B7332; box-shadow: none; }
+    .cycle-dot .age { font-size: 14px; color: #1a1a1a; }
+    .cycle-dot.now .age { color: #8B7332; }
+    .cycle-dot .arc { font-size: 9px; color: #888; }
+    .forecast {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .fcast {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 14px;
+      page-break-inside: avoid;
+    }
+    .fcast .yr {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: #8B7332;
+    }
+    .fcast h5 { font-size: 16px; color: #1a1a1a; }
+    .fcast p { font-size: 12px; color: #555; }
+
+    /* --- 7 DAYS --- */
+    .week { gap: 6px; }
+    .day {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px 14px;
+      cursor: default;
+      grid-template-columns: 20px 90px 1fr;
+      page-break-inside: avoid;
+    }
+    .day .checkbox {
+      border-color: #ccc;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+    }
+    .day.done {
+      background: rgba(61, 122, 79, 0.05);
+      border-color: rgba(61, 122, 79, 0.3);
+    }
+    .day.done .checkbox { background: #3D7A4F; border-color: #3D7A4F; }
+    .d-name { font-size: 16px; color: #1a1a1a; }
+    .d-cat { font-size: 9px; color: #8B7332; }
+    .d-task { font-size: 12px; color: #555; }
+    .day.done .d-task { color: #aaa; text-decoration: line-through; }
+    .day.done .d-name { color: #3D7A4F; }
+
+    /* --- TAROT --- */
+    .tarot-teaser {
+      padding: 28px 30px;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      page-break-inside: avoid;
+    }
+    .tarot-teaser .tt-eye { font-size: 10px; color: #8B7332; }
+    .tarot-teaser .tt-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+    .tt-card {
+      background: #fafafa;
+      border-color: #ddd;
+      padding: 14px 10px;
+    }
+    .tt-card::before { border-color: #ddd; }
+    .tt-card .tc-num { font-size: 11px; color: #8B7332; }
+    .tt-card .tc-sym { font-size: 44px; color: #8B7332; }
+    .tt-card .tc-name { font-size: 11px; color: #8B7332; }
+    .tt-text h3 { font-size: 26px; color: #1a1a1a; }
+    .tt-text h3 em { color: #8B7332; }
+    .tt-text .tt-sub { font-size: 14px; color: #8B7332; }
+    .tt-text p { font-size: 13px; color: #555; }
+    .tt-cta {
+      background: #8B7332;
+      color: #fff;
+      padding: 10px 18px;
+      font-size: 12px;
+      display: inline-flex;
+    }
+    .tt-cta .price { font-size: 14px; }
+
+    /* --- REFLECTION PAGES --- */
+    .reflection {
+      max-width: none;
+      padding: 50px 0 30px;
+    }
+    .reflection h2 { font-size: 28px; }
+    .reflection .r-sub { font-size: 13px; color: #555; }
+    .lines .line { border-bottom-color: #ddd; }
+    #r2 > div {
+      border-top-color: #ddd;
+      color: #888;
+      font-size: 10px;
+    }
+    #r2 > div a { color: #8B7332; }
+
+    /* --- Keep "why" accordion bodies open --- */
+    .why.open .why-body,
+    .why .why-body {
+      max-height: none;
+      margin-top: 10px;
+      overflow: visible;
+    }
+
+    /* --- Hide SVG gradients that WeasyPrint can't render --- */
+    .matrix-viz defs { display: none; }
   }
 </style>
 </head>
 <body>
+
+<!-- ============ PRINT-ONLY TABLE OF CONTENTS ============ -->
+<nav class="print-toc" style="display:none;">
+  <h2>Содержание</h2>
+  <ol>
+    <li><a href="#s1"><span class="toc-num">01</span>Обложка</a></li>
+    <li><a href="#s2"><span class="toc-num">02</span>За 30 секунд</a></li>
+    <li><a href="#s3"><span class="toc-num">03</span>Архетип личности</a></li>
+    <li><a href="#s4"><span class="toc-num">04</span>Кармический хвост</a></li>
+    <li><a href="#s5"><span class="toc-num">05</span>Родовые программы</a></li>
+    <li><a href="#s6"><span class="toc-num">06</span>Предназначение</a></li>
+    <li><a href="#s7"><span class="toc-num">07</span>Таланты и сила</a></li>
+    <li><a href="#s8"><span class="toc-num">08</span>Теневая сторона</a></li>
+    <li><a href="#s9"><span class="toc-num">09</span>Отношения</a></li>
+    <li><a href="#s10"><span class="toc-num">10</span>Деньги и карьера</a></li>
+    <li><a href="#s11"><span class="toc-num">11</span>Сценарии</a></li>
+    <li><a href="#s12"><span class="toc-num">12</span>Внутренние конфликты</a></li>
+    <li><a href="#s13"><span class="toc-num">13</span>Циклы и прогноз</a></li>
+    <li><a href="#s14"><span class="toc-num">14</span>Семь дней</a></li>
+    <li><a href="#s15"><span class="toc-num">15</span>Карта дня</a></li>
+    <li><a href="#r1"><span class="toc-num">&bull;</span>Мои инсайты</a></li>
+    <li><a href="#r2"><span class="toc-num">&bull;</span>Что я попробую</a></li>
+  </ol>
+</nav>
 
 <div class="shell">
 
@@ -1593,7 +2174,7 @@
           <h4>Линия матери</h4>
           <span class="rod-arcs">арканы {{ mother_line_nums }}</span>
           <div class="prose">
-            <p>Наследие материнской линии — чувствительность, интуиция, умение считывать контекст. Теневая сторона — привычка обслуживать чужие состояния в ущерб своим.</p>
+            {{ analysis.ancestral_programs | safe if analysis.ancestral_programs else '<p>Загружается...</p>' }}
           </div>
         </div>
       </div>

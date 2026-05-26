@@ -99,7 +99,7 @@ class ReportService:
         return await repo.get_by_token(token)
 
     @staticmethod
-    async def render_report_html(report, session_factory: async_sessionmaker) -> str | None:
+    async def render_report_html(report, session_factory: async_sessionmaker, template_name: str = "full_report.html") -> str | None:
         from core.repositories.user import UserRepository
         from core.services.matrix import ARCANA, MatrixService
         from core.services.daily_arcana import get_today_arcana_with_name
@@ -206,7 +206,7 @@ class ReportService:
             "daily_tarot_arcana": daily_tarot_arcana,
         }
 
-        return ReportService.generate_html_report(report_data)
+        return ReportService.generate_html_report(report_data, template_name=template_name)
 
     @staticmethod
     def _build_v2_report_data(matrix_data: dict, analysis: dict, kitchen_analysis: dict | None,
@@ -424,6 +424,32 @@ class ReportService:
         )
 
         return ReportService.generate_html_report(report_data, template_name="full_report_v2.html")
+
+    @staticmethod
+    def _is_fallback_analysis(analysis: dict | None) -> bool:
+        if not analysis or not isinstance(analysis, dict):
+            return True
+        fallback_markers = [
+            "чуть больше времени",
+            "мне нужно время",
+            "вернусь с точным",
+            "вернусь с результатом",
+            "попробуй запросить разбор",
+            "повтори запрос через минуту",
+            "запроси разбор повторно",
+            "мне требуется дополнительное время",
+            "я подготовлю точный",
+            "уточню анализ",
+            "я уточню расчёты",
+            "я подготовлю детальный разбор",
+            "я подготовлю разбор и вернусь",
+        ]
+        for _field, value in analysis.items():
+            if isinstance(value, str):
+                for marker in fallback_markers:
+                    if marker.lower() in value.lower():
+                        return True
+        return False
 
     @staticmethod
     def parse_recommendations(ai_recommendations: str) -> list[dict]:
