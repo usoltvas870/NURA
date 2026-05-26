@@ -452,39 +452,34 @@ class ReportService:
         return False
 
     @staticmethod
-    def parse_recommendations(ai_recommendations: str) -> list[dict]:
+    def parse_recommendations(text: str) -> list[dict]:
+        """
+        Парсит ai_recommendations в список из 7 элементов.
+        Ожидаемый формат: "1. текст\n2. текст\n..."
+        """
         import re
-
-        lines = [ln.strip() for ln in ai_recommendations.strip().split("\n") if ln.strip()]
+        days_raw = re.split(r'\n(?=\d+\.)', text.strip())
         result = []
-        for i, line in enumerate(lines, 1):
-            cleaned = line
-            if cleaned and cleaned[0].isdigit() and ". " in cleaned[:4]:
-                cleaned = cleaned.split(". ", 1)[-1]
-
-            lower = cleaned.lower()
-            if any(w in lower for w in ["тело", "физическ", "йог", "дыхание", "спорт", "сон", "движение", "тренировк", "прогулк"]):
-                category = "Тело"
-            elif any(w in lower for w in ["ум", "мысл", "анализ", "изучени", "чтение", "план", "интеллект", "обучени", "запис", "внимание"]):
-                category = "Ум"
-            elif any(w in lower for w in ["дух", "медитаци", "осознанност", "тишина", "благодарност", "духовн", "молитв", "смысл"]):
-                category = "Дух"
-            else:
-                category = "Практика"
-
-            effect = ""
-            m = re.search(
-                r"(?:ожидаемый\s+)?эффект\s*[:\-–—]\s*(.+?)$",
-                cleaned, re.IGNORECASE,
-            )
-            if m:
-                effect = m.group(1).strip().rstrip(".")
-                cleaned = re.sub(
-                    r"\s*(?:ожидаемый\s+)?эффект\s*[:\-–—]\s*.+?$",
-                    "", cleaned, flags=re.IGNORECASE,
-                ).strip()
-
-            result.append({"number": i, "text": cleaned, "category": category, "effect": effect})
+        for item in days_raw:
+            match = re.match(r'^(\d+)\.\s*(.+)', item, re.DOTALL)
+            if match:
+                number = int(match.group(1))
+                day_text = match.group(2).strip()
+                telo = ['тело', 'физич', 'йога', 'дыхан', 'спорт', 'сон', 'движен', 'прогулк', 'вода']
+                um = ['ум', 'мысл', 'анализ', 'изучен', 'чтен', 'план', 'запис', 'вниман', 'фокус']
+                duh = ['медитац', 'осознан', 'тишин', 'благодарн', 'смысл', 'рефлекс', 'духовн']
+                low = day_text.lower()
+                if any(w in low for w in telo):
+                    category = 'Тело'
+                elif any(w in low for w in um):
+                    category = 'Ум'
+                elif any(w in low for w in duh):
+                    category = 'Дух'
+                else:
+                    category = 'Практика'
+                result.append({'number': number, 'text': day_text, 'category': category})
+        if len(result) == 0:
+            result = [{'number': i+1, 'text': text, 'category': 'Практика'} for i in range(1)]
         return result
 
     @staticmethod
