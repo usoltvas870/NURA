@@ -48,7 +48,7 @@ ARCANA = {
 }
 
 _SPHERE_NAMES = {
-    "tarot_sphere_money": "Деньги и карьера",
+    "tarot_sphere_money": "Деньги и реализация",
     "tarot_sphere_relations": "Отношения",
     "tarot_sphere_purpose": "Предназначение",
 }
@@ -216,11 +216,45 @@ async def show_tarot_spheres(callback: CallbackQuery, state: FSMContext) -> None
 async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     await state.clear()
-    sphere = _SPHERE_NAMES[callback.data]
-    await callback.message.edit_text(
-        f"🌒 Сферы жизни — {sphere} — в разработке. Скоро здесь появится твой расклад.",
-        reply_markup=tarot_back_keyboard(),
+    sphere_name = _SPHERE_NAMES[callback.data]
+    today = date.today()
+    arcana_num = _daily_arcana_number(today)
+    arcana_name = ARCANA[arcana_num]
+
+    await callback.message.edit_text("🌒 Раскладываю карты...")
+
+    try:
+        prompt = AIService._load_prompt("tarot_spheres.txt")
+        filled = prompt.format(
+            sphere_name=sphere_name,
+            arcana_number=arcana_num,
+            arcana_name=arcana_name,
+            date=datetime.now().strftime("%d.%m.%Y"),
+        )
+        interpretation = await AIService.chat(
+            messages=[
+                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                {"role": "user", "content": filled},
+            ],
+            api_params={"max_tokens": 500, "temperature": 0.7},
+        )
+        interpretation = interpretation.strip().strip('"')
+    except Exception:
+        logger.exception("show_sphere_result AI failed")
+        await callback.message.edit_text(
+            f"✶ Сферы жизни — {sphere_name}\n\n"
+            "Карты молчат сегодня. Попробуй позже.",
+            reply_markup=tarot_back_keyboard(),
+        )
+        return
+
+    text = (
+        f"✶ Сферы жизни — {sphere_name}\n"
+        f"{'─' * 20}\n\n"
+        f"{interpretation}\n\n"
+        f"Аркан · {arcana_name}"
     )
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
 
 @router.callback_query(F.data == "tarot_twins")
@@ -239,10 +273,49 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
             reply_markup=tarot_paywall_keyboard(),
         )
         return
-    await callback.message.edit_text(
-        "🌒 Двойники — в разработке. Скоро здесь появится твой расклад.",
-        reply_markup=tarot_back_keyboard(),
+
+    today = date.today()
+    base = _daily_arcana_number(today)
+    arcana_one = base
+    arcana_two = base % 22 + 1
+    dominant = arcana_one if arcana_one >= arcana_two else arcana_two
+
+    await callback.message.edit_text("🌒 Раскладываю карты...")
+
+    try:
+        prompt = AIService._load_prompt("tarot_doubles.txt")
+        filled = prompt.format(
+            arcana_one_number=arcana_one,
+            arcana_one_name=ARCANA[arcana_one],
+            arcana_two_number=arcana_two,
+            arcana_two_name=ARCANA[arcana_two],
+            dominant_arcana_name=ARCANA[dominant],
+            date=datetime.now().strftime("%d.%m.%Y"),
+        )
+        interpretation = await AIService.chat(
+            messages=[
+                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                {"role": "user", "content": filled},
+            ],
+            api_params={"max_tokens": 500, "temperature": 0.7},
+        )
+        interpretation = interpretation.strip().strip('"')
+    except Exception:
+        logger.exception("show_tarot_twins AI failed")
+        await callback.message.edit_text(
+            "☯ Двойники\n\n"
+            "Карты молчат сегодня. Попробуй позже.",
+            reply_markup=tarot_back_keyboard(),
+        )
+        return
+
+    text = (
+        f"☯ Двойники\n"
+        f"{'─' * 20}\n\n"
+        f"{interpretation}\n\n"
+        f"{ARCANA[arcana_one]} · {ARCANA[arcana_two]}"
     )
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
 
 @router.callback_query(F.data == "tarot_portal")
@@ -261,10 +334,57 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
             reply_markup=tarot_paywall_keyboard(),
         )
         return
-    await callback.message.edit_text(
-        "🌒 Портал месяца — в разработке. Скоро здесь появится твой расклад.",
-        reply_markup=tarot_back_keyboard(),
+
+    now = datetime.now()
+    month_num = now.month
+    teach = (month_num * 3) % 22 + 1
+    release = (month_num * 7) % 22 + 1
+    strengthen = (month_num * 11) % 22 + 1
+
+    month_names = {
+        1: "Январь", 2: "Февраль", 3: "Март",
+        4: "Апрель", 5: "Май", 6: "Июнь",
+        7: "Июль", 8: "Август", 9: "Сентябрь",
+        10: "Октябрь", 11: "Ноябрь", 12: "Декабрь",
+    }
+    month_name = month_names[month_num]
+
+    await callback.message.edit_text("🌒 Открываю портал месяца...")
+
+    try:
+        prompt = AIService._load_prompt("tarot_portal.txt")
+        filled = prompt.format(
+            month_name=month_name,
+            teach_arcana_number=teach,
+            teach_arcana_name=ARCANA[teach],
+            release_arcana_number=release,
+            release_arcana_name=ARCANA[release],
+            strengthen_arcana_number=strengthen,
+            strengthen_arcana_name=ARCANA[strengthen],
+        )
+        interpretation = await AIService.chat(
+            messages=[
+                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                {"role": "user", "content": filled},
+            ],
+            api_params={"max_tokens": 500, "temperature": 0.7},
+        )
+        interpretation = interpretation.strip().strip('"')
+    except Exception:
+        logger.exception("show_tarot_portal AI failed")
+        await callback.message.edit_text(
+            f"🌅 Портал месяца — {month_name}\n\n"
+            "Карты молчат сегодня. Попробуй позже.",
+            reply_markup=tarot_back_keyboard(),
+        )
+        return
+
+    text = (
+        f"🌅 Портал месяца — {month_name}\n"
+        f"{'─' * 20}\n\n"
+        f"{interpretation}"
     )
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
 
 @router.callback_query(F.data == "tarot_yes_no")
