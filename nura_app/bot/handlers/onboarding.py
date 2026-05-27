@@ -184,5 +184,5 @@ async def _show_authenticated_menu(message: Message, user) -> None:
     has_tarot = bool(user.tarot_subscription) if user else False
     await message.answer(
         welcome_back_text(name=name, archetype=archetype),
-        reply_markup=main_menu_keyboard(has_tarot=has_tarot),
+        reply_markup=main_menu_keyboard(has_tarot=has_tarot, purchased_matrix=user.has_matrix),
     )
