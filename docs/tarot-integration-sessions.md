@@ -219,8 +219,13 @@ Tone-of-voice: ритуальный, метафоричный, на "ты". За
 - Показать tarot_menu_keyboard
 
 5.3. Callback "tarot_daily_card":
-- Вызвать AIService.generate_tarot_daily_card(user.birth_date)
-- Отправить результат с HTML-форматированием (см. ШАГ 6)
+- Рассчитать аркан дня по сегодняшней дате (единый для всех)
+- Отправить промежуточное сообщение "🌒 Вычисляю карту дня..."
+- Загрузить prompt `tarot_daily_card_handler.txt`, заполнить {arcana_name}, {arcana_number}, {date}
+- Вызвать AIService.chat() с заполненным промптом
+- При ошибке: fallback "Сегодня карта говорит тише обычного"
+- Отправить результат: `🌒 Карта дня — {name}\n{─*20}\n\n{interpretation}\n\n_Аркан {num} · {date}_`
+- Клавиатура: tarot_back_keyboard()
 
 5.4. Callback "tarot_weekly_spread":
 - Вызвать AIService.generate_tarot_weekly_spread(user.birth_date)

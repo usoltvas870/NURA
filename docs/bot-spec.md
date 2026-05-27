@@ -1741,7 +1741,7 @@ NURA — это пространство, где ты можешь
 | `calculate_matrix` | `ask_birth_date` | idle | Начать расчёт матрицы → state = waiting_birth_date |
 | `compatibility` | `ask_compatibility` | idle | Начать расчёт совместимости |
 | `tarot_menu` | `show_tarot_menu` | idle | Открыть раздел Таро (7 раскладов) |
-| `tarot_daily_card` | `tarot_daily_card_handler` | idle | Карта дня (бесплатно) |
+| `tarot_daily_card` | `show_daily_card` | idle | Карта дня (бесплатно) — AI интерпретация через AIService.chat() |
 | `tarot_weekly_spread` | `tarot_weekly_handler` | idle | Расклад недели (подписка) |
 | `tarot_question_spread` | `tarot_question_start` | idle → waiting_for_question | Расклад по вопросу (FSM) |
 | `tarot_spheres_spread` | `tarot_spheres_start` | idle | Сферы жизни — показать выбор |

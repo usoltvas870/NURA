@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import date, datetime
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -16,6 +16,7 @@ from bot.states.tarot_state import TarotStates
 from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
+from core.services.ai import AIService
 
 logger = logging.getLogger(__name__)
 
@@ -107,10 +108,38 @@ async def show_daily_card(callback: CallbackQuery) -> None:
     today = date.today()
     arcana_num = _daily_arcana_number(today)
     arcana_name = ARCANA[arcana_num]
+
+    await callback.message.edit_text("🌒 Вычисляю карту дня...")
+
+    try:
+        prompt = AIService._load_prompt("tarot_daily_card_handler.txt")
+        filled = prompt.format(
+            arcana_name=arcana_name,
+            arcana_number=arcana_num,
+            date=datetime.now().strftime("%d.%m.%Y"),
+        )
+        interpretation = await AIService.chat(
+            messages=[
+                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                {"role": "user", "content": filled},
+            ],
+            api_params={"max_tokens": 500, "temperature": 0.7},
+        )
+        interpretation = interpretation.strip().strip('"')
+    except Exception:
+        logger.exception("show_daily_card AI failed")
+        await callback.message.edit_text(
+            f"🌒 Карта дня — {arcana_name}\n\n"
+            "Сегодня карта говорит тише обычного. Попробуй снова чуть позже.",
+            reply_markup=tarot_back_keyboard(),
+        )
+        return
+
     text = (
-        f"🌒 Карта дня — {arcana_num}. {arcana_name}\n\n"
-        f"[Заглушка интерпретации — TODO: AI промпт]\n\n"
-        f"Аркан дня рассчитывается по дате {today.strftime('%d.%m.%Y')}."
+        f"🌒 Карта дня — {arcana_name}\n"
+        f"{'─' * 20}\n\n"
+        f"{interpretation}\n\n"
+        f"_Аркан {arcana_num} · {datetime.now().strftime('%d.%m.%Y')}_"
     )
     await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
