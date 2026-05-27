@@ -63,7 +63,7 @@
 - ✅ Nginx — прокси, SSL, /webhook/, /report/, /api/
 - ✅ Полный AI-отчёт — генерация (9 полей), триггер от YooKassa webhook
 - ✅ Kitchen-слой — бэкенд: AI-генерация (12 полей), хранение в БД (JSONB), API /report/{token}/kitchen
-- ✅ Совместимость — ручной ввод дат, мини-разбор (2-3 блока)
+- ✅ Совместимость — лимитная модель: 1 расклад с Матрицей (has_matrix), безлимит с Таро; виральный share после расклада
 - ✅ Ежедневные уведомления — Celery-beat задача send_daily_card (06:00 МСК, все активные пользователи)
 - ✅ Чат с NURA — FSM, лимит 5 сообщений для free, безлимит для premium
 - ✅ Подписка 390₽/мес — YooKassa recurrent, Celery downgrade/check
@@ -79,7 +79,7 @@
 - ✅ Диспетчеризация рендеринга — API различает MINI/FULL/COMPATIBILITY отчёты по report_type
 - ✅ Detector FALLBACK_FULL — при отсутствии реального AI-анализа отдаётся 202 «отчёт готовится»
 - 🟡 Страница отчёта — план апгрейда (16 шагов) частично выполнен: V2 шаблон, печатный CSS, TOC, диспетчеризация типов
-- ❌ Alembic миграции — не созданы
+- 🟡 Alembic миграции — не созданы (нужна миграция: has_matrix, has_tarot, compatibility_used в users)
 
 ## Известные блокеры
 - 🔴 Нужен реальный Telegram Bot Token (в .env стоит рабочий, не менять без необходимости)
@@ -201,3 +201,12 @@
   - Расписание: `crontab(hour=9)` → `crontab(hour=3)` (06:00 МСК = 03:00 UTC)
   - Удалена AI-генерация инсайтов и импорт `INSIGHTS_BY_ARCHETYPE`
   - Обновлены: `tests/test_tasks.py` (импорт + 2 вызова), `integrity_check.py`
+
+- **27.05.2026 — Сессия 14** — Claude Sonnet 4.6 (claude.ai)
+  - Продуктовое решение: совместимость — не отдельный платный продукт, benefit тарифов
+  - `docs/pricing.md`: «1 расклад совместимости» в Матрицу, «безлимит» в Таро; §3 «Логика совместимости»
+  - `docs/bot-spec.md`: §4 переписан (убран пейволл 890₽, 4 сценария доступа); кнопка «📤 Отправить другу» (Telegram share); `generate_compat_share_text()`; §17 «Виральные механики»; совместимость в §9.2/9.3; `pay_compatibility` удалён
+  - `docs/bot-ux-map.md`: Путь 5 — 4 ветки по флагам has_matrix/compatibility_used/has_tarot
+  - `docs/tarot-integration-plan.md`: §9 «Виральная механика — Отправить другу», совместимость в пейволл
+  - `nura_app/core/models.py`: поля `has_tarot`, `has_matrix`, `compatibility_used: bool` в модель User
+  - `nura_app/init_db.py`: deprecation-комментарий (используй alembic)

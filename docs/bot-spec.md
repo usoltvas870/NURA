@@ -451,15 +451,25 @@ callback: compatibility
 
 ```
 ┌────────────────────────────────────┐
-│ ✨ Подключить Таро — 390 ₽/мес    │  ← показывать если has_tarot=False
+│ 📤 Отправить другу                 │  ← всегда, url: telegram share
+├────────────────────────────────────┤
+│ ✨ Подключить Таро — 390 ₽/мес    │  ← только если has_tarot=False
+├────────────────────────────────────┤
+│ 🔄 Новый расклад                   │  ← только если has_tarot=True
 ├────────────────────────────────────┤
 │ 🏠 В меню                          │
 └────────────────────────────────────┘
 ```
 
-Если `has_tarot=True` — только кнопка «🏠 В меню».
+Кнопка «📤 Отправить другу» — `InlineKeyboardButton(url=...)`, не callback:
+```python
+url = f"https://t.me/share/url?url=t.me/ai_nura_bot&text={quote(text)}"
+```
+Текст генерируется через `generate_compat_share_text()` (см. §4.12).
 
-**callback_data:** `buy_tarot_subscription`, `main_menu`
+Если `has_tarot=True` — вместо «✨ Подключить Таро» показывается «🔄 Новый расклад».
+
+**url / callback_data:** share (url), `buy_tarot_subscription`, `compatibility`, `main_menu`
 
 ### 4.10. Пейволл — нет матрицы
 
@@ -501,6 +511,37 @@ callback: compatibility
 ```
 
 **callback_data:** `buy_tarot_subscription`, `main_menu`
+
+### 4.12. Генерация share-текста
+
+```python
+def generate_compat_share_text(
+    sender_name: str,
+    partner_arcana_name: str,
+    partner_arcana_insight: str
+) -> str:
+    """Генерирует текст для пересылки другу после расклада совместимости."""
+```
+
+Параметры:
+- `sender_name` — имя инициатора расклада (из `user.first_name`)
+- `partner_arcana_name` — название аркана партнёра (второй человек в паре)
+- `partner_arcana_insight` — 1-2 предложения про аркан партнёра в контексте пары
+  (генерируется AI в рамках расклада совместимости)
+
+Возвращаемый текст:
+
+```
+{sender_name} проверил нашу совместимость в NURA ✦
+
+Твой аркан в этой паре — {partner_arcana_name}
+{partner_arcana_insight}
+
+Хочешь увидеть полный разбор?
+👉 t.me/ai_nura_bot
+```
+
+Используется как `text` в `url = f"https://t.me/share/url?url=t.me/ai_nura_bot&text={quote(text)}"`.
 
 ---
 
@@ -1829,6 +1870,19 @@ ARCANA: dict[int, dict] = {
 | 6 | Ежедневные инсайты | Celery-beat |
 | 7 | Подписка | Recurring revenue |
 | 8 | Profile с отчётами | Хранение + отображение |
+
+---
+
+## 17. Виральные механики
+
+### 17.1. Share после совместимости
+
+- **Механика:** share после расклада совместимости
+- **Триггер:** кнопка «📤 Отправить другу» сразу после результата
+- **Конверсия:** друг видит свой аркан → переходит в бота
+- **Реализация:** Telegram share url (не бот API, не требует серверного кода)
+
+Кнопка показывается после каждого расклада совместимости — как для бесплатных пользователей, так и для таро-подписчиков.
 
 ---
 

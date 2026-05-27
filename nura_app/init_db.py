@@ -5,6 +5,8 @@ from core.config import settings
 from core.models import Base
 
 
+# DEPRECATED: используй alembic upgrade head
+# create_all оставлен только для первого запуска на чистой БД без истории миграций
 async def init_db():
     engine = create_async_engine(settings.database_url, echo=False)
     async with engine.begin() as conn:
