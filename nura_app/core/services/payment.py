@@ -169,6 +169,24 @@ class PaymentService:
             await user_repo.update_tarot_subscription(user.id, True, until)
         elif payment_type == "matrix":
             await user_repo.update_has_matrix(user.id, True)
+
+            if user.birth_date:
+                from core.services.report import ReportService
+                from core.tasks import generate_full_report
+
+                report_token = ReportService.generate_token()
+                generate_full_report.delay(
+                    str(user.id), user.birth_date, report_token
+                )
+
+            from core.tasks import _send_message as send_msg
+
+            await send_msg(
+                user.telegram_id,
+                "✦ Оплата прошла успешно!\n\n"
+                "Генерирую твою Матрицу Судьбы...\n"
+                "Это займёт 1-2 минуты.",
+            )
         else:
             await user_repo.update_subscription(user.id, "premium", until)
 
