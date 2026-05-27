@@ -13,7 +13,6 @@ from core.database import get_async_sessionmaker
 from core.models import ReportType, User
 from core.repositories import ReportRepository, UserRepository
 from core.services.ai import AIService
-from core.services.insights_data import INSIGHTS_BY_ARCHETYPE
 from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
 
@@ -34,9 +33,9 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    "send-daily-insights": {
-        "task": "core.tasks.send_daily_insights",
-        "schedule": crontab(hour=9, minute=0),
+    "send-daily-card": {
+        "task": "core.tasks.send_daily_card",
+        "schedule": crontab(hour=3, minute=0),
     },
     "send-daily-tarot-card": {
         "task": "core.tasks.send_daily_tarot_card",
@@ -394,16 +393,16 @@ async def _process_compatibility_report(
     }
 
 
-@celery_app.task(name="core.tasks.send_daily_insights")
-def send_daily_insights() -> dict:
-    return _run_async(_send_daily_insights_async())
+@celery_app.task(name="core.tasks.send_daily_card")
+def send_daily_card() -> dict:
+    return _run_async(_send_daily_card_async())
 
 
-async def _send_daily_insights_async() -> dict:
+async def _send_daily_card_async() -> dict:
     session_factory = get_async_sessionmaker()
     async with session_factory() as session:
         result = await session.execute(
-            select(User).where(User.subscription_status == "premium")
+            select(User).where(User.subscription_status != "blocked")
         )
         users = result.scalars().all()
 
@@ -412,58 +411,16 @@ async def _send_daily_insights_async() -> dict:
     sent = 0
     blocked = 0
 
+    text = "🌒 Твоя карта дня готова"
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "🌒 Получить карту", "callback_data": "tarot_daily_card"}],
+        ],
+    }
+
     for i, user in enumerate(users):
         if needs_rate_limit and i > 0:
             await asyncio.sleep(0.5)
-
-        if not user.birth_date:
-            continue
-
-        first_name = user.first_name or user.username or "пользователь"
-        archetype_number = user.main_archetype_number
-        if not archetype_number:
-            continue
-
-        archetype_info = ARCANA.get(archetype_number, {})
-        archetype_name = archetype_info.get("name", "Неизвестный")
-        archetype_key = archetype_info.get("key", "")
-
-        try:
-            matrix = MatrixService.calculate(user.birth_date)
-            current_date_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-            daily_insight = await AIService.generate_daily_insight(
-                user_name=first_name,
-                archetype_name=archetype_name,
-                archetype_number=archetype_number,
-                archetype_key=archetype_key,
-                matrix_data=matrix,
-                current_date=current_date_iso,
-            )
-            insight = daily_insight.insight
-        except Exception:
-            archetype_data = INSIGHTS_BY_ARCHETYPE.get(archetype_number)
-            insight = (
-                random.choice(archetype_data["insights"])
-                if archetype_data and archetype_data["insights"]
-                else "Сегодня — день новых возможностей. Откройся им."
-            )
-
-        text = (
-            f"🌅 Доброе утро, {first_name}.\n\n"
-            f"{insight}\n\n"
-            "━━━━━━━━━━━━━━━━━━━━\n"
-            "✨ Хочешь глубже? Открой полный отчёт или "
-            "напиши NURA в чате — сегодня твой архетип "
-            "шепчет тебе что-то важное."
-        )
-        keyboard = {
-            "inline_keyboard": [
-                [{"text": "💬 Чат с NURA", "callback_data": "chat_with_nura"}],
-                [{"text": "📋 Мои отчёты", "callback_data": "view_reports"}],
-                [{"text": "🏠 В меню", "callback_data": "main_menu"}],
-            ],
-        }
 
         ok = await _send_message(user.telegram_id, text, keyboard)
         if not ok:

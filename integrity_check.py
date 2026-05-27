@@ -221,7 +221,7 @@ def check_tasks(file_path: Path) -> None:
     if not file_path.exists():
         return
     content = file_path.read_text(encoding="utf-8")
-    for item in ["send_daily_tarot_card", "format_daily_card_message", "send_daily_insights"]:
+    for item in ["send_daily_tarot_card", "format_daily_card_message", "send_daily_card"]:
         if item in content:
             print(f"  {OK} tasks.py: {item}")
         else:

@@ -4,7 +4,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 import pytest
 
 from core.models import ReportType
-from core.tasks import _process_mini_report, _send_daily_insights_async
+from core.tasks import _process_mini_report, _send_daily_card_async
 
 
 @pytest.mark.asyncio
@@ -129,7 +129,7 @@ class TestDailyInsights:
             mock_session_factory.return_value = mock_session
             mock_get_session.return_value = mock_session_factory
 
-            result = await _send_daily_insights_async()
+            result = await _send_daily_card_async()
 
         assert result["sent"] == 1
         assert result["total"] == 1
@@ -177,7 +177,7 @@ class TestDailyInsights:
             mock_session_factory.side_effect = [mock_session, db_session]
             mock_get_session.return_value = mock_session_factory
 
-            result = await _send_daily_insights_async()
+            result = await _send_daily_card_async()
 
         assert result["blocked"] == 1
         assert db_user.subscription_status == "blocked"

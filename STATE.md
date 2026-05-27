@@ -64,7 +64,7 @@
 - ✅ Полный AI-отчёт — генерация (9 полей), триггер от YooKassa webhook
 - ✅ Kitchen-слой — бэкенд: AI-генерация (12 полей), хранение в БД (JSONB), API /report/{token}/kitchen
 - ✅ Совместимость — ручной ввод дат, мини-разбор (2-3 блока)
-- ✅ Ежедневные инсайты — Celery-beat задача send_daily_insights
+- ✅ Ежедневные уведомления — Celery-beat задача send_daily_card (06:00 МСК, все активные пользователи)
 - ✅ Чат с NURA — FSM, лимит 5 сообщений для free, безлимит для premium
 - ✅ Подписка 390₽/мес — YooKassa recurrent, Celery downgrade/check
 - ✅ Регистрация пользователя при /start — UserRegistrationMiddleware
@@ -193,3 +193,11 @@
   - `tarot.py`: 11 handlers — `tarot_menu`, `tarot_daily_card` (free, алгоритм по дате), `tarot_weekly/question/spheres/twins/portal/yes_no` (paywall или заглушка), `tarot_sphere_*`, `handle_question_input` (FSM)
   - `settings.test_mode` bypass во всех 6 paywall-проверках
   - `core/tasks.py`: callback `tarot_weekly_spread` → `tarot_weekly` в Celery daily card
+
+- **27.05.2026 — Сессия 13** — Claude Sonnet 4.6 (claude.ai)
+  - `send_daily_insights` → `send_daily_card`: переименование + рефакторинг Celery-задачи
+  - Фильтр пользователей: `premium` → все активные (`subscription_status != "blocked"`)
+  - Текст: статичное уведомление «🌒 Твоя карта дня готова», кнопка [🌒 Получить карту] → `tarot_daily_card`
+  - Расписание: `crontab(hour=9)` → `crontab(hour=3)` (06:00 МСК = 03:00 UTC)
+  - Удалена AI-генерация инсайтов и импорт `INSIGHTS_BY_ARCHETYPE`
+  - Обновлены: `tests/test_tasks.py` (импорт + 2 вызова), `integrity_check.py`
