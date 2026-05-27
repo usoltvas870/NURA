@@ -16,12 +16,14 @@ class PaymentRepository(SQLAlchemyRepository[Payment]):
         user_id: uuid.UUID,
         amount: int,
         yookassa_id: str | None = None,
+        payment_type: str = "subscription",
     ) -> Payment:
         payment = Payment(
             id=uuid.uuid4(),
             user_id=user_id,
             amount=amount,
             yookassa_id=yookassa_id,
+            payment_type=payment_type,
         )
         return await self.add(payment)
 

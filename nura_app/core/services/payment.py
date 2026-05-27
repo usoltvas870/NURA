@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from yookassa import Configuration, Payment as YooPayment
 
 from core.config import settings
+from core.models import Payment as PaymentModel
 from core.repositories.payment import PaymentRepository
 from core.repositories.user import UserRepository
 
@@ -101,6 +102,28 @@ class PaymentService:
             "status": payment.status,
             "payment_url": payment.confirmation.confirmation_url,
             "payment_method_id": getattr(payment.payment_method, "id", None),
+        }
+
+    @staticmethod
+    async def save_matrix_payment(
+        session_factory: async_sessionmaker,
+        user_id: uuid.UUID,
+        yookassa_payment_id: str,
+    ) -> PaymentModel:
+        payment_repo = PaymentRepository(session_factory)
+        return await payment_repo.create(
+            user_id=user_id,
+            amount=890,
+            yookassa_id=yookassa_payment_id,
+            payment_type="matrix",
+        )
+
+    @staticmethod
+    def get_test_matrix_payment() -> dict:
+        return {
+            "payment_id": "test_matrix_payment",
+            "confirmation_url": None,
+            "status": "test",
         }
 
     @staticmethod
