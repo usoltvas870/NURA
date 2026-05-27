@@ -118,6 +118,13 @@ class UserRepository(SQLAlchemyRepository[User]):
             )
             return list(result.scalars().all())
 
+    async def mark_compatibility_used(self, user_id: uuid.UUID) -> None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is not None:
+                user.compatibility_used = True
+                await session.commit()
+
     async def get_has_matrix(self, user_id: uuid.UUID) -> bool:
         async with self._session_factory() as session:
             result = await session.execute(

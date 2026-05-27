@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from urllib.parse import quote
 
 from aiogram import F, Router
 from aiogram.filters import Command
@@ -8,7 +9,6 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from celery.result import AsyncResult
 
 from bot.handlers.validators import validate_date
-from bot.keyboards.main_menu import compatibility_paywall_keyboard
 from bot.states.compatibility_state import CompatibilityStates
 from bot.texts.compatibility import (
     explanation_text,
@@ -32,6 +32,59 @@ MAX_POLL_SECONDS = 90
 @router.callback_query(F.data == "compatibility")
 async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
+
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_telegram_id(callback.from_user.id)
+
+    if user is None:
+        await callback.message.edit_text("Пользователь не найден. Начни с /start")
+        return
+
+    if not user.has_matrix:
+        await callback.message.edit_text(
+            "❤️ Совместимость\n\n"
+            "Введи дату рождения любого человека —\n"
+            "я разберу вашу совместимость по матрицам.\n\n"
+            "Доступно с покупкой Матрицы судьбы.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[
+                    InlineKeyboardButton(
+                        text="💎 Купить Матрицу — 890₽",
+                        callback_data="buy_matrix"
+                    )
+                ],[
+                    InlineKeyboardButton(
+                        text="← Назад",
+                        callback_data="main_menu"
+                    )
+                ]]
+            )
+        )
+        return
+
+    if user.compatibility_used and not user.tarot_subscription:
+        await callback.message.edit_text(
+            "❤️ Ты уже использовал бесплатный расклад.\n\n"
+            "Безлимитная совместимость — в Таро-подписке.\n"
+            "Проверяй совместимость с друзьями, коллегами,\n"
+            "новыми знакомыми — без ограничений.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[[
+                    InlineKeyboardButton(
+                        text="✨ Подключить Таро — 390₽/мес",
+                        callback_data="buy_tarot_subscription"
+                    )
+                ],[
+                    InlineKeyboardButton(
+                        text="← Назад",
+                        callback_data="main_menu"
+                    )
+                ]]
+            )
+        )
+        return
+
     await state.set_state(CompatibilityStates.waiting_partner_date)
     await callback.message.edit_text(explanation_text())
 
@@ -99,16 +152,54 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         block_3=analysis.get("emotional_compatibility", "..."),
     )
 
-    if settings.test_mode:
-        report_url = f"{settings.report_base_url}/report/{token}"
-        await msg.edit_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text="👁 Открыть полный разбор (тестовый режим — оплата не требуется)", url=report_url)],
-                    [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
-                ]
-            ),
+    partner_arcana_name = result.get(
+        "archetype_second_name",
+        analysis.get("archetype_second", "...")
+    )
+    partner_arcana_number = result.get("archetype_second_number", 0)
+
+    sender_name = user.first_name or user.username or "Пользователь"
+    share_text = (
+        f"{sender_name} проверил нашу совместимость "
+        f"в NURA ✦\n\n"
+        f"Твой аркан в этой паре — "
+        f"{partner_arcana_name} ({partner_arcana_number})\n\n"
+        f"Хочешь увидеть полный разбор?\n"
+        f"👉 t.me/ai_nura_bot"
+    )
+    share_url = (
+        f"https://t.me/share/url"
+        f"?url=t.me/ai_nura_bot"
+        f"&text={quote(share_text)}"
+    )
+
+    keyboard_rows = [
+        [InlineKeyboardButton(text="📤 Отправить другу", url=share_url)],
+    ]
+    if user.tarot_subscription:
+        keyboard_rows.append(
+            [InlineKeyboardButton(text="🔄 Новый расклад", callback_data="compatibility")]
         )
     else:
-        await msg.edit_text(text, reply_markup=compatibility_paywall_keyboard())
+        keyboard_rows.append(
+            [InlineKeyboardButton(text="✨ Подключить Таро — 390₽/мес", callback_data="buy_tarot_subscription")]
+        )
+    keyboard_rows.append(
+        [InlineKeyboardButton(text="← В меню", callback_data="main_menu")]
+    )
+
+    if not user.tarot_subscription:
+        user_repo = UserRepository(session_factory)
+        await user_repo.mark_compatibility_used(user.id)
+
+    if settings.test_mode:
+        report_url = f"{settings.report_base_url}/report/{token}"
+        keyboard_rows.insert(
+            0,
+            [InlineKeyboardButton(text="👁 Открыть полный разбор (тестовый режим — оплата не требуется)", url=report_url)],
+        )
+
+    await msg.edit_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_rows),
+    )

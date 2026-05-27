@@ -390,6 +390,10 @@ async def _process_compatibility_report(
         "report_url": ReportService.report_url(token),
         "html_path": paths["html"],
         "pdf_path": paths["pdf"],
+        "archetype_first_name": archetype_first_name,
+        "archetype_first_number": matrix1.center,
+        "archetype_second_name": archetype_second_name,
+        "archetype_second_number": matrix2.center,
     }
 
 
