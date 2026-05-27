@@ -295,16 +295,101 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
     if not message.text:
         await message.answer("Напиши свой вопрос текстом.")
         return
+
     data = await state.get_data()
     spread_type = data.get("spread_type", "question")
-    await state.clear()
+    question = message.text
+    today = date.today()
+    base_arcana = _daily_arcana_number(today)
+
     if spread_type == "yes_no":
-        await message.answer(
-            "🌒 Да/Нет — в разработке. Скоро здесь появится твой расклад.",
-            reply_markup=tarot_back_keyboard(),
+        arcana_name = ARCANA[base_arcana]
+        yes_or_no = "Да" if base_arcana % 2 == 1 else "Нет"
+        await message.answer("🌒 Раскладываю карты...")
+
+        try:
+            prompt = AIService._load_prompt("tarot_yes_no.txt")
+            filled = prompt.format(
+                question=question,
+                arcana_number=base_arcana,
+                arcana_name=arcana_name,
+                yes_or_no=yes_or_no,
+            )
+            interpretation = await AIService.chat(
+                messages=[
+                    {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                    {"role": "user", "content": filled},
+                ],
+                api_params={"max_tokens": 500, "temperature": 0.7},
+            )
+            interpretation = interpretation.strip().strip('"')
+        except Exception:
+            logger.exception("tarot yes_no AI failed")
+            await message.answer(
+                "👁 Да/Нет\n\n"
+                "Карты молчат сегодня. Попробуй позже.",
+                reply_markup=tarot_back_keyboard(),
+            )
+            await state.clear()
+            return
+
+        text = (
+            f"👁 Да/Нет\n"
+            f"{'─' * 20}\n\n"
+            f"Вопрос: {question}\n\n"
+            f"{interpretation}\n\n"
+            f"Аркан · {arcana_name}"
         )
+        await message.answer(text, reply_markup=tarot_back_keyboard())
     else:
-        await message.answer(
-            "🌒 Расклад по вопросу — в разработке. Скоро здесь появится твой расклад.",
-            reply_markup=tarot_back_keyboard(),
+        past_num = (base_arcana - 1) % 22 + 1
+        present_num = base_arcana
+        future_num = base_arcana % 22 + 1
+        past_name = ARCANA[past_num]
+        present_name = ARCANA[present_num]
+        future_name = ARCANA[future_num]
+
+        await message.answer("🌒 Раскладываю карты...")
+
+        try:
+            prompt = AIService._load_prompt("tarot_question.txt")
+            filled = prompt.format(
+                question=question,
+                date=today.strftime("%d.%m.%Y"),
+                past_arcana=past_num,
+                past_arcana_name=past_name,
+                present_arcana=present_num,
+                present_arcana_name=present_name,
+                future_arcana=future_num,
+                future_arcana_name=future_name,
+            )
+            interpretation = await AIService.chat(
+                messages=[
+                    {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                    {"role": "user", "content": filled},
+                ],
+                api_params={"max_tokens": 500, "temperature": 0.7},
+            )
+            interpretation = interpretation.strip().strip('"')
+        except Exception:
+            logger.exception("tarot question AI failed")
+            await message.answer(
+                "◈ Расклад по вопросу\n\n"
+                "Карты молчат сегодня. Попробуй позже.",
+                reply_markup=tarot_back_keyboard(),
+            )
+            await state.clear()
+            return
+
+        text = (
+            f"◈ Расклад по вопросу\n"
+            f"{'─' * 20}\n\n"
+            f"Вопрос: {question}\n\n"
+            f"{interpretation}\n\n"
+            f"Прошлое · {past_name}\n"
+            f"Настоящее · {present_name}\n"
+            f"Будущее · {future_name}"
         )
+        await message.answer(text, reply_markup=tarot_back_keyboard())
+
+    await state.clear()
