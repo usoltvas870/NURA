@@ -198,7 +198,7 @@ async def buy_matrix(callback: CallbackQuery) -> None:
         await callback.message.edit_text(
             "◈ Матрица уже куплена.\n"
             "Твой отчёт доступен в профиле.",
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(purchased_matrix=True),
         )
         return
 
@@ -208,19 +208,22 @@ async def buy_matrix(callback: CallbackQuery) -> None:
         await user_repo.update_has_matrix(user.id, True)
 
         if user.birth_date:
-            from core.tasks import generate_full_report
-            from core.repositories.report import ReportRepository
-            report_repo = ReportRepository(session_factory)
-            existing = await report_repo.get_by_user_id_and_type(user.id, ReportType.FULL)
-            if not existing:
-                from core.services.report import ReportService
-                report_token = ReportService.generate_token()
-                generate_full_report.delay(str(user.id), user.birth_date, report_token)
+            try:
+                from core.tasks import generate_full_report
+                from core.repositories.report import ReportRepository
+                report_repo = ReportRepository(session_factory)
+                existing = await report_repo.get_by_user_id_and_type(user.id, ReportType.FULL)
+                if not existing:
+                    from core.services.report import ReportService
+                    report_token = ReportService.generate_token()
+                    generate_full_report.delay(str(user.id), user.birth_date, report_token)
+            except Exception:
+                logger.exception("Failed to queue full report generation for user %s", user.id)
 
         await callback.message.edit_text(
             "✦ Тест-режим: Матрица активирована!\n"
             "Генерирую отчёт...",
-            reply_markup=main_menu_keyboard(),
+            reply_markup=main_menu_keyboard(purchased_matrix=True),
         )
         return
 
