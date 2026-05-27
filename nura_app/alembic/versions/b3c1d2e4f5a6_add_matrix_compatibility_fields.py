@@ -19,15 +19,6 @@ def upgrade() -> None:
     op.add_column(
         "users",
         sa.Column(
-            "has_tarot",
-            sa.Boolean(),
-            nullable=False,
-            server_default=sa.text("false"),
-        ),
-    )
-    op.add_column(
-        "users",
-        sa.Column(
             "has_matrix",
             sa.Boolean(),
             nullable=False,
@@ -48,4 +39,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_column("users", "compatibility_used")
     op.drop_column("users", "has_matrix")
-    op.drop_column("users", "has_tarot")

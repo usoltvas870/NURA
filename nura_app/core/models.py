@@ -54,9 +54,6 @@ class User(Base):
     tarot_subscription_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    has_tarot: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False, server_default="false"
-    )
     has_matrix: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default="false"
     )
