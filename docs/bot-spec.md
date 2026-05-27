@@ -24,6 +24,7 @@
 | `profile` | Открыть профиль | Главное меню |
 | `sample_report` | Открыть пример отчёта (web-ссылка) | Главное меню |
 | `pay_full_report:{token}` | Купить полный отчёт | После мини-разбора |
+| `buy_matrix` | Купить матрицу (890 ₽ разово) | Главное меню |
 | `subscription` | Информация о подписке | Профиль |
 | `buy_tarot_subscription` | Оформить таро-подписку | Раздел Таро / пейволл |
 | `buy_subscription` | Оформить подписку | Экран подписки |
@@ -110,11 +111,19 @@ TarotStates:
 ├──────────────────┴──────────────────┤
 │        📄 Пример отчёта             │
 ├─────────────────────────────────────┤
+│     💎 Купить разбор 890 ₽          │  ← показывается только если
+├─────────────────────────────────────┤     матрица не куплена
 │              👤 Профиль             │
 └─────────────────────────────────────┘
 ```
 
 Если у пользователя ещё нет матрицы — вместо `◈ Моя матрица` показывается `✨ Рассчитать матрицу` (callback_data: `calculate_matrix`).
+
+Кнопка «💎 Купить разбор 890 ₽» показывается **только** когда у пользователя:
+- Есть дата рождения (`has_matrix` в логике меню = `True`)
+- И матрица ещё не куплена (`user.has_matrix = False`)
+
+При покупке матрицы — `purchased_matrix = True` → кнопка исчезает.
 
 **callback_data:** `my_matrix` / `calculate_matrix`, `tarot_menu`, `chat_with_nura`, `compatibility`, `sample_report`, `profile`
 
@@ -1296,18 +1305,33 @@ NURA не пытается рассчитать матрицу по переда
 
 ### 8.2. Flow — покупка полного отчёта матрицы
 
+**Два входа в платёжный флоу:**
+
+1. **Из мини-разбора:** callback `pay_full_report:{token}` → платёж привязан к конкретному токену отчёта.
+2. **Из главного меню:** callback `buy_matrix` → создаёт матричный платёж через YooKassa, проверяет `user.has_matrix`, в test_mode выдаёт доступ мгновенно.
+
+**Общий флоу (buy_matrix):**
+
 ```
 [Пользователь нажимает 💎 Купить разбор 890 ₽]
     ↓
-callback: pay_full_report:{token}
+callback: buy_matrix
     ↓
-[Проверка: платёж уже был проведён для этого токена?]
-    ├── ДА → "Этот отчёт уже оплачен" → ссылка на отчёт
+[Проверка: user.has_matrix?]
+    ├── ДА → "Матрица уже куплена" → main_menu
     └── НЕТ
         ↓
-[Создание платежа через YooKassa API]
+[test_mode?]
+    ├── ДА → user.has_matrix = True → generate_full_report.delay()
+    └── НЕТ
+        ↓
+[Создание платежа через YooKassa API (PaymentService.create_matrix_payment)]
     ↓
-[Отправка ссылки на оплату]
+[Сохранение платежа в БД (PaymentService.save_matrix_payment)]
+    ↓
+[Отправка ссылки на оплату пользователю]
+    ↓
+[Пользователь переходит по ссылке, оплачивает]
     ↓
 [Пользователь переходит по ссылке, оплачивает]
     ↓
@@ -1731,6 +1755,7 @@ NURA — это пространство, где ты можешь
 | `sample_report` | `open_sample_report` | idle | Открыть пример отчёта (URL) |
 | `profile` | `show_profile` | idle | Показать профиль |
 | `pay_full_report:{token}` | `initiate_payment` | idle | Создать платёж и отправить ссылку |
+| `buy_matrix` | `buy_matrix` | idle | Купить матрицу (890 ₽) — YooKassa + webhook |
 | `subscription` | `show_subscription_info` | idle | Показать инфо о подписке |
 | `buy_subscription` | `initiate_subscription` | idle | Оформить подписку |
 | `chat_with_nura` | `enter_chat` | idle → chatting | Войти в чат с NURA |

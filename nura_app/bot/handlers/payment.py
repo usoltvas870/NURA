@@ -182,6 +182,93 @@ async def initiate_tarot_subscription(callback: CallbackQuery) -> None:
         )
 
 
+@router.callback_query(F.data == "buy_matrix")
+async def buy_matrix(callback: CallbackQuery) -> None:
+    await callback.answer()
+
+    user = await _get_user(callback.from_user.id)
+    if user is None:
+        await callback.message.edit_text(
+            "Пользователь не найден. Начни с /start",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    if user.has_matrix:
+        await callback.message.edit_text(
+            "◈ Матрица уже куплена.\n"
+            "Твой отчёт доступен в профиле.",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    if settings.test_mode:
+        session_factory = get_async_sessionmaker()
+        user_repo = UserRepository(session_factory)
+        await user_repo.update_has_matrix(user.id, True)
+
+        if user.birth_date:
+            from core.tasks import generate_full_report
+            from core.repositories.report import ReportRepository
+            report_repo = ReportRepository(session_factory)
+            existing = await report_repo.get_by_user_id_and_type(user.id, ReportType.FULL)
+            if not existing:
+                from core.services.report import ReportService
+                report_token = ReportService.generate_token()
+                generate_full_report.delay(str(user.id), user.birth_date, report_token)
+
+        await callback.message.edit_text(
+            "✦ Тест-режим: Матрица активирована!\n"
+            "Генерирую отчёт...",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    try:
+        payment = await PaymentService.create_matrix_payment(
+            telegram_id=callback.from_user.id
+        )
+        await PaymentService.save_matrix_payment(
+            session_factory=get_async_sessionmaker(),
+            user_id=user.id,
+            yookassa_payment_id=payment["id"],
+        )
+
+        await callback.message.edit_text(
+            "💎 Матрица Судьбы — 890₽\n\n"
+            "Полный AI-отчёт по твоей дате рождения:\n"
+            "• 15 секций · 30–50 страниц\n"
+            "• HTML + PDF навсегда\n"
+            "• 1 расклад совместимости\n\n"
+            "Нажми кнопку для оплаты 👇",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="💳 Оплатить 890₽",
+                        url=payment["payment_url"]
+                    )],
+                    [InlineKeyboardButton(
+                        text="← Назад",
+                        callback_data="main_menu"
+                    )],
+                ]
+            ),
+        )
+    except ValueError:
+        logger.exception("Failed to create matrix payment for user %s", user.id)
+        await callback.message.edit_text(
+            "⚠️ Оплата временно недоступна.\n"
+            "Попробуй позже.",
+            reply_markup=main_menu_keyboard(),
+        )
+    except Exception:
+        logger.exception("Failed to create matrix payment for user %s", user.id)
+        await callback.message.edit_text(
+            payment_error_text(),
+            reply_markup=main_menu_keyboard(),
+        )
+
+
 @router.callback_query(F.data.startswith("open_report:"))
 async def open_report(callback: CallbackQuery) -> None:
     await callback.answer()

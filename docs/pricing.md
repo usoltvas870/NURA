@@ -115,20 +115,19 @@ NURA при 890 ₽: в рынке, но с уникальными фичами 
 
 | Параметр | Файл | Значение |
 |----------|------|----------|
-| `subscription_price_rub` | `core/config.py:58` | 390 |
+| `subscription_price_rub` | `core/config.py:61` | 390 |
+| `matrix_one_time_price_rub` | `core/config.py:63` | 890 |
 | `FREE_MESSAGES_LIMIT` | `bot/handlers/chat.py:30` | 5 |
-| `test_mode` | `core/config.py:68` | `True` (dev) |
+| `test_mode` | `core/config.py:73` | `True` (dev) |
 
-### Что нужно добавить в конфиг (Фаза 2)
+### Уже реализовано (Фаза 2)
 
-```python
-# core/config.py
-matrix_report_price_rub: int = 890       # разовая покупка отчёта
-tarot_subscription_price_rub: int = 390  # подписка на таро-ритуалы
-```
-
-### Что нужно добавить в БД (Фаза 2)
-
-- Поле `has_matrix: bool` в таблице `users` — флаг покупки матрицы
-- Поле `compatibility_used: bool` в таблице `users` — флаг использования первого расклада совместимости (по умолчанию `False`; отмечается после первого расклада у пользователя с `has_matrix=True`)
-- Таблица `payments` — обобщить для разовых платежей (не только рекуррентные подписки)
+| Компонент | Статус |
+|-----------|--------|
+| `has_matrix: bool` в `users` | ✅ в БД и модели |
+| `compatibility_used: bool` в `users` | ✅ в БД и модели |
+| `create_matrix_payment()` | ✅ `core/services/payment.py:78` |
+| `save_matrix_payment()` | ✅ `core/services/payment.py:108` |
+| Handler `buy_matrix` (callback из главного меню) | ✅ `bot/handlers/payment.py:185` |
+| Кнопка «💎 Купить разбор 890₽» в главном меню | ✅ `bot/keyboards/main_menu.py` |
+| Таблица `payments` (разовые платежи) | ✅ `core/models.py` (Payment) |

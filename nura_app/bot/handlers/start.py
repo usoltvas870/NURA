@@ -25,7 +25,11 @@ async def cmd_menu(message: Message) -> None:
     has_tarot = bool(user.tarot_subscription) if user else False
     await message.answer(
         welcome_back_text(name=name, archetype=archetype),
-        reply_markup=main_menu_keyboard(has_matrix=bool(user and user.birth_date), has_tarot=has_tarot),
+        reply_markup=main_menu_keyboard(
+            has_matrix=bool(user and user.birth_date),
+            has_tarot=has_tarot,
+            purchased_matrix=bool(user.has_matrix) if user else False,
+        ),
     )
 
 
@@ -50,7 +54,11 @@ async def callback_main_menu(callback: CallbackQuery) -> None:
     has_tarot = bool(user.tarot_subscription) if user else False
     await callback.message.edit_text(
         welcome_back_text(name=name, archetype=archetype),
-        reply_markup=main_menu_keyboard(has_matrix=bool(user and user.birth_date), has_tarot=has_tarot),
+        reply_markup=main_menu_keyboard(
+            has_matrix=bool(user and user.birth_date),
+            has_tarot=has_tarot,
+            purchased_matrix=bool(user.has_matrix) if user else False,
+        ),
     )
 
 

@@ -2,30 +2,38 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-def main_menu_keyboard(has_matrix: bool = True, has_tarot: bool = False) -> InlineKeyboardMarkup:
+def main_menu_keyboard(
+    has_matrix: bool = True,
+    has_tarot: bool = False,
+    purchased_matrix: bool = False,
+) -> InlineKeyboardMarkup:
     matrix_btn = (
         InlineKeyboardButton(text="◈ Моя матрица", callback_data="my_matrix")
         if has_matrix
         else InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")
     )
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                matrix_btn,
-                InlineKeyboardButton(text="🌒 Таро", callback_data="tarot_menu"),
-            ],
-            [
-                InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura"),
-                InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
-            ],
-            [
-                InlineKeyboardButton(text="📄 Пример отчёта", callback_data="sample_report"),
-            ],
-            [
-                InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
-            ],
-        ]
-    )
+    keyboard = [
+        [
+            matrix_btn,
+            InlineKeyboardButton(text="🌒 Таро", callback_data="tarot_menu"),
+        ],
+        [
+            InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura"),
+            InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
+        ],
+        [
+            InlineKeyboardButton(text="📄 Пример отчёта", callback_data="sample_report"),
+        ],
+        [
+            InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
+        ],
+    ]
+    if has_matrix and not purchased_matrix:
+        keyboard.insert(
+            -1,
+            [InlineKeyboardButton(text="💎 Купить разбор 890₽", callback_data="buy_matrix")],
+        )
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 def compatibility_paywall_keyboard() -> InlineKeyboardMarkup:
