@@ -1,20 +1,8 @@
-def profile_tarot_text(name: str, archetype: str, reports_count: int) -> str:
+def profile_no_matrix_text(name: str, birth_date: str | None = None) -> str:
+    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
     return (
         f"<b>👤 {name}</b>\n\n"
-        f"<b>🎭 Архетип:</b> {archetype}\n"
-        "🃏 Таро-подписка: активна\n"
-        f"Отчётов: {reports_count}\n\n"
-        "У тебя есть доступ к ежедневным ритуалам:\n"
-        "• Карта дня\n"
-        "• Расклад недели\n"
-        "• Расклад по вопросу\n"
-        "• Безлимитный чат с NURA"
-    )
-
-
-def profile_no_matrix_text(name: str) -> str:
-    return (
-        f"<b>👤 {name}</b>\n\n"
+        f"{bd_line}"
         "Статус: 🌱 <i>исследователь</i>\n"
         "Матрица: <i>ещё не рассчитана</i>\n\n"
         "Твои 22 аркана пока молчат.\n"
@@ -23,10 +11,12 @@ def profile_no_matrix_text(name: str) -> str:
     )
 
 
-def profile_mini_text(name: str, archetype: str, reports_count: int) -> str:
+def profile_mini_text(name: str, archetype: str, reports_count: int, birth_date: str | None = None) -> str:
+    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
     return (
         f"<b>👤 {name}</b>\n\n"
         f"<b>🎭 Архетип:</b> {archetype}\n"
+        f"{bd_line}"
         "Статус: 📖 <i>есть мини-разбор</i>\n"
         f"Отчётов: {reports_count}\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -37,10 +27,12 @@ def profile_mini_text(name: str, archetype: str, reports_count: int) -> str:
     )
 
 
-def profile_full_text(name: str, archetype: str, reports_count: int) -> str:
+def profile_full_text(name: str, archetype: str, reports_count: int, birth_date: str | None = None) -> str:
+    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
     return (
         f"<b>👤 {name}</b>\n\n"
         f"<b>🎭 Архетип:</b> {archetype}\n"
+        f"{bd_line}"
         "Статус: 📖 <i>есть полный отчёт</i>\n"
         f"Отчётов: {reports_count}\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -50,10 +42,13 @@ def profile_full_text(name: str, archetype: str, reports_count: int) -> str:
         "доступны с подпиской."
     )
 
-def profile_subscriber_text(name: str, archetype: str, until: str, reports_count: int) -> str:
+
+def profile_subscriber_text(name: str, archetype: str, until: str, reports_count: int, birth_date: str | None = None) -> str:
+    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
     return (
         f"<b>👤 {name}</b>\n\n"
         f"<b>🎭 Архетип:</b> {archetype}\n"
+        f"{bd_line}"
         "👑 Статус: <b>подписка активна</b>\n"
         f"Подписка до: {until}\n"
         f"Отчётов: {reports_count}\n\n"
@@ -62,6 +57,22 @@ def profile_subscriber_text(name: str, archetype: str, until: str, reports_count
         "• Чат с NURA без ограничений\n"
         "• Ежедневные инсайты в ЛС\n"
         "• Все отчёты без доплат"
+    )
+
+
+def profile_tarot_text(name: str, archetype: str, reports_count: int, birth_date: str | None = None) -> str:
+    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
+    return (
+        f"<b>👤 {name}</b>\n\n"
+        f"<b>🎭 Архетип:</b> {archetype}\n"
+        f"{bd_line}"
+        "🃏 Таро-подписка: активна\n"
+        f"Отчётов: {reports_count}\n\n"
+        "У тебя есть доступ к ежедневным ритуалам:\n"
+        "• Карта дня\n"
+        "• Расклад недели\n"
+        "• Расклад по вопросу\n"
+        "• Безлимитный чат с NURA"
     )
 
 

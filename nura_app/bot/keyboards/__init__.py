@@ -10,6 +10,7 @@ from bot.keyboards.tarot_keyboard import (
     tarot_back_keyboard,
     tarot_paywall_keyboard,
     tarot_spheres_keyboard,
+    tarot_more_keyboard,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "tarot_back_keyboard",
     "tarot_paywall_keyboard",
     "tarot_spheres_keyboard",
+    "tarot_more_keyboard",
 ]

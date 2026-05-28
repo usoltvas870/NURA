@@ -9,6 +9,7 @@ from bot.keyboards.main_menu import main_menu_keyboard
 from bot.keyboards.tarot_keyboard import (
     tarot_back_keyboard,
     tarot_menu_keyboard,
+    tarot_more_keyboard,
     tarot_paywall_keyboard,
     tarot_spheres_keyboard,
 )
@@ -47,10 +48,15 @@ ARCANA = {
     22: "Шут",
 }
 
-_SPHERE_NAMES = {
+# Маппинг sphere callbacks → название сферы
+# Поддерживаем оба варианта: старые (tarot_sphere_*) и новые (tarot_*)
+_SPHERE_NAMES: dict[str, str] = {
     "tarot_sphere_money": "Деньги и реализация",
     "tarot_sphere_relations": "Отношения",
     "tarot_sphere_purpose": "Предназначение",
+    "tarot_money": "Деньги и реализация",
+    "tarot_relations": "Отношения",
+    "tarot_purpose": "Предназначение",
 }
 
 
@@ -71,9 +77,13 @@ def _paywall_text(spread_name: str) -> str:
     return (
         f"🔒 {spread_name}\n\n"
         "Этот расклад доступен в полной практике.\n"
-        "Открой все 7 раскладов за 390₽/мес."
+        "Открой все расклады за 390 ₽/мес."
     )
 
+
+# ──────────────────────────────────────
+# Главное меню таро
+# ──────────────────────────────────────
 
 @router.callback_query(F.data == "tarot_menu")
 async def show_tarot_menu(callback: CallbackQuery, state: FSMContext) -> None:
@@ -102,50 +112,12 @@ async def show_tarot_menu(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.message.edit_text(text, reply_markup=tarot_menu_keyboard(has_tarot))
 
 
-@router.callback_query(F.data == "tarot_daily_card")
-async def show_daily_card(callback: CallbackQuery) -> None:
-    await callback.answer()
-    today = date.today()
-    arcana_num = _daily_arcana_number(today)
-    arcana_name = ARCANA[arcana_num]
+# ──────────────────────────────────────
+# Подменю «Ещё расклады» (задача 2.2)
+# ──────────────────────────────────────
 
-    await callback.message.edit_text("🌒 Вычисляю карту дня...")
-
-    try:
-        prompt = AIService._load_prompt("tarot_daily_card_handler.txt")
-        filled = prompt.format(
-            arcana_name=arcana_name,
-            arcana_number=arcana_num,
-            date=datetime.now().strftime("%d.%m.%Y"),
-        )
-        interpretation = await AIService.chat(
-            messages=[
-                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
-                {"role": "user", "content": filled},
-            ],
-            api_params={"max_tokens": 500, "temperature": 0.7},
-        )
-        interpretation = interpretation.strip().strip('"')
-    except Exception:
-        logger.exception("show_daily_card AI failed")
-        await callback.message.edit_text(
-            f"🌒 Карта дня — {arcana_name}\n\n"
-            "Сегодня карта говорит тише обычного. Попробуй снова чуть позже.",
-            reply_markup=tarot_back_keyboard(),
-        )
-        return
-
-    text = (
-        f"🌒 Карта дня — {arcana_name}\n"
-        f"{'─' * 20}\n\n"
-        f"{interpretation}\n\n"
-        f"_Аркан {arcana_num} · {datetime.now().strftime('%d.%m.%Y')}_"
-    )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
-
-
-@router.callback_query(F.data == "tarot_weekly")
-async def show_tarot_weekly(callback: CallbackQuery) -> None:
+@router.callback_query(F.data == "tarot_more")
+async def show_tarot_more(callback: CallbackQuery) -> None:
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -156,9 +128,89 @@ async def show_tarot_weekly(callback: CallbackQuery) -> None:
         return
     if not user.tarot_subscription and not settings.test_mode:
         await callback.message.edit_text(
-            _paywall_text("Расклад недели"),
+            _paywall_text("Ещё расклады"),
             reply_markup=tarot_paywall_keyboard(),
         )
+        return
+    await callback.message.edit_text(
+        "✨ Ещё расклады\n\nВыбери практику:",
+        reply_markup=tarot_more_keyboard(),
+    )
+
+
+# ──────────────────────────────────────
+# Карта дня (бесплатная для всех)
+# ──────────────────────────────────────
+
+@router.callback_query(F.data == "tarot_daily_card")
+async def show_tarot_daily_card(callback: CallbackQuery) -> None:
+    await callback.answer()
+    user = await _get_user(callback.from_user.id)
+    if user is None:
+        await callback.message.edit_text(
+            "Пользователь не найден. Начни с /start",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    today = date.today()
+    arcana_num = _daily_arcana_number(today)
+    arcana_name = ARCANA[arcana_num]
+
+    await callback.message.edit_text("🌒 Вытягиваю карту дня...")
+
+    try:
+        prompt = AIService._load_prompt("tarot_daily_card.txt")
+        filled = prompt.format(
+            arcana_number=arcana_num,
+            arcana_name=arcana_name,
+            date=today.strftime("%d.%m.%Y"),
+        )
+        result_text = await AIService.chat(
+            messages=[
+                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                {"role": "user", "content": filled},
+            ],
+            api_params={"max_tokens": 400, "temperature": 0.7},
+        )
+        result_text = result_text.strip().strip('"')
+    except Exception:
+        logger.exception("tarot daily_card AI failed")
+        result_text = "Карты молчат сегодня. Попробуй позже."
+
+    has_tarot = bool(user.tarot_subscription)
+    text = (
+        f"🌒 Карта дня — {today.strftime('%d.%m.%Y')}\n"
+        f"{'─' * 20}\n\n"
+        f"{arcana_num}. {arcana_name}\n\n"
+        f"{result_text}"
+    )
+
+    if has_tarot:
+        kb = tarot_back_keyboard()
+    else:
+        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✨ Открыть практику — 390 ₽/мес", callback_data="buy_tarot_subscription")],
+            [InlineKeyboardButton(text="← К раскладам", callback_data="tarot_menu")],
+        ])
+
+    await callback.message.edit_text(text, reply_markup=kb)
+
+
+# ──────────────────────────────────────
+# Расклад недели
+# ──────────────────────────────────────
+
+@router.callback_query(F.data == "tarot_weekly")
+async def show_tarot_weekly(callback: CallbackQuery) -> None:
+    await callback.answer()
+    user = await _get_user(callback.from_user.id)
+    if user is None:
+        await callback.message.edit_text("Пользователь не найден. Начни с /start", reply_markup=main_menu_keyboard())
+        return
+    if not user.tarot_subscription and not settings.test_mode:
+        await callback.message.edit_text(_paywall_text("Расклад недели"), reply_markup=tarot_paywall_keyboard())
         return
     await callback.message.edit_text(
         "🌒 Расклад недели — в разработке. Скоро здесь появится твой расклад.",
@@ -166,55 +218,45 @@ async def show_tarot_weekly(callback: CallbackQuery) -> None:
     )
 
 
+# ──────────────────────────────────────
+# Расклад по вопросу
+# ──────────────────────────────────────
+
 @router.callback_query(F.data == "tarot_question")
 async def start_tarot_question(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
-        await callback.message.edit_text(
-            "Пользователь не найден. Начни с /start",
-            reply_markup=main_menu_keyboard(),
-        )
+        await callback.message.edit_text("Пользователь не найден. Начни с /start", reply_markup=main_menu_keyboard())
         return
     if not user.tarot_subscription and not settings.test_mode:
-        await callback.message.edit_text(
-            _paywall_text("Расклад по вопросу"),
-            reply_markup=tarot_paywall_keyboard(),
-        )
+        await callback.message.edit_text(_paywall_text("Расклад по вопросу"), reply_markup=tarot_paywall_keyboard())
         return
     await state.set_state(TarotStates.waiting_for_question)
     await state.update_data(spread_type="question")
-    await callback.message.edit_text(
-        "◈ Расклад по вопросу\n\nНапиши свой вопрос, и я разложу карты."
-    )
+    await callback.message.edit_text("◈ Расклад по вопросу\n\nНапиши свой вопрос, и я разложу карты.")
 
 
-@router.callback_query(F.data == "tarot_spheres")
-async def show_tarot_spheres(callback: CallbackQuery, state: FSMContext) -> None:
+# ──────────────────────────────────────
+# Сферы жизни — верхний уровень (задача 2.2)
+# tarot_money / tarot_relations / tarot_purpose
+# + обратная совместимость: tarot_sphere_money и т.д.
+# ──────────────────────────────────────
+
+@router.callback_query(F.data.in_({
+    "tarot_money", "tarot_relations", "tarot_purpose",
+    "tarot_sphere_money", "tarot_sphere_relations", "tarot_sphere_purpose",
+}))
+async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
-        await callback.message.edit_text(
-            "Пользователь не найден. Начни с /start",
-            reply_markup=main_menu_keyboard(),
-        )
+        await callback.message.edit_text("Пользователь не найден. Начни с /start", reply_markup=main_menu_keyboard())
         return
     if not user.tarot_subscription and not settings.test_mode:
-        await callback.message.edit_text(
-            _paywall_text("Сферы жизни"),
-            reply_markup=tarot_paywall_keyboard(),
-        )
+        await callback.message.edit_text(_paywall_text("Сферы жизни"), reply_markup=tarot_paywall_keyboard())
         return
-    await state.set_state(TarotStates.waiting_for_sphere)
-    await callback.message.edit_text(
-        "✶ Сферы жизни\n\nВыбери сферу, которую хочешь рассмотреть:",
-        reply_markup=tarot_spheres_keyboard(),
-    )
 
-
-@router.callback_query(F.data.in_({"tarot_sphere_money", "tarot_sphere_relations", "tarot_sphere_purpose"}))
-async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None:
-    await callback.answer()
     await state.clear()
     sphere_name = _SPHERE_NAMES[callback.data]
     today = date.today()
@@ -242,14 +284,13 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
     except Exception:
         logger.exception("show_sphere_result AI failed")
         await callback.message.edit_text(
-            f"✶ Сферы жизни — {sphere_name}\n\n"
-            "Карты молчат сегодня. Попробуй позже.",
+            f"✶ Сферы жизни — {sphere_name}\n\nКарты молчат сегодня. Попробуй позже.",
             reply_markup=tarot_back_keyboard(),
         )
         return
 
     text = (
-        f"✶ Сферы жизни — {sphere_name}\n"
+        f"✶ {sphere_name}\n"
         f"{'─' * 20}\n\n"
         f"{interpretation}\n\n"
         f"Аркан · {arcana_name}"
@@ -257,21 +298,40 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
     await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
 
+# ──────────────────────────────────────
+# Сферы жизни — общий экран выбора
+# ──────────────────────────────────────
+
+@router.callback_query(F.data == "tarot_spheres")
+async def show_tarot_spheres(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    user = await _get_user(callback.from_user.id)
+    if user is None:
+        await callback.message.edit_text("Пользователь не найден. Начни с /start", reply_markup=main_menu_keyboard())
+        return
+    if not user.tarot_subscription and not settings.test_mode:
+        await callback.message.edit_text(_paywall_text("Сферы жизни"), reply_markup=tarot_paywall_keyboard())
+        return
+    await state.set_state(TarotStates.waiting_for_sphere)
+    await callback.message.edit_text(
+        "✶ Сферы жизни\n\nВыбери сферу, которую хочешь рассмотреть:",
+        reply_markup=tarot_spheres_keyboard(),
+    )
+
+
+# ──────────────────────────────────────
+# Теневые стороны (бывш. Двойники)
+# ──────────────────────────────────────
+
 @router.callback_query(F.data == "tarot_twins")
 async def show_tarot_twins(callback: CallbackQuery) -> None:
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
-        await callback.message.edit_text(
-            "Пользователь не найден. Начни с /start",
-            reply_markup=main_menu_keyboard(),
-        )
+        await callback.message.edit_text("Пользователь не найден. Начни с /start", reply_markup=main_menu_keyboard())
         return
     if not user.tarot_subscription and not settings.test_mode:
-        await callback.message.edit_text(
-            _paywall_text("Двойники"),
-            reply_markup=tarot_paywall_keyboard(),
-        )
+        await callback.message.edit_text(_paywall_text("Теневые стороны"), reply_markup=tarot_paywall_keyboard())
         return
 
     today = date.today()
@@ -303,14 +363,13 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
     except Exception:
         logger.exception("show_tarot_twins AI failed")
         await callback.message.edit_text(
-            "☯ Двойники\n\n"
-            "Карты молчат сегодня. Попробуй позже.",
+            "☯ Теневые стороны\n\nКарты молчат сегодня. Попробуй позже.",
             reply_markup=tarot_back_keyboard(),
         )
         return
 
     text = (
-        f"☯ Двойники\n"
+        f"☯ Теневые стороны\n"
         f"{'─' * 20}\n\n"
         f"{interpretation}\n\n"
         f"{ARCANA[arcana_one]} · {ARCANA[arcana_two]}"
@@ -318,21 +377,19 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
     await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
 
+# ──────────────────────────────────────
+# Энергия месяца (бывш. Портал месяца)
+# ──────────────────────────────────────
+
 @router.callback_query(F.data == "tarot_portal")
 async def show_tarot_portal(callback: CallbackQuery) -> None:
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
-        await callback.message.edit_text(
-            "Пользователь не найден. Начни с /start",
-            reply_markup=main_menu_keyboard(),
-        )
+        await callback.message.edit_text("Пользователь не найден. Начни с /start", reply_markup=main_menu_keyboard())
         return
     if not user.tarot_subscription and not settings.test_mode:
-        await callback.message.edit_text(
-            _paywall_text("Портал месяца"),
-            reply_markup=tarot_paywall_keyboard(),
-        )
+        await callback.message.edit_text(_paywall_text("Энергия месяца"), reply_markup=tarot_paywall_keyboard())
         return
 
     now = datetime.now()
@@ -373,42 +430,41 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
     except Exception:
         logger.exception("show_tarot_portal AI failed")
         await callback.message.edit_text(
-            f"🌅 Портал месяца — {month_name}\n\n"
-            "Карты молчат сегодня. Попробуй позже.",
+            f"🌅 Энергия месяца — {month_name}\n\nКарты молчат сегодня. Попробуй позже.",
             reply_markup=tarot_back_keyboard(),
         )
         return
 
     text = (
-        f"🌅 Портал месяца — {month_name}\n"
+        f"🌅 Энергия месяца — {month_name}\n"
         f"{'─' * 20}\n\n"
         f"{interpretation}"
     )
     await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
 
+# ──────────────────────────────────────
+# Да/Нет
+# ──────────────────────────────────────
+
 @router.callback_query(F.data == "tarot_yes_no")
 async def start_tarot_yes_no(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
-        await callback.message.edit_text(
-            "Пользователь не найден. Начни с /start",
-            reply_markup=main_menu_keyboard(),
-        )
+        await callback.message.edit_text("Пользователь не найден. Начни с /start", reply_markup=main_menu_keyboard())
         return
     if not user.tarot_subscription and not settings.test_mode:
-        await callback.message.edit_text(
-            _paywall_text("Да/Нет"),
-            reply_markup=tarot_paywall_keyboard(),
-        )
+        await callback.message.edit_text(_paywall_text("Да/Нет"), reply_markup=tarot_paywall_keyboard())
         return
     await state.set_state(TarotStates.waiting_for_question)
     await state.update_data(spread_type="yes_no")
-    await callback.message.edit_text(
-        "👁 Да/Нет\n\nНапиши свой вопрос, и я разложу карты."
-    )
+    await callback.message.edit_text("🔮 Да/Нет\n\nНапиши свой вопрос, и я разложу карты.")
 
+
+# ──────────────────────────────────────
+# FSM: обработка вопроса (question / yes_no)
+# ──────────────────────────────────────
 
 @router.message(TarotStates.waiting_for_question)
 async def handle_question_input(message: Message, state: FSMContext) -> None:
@@ -445,23 +501,20 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
             interpretation = interpretation.strip().strip('"')
         except Exception:
             logger.exception("tarot yes_no AI failed")
-            await message.answer(
-                "👁 Да/Нет\n\n"
-                "Карты молчат сегодня. Попробуй позже.",
-                reply_markup=tarot_back_keyboard(),
-            )
+            await message.answer("🔮 Да/Нет\n\nКарты молчат сегодня. Попробуй позже.", reply_markup=tarot_back_keyboard())
             await state.clear()
             return
 
         text = (
-            f"👁 Да/Нет\n"
+            f"🔮 Да/Нет\n"
             f"{'─' * 20}\n\n"
             f"Вопрос: {question}\n\n"
             f"{interpretation}\n\n"
             f"Аркан · {arcana_name}"
         )
         await message.answer(text, reply_markup=tarot_back_keyboard())
-    else:
+
+    else:  # spread_type == "question"
         past_num = (base_arcana - 1) % 22 + 1
         present_num = base_arcana
         future_num = base_arcana % 22 + 1
@@ -493,11 +546,7 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
             interpretation = interpretation.strip().strip('"')
         except Exception:
             logger.exception("tarot question AI failed")
-            await message.answer(
-                "◈ Расклад по вопросу\n\n"
-                "Карты молчат сегодня. Попробуй позже.",
-                reply_markup=tarot_back_keyboard(),
-            )
+            await message.answer("◈ Расклад по вопросу\n\nКарты молчат сегодня. Попробуй позже.", reply_markup=tarot_back_keyboard())
             await state.clear()
             return
 

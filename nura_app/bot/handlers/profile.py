@@ -46,7 +46,6 @@ async def cmd_profile(message: Message) -> None:
     if user is None:
         await message.answer("Пользователь не найден. Начни с /start")
         return
-
     await _show_profile(message, user, reports)
 
 
@@ -57,31 +56,30 @@ async def callback_profile(callback: CallbackQuery) -> None:
     if user is None:
         await callback.message.edit_text("Пользователь не найден. Начни с /start")
         return
-
     await _show_profile(callback.message, user, reports)
 
 
 async def _show_profile(message: Message, user, reports) -> None:
     name = user.first_name or user.username or "пользователь"
     reports_count = len(reports)
-
     has_full = any(r.report_type == "full" for r in reports)
+    birth_date = user.birth_date  # задача 2.3: передаём дату рождения
 
     if not user.main_archetype:
-        text = profile_no_matrix_text(name)
+        text = profile_no_matrix_text(name, birth_date=birth_date)
         kb = profile_keyboard(has_matrix=False, is_subscriber=False)
     elif user.subscription_status == "premium":
         until_str = user.subscription_until.strftime("%d.%m.%Y") if user.subscription_until else "—"
-        text = profile_subscriber_text(name, user.main_archetype, until_str, reports_count)
+        text = profile_subscriber_text(name, user.main_archetype, until_str, reports_count, birth_date=birth_date)
         kb = profile_keyboard(has_matrix=True, is_subscriber=True)
     elif user.tarot_subscription:
-        text = profile_tarot_text(name, user.main_archetype, reports_count)
+        text = profile_tarot_text(name, user.main_archetype, reports_count, birth_date=birth_date)
         kb = profile_keyboard(has_matrix=True, is_subscriber=False, has_tarot=True)
     elif has_full:
-        text = profile_full_text(name, user.main_archetype, reports_count)
+        text = profile_full_text(name, user.main_archetype, reports_count, birth_date=birth_date)
         kb = profile_keyboard(has_matrix=True, is_subscriber=False, has_full_report=True)
     else:
-        text = profile_mini_text(name, user.main_archetype, reports_count)
+        text = profile_mini_text(name, user.main_archetype, reports_count, birth_date=birth_date)
         kb = profile_keyboard(has_matrix=True, is_subscriber=False)
 
     await message.answer(text, reply_markup=kb)
@@ -137,5 +135,4 @@ async def back_to_profile(callback: CallbackQuery) -> None:
     if user is None:
         await callback.message.edit_text("Пользователь не найден. Начни с /start")
         return
-
     await _show_profile(callback.message, user, reports)

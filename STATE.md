@@ -63,7 +63,7 @@
 - ✅ Nginx — прокси, SSL, /webhook/, /report/, /api/
 - ✅ Полный AI-отчёт — генерация (9 полей), триггер от YooKassa webhook
 - ✅ Kitchen-слой — бэкенд: AI-генерация (12 полей), хранение в БД (JSONB), API /report/{token}/kitchen
-- ✅ Совместимость — лимитная модель: 1 расклад с Матрицей (has_matrix), безлимит с Таро; виральный share после расклада
+- ✅ Совместимость — лимитная модель: 1 расклад с Матрицей (has_matrix), безлимит с Таро ИЛИ premium; виральный share после расклада
 - ✅ Ежедневные уведомления — Celery-beat задача send_daily_card (06:00 МСК, все активные пользователи)
 - ✅ Чат с NURA — FSM, лимит 5 сообщений для free, безлимит для premium
 - ✅ Подписка 390₽/мес — YooKassa recurrent, Celery downgrade/check
@@ -80,6 +80,7 @@
 - ✅ Detector FALLBACK_FULL — при отсутствии реального AI-анализа отдаётся 202 «отчёт готовится»
 - 🟡 Страница отчёта — план апгрейда (16 шагов) частично выполнен: V2 шаблон, печатный CSS, TOC, диспетчеризация типов
 - 🟡 Alembic миграции — не созданы (нужна миграция: has_matrix, has_tarot, compatibility_used в users)
+- ✅ UX-рефакторинг бота (Сессия 15) — логика меню, доступ к совместимости, меню таро
 
 ## Известные блокеры
 - 🔴 Нужен реальный Telegram Bot Token (в .env стоит рабочий, не менять без необходимости)
@@ -210,3 +211,12 @@
   - `docs/tarot-integration-plan.md`: §9 «Виральная механика — Отправить другу», совместимость в пейволл
   - `nura_app/core/models.py`: поля `has_tarot`, `has_matrix`, `compatibility_used: bool` в модель User
   - `nura_app/init_db.py`: deprecation-комментарий (используй alembic)
+
+- **28.05.2026 — Сессия 15** — Claude Sonnet 4.6 (claude.ai)
+  - Продуктовый рефакторинг UX бота по результатам аудита
+  - **1.1** `bot/keyboards/main_menu.py`: кнопка «💎 Купить разбор 890₽» скрывается при `has_matrix=True` ИЛИ `subscription_status=premium`; убран устаревший параметр `purchased_matrix` (backward-compat alias); `bot/handlers/start.py` и `onboarding.py` — передают `subscription_status` вместо `purchased_matrix`
+  - **1.2** `bot/handlers/compatibility.py`: добавлена вспомогательная функция `_has_unlimited_compat()` — `subscription_status=premium` теперь даёт безлимит наравне с `has_tarot=True`; убраны упоминания цены у подписчиков
+  - **1.3** `bot/handlers/onboarding.py` (`show_my_matrix`): если `has_matrix=True` и есть FULL-отчёт → показывает кнопки «📄 Открыть отчёт» + «⬇️ Скачать PDF» прямо на экране матрицы; убрана кнопка «Получить полный разбор по подписке», заменена на «💎 Купить матрицу — 890 ₽»
+  - **2.1** `bot/texts/chat.py`: удалена строка `«Чтобы выйти, напиши /exit или нажми кнопку ниже»` из `greeting_text_free` и `greeting_text_unlimited`
+  - **2.2** `bot/keyboards/tarot_keyboard.py`: новая структура меню — Деньги/Отношения/Предназначение вынесены на верхний уровень; добавлена кнопка «✨ Ещё расклады →» (callback `tarot_more`); новая функция `tarot_more_keyboard()` с Расклад недели / Сферы / Теневые стороны / Энергия месяца; `bot/handlers/tarot.py`: добавлены handlers `tarot_money/relations/purpose` (с обратной совместимостью `tarot_sphere_*`), `tarot_more`, переименования «Двойники» → «Теневые стороны», «Портал месяца» → «Энергия месяца»
+  - **2.3** `bot/texts/profile.py` + `bot/handlers/profile.py`: все функции текста профиля принимают `birth_date` и отображают «📅 Дата рождения: ...»; кнопка «💬 Чат с NURA» удалена из `profile_keyboard` (доступна через главное меню)

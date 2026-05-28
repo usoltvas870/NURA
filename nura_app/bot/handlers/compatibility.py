@@ -29,6 +29,11 @@ POLL_INTERVAL = 2
 MAX_POLL_SECONDS = 90
 
 
+def _has_unlimited_compat(user) -> bool:
+    """Безлимитная совместимость: подписка таро ИЛИ subscription_status=premium."""
+    return bool(user.tarot_subscription) or user.subscription_status == "premium"
+
+
 @router.callback_query(F.data == "compatibility")
 async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
@@ -41,6 +46,7 @@ async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.message.edit_text("Пользователь не найден. Начни с /start")
         return
 
+    # Ветка A: нет матрицы → пейволл матрицы
     if not user.has_matrix:
         await callback.message.edit_text(
             "❤️ Совместимость\n\n"
@@ -48,52 +54,39 @@ async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
             "я разберу вашу совместимость по матрицам.\n\n"
             "Доступно с покупкой Матрицы судьбы.",
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[[
-                    InlineKeyboardButton(
-                        text="💎 Купить Матрицу — 890₽",
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="💎 Купить Матрицу — 890 ₽",
                         callback_data="buy_matrix"
-                    )
-                ],[
-                    InlineKeyboardButton(
-                        text="← Назад",
-                        callback_data="main_menu"
-                    )
-                ]]
+                    )],
+                    [InlineKeyboardButton(text="← Назад", callback_data="main_menu")],
+                ]
             )
         )
         return
 
-    if user.compatibility_used and not user.tarot_subscription:
+    # Ветка B: матрица есть, лимит исчерпан, нет безлимита → пейволл таро
+    if user.compatibility_used and not _has_unlimited_compat(user):
         await callback.message.edit_text(
-            "❤️ Ты уже использовал бесплатный расклад.\n\n"
-            "Безлимитная совместимость — в Таро-подписке.\n"
+            "❤️ Ты уже использовал бесплатный расклад совместимости.\n\n"
+            "Безлимитная совместимость доступна с Таро-подпиской.\n"
             "Проверяй совместимость с друзьями, коллегами,\n"
             "новыми знакомыми — без ограничений.",
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[[
-                    InlineKeyboardButton(
-                        text="✨ Подключить Таро — 390₽/мес",
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="✨ Подключить Таро — 390 ₽/мес",
                         callback_data="buy_tarot_subscription"
-                    )
-                ],[
-                    InlineKeyboardButton(
-                        text="← Назад",
-                        callback_data="main_menu"
-                    )
-                ]]
+                    )],
+                    [InlineKeyboardButton(text="← В меню", callback_data="main_menu")],
+                ]
             )
         )
         return
 
-    await state.set_state(CompatibilityStates.waiting_partner_date)
+    # Ветка C/D: доступно (первый расклад ИЛИ безлимит)
     await callback.message.edit_text(explanation_text())
-
-
-@router.message(Command("start", "menu", "help"), CompatibilityStates.waiting_partner_date)
-async def exit_compatibility(message: Message, state: FSMContext) -> None:
-    await state.clear()
-    from bot.handlers.onboarding import cmd_start
-    await cmd_start(message, state)
+    await state.set_state(CompatibilityStates.waiting_partner_date)
 
 
 @router.message(CompatibilityStates.waiting_partner_date)
@@ -106,24 +99,21 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
 
     await state.clear()
 
-    steps = loading_steps()
-    msg = await message.answer(steps[0])
-    for step in steps[1:]:
-        await asyncio.sleep(1)
-        await msg.edit_text(step)
-
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
     user = await user_repo.get_by_telegram_id(message.from_user.id)
-    if user is None:
-        await msg.edit_text(
-            "Пользователь не найден. Начни с /start",
-        )
+
+    if user is None or not user.birth_date:
+        await message.answer("Пользователь не найден. Начни с /start")
         return
 
-    task = generate_compatibility_report.delay(
-        str(user.id), date_str
-    )
+    # Анимация загрузки
+    msg = await message.answer(loading_steps[0])
+    for step in loading_steps[1:]:
+        await asyncio.sleep(1.5)
+        await msg.edit_text(step)
+
+    task = generate_compatibility_report.delay(str(user.id), date_str)
 
     result = None
     waited = 0
@@ -136,9 +126,7 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         waited += POLL_INTERVAL
 
     if result is None:
-        await msg.edit_text(
-            "Что-то пошло не так. Попробуй ещё раз через минуту.",
-        )
+        await msg.edit_text("Что-то пошло не так. Попробуй ещё раз через минуту.")
         return
 
     analysis = result.get("analysis", {})
@@ -176,27 +164,33 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
     keyboard_rows = [
         [InlineKeyboardButton(text="📤 Отправить другу", url=share_url)],
     ]
-    if user.tarot_subscription:
+
+    # У пользователей с активной подпиской не показываем цену
+    if _has_unlimited_compat(user):
         keyboard_rows.append(
             [InlineKeyboardButton(text="🔄 Новый расклад", callback_data="compatibility")]
         )
     else:
         keyboard_rows.append(
-            [InlineKeyboardButton(text="✨ Подключить Таро — 390₽/мес", callback_data="buy_tarot_subscription")]
+            [InlineKeyboardButton(text="✨ Подключить Таро", callback_data="buy_tarot_subscription")]
         )
+
     keyboard_rows.append(
         [InlineKeyboardButton(text="← В меню", callback_data="main_menu")]
     )
 
-    if not user.tarot_subscription:
-        user_repo = UserRepository(session_factory)
+    # Отметить лимит если нет безлимита
+    if not _has_unlimited_compat(user):
         await user_repo.mark_compatibility_used(user.id)
 
     if settings.test_mode:
         report_url = f"{settings.report_base_url}/report/{token}"
         keyboard_rows.insert(
             0,
-            [InlineKeyboardButton(text="👁 Открыть полный разбор (тестовый режим — оплата не требуется)", url=report_url)],
+            [InlineKeyboardButton(
+                text="👁 Открыть полный разбор (тест)",
+                url=report_url
+            )],
         )
 
     await msg.edit_text(

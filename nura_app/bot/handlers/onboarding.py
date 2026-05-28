@@ -9,15 +9,16 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from bot.handlers.validators import validate_date
 from bot.keyboards.main_menu import main_menu_keyboard
 from bot.states.onboarding_state import OnboardingStates
+from bot.texts.matrix import invalid_format_text
 from bot.texts.matrix import mini_analysis_text
 from bot.texts.onboarding import (
     ask_birth_date_onboarding_text,
     invalid_format_onboarding_text,
     my_matrix_text,
     onboarding_done_text,
-    onboarding_greeting_text,
     onboarding_loading_text,
 )
+from core.config import settings
 from core.database import get_async_sessionmaker
 from core.models import ReportType
 from core.repositories.report import ReportRepository
@@ -31,24 +32,26 @@ router = Router()
 
 
 @router.message(Command("start"))
-async def cmd_start(message: Message, state: FSMContext, user=None) -> None:
+async def cmd_start(message: Message, state: FSMContext) -> None:
+    await state.clear()
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
-    db_user = user or await user_repo.get_by_telegram_id(message.from_user.id)
+    user = await user_repo.get_by_telegram_id(message.from_user.id)
 
-    if db_user and db_user.birth_date:
-        await state.clear()
-        await _show_authenticated_menu(message, db_user)
+    if user and user.birth_date:
+        await _show_authenticated_menu(message, user)
         return
 
-    first_name = (
-        message.from_user.first_name
-        or message.from_user.username
-        or "друг"
-    )
+    if user is None:
+        user = await user_repo.create(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            first_name=message.from_user.first_name,
+        )
+
+    from bot.texts.onboarding import onboarding_greeting_text
+    await message.answer(onboarding_greeting_text(message.from_user.first_name or ""))
     await state.set_state(OnboardingStates.waiting_for_birth_date)
-    await message.answer(onboarding_greeting_text(first_name))
-    await asyncio.sleep(0.3)
     await message.answer(ask_birth_date_onboarding_text())
 
 
@@ -91,7 +94,10 @@ async def process_onboarding_birth_date(
     has_tarot = bool(db_user.tarot_subscription) if db_user else False
     await loading_msg.edit_text(
         onboarding_done_text(archetype_name, archetype_number),
-        reply_markup=main_menu_keyboard(has_tarot=has_tarot),
+        reply_markup=main_menu_keyboard(
+            has_tarot=has_tarot,
+            subscription_status=db_user.subscription_status,
+        ),
     )
 
 
@@ -128,11 +134,14 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
     )
 
     mini_report = await report_repo.get_by_user_id_and_type(user.id, ReportType.MINI)
+    full_report = await report_repo.get_by_user_id_and_type(user.id, ReportType.FULL)
 
     if mini_report and mini_report.ai_analysis:
         analysis = mini_report.ai_analysis or {}
         raw = analysis.get("main_archetype", "")
-        is_fallback = isinstance(raw, str) and any(m in raw for m in ["чуть больше времени", "запросить разбор ещё раз", "дай мне ещё одну попытку"])
+        is_fallback = isinstance(raw, str) and any(
+            m in raw for m in ["чуть больше времени", "запросить разбор ещё раз", "дай мне ещё одну попытку"]
+        )
         if is_fallback:
             await report_repo.delete(mini_report.id)
             username = callback.from_user.username or callback.from_user.first_name or "user"
@@ -140,8 +149,7 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
             await callback.message.edit_text(
                 "🔄 Пересчитываю твою матрицу...\n"
                 "Это займёт около минуты.\n"
-                "Нажми 🔮 Моя матрица через минуту.",
-                reply_markup=main_menu_keyboard(),
+                "Нажми ◈ Моя матрица через минуту."
             )
             return
         matrix_data = mini_report.matrix_data or {}
@@ -158,14 +166,28 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
     else:
         text = schema_text
 
+    # --- Задача 1.3: кнопки отчёта прямо здесь ---
+    buttons: list[list[InlineKeyboardButton]] = []
+
+    if full_report and full_report.token:
+        # Есть купленный полный отчёт — показываем ссылку прямо здесь
+        report_url = f"{settings.report_base_url}/report/{full_report.token}"
+        pdf_url = f"{settings.report_base_url}/report/{full_report.token}/pdf"
+        buttons.append([
+            InlineKeyboardButton(text="📄 Открыть отчёт", url=report_url),
+            InlineKeyboardButton(text="⬇️ Скачать PDF", url=pdf_url),
+        ])
+    else:
+        # Матрица не куплена — показываем кнопку покупки с пояснением
+        buttons.append([
+            InlineKeyboardButton(text="💎 Купить матрицу — 890 ₽", callback_data="buy_matrix")
+        ])
+
+    buttons.append([InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")])
+
     await callback.message.edit_text(
         text,
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="💎 Полный разбор по подписке", callback_data="buy_subscription")],
-                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
-            ]
-        ),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
     )
 
 
@@ -184,5 +206,9 @@ async def _show_authenticated_menu(message: Message, user) -> None:
     has_tarot = bool(user.tarot_subscription) if user else False
     await message.answer(
         welcome_back_text(name=name, archetype=archetype),
-        reply_markup=main_menu_keyboard(has_tarot=has_tarot, purchased_matrix=user.has_matrix),
+        reply_markup=main_menu_keyboard(
+            has_matrix=bool(user.has_matrix),
+            has_tarot=has_tarot,
+            subscription_status=user.subscription_status,
+        ),
     )
