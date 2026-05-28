@@ -219,4 +219,16 @@
   - **1.3** `bot/handlers/onboarding.py` (`show_my_matrix`): если `has_matrix=True` и есть FULL-отчёт → показывает кнопки «📄 Открыть отчёт» + «⬇️ Скачать PDF» прямо на экране матрицы; убрана кнопка «Получить полный разбор по подписке», заменена на «💎 Купить матрицу — 890 ₽»
   - **2.1** `bot/texts/chat.py`: удалена строка `«Чтобы выйти, напиши /exit или нажми кнопку ниже»` из `greeting_text_free` и `greeting_text_unlimited`
   - **2.2** `bot/keyboards/tarot_keyboard.py`: новая структура меню — Деньги/Отношения/Предназначение вынесены на верхний уровень; добавлена кнопка «✨ Ещё расклады →» (callback `tarot_more`); новая функция `tarot_more_keyboard()` с Расклад недели / Сферы / Теневые стороны / Энергия месяца; `bot/handlers/tarot.py`: добавлены handlers `tarot_money/relations/purpose` (с обратной совместимостью `tarot_sphere_*`), `tarot_more`, переименования «Двойники» → «Теневые стороны», «Портал месяца» → «Энергия месяца»
-  - **2.3** `bot/texts/profile.py` + `bot/handlers/profile.py`: все функции текста профиля принимают `birth_date` и отображают «📅 Дата рождения: ...»; кнопка «💬 Чат с NURA» удалена из `profile_keyboard` (доступна через главное меню)
+   - **2.3** `bot/texts/profile.py` + `bot/handlers/profile.py`: все функции текста профиля принимают `birth_date` и отображают «📅 Дата рождения: ...»; кнопка «💬 Чат с NURA» удалена из `profile_keyboard` (доступна через главное меню)
+
+- **28.05.2026 — Сессия 16** — DeepSeek V4 Pro
+  - Рефакторинг профиля → личный кабинет
+  - `core/config.py`: новое поле `support_username: str = "@nura_support"`
+  - `bot/keyboards/main_menu.py`:
+    - `main_menu_keyboard`: «📄 Мои отчёты» + «👤 Профиль» в одной строке; «📄 Пример отчёта» убран
+    - `profile_keyboard`: полностью переписан — 3 состояния (нет матрицы / есть матрица / подписчик), кнопки «Управление подпиской», «Поддержка», «В меню»; убран параметр `has_full_report`
+  - `bot/handlers/profile.py`:
+    - Обновлены вызовы `profile_keyboard` (убран `has_full_report`)
+    - Новые хендлеры: `manage_subscription` (экран управления), `cancel_subscription_confirm` (подтверждение), `cancel_subscription_do` (флаг `cancelling`), `show_support` (ссылка на Telegram)
+    - Добавлены импорты: `InlineKeyboardButton`, `InlineKeyboardMarkup`, `settings`, `User`
+  - «Мои отчёты» и «Чат с NURA» вынесены в главное меню из профиля
