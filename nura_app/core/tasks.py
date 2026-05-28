@@ -296,9 +296,6 @@ def generate_full_report(user_id: str, birth_date: str, report_token: str) -> di
 def generate_compatibility_report(user_id: str, partner_date: str) -> dict:
     async def _run_all():
         result = await _process_compatibility_report(user_id, partner_date)
-        telegram_id = await _get_user_telegram_id(user_id)
-        if telegram_id:
-            await _notify_compatibility(telegram_id, result["token"])
         return result
     return _run_async(_run_all())
 

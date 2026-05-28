@@ -138,6 +138,7 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         block_1=analysis.get("archetype_first", "..."),
         block_2=analysis.get("archetype_second", "..."),
         block_3=analysis.get("emotional_compatibility", "..."),
+        show_cta=not _has_unlimited_compat(user),
     )
 
     partner_arcana_name = result.get(
@@ -161,14 +162,31 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         f"&text={quote(share_text)}"
     )
 
-    keyboard_rows = [
+    keyboard_rows = []
+
+    # Кнопки отчёта для подписчиков
+    if token and _has_unlimited_compat(user):
+        report_url = f"{settings.report_base_url}/report/{token}"
+        pdf_url = f"{settings.report_base_url}/report/{token}/pdf"
+        keyboard_rows.append([
+            InlineKeyboardButton(text="📄 Открыть отчёт", url=report_url),
+            InlineKeyboardButton(text="⬇️ Скачать PDF", url=pdf_url),
+        ])
+
+    # Кнопка «Как мы это считаем» для всех
+    if token:
+        keyboard_rows.append([
+            InlineKeyboardButton(text="🔍 Как мы это считаем", callback_data=f"compat_details:{token}"),
+        ])
+
+    keyboard_rows.append(
         [InlineKeyboardButton(text="📤 Отправить другу", url=share_url)],
-    ]
+    )
 
     # У пользователей с активной подпиской не показываем цену
     if _has_unlimited_compat(user):
         keyboard_rows.append(
-            [InlineKeyboardButton(text="🔄 Новый расклад", callback_data="compatibility")]
+            [InlineKeyboardButton(text="🔄 Проверить ещё одну пару", callback_data="compatibility")]
         )
     else:
         keyboard_rows.append(
@@ -183,17 +201,36 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
     if not _has_unlimited_compat(user):
         await user_repo.mark_compatibility_used(user.id)
 
-    if settings.test_mode:
-        report_url = f"{settings.report_base_url}/report/{token}"
-        keyboard_rows.insert(
-            0,
-            [InlineKeyboardButton(
-                text="👁 Открыть полный разбор (тест)",
-                url=report_url
-            )],
-        )
-
     await msg.edit_text(
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_rows),
     )
+
+@router.callback_query(F.data.startswith("compat_details:"))
+async def show_compat_details(callback: CallbackQuery) -> None:
+    await callback.answer()
+    token = callback.data.split(":", 1)[1]
+    session_factory = get_async_sessionmaker()
+    from core.repositories.report import ReportRepository
+    report_repo = ReportRepository(session_factory)
+    report = await report_repo.get_by_token(token)
+    if report is None or report.matrix_data is None:
+        await callback.message.edit_text("\u041e\u0442\u0447\u0451\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d.")
+        return
+    matrix_data = report.matrix_data
+    arcana_first_number = matrix_data.get("archetype_first_number") or (matrix_data.get("matrix1") or {}).get("center", "?")
+    arcana_first_name = matrix_data.get("archetype_first_name") or "..."
+    arcana_second_number = matrix_data.get("archetype_second_number") or (matrix_data.get("matrix2") or {}).get("center", "?")
+    arcana_second_name = matrix_data.get("archetype_second_name") or "..."
+    text = (
+        "\U0001f50d <b>\u041a\u0430\u043a \u043c\u044b \u0441\u0447\u0438\u0442\u0430\u0435\u043c \u0441\u043e\u0432\u043c\u0435\u0441\u0442им\u043e\u0441\u0442ь</b>\n\n"
+        f"<b>\u0422\u0432ой \u0430\u0440к\u0430\u043d:</b> {arcana_first_number}. {arcana_first_name}\n"
+        f"<b>\u0410\u0440\u043a\u0430\u043d \u043f\u0430\u0440\u0442нё\u0440\u0430:</b> {arcana_second_number}. {arcana_second_name}\n\n"
+        "\u0421\u043e\u0432м\u0435\u0441\u0442и\u043c\u043e\u0441\u0442\u044c \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u044b\u0432а\u0435\u0442\u0441\u044f \u043f\u043e \u043f\u0435\u0440\u0435сечению \u044d\u043dергий "
+        "\u0446\u0435\u043dтральных \u0430\u0440канов \u0434\u0432ух \u043cа\u0442риц \u2014 это \u0430\u0440хетипы, "
+        "\u043a\u043eторые \u043e\u043fределяют \u0431\u0430зовые \u0441\u0442ратегии \u0447\u0435ловека \u0432 жизни \u0438 отношениях."
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="\u2190 \u041d\u0430\u0437\u0430\u0434", callback_data="main_menu")]
+    ])
+    await callback.message.edit_text(text, reply_markup=keyboard)
