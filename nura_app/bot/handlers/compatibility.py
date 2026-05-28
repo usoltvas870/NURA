@@ -19,7 +19,7 @@ from bot.texts.matrix import invalid_format_text
 from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
-from core.tasks import generate_compatibility_report
+from core.tasks import celery_app, generate_compatibility_report
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +108,8 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         return
 
     # Анимация загрузки
-    msg = await message.answer(loading_steps[0])
-    for step in loading_steps[1:]:
+    msg = await message.answer(loading_steps()[0])
+    for step in loading_steps()[1:]:
         await asyncio.sleep(1.5)
         await msg.edit_text(step)
 
@@ -118,9 +118,9 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
     result = None
     waited = 0
     while waited < MAX_POLL_SECONDS:
-        ready = AsyncResult(task.id).ready()
+        ready = AsyncResult(task.id, app=celery_app).ready()
         if ready:
-            result = AsyncResult(task.id).result
+            result = AsyncResult(task.id, app=celery_app).result
             break
         await asyncio.sleep(POLL_INTERVAL)
         waited += POLL_INTERVAL
