@@ -169,7 +169,7 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         await msg.edit_text(step)
 
     task = generate_compatibility_report.delay(
-        str(user.id), date_str, partner_name
+        str(user.id), date_str, partner_name, relation_type
     )
 
     result = None
@@ -190,13 +190,15 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
     token = result.get("token", "")
     sender_name = user.first_name or user.username or "Пользователь"
 
+    is_premium = _has_unlimited_compat(user)
     text = mini_compatibility_text(
         user_name=sender_name,
         partner_name=partner_name,
         relation_type=relation_type,
-        block_emotional=analysis.get("emotional_compatibility", "..."),
-        block_portrait_user=analysis.get("archetype_first", "..."),
-        block_portrait_partner=analysis.get("archetype_second", "..."),
+        block_emotional=analysis.get("how_you_interact", "..."),
+        block_portrait_user=analysis.get("portrait_user", "..."),
+        block_portrait_partner=analysis.get("portrait_partner", "..."),
+        is_premium=is_premium,
     )
 
     partner_arcana_name = result.get(

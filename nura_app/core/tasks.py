@@ -129,21 +129,6 @@ async def _notify_mini_report(telegram_id: int, token: str) -> None:
     await _send_message(telegram_id, text, keyboard)
 
 
-async def _notify_compatibility(telegram_id: int, token: str) -> None:
-    text = (
-        "❤️ Разбор совместимости готов!\n\n"
-        "Карта вашей совместимости ждёт тебя. "
-        "Полный разбор покажет зоны конфликтов и сильные стороны пары."
-    )
-    keyboard = {
-        "inline_keyboard": [
-            [{"text": "💎 Подписка 390 ₽/мес", "callback_data": "buy_subscription"}],
-            [{"text": "🏠 В меню", "callback_data": "main_menu"}],
-        ],
-    }
-    await _send_message(telegram_id, text, keyboard)
-
-
 def format_daily_card_message(first_name: str, card: dict) -> str:
     lines = [
         f"🃏 Твоя карта дня — {card['card_number']}. {card['card_name']}",
@@ -293,18 +278,15 @@ def generate_full_report(user_id: str, birth_date: str, report_token: str) -> di
 
 
 @celery_app.task(name="core.tasks.generate_compatibility_report")
-def generate_compatibility_report(user_id: str, partner_date: str, partner_name: str = "") -> dict:
+def generate_compatibility_report(user_id: str, partner_date: str, partner_name: str = "Партнёр", relation_type: str = "общение") -> dict:
     async def _run_all():
-        result = await _process_compatibility_report(user_id, partner_date, partner_name)
-        telegram_id = await _get_user_telegram_id(user_id)
-        if telegram_id:
-            await _notify_compatibility(telegram_id, result["token"])
+        result = await _process_compatibility_report(user_id, partner_date, partner_name, relation_type)
         return result
     return _run_async(_run_all())
 
 
 async def _process_compatibility_report(
-    user_id: str, partner_date: str, partner_name: str = ""
+    user_id: str, partner_date: str, partner_name: str = "Партнёр", relation_type: str = "общение"
 ) -> dict:
     uid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
@@ -316,14 +298,17 @@ async def _process_compatibility_report(
         raise ValueError(f"User {user_id} has no birth_date set")
     user_date = user.birth_date
 
+    user_name = user.first_name or user.username or "пользователь"
+
     matrix1 = MatrixService.calculate(user_date)
     matrix2 = MatrixService.calculate(partner_date)
     analysis = await AIService.generate_compatibility(
-        user_date, matrix1, partner_date, matrix2
+        user_date, matrix1, partner_date, matrix2,
+        user_name=user_name,
+        partner_name=partner_name,
+        relation_type=relation_type,
     )
     token = ReportService.generate_token()
-
-    user_name = user.first_name or user.username or "пользователь"
     archetype_first_name = MatrixService.get_archetype_name(matrix1.center)
     archetype_second_name = MatrixService.get_archetype_name(matrix2.center)
 
@@ -356,6 +341,8 @@ async def _process_compatibility_report(
             "matrix_second": matrix_raw_2,
             "analysis": analysis,
             "user_name": user_name,
+            "partner_name": partner_name,
+            "relation_type": relation_type,
             "archetype_name": archetype_first_name,
             "archetype_number": matrix1.center,
             "archetype_first_name": archetype_first_name,

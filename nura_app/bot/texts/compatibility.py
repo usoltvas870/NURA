@@ -45,22 +45,26 @@ def mini_compatibility_text(
     block_emotional: str,
     block_portrait_user: str,
     block_portrait_partner: str,
+    is_premium: bool = False,
 ) -> str:
-    return (
+    base = (
         f"<b>✦ Совместимость архетипов</b>\n\n"
         f"<i>{user_name} + {partner_name}</i>\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
         f"<b>🎭 Портрет {user_name}</b>\n{block_portrait_user}\n\n"
         f"<b>🎭 Портрет {partner_name}</b>\n{block_portrait_partner}\n\n"
-        f"<b>💞 Эмоциональная совместимость</b>\n{block_emotional}\n\n"
-        "━━━━━━━━━━━━━━━━━━━━\n\n"
-        "✦ Это только начало\n\n"
-        "Полный разбор покажет:\n"
-        "• <b>Зоны напряжения</b> — где может возникать трение\n"
-        "• <b>Сильные стороны</b> — в чём вы усиливаете друг друга\n"
-        "• <b>Рекомендация</b> — как выстроить взаимодействие"
+        f"<b>💞 Эмоциональная совместимость</b>\n{block_emotional}"
     )
-
+    if not is_premium:
+        base += (
+            "\n\n━━━━━━━━━━━━━━━━━━━━\n\n"
+            "✦ Это только начало\n\n"
+            "Полный разбор покажет:\n"
+            "• <b>Зоны напряжения</b> — где может возникать трение\n"
+            "• <b>Сильные стороны</b> — в чём вы усиливаете друг друга\n"
+            "• <b>Рекомендация</b> — как выстроить взаимодействие"
+        )
+    return base
 
 def compat_details_text(
     user_name: str,

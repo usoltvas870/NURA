@@ -1,51 +1,114 @@
 {% extends '_base.html' %}
 
 {% block content %}
+
 <section class="cover" style="min-height:auto;padding:60px 0 40px;">
   <div class="cover-inner" style="text-align:center;">
     <div class="cover-logo" style="justify-content:center;">
       <span class="logo-mark">✦</span>
       <span>NURA</span>
     </div>
-
-    <h1 class="cover-name" style="margin-top:24px;">{{ archetype_first_name }} & {{ archetype_second_name }}</h1>
-
-    <div class="cover-archetype" style="margin-top:8px;font-size:clamp(24px,4vw,36px);color:var(--orange);">
-      {{ archetype_first_number }} аркан &diams; {{ archetype_second_number }} аркан
+    <h1 class="cover-name" style="margin-top:24px;">
+      {{ user_name }} &amp; {{ partner_name }}
+    </h1>
+    <div class="cover-archetype"
+         style="margin-top:8px;font-size:clamp(16px,3vw,22px);
+                color:var(--orange);opacity:0.85;">
+      Разбор совместимости
     </div>
-
     <div class="cover-date" style="margin-top:16px;">{{ generated_at }}</div>
     <div class="cover-divider" style="margin:24px auto 0;"></div>
   </div>
 </section>
 
-{% with section_class='archetype', section_title='Архетип первого', section_text=analysis.archetype_first %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-{% with section_class='strengths', section_title='Архетип второго', section_text=analysis.archetype_second %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-{% with section_class='relationships', section_title='Эмоциональная совместимость', section_text=analysis.emotional_compatibility %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-{% with section_class='shadow', section_title='Зоны конфликтов', section_text=analysis.conflict_zones %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-{% with section_class='money', section_title='Сильные стороны пары', section_text=analysis.pair_strengths %}
-  {% include '_section_card.html' %}
-{% endwith %}
-
-<section class="report-section section-recommendations">
+<section class="report-section">
   <div class="section-header">
-    <div class="section-accent-bar" style="background:var(--gold);"></div>
-    <h2>Рекомендация для пары</h2>
+    <div class="section-accent-bar"></div>
+    <h2>{{ user_name }}</h2>
   </div>
   <div class="section-body">
-    <p>{{ analysis.ai_recommendation }}</p>
+    <p>{{ analysis.portrait_user }}</p>
   </div>
 </section>
+
+<section class="report-section">
+  <div class="section-header">
+    <div class="section-accent-bar"></div>
+    <h2>{{ partner_name }}</h2>
+  </div>
+  <div class="section-body">
+    <p>{{ analysis.portrait_partner }}</p>
+  </div>
+</section>
+
+<section class="report-section">
+  <div class="section-header">
+    <div class="section-accent-bar" style="background:var(--gold);"></div>
+    <h2>Как вы взаимодействуете</h2>
+  </div>
+  <div class="section-body">
+    <p>{{ analysis.how_you_interact }}</p>
+  </div>
+</section>
+
+<section class="report-section">
+  <div class="section-header">
+    <div class="section-accent-bar" style="background:#e07060;"></div>
+    <h2>Зоны напряжения</h2>
+  </div>
+  <div class="section-body">
+    <p>{{ analysis.tension_zones }}</p>
+  </div>
+</section>
+
+<section class="report-section">
+  <div class="section-header">
+    <div class="section-accent-bar" style="background:#60a060;"></div>
+    <h2>Сила вашей пары</h2>
+  </div>
+  <div class="section-body">
+    <p>{{ analysis.pair_strengths }}</p>
+  </div>
+</section>
+
+<section class="report-section">
+  <div class="section-header">
+    <div class="section-accent-bar" style="background:var(--gold);"></div>
+    <h2>Что попробовать прямо сейчас</h2>
+  </div>
+  <div class="section-body" style="background:rgba(201,169,110,0.08);
+       border-left:3px solid var(--gold);padding:20px 24px;border-radius:8px;">
+    <p>{{ analysis.recommendation }}</p>
+  </div>
+</section>
+
+<section class="report-section">
+  <details style="cursor:pointer;">
+    <summary style="font-size:14px;opacity:0.5;padding:12px 0;
+                    list-style:none;outline:none;">
+      🔍 Как мы считаем совместимость
+    </summary>
+    <div style="margin-top:12px;font-size:13px;opacity:0.7;line-height:1.7;">
+      <p>
+        Совместимость рассчитывается по центральным арканам матриц двух людей —
+        это психологические архетипы, определяющие базовые стратегии поведения,
+        реакции на стресс и способ принятия решений.
+      </p>
+      <p style="margin-top:8px;">
+        <strong>{{ user_name }}:</strong>
+        аркан {{ archetype_first_number }} ({{ archetype_first_name }})
+      </p>
+      <p style="margin-top:4px;">
+        <strong>{{ partner_name }}:</strong>
+        аркан {{ archetype_second_number }} ({{ archetype_second_name }})
+      </p>
+      <p style="margin-top:8px;">
+        AI анализирует пересечение архетипов по трём осям:
+        эмоциональное сочетание, зоны конфликта и точки роста.
+        Результат формируется персонально для каждой пары.
+      </p>
+    </div>
+  </details>
+</section>
+
 {% endblock %}

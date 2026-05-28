@@ -176,12 +176,12 @@ class CompatibilityMiniResult(BaseModel):
 
 
 class CompatibilityFullResult(BaseModel):
-    archetype_first: str
-    archetype_second: str
-    emotional_compatibility: str
-    conflict_zones: str
+    portrait_user: str
+    portrait_partner: str
+    how_you_interact: str
+    tension_zones: str
     pair_strengths: str
-    ai_recommendation: str
+    recommendation: str
 
 
 class DailyInsightResult(BaseModel):

@@ -179,27 +179,12 @@ FALLBACK_FULL = {
 }
 
 FALLBACK_COMPATIBILITY = {
-    "archetype_first": (
-        "Архетип первого человека определён. Для точного анализа в отношениях "
-        "нужно чуть больше времени."
-    ),
-    "archetype_second": (
-        "Архетип второго человека определён. Я уточню его проявление в паре."
-    ),
-    "emotional_compatibility": (
-        "Эмоциональная совместимость видна по сочетанию архетипов. Мне нужно "
-        "время для точного разбора."
-    ),
-    "conflict_zones": (
-        "Зоны конфликтов зашифрованы в пересечении матриц. Я подготовлю точный анализ."
-    ),
-    "pair_strengths": (
-        "Сильные стороны пары определены. Я вернусь с конкретным разбором."
-    ),
-    "ai_recommendation": (
-        "Рекомендация для пары будет готова через минуту. Она будет привязана "
-        "к вашим архетипам."
-    ),
+    "portrait_user": "Не удалось загрузить разбор. Попробуй позже.",
+    "portrait_partner": "Не удалось загрузить разбор. Попробуй позже.",
+    "how_you_interact": "Не удалось загрузить разбор. Попробуй позже.",
+    "tension_zones": "Не удалось загрузить разбор. Попробуй позже.",
+    "pair_strengths": "Не удалось загрузить разбор. Попробуй позже.",
+    "recommendation": "Попробуй запустить расклад ещё раз.",
 }
 
 FALLBACK_CHAT = "Мне нужно чуть больше времени. Спроси ещё раз?"
@@ -566,6 +551,9 @@ class AIService:
         matrix1: "MatrixData | dict",
         date2: str,
         matrix2: "MatrixData | dict",
+        user_name: str = "Первый",
+        partner_name: str = "Второй",
+        relation_type: str = "общение",
     ) -> dict:
         from core.services.matrix import MatrixService
 
@@ -578,6 +566,9 @@ class AIService:
         user_content = template.format(
             matrix_text_first=matrix_text_first,
             matrix_text_second=matrix_text_second,
+            user_name=user_name,
+            partner_name=partner_name,
+            relation_type=relation_type,
         )
 
         async def _retry_callback(bad: str) -> str:
