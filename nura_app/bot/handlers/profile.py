@@ -2,7 +2,7 @@ import logging
 
 from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from bot.keyboards.main_menu import profile_keyboard, reports_keyboard, subscription_keyboard
 from bot.texts.profile import (
@@ -14,7 +14,9 @@ from bot.texts.profile import (
     reports_list_text,
 )
 from bot.texts.subscription import subscription_offer_text
+from core.config import settings
 from core.database import get_async_sessionmaker
+from core.models import User
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 
@@ -67,20 +69,20 @@ async def _show_profile(message: Message, user, reports) -> None:
 
     if not user.main_archetype:
         text = profile_no_matrix_text(name, birth_date=birth_date)
-        kb = profile_keyboard(has_matrix=False, is_subscriber=False)
+        kb = profile_keyboard()
     elif user.subscription_status == "premium":
         until_str = user.subscription_until.strftime("%d.%m.%Y") if user.subscription_until else "—"
         text = profile_subscriber_text(name, user.main_archetype, until_str, reports_count, birth_date=birth_date)
         kb = profile_keyboard(has_matrix=True, is_subscriber=True)
     elif user.tarot_subscription:
         text = profile_tarot_text(name, user.main_archetype, reports_count, birth_date=birth_date)
-        kb = profile_keyboard(has_matrix=True, is_subscriber=False, has_tarot=True)
+        kb = profile_keyboard(has_matrix=True, has_tarot=True)
     elif has_full:
         text = profile_full_text(name, user.main_archetype, reports_count, birth_date=birth_date)
-        kb = profile_keyboard(has_matrix=True, is_subscriber=False, has_full_report=True)
+        kb = profile_keyboard(has_matrix=True)
     else:
         text = profile_mini_text(name, user.main_archetype, reports_count, birth_date=birth_date)
-        kb = profile_keyboard(has_matrix=True, is_subscriber=False)
+        kb = profile_keyboard(has_matrix=True)
 
     await message.answer(text, reply_markup=kb)
 
@@ -125,6 +127,102 @@ async def show_subscription(callback: CallbackQuery) -> None:
     await callback.message.edit_text(
         subscription_offer_text(),
         reply_markup=subscription_keyboard(),
+    )
+
+
+@router.callback_query(F.data == "manage_subscription")
+async def manage_subscription(callback: CallbackQuery) -> None:
+    await callback.answer()
+    user, _ = await _get_user_and_reports(callback.from_user.id)
+    if user is None:
+        await callback.message.edit_text("Пользователь не найден.")
+        return
+
+    until_str = ""
+    if user.subscription_until:
+        until_str = user.subscription_until.strftime("%d.%m.%Y")
+
+    text = (
+        "💳 <b>Управление подпиской</b>\n\n"
+        f"Статус: <b>активна</b>\n"
+        f"Действует до: {until_str}\n\n"
+        "После отмены подписка остаётся активной до конца "
+        "оплаченного периода. Отчёты сохраняются навсегда."
+    )
+    await callback.message.edit_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="❌ Отменить подписку",
+                callback_data="cancel_subscription_confirm"
+            )],
+            [InlineKeyboardButton(text="← Назад", callback_data="profile")],
+        ])
+    )
+
+
+@router.callback_query(F.data == "cancel_subscription_confirm")
+async def cancel_subscription_confirm(callback: CallbackQuery) -> None:
+    await callback.answer()
+    await callback.message.edit_text(
+        "⚠️ <b>Подтверди отмену подписки</b>\n\n"
+        "Подписка останется активной до конца периода.\n"
+        "Новых списаний не будет.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="✅ Да, отменить",
+                callback_data="cancel_subscription_do"
+            )],
+            [InlineKeyboardButton(
+                text="← Нет, оставить",
+                callback_data="manage_subscription"
+            )],
+        ])
+    )
+
+
+@router.callback_query(F.data == "cancel_subscription_do")
+async def cancel_subscription_do(callback: CallbackQuery) -> None:
+    await callback.answer()
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_telegram_id(callback.from_user.id)
+    if user:
+        async with session_factory() as session:
+            db_user = await session.get(User, user.id)
+            if db_user:
+                db_user.subscription_status = "cancelling"
+                await session.commit()
+
+    until_str = ""
+    if user and user.subscription_until:
+        until_str = user.subscription_until.strftime("%d.%m.%Y")
+
+    await callback.message.edit_text(
+        f"✅ Подписка отменена.\n\n"
+        f"Доступ сохраняется до {until_str}.\n"
+        "Спасибо что был с нами ✶",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")]
+        ])
+    )
+
+
+@router.callback_query(F.data == "support")
+async def show_support(callback: CallbackQuery) -> None:
+    await callback.answer()
+    support = getattr(settings, "support_username", "@nura_support")
+    await callback.message.edit_text(
+        "🆘 <b>Поддержка NURA</b>\n\n"
+        f"Напиши нам — {support}\n\n"
+        "Отвечаем в течение 24 часов.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="✉️ Написать в поддержку",
+                url=f"https://t.me/{support.lstrip('@')}"
+            )],
+            [InlineKeyboardButton(text="← Назад", callback_data="profile")],
+        ])
     )
 
 

@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     # Test mode — all paid features free
     test_mode: bool = True
 
+    # Support
+    support_username: str = "@nura_support"
+
     # Rate limit
     rate_limit_requests: int = 30
     rate_limit_window: int = 60

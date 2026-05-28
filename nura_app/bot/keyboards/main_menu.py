@@ -23,9 +23,7 @@ def main_menu_keyboard(
             InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
         ],
         [
-            InlineKeyboardButton(text="📄 Пример отчёта", callback_data="sample_report"),
-        ],
-        [
+            InlineKeyboardButton(text="📄 Мои отчёты", callback_data="view_reports"),
             InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
         ],
     ]
@@ -51,55 +49,36 @@ def compatibility_paywall_keyboard() -> InlineKeyboardMarkup:
 
 
 def profile_keyboard(
-    has_matrix: bool,
-    is_subscriber: bool,
-    has_full_report: bool = False,
+    has_matrix: bool = False,
+    is_subscriber: bool = False,
     has_tarot: bool = False,
 ) -> InlineKeyboardMarkup:
     """
-    Клавиатура профиля.
-    Кнопка «Чат с NURA» убрана (задача 2.3) — чат доступен из главного меню.
+    Личный кабинет — управление подпиской, поддержка, меню.
+    Кнопки «Мои отчёты» и «Чат с NURA» — в главном меню.
     """
-    if not has_matrix:
+    if is_subscriber or has_tarot:
         return InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")],
+                [InlineKeyboardButton(text="💳 Управление подпиской", callback_data="manage_subscription")],
+                [InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
                 [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
             ]
         )
 
-    if is_subscriber:
+    if has_matrix:
         return InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
+                [InlineKeyboardButton(text="💎 Оформить подписку — 390 ₽/мес", callback_data="buy_subscription")],
+                [InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
                 [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
             ]
         )
 
-    if has_tarot:
-        return InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="🃏 Ритуалы дня", callback_data="tarot_menu")],
-                [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
-                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
-            ]
-        )
-
-    if has_full_report:
-        return InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
-                [InlineKeyboardButton(text="💎 О подписке", callback_data="subscription")],
-                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
-            ]
-        )
-
-    # Есть матрица, только мини-разбор
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="💎 Купить разбор — 890 ₽", callback_data="buy_matrix")],
-            [InlineKeyboardButton(text="📋 Мои отчёты", callback_data="view_reports")],
-            [InlineKeyboardButton(text="💎 О подписке", callback_data="subscription")],
+            [InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")],
+            [InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
             [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
         ]
     )
