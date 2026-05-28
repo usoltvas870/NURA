@@ -55,16 +55,16 @@ def tarot_more_keyboard() -> InlineKeyboardMarkup:
     """
     Подменю «Ещё расклады» (callback: tarot_more):
     - Расклад недели
-    - Сферы жизни (общий)
     - Теневые стороны (бывш. Двойники)
     - Энергия месяца (бывш. Портал месяца)
+    - Что мешает
     """
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="✦ Расклад недели", callback_data="tarot_weekly")],
-            [InlineKeyboardButton(text="✶ Сферы жизни", callback_data="tarot_spheres")],
             [InlineKeyboardButton(text="☯ Теневые стороны", callback_data="tarot_twins")],
             [InlineKeyboardButton(text="🌅 Энергия месяца", callback_data="tarot_portal")],
+            [InlineKeyboardButton(text="🚧 Что мешает", callback_data="tarot_blocks")],
             [InlineKeyboardButton(text="← К раскладам", callback_data="tarot_menu")],
         ]
     )

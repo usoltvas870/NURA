@@ -6,8 +6,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.keyboards.main_menu import main_menu_keyboard
-from bot.utils.formatting import format_tarot_result
-from bot.utils.loading import animated_loading
 from bot.keyboards.tarot_keyboard import (
     tarot_back_keyboard,
     tarot_menu_keyboard,
@@ -16,6 +14,7 @@ from bot.keyboards.tarot_keyboard import (
     tarot_spheres_keyboard,
 )
 from bot.states.tarot_state import TarotStates
+from bot.utils.loading import animated_loading
 from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
@@ -50,8 +49,6 @@ ARCANA = {
     22: "Шут",
 }
 
-# Маппинг sphere callbacks → название сферы
-# Поддерживаем оба варианта: старые (tarot_sphere_*) и новые (tarot_*)
 _SPHERE_NAMES: dict[str, str] = {
     "tarot_sphere_money": "Деньги и реализация",
     "tarot_sphere_relations": "Отношения",
@@ -83,10 +80,6 @@ def _paywall_text(spread_name: str) -> str:
     )
 
 
-# ──────────────────────────────────────
-# Главное меню таро
-# ──────────────────────────────────────
-
 @router.callback_query(F.data == "tarot_menu")
 async def show_tarot_menu(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
@@ -114,10 +107,6 @@ async def show_tarot_menu(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.message.edit_text(text, reply_markup=tarot_menu_keyboard(has_tarot))
 
 
-# ──────────────────────────────────────
-# Подменю «Ещё расклады» (задача 2.2)
-# ──────────────────────────────────────
-
 @router.callback_query(F.data == "tarot_more")
 async def show_tarot_more(callback: CallbackQuery) -> None:
     await callback.answer()
@@ -139,10 +128,6 @@ async def show_tarot_more(callback: CallbackQuery) -> None:
         reply_markup=tarot_more_keyboard(),
     )
 
-
-# ──────────────────────────────────────
-# Карта дня (бесплатная для всех)
-# ──────────────────────────────────────
 
 @router.callback_query(F.data == "tarot_daily_card")
 async def show_tarot_daily_card(callback: CallbackQuery) -> None:
@@ -169,7 +154,7 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
             )
             result_text = await AIService.chat(
                 messages=[
-                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                    {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 400, "temperature": 0.7},
@@ -180,10 +165,11 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
             result_text = "Карты молчат сегодня. Попробуй позже."
 
     has_tarot = bool(user.tarot_subscription)
-    text = format_tarot_result(
-        title=f"🌒 Карта дня — {today.strftime('%d.%m.%Y')}",
-        body=result_text,
-        cards=f"{arcana_num}. {arcana_name}",
+    text = (
+        f"🌒 Карта дня — {today.strftime('%d.%m.%Y')}\n"
+        f"{'─' * 20}\n\n"
+        f"{arcana_num}. {arcana_name}\n\n"
+        f"{result_text}"
     )
 
     if has_tarot:
@@ -195,12 +181,8 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
             [InlineKeyboardButton(text="← К раскладам", callback_data="tarot_menu")],
         ])
 
-    await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+    await callback.message.edit_text(text, reply_markup=kb)
 
-
-# ──────────────────────────────────────
-# Расклад недели
-# ──────────────────────────────────────
 
 @router.callback_query(F.data == "tarot_weekly")
 async def show_tarot_weekly(callback: CallbackQuery) -> None:
@@ -218,10 +200,6 @@ async def show_tarot_weekly(callback: CallbackQuery) -> None:
     )
 
 
-# ──────────────────────────────────────
-# Расклад по вопросу
-# ──────────────────────────────────────
-
 @router.callback_query(F.data == "tarot_question")
 async def start_tarot_question(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
@@ -236,12 +214,6 @@ async def start_tarot_question(callback: CallbackQuery, state: FSMContext) -> No
     await state.update_data(spread_type="question")
     await callback.message.edit_text("◈ Расклад по вопросу\n\nНапиши свой вопрос, и я разложу карты.")
 
-
-# ──────────────────────────────────────
-# Сферы жизни — верхний уровень (задача 2.2)
-# tarot_money / tarot_relations / tarot_purpose
-# + обратная совместимость: tarot_sphere_money и т.д.
-# ──────────────────────────────────────
 
 @router.callback_query(F.data.in_({
     "tarot_money", "tarot_relations", "tarot_purpose",
@@ -274,7 +246,7 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
             )
             interpretation = await AIService.chat(
                 messages=[
-                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                    {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 500, "temperature": 0.7},
@@ -288,17 +260,14 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
             )
             return
 
-    text = format_tarot_result(
-        title=f"✶ {sphere_name}",
-        body=interpretation,
-        cards=f"Аркан · {arcana_name}",
+    text = (
+        f"✶ {sphere_name}\n"
+        f"{'─' * 20}\n\n"
+        f"{interpretation}\n\n"
+        f"Аркан · {arcana_name}"
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
-
-# ──────────────────────────────────────
-# Сферы жизни — общий экран выбора
-# ──────────────────────────────────────
 
 @router.callback_query(F.data == "tarot_spheres")
 async def show_tarot_spheres(callback: CallbackQuery, state: FSMContext) -> None:
@@ -316,10 +285,6 @@ async def show_tarot_spheres(callback: CallbackQuery, state: FSMContext) -> None
         reply_markup=tarot_spheres_keyboard(),
     )
 
-
-# ──────────────────────────────────────
-# Теневые стороны (бывш. Двойники)
-# ──────────────────────────────────────
 
 @router.callback_query(F.data == "tarot_twins")
 async def show_tarot_twins(callback: CallbackQuery) -> None:
@@ -351,7 +316,7 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
             )
             interpretation = await AIService.chat(
                 messages=[
-                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                    {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 500, "temperature": 0.7},
@@ -365,17 +330,14 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
             )
             return
 
-    text = format_tarot_result(
-        title="☯ Теневые стороны",
-        body=interpretation,
-        cards=f"{ARCANA[arcana_one]} · {ARCANA[arcana_two]}",
+    text = (
+        f"☯ Теневые стороны\n"
+        f"{'─' * 20}\n\n"
+        f"{interpretation}\n\n"
+        f"{ARCANA[arcana_one]} · {ARCANA[arcana_two]}"
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
-
-# ──────────────────────────────────────
-# Энергия месяца (бывш. Портал месяца)
-# ──────────────────────────────────────
 
 @router.callback_query(F.data == "tarot_portal")
 async def show_tarot_portal(callback: CallbackQuery) -> None:
@@ -416,7 +378,7 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
             )
             interpretation = await AIService.chat(
                 messages=[
-                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                    {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 500, "temperature": 0.7},
@@ -430,16 +392,77 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
             )
             return
 
-    text = format_tarot_result(
-        title=f"🌅 Энергия месяца — {month_name}",
-        body=interpretation,
+    text = (
+        f"🌅 Энергия месяца — {month_name}\n"
+        f"{'─' * 20}\n\n"
+        f"{interpretation}"
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
 
 
-# ──────────────────────────────────────
-# Да/Нет
-# ──────────────────────────────────────
+@router.callback_query(F.data == "tarot_blocks")
+async def show_tarot_blocks(callback: CallbackQuery) -> None:
+    await callback.answer()
+    user = await _get_user(callback.from_user.id)
+    if user is None:
+        await callback.message.edit_text(
+            "Пользователь не найден. Начни с /start",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+    if not user.tarot_subscription and not settings.test_mode:
+        await callback.message.edit_text(
+            _paywall_text("Что мешает"),
+            reply_markup=tarot_paywall_keyboard(),
+        )
+        return
+
+    today = date.today()
+    base = _daily_arcana_number(today)
+    block_num = base
+    cause_num = (base * 3) % 22 + 1
+    solution_num = (base * 7) % 22 + 1
+
+    async with animated_loading(callback.message, "🃏 Раскладываю карты"):
+        try:
+            prompt = AIService._load_prompt("tarot_blocks.txt")
+            filled = prompt.format(
+                block_arcana_number=block_num,
+                block_arcana_name=ARCANA[block_num],
+                cause_arcana_number=cause_num,
+                cause_arcana_name=ARCANA[cause_num],
+                solution_arcana_number=solution_num,
+                solution_arcana_name=ARCANA[solution_num],
+                date=datetime.now().strftime("%d.%m.%Y"),
+            )
+            interpretation = await AIService.chat(
+                messages=[
+                    {"role": "system", "content": (
+                        "Ты — NURA, психологический проводник. "
+                        "Никогда не называй арканы, карты и их номера. "
+                        "Переводи их в психологические качества. "
+                        "Пиши живым человеческим языком."
+                    )},
+                    {"role": "user", "content": filled},
+                ],
+                api_params={"max_tokens": 600, "temperature": 0.7},
+            )
+            interpretation = interpretation.strip().strip('"')
+        except Exception:
+            logger.exception("show_tarot_blocks AI failed")
+            await callback.message.edit_text(
+                "🚧 Что мешает\n\nКарты молчат сегодня. Попробуй позже.",
+                reply_markup=tarot_back_keyboard(),
+            )
+            return
+
+    text = (
+        f"🚧 Что мешает\n"
+        f"{'─' * 20}\n\n"
+        f"{interpretation}"
+    )
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
+
 
 @router.callback_query(F.data == "tarot_yes_no")
 async def start_tarot_yes_no(callback: CallbackQuery, state: FSMContext) -> None:
@@ -455,10 +478,6 @@ async def start_tarot_yes_no(callback: CallbackQuery, state: FSMContext) -> None
     await state.update_data(spread_type="yes_no")
     await callback.message.edit_text("🔮 Да/Нет\n\nНапиши свой вопрос, и я разложу карты.")
 
-
-# ──────────────────────────────────────
-# FSM: обработка вопроса (question / yes_no)
-# ──────────────────────────────────────
 
 @router.message(TarotStates.waiting_for_question)
 async def handle_question_input(message: Message, state: FSMContext) -> None:
@@ -486,7 +505,7 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
                 )
                 interpretation = await AIService.chat(
                     messages=[
-                        {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                        {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                         {"role": "user", "content": filled},
                     ],
                     api_params={"max_tokens": 500, "temperature": 0.7},
@@ -498,14 +517,16 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
                 await state.clear()
                 return
 
-        text = format_tarot_result(
-            title="🔮 Да/Нет",
-            body=f"Вопрос: {question}\n\n{interpretation}",
-            cards=f"Аркан · {arcana_name}",
+        text = (
+            f"🔮 Да/Нет\n"
+            f"{'─' * 20}\n\n"
+            f"Вопрос: {question}\n\n"
+            f"{interpretation}\n\n"
+            f"Аркан · {arcana_name}"
         )
-        await message.answer(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
+        await message.answer(text, reply_markup=tarot_back_keyboard())
 
-    else:  # spread_type == "question"
+    else:
         past_num = (base_arcana - 1) % 22 + 1
         present_num = base_arcana
         future_num = base_arcana % 22 + 1
@@ -528,7 +549,7 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
                 )
                 interpretation = await AIService.chat(
                     messages=[
-                        {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                        {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                         {"role": "user", "content": filled},
                     ],
                     api_params={"max_tokens": 500, "temperature": 0.7},
@@ -540,11 +561,15 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
                 await state.clear()
                 return
 
-        text = format_tarot_result(
-            title="◈ Расклад по вопросу",
-            body=f"Вопрос: {question}\n\n{interpretation}",
-            cards=f"Прошлое · {past_name}  Настоящее · {present_name}  Будущее · {future_name}",
+        text = (
+            f"◈ Расклад по вопросу\n"
+            f"{'─' * 20}\n\n"
+            f"Вопрос: {question}\n\n"
+            f"{interpretation}\n\n"
+            f"Прошлое · {past_name}\n"
+            f"Настоящее · {present_name}\n"
+            f"Будущее · {future_name}"
         )
-        await message.answer(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
+        await message.answer(text, reply_markup=tarot_back_keyboard())
 
     await state.clear()
