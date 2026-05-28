@@ -3,7 +3,6 @@ import logging
 from urllib.parse import quote
 
 from aiogram import F, Router
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from celery.result import AsyncResult
@@ -11,7 +10,10 @@ from celery.result import AsyncResult
 from bot.handlers.validators import validate_date
 from bot.states.compatibility_state import CompatibilityStates
 from bot.texts.compatibility import (
-    explanation_text,
+    ask_partner_date_text,
+    ask_partner_name_text,
+    ask_relation_type_text,
+    compat_details_text,
     loading_steps,
     mini_compatibility_text,
 )
@@ -30,7 +32,6 @@ MAX_POLL_SECONDS = 90
 
 
 def _has_unlimited_compat(user) -> bool:
-    """Безлимитная совместимость: подписка таро ИЛИ subscription_status=premium."""
     return bool(user.tarot_subscription) or user.subscription_status == "premium"
 
 
@@ -46,7 +47,6 @@ async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.message.edit_text("Пользователь не найден. Начни с /start")
         return
 
-    # Ветка A: нет матрицы → пейволл матрицы
     if not user.has_matrix:
         await callback.message.edit_text(
             "❤️ Совместимость\n\n"
@@ -65,7 +65,6 @@ async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
         )
         return
 
-    # Ветка B: матрица есть, лимит исчерпан, нет безлимита → пейволл таро
     if user.compatibility_used and not _has_unlimited_compat(user):
         await callback.message.edit_text(
             "❤️ Ты уже использовал бесплатный расклад совместимости.\n\n"
@@ -84,8 +83,60 @@ async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
         )
         return
 
-    # Ветка C/D: доступно (первый расклад ИЛИ безлимит)
-    await callback.message.edit_text(explanation_text())
+    await callback.message.edit_text(
+        ask_partner_name_text(),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="← Назад", callback_data="main_menu")]
+        ])
+    )
+    await state.set_state(CompatibilityStates.waiting_partner_name)
+
+
+@router.message(CompatibilityStates.waiting_partner_name)
+async def process_partner_name(message: Message, state: FSMContext) -> None:
+    partner_name = message.text.strip()
+    await state.update_data(partner_name=partner_name)
+
+    await message.answer(
+        ask_relation_type_text(partner_name),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💑 Партнёр / Романтика",
+                callback_data="reltype_romance")],
+            [InlineKeyboardButton(text="👥 Друг / Подруга",
+                callback_data="reltype_friend")],
+            [InlineKeyboardButton(text="💼 Коллега",
+                callback_data="reltype_colleague")],
+            [InlineKeyboardButton(text="👨‍👩‍👧 Родственник",
+                callback_data="reltype_family")],
+            [InlineKeyboardButton(text="← Назад", callback_data="main_menu")],
+        ])
+    )
+    await state.set_state(CompatibilityStates.waiting_relation_type)
+
+
+@router.callback_query(F.data.startswith("reltype_"))
+async def process_relation_type(callback: CallbackQuery,
+                                 state: FSMContext) -> None:
+    await callback.answer()
+    rel_map = {
+        "reltype_romance": "романтика",
+        "reltype_friend": "дружба",
+        "reltype_colleague": "работа",
+        "reltype_family": "семья",
+    }
+    relation_type = rel_map.get(callback.data, "общение")
+    await state.update_data(relation_type=relation_type)
+
+    data = await state.get_data()
+    partner_name = data.get("partner_name", "партнёра")
+
+    await callback.message.edit_text(
+        ask_partner_date_text(partner_name),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="← Назад",
+                callback_data="main_menu")]
+        ])
+    )
     await state.set_state(CompatibilityStates.waiting_partner_date)
 
 
@@ -97,6 +148,10 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         await message.answer(invalid_format_text())
         return
 
+    data = await state.get_data()
+    partner_name = data.get("partner_name", "")
+    relation_type = data.get("relation_type", "общение")
+
     await state.clear()
 
     session_factory = get_async_sessionmaker()
@@ -107,13 +162,15 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         await message.answer("Пользователь не найден. Начни с /start")
         return
 
-    # Анимация загрузки
-    msg = await message.answer(loading_steps()[0])
-    for step in loading_steps()[1:]:
-        await asyncio.sleep(1.5)
+    steps = loading_steps()
+    msg = await message.answer(steps[0])
+    for step in steps[1:]:
+        await asyncio.sleep(2.5)
         await msg.edit_text(step)
 
-    task = generate_compatibility_report.delay(str(user.id), date_str)
+    task = generate_compatibility_report.delay(
+        str(user.id), date_str, partner_name
+    )
 
     result = None
     waited = 0
@@ -131,14 +188,15 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
 
     analysis = result.get("analysis", {})
     token = result.get("token", "")
+    sender_name = user.first_name or user.username or "Пользователь"
 
     text = mini_compatibility_text(
-        archetype_1=analysis.get("archetype_first", "..."),
-        archetype_2=analysis.get("archetype_second", "..."),
-        block_1=analysis.get("archetype_first", "..."),
-        block_2=analysis.get("archetype_second", "..."),
-        block_3=analysis.get("emotional_compatibility", "..."),
-        show_cta=not _has_unlimited_compat(user),
+        user_name=sender_name,
+        partner_name=partner_name,
+        relation_type=relation_type,
+        block_emotional=analysis.get("emotional_compatibility", "..."),
+        block_portrait_user=analysis.get("archetype_first", "..."),
+        block_portrait_partner=analysis.get("archetype_second", "..."),
     )
 
     partner_arcana_name = result.get(
@@ -147,7 +205,20 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
     )
     partner_arcana_number = result.get("archetype_second_number", 0)
 
-    sender_name = user.first_name or user.username or "Пользователь"
+    arcana_first_name = result.get("archetype_first_name", "")
+    arcana_first_number = result.get("archetype_first_number", 0)
+    arcana_second_name = result.get("archetype_second_name", "")
+    arcana_second_number = result.get("archetype_second_number", 0)
+
+    await state.update_data(
+        compat_user_name=sender_name,
+        compat_partner_name=partner_name,
+        compat_arcana_first_name=arcana_first_name,
+        compat_arcana_first_number=arcana_first_number,
+        compat_arcana_second_name=arcana_second_name,
+        compat_arcana_second_number=arcana_second_number,
+    )
+
     share_text = (
         f"{sender_name} проверил нашу совместимость "
         f"в NURA ✦\n\n"
@@ -164,7 +235,6 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
 
     keyboard_rows = []
 
-    # Кнопки отчёта для подписчиков
     if token and _has_unlimited_compat(user):
         report_url = f"{settings.report_base_url}/report/{token}"
         pdf_url = f"{settings.report_base_url}/report/{token}/pdf"
@@ -173,20 +243,17 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
             InlineKeyboardButton(text="⬇️ Скачать PDF", url=pdf_url),
         ])
 
-    # Кнопка «Как мы это считаем» для всех
-    if token:
-        keyboard_rows.append([
-            InlineKeyboardButton(text="🔍 Как мы это считаем", callback_data=f"compat_details:{token}"),
-        ])
-
     keyboard_rows.append(
-        [InlineKeyboardButton(text="📤 Отправить другу", url=share_url)],
+        [InlineKeyboardButton(text="🔍 Как мы это считаем", callback_data="compat_details")],
     )
 
-    # У пользователей с активной подпиской не показываем цену
+    keyboard_rows.append(
+        [InlineKeyboardButton(text="🔗 Поделиться", url=share_url)],
+    )
+
     if _has_unlimited_compat(user):
         keyboard_rows.append(
-            [InlineKeyboardButton(text="🔄 Проверить ещё одну пару", callback_data="compatibility")]
+            [InlineKeyboardButton(text="🔄 Проверить другого человека", callback_data="compatibility")]
         )
     else:
         keyboard_rows.append(
@@ -197,7 +264,6 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         [InlineKeyboardButton(text="← В меню", callback_data="main_menu")]
     )
 
-    # Отметить лимит если нет безлимита
     if not _has_unlimited_compat(user):
         await user_repo.mark_compatibility_used(user.id)
 
@@ -206,31 +272,56 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_rows),
     )
 
-@router.callback_query(F.data.startswith("compat_details:"))
-async def show_compat_details(callback: CallbackQuery) -> None:
+
+@router.callback_query(F.data == "compat_details")
+async def show_compat_details(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
-    token = callback.data.split(":", 1)[1]
-    session_factory = get_async_sessionmaker()
-    from core.repositories.report import ReportRepository
-    report_repo = ReportRepository(session_factory)
-    report = await report_repo.get_by_token(token)
-    if report is None or report.matrix_data is None:
-        await callback.message.edit_text("\u041e\u0442\u0447\u0451\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d.")
-        return
-    matrix_data = report.matrix_data
-    arcana_first_number = matrix_data.get("archetype_first_number") or (matrix_data.get("matrix1") or {}).get("center", "?")
-    arcana_first_name = matrix_data.get("archetype_first_name") or "..."
-    arcana_second_number = matrix_data.get("archetype_second_number") or (matrix_data.get("matrix2") or {}).get("center", "?")
-    arcana_second_name = matrix_data.get("archetype_second_name") or "..."
-    text = (
-        "\U0001f50d <b>\u041a\u0430\u043a \u043c\u044b \u0441\u0447\u0438\u0442\u0430\u0435\u043c \u0441\u043e\u0432\u043c\u0435\u0441\u0442им\u043e\u0441\u0442ь</b>\n\n"
-        f"<b>\u0422\u0432ой \u0430\u0440к\u0430\u043d:</b> {arcana_first_number}. {arcana_first_name}\n"
-        f"<b>\u0410\u0440\u043a\u0430\u043d \u043f\u0430\u0440\u0442нё\u0440\u0430:</b> {arcana_second_number}. {arcana_second_name}\n\n"
-        "\u0421\u043e\u0432м\u0435\u0441\u0442и\u043c\u043e\u0441\u0442\u044c \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u044b\u0432а\u0435\u0442\u0441\u044f \u043f\u043e \u043f\u0435\u0440\u0435сечению \u044d\u043dергий "
-        "\u0446\u0435\u043dтральных \u0430\u0440канов \u0434\u0432ух \u043cа\u0442риц \u2014 это \u0430\u0440хетипы, "
-        "\u043a\u043eторые \u043e\u043fределяют \u0431\u0430зовые \u0441\u0442ратегии \u0447\u0435ловека \u0432 жизни \u0438 отношениях."
+    data = await state.get_data()
+
+    user_name = data.get("compat_user_name", "Пользователь")
+    partner_name = data.get("compat_partner_name", "партнёра")
+    arcana_first_number = int(data.get("compat_arcana_first_number", 0))
+    arcana_first_name = data.get("compat_arcana_first_name", "")
+    arcana_second_number = int(data.get("compat_arcana_second_number", 0))
+    arcana_second_name = data.get("compat_arcana_second_name", "")
+
+    if not arcana_first_name:
+        session_factory = get_async_sessionmaker()
+        async with session_factory() as session:
+            from sqlalchemy import select
+            from core.models import Report, ReportType
+            from core.services.matrix import MatrixService
+            result = await session.execute(
+                select(Report).where(
+                    Report.user_id == callback.from_user.id,
+                    Report.report_type == ReportType.COMPATIBILITY,
+                ).order_by(Report.created_at.desc()).limit(1)
+            )
+            report = result.scalar_one_or_none()
+            if report and report.matrix_data:
+                md = report.matrix_data
+                m1 = md.get("matrix1", {}).get("center", 0)
+                m2 = md.get("matrix2", {}).get("center", 0)
+                if isinstance(m1, (int, float)) and m1 > 0:
+                    arcana_first_number = int(m1)
+                    arcana_first_name = MatrixService.get_archetype_name(int(m1))
+                if isinstance(m2, (int, float)) and m2 > 0:
+                    arcana_second_number = int(m2)
+                    arcana_second_name = MatrixService.get_archetype_name(int(m2))
+                partner_name = md.get("partner_name", "партнёра")
+
+    text = compat_details_text(
+        user_name=user_name,
+        partner_name=partner_name,
+        arcana_first_number=arcana_first_number,
+        arcana_first_name=arcana_first_name or "...",
+        arcana_second_number=arcana_second_number,
+        arcana_second_name=arcana_second_name or "...",
     )
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="\u2190 \u041d\u0430\u0437\u0430\u0434", callback_data="main_menu")]
-    ])
-    await callback.message.edit_text(text, reply_markup=keyboard)
+
+    await callback.message.edit_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="← Назад к результату", callback_data="compatibility")]
+        ])
+    )

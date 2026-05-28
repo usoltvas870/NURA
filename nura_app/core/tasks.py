@@ -293,15 +293,18 @@ def generate_full_report(user_id: str, birth_date: str, report_token: str) -> di
 
 
 @celery_app.task(name="core.tasks.generate_compatibility_report")
-def generate_compatibility_report(user_id: str, partner_date: str) -> dict:
+def generate_compatibility_report(user_id: str, partner_date: str, partner_name: str = "") -> dict:
     async def _run_all():
-        result = await _process_compatibility_report(user_id, partner_date)
+        result = await _process_compatibility_report(user_id, partner_date, partner_name)
+        telegram_id = await _get_user_telegram_id(user_id)
+        if telegram_id:
+            await _notify_compatibility(telegram_id, result["token"])
         return result
     return _run_async(_run_all())
 
 
 async def _process_compatibility_report(
-    user_id: str, partner_date: str
+    user_id: str, partner_date: str, partner_name: str = ""
 ) -> dict:
     uid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
@@ -376,6 +379,7 @@ async def _process_compatibility_report(
         matrix_data={
             "matrix1": matrix1.model_dump(),
             "matrix2": matrix2.model_dump(),
+            "partner_name": partner_name,
         },
         ai_analysis=analysis,
     )
