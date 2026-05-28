@@ -168,7 +168,7 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
         )
         result_text = await AIService.chat(
             messages=[
-                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 400, "temperature": 0.7},
@@ -275,7 +275,7 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
         )
         interpretation = await AIService.chat(
             messages=[
-                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 500, "temperature": 0.7},
@@ -354,7 +354,7 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
         )
         interpretation = await AIService.chat(
             messages=[
-                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 500, "temperature": 0.7},
@@ -421,7 +421,7 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
         )
         interpretation = await AIService.chat(
             messages=[
-                {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 500, "temperature": 0.7},
@@ -493,7 +493,7 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
             )
             interpretation = await AIService.chat(
                 messages=[
-                    {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 500, "temperature": 0.7},
@@ -538,7 +538,7 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
             )
             interpretation = await AIService.chat(
                 messages=[
-                    {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 500, "temperature": 0.7},
