@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from bot.keyboards.main_menu import main_menu_keyboard
 from bot.texts.start import help_text, welcome_back_text
@@ -69,7 +69,23 @@ async def callback_main_menu(callback: CallbackQuery, state: FSMContext) -> None
 async def callback_sample_report(callback: CallbackQuery) -> None:
     await callback.answer()
     await callback.message.answer(
-        "📄 Пример отчёта — скоро"
+        "📄 <b>Пример полного отчёта</b>\n\n"
+        "Отчёт включает 15 разделов:\n"
+        "• Главный архетип и жизненная стратегия\n"
+        "• Теневые стороны и слепые пятна\n"
+        "• Сценарии в отношениях\n"
+        "• Денежные блоки и способы их снять\n"
+        "• Жизненные циклы — периоды силы и спада\n"
+        "• 7-дневные персональные рекомендации\n\n"
+        "Всё это — на основе твоей даты рождения.\n\n"
+        "<b>💎 Полный разбор — 890 ₽ разово, навсегда.</b>",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="💎 Купить — 890 ₽",
+                callback_data="buy_matrix"
+            )],
+            [InlineKeyboardButton(text="← Назад", callback_data="my_matrix")],
+        ])
     )
 
 

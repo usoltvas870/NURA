@@ -182,6 +182,9 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
         buttons.append([
             InlineKeyboardButton(text="💎 Купить матрицу — 890 ₽", callback_data="buy_matrix")
         ])
+        buttons.append([
+            InlineKeyboardButton(text="👁 Посмотреть пример отчёта", callback_data="sample_report")
+        ])
 
     buttons.append([InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")])
 
