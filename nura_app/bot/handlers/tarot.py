@@ -7,6 +7,7 @@ from aiogram.types import CallbackQuery, Message
 
 from bot.keyboards.main_menu import main_menu_keyboard
 from bot.utils.formatting import format_tarot_result
+from bot.utils.loading import animated_loading
 from bot.keyboards.tarot_keyboard import (
     tarot_back_keyboard,
     tarot_menu_keyboard,
@@ -158,26 +159,25 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
     arcana_num = _daily_arcana_number(today)
     arcana_name = ARCANA[arcana_num]
 
-    await callback.message.edit_text("🌒 Вытягиваю карту дня...")
-
-    try:
-        prompt = AIService._load_prompt("tarot_daily_card.txt")
-        filled = prompt.format(
-            arcana_number=arcana_num,
-            arcana_name=arcana_name,
-            date=today.strftime("%d.%m.%Y"),
-        )
-        result_text = await AIService.chat(
-            messages=[
-                {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
-                {"role": "user", "content": filled},
-            ],
-            api_params={"max_tokens": 400, "temperature": 0.7},
-        )
-        result_text = result_text.strip().strip('"')
-    except Exception:
-        logger.exception("tarot daily_card AI failed")
-        result_text = "Карты молчат сегодня. Попробуй позже."
+    async with animated_loading(callback.message, "🃏 Вытягиваю карту дня"):
+        try:
+            prompt = AIService._load_prompt("tarot_daily_card.txt")
+            filled = prompt.format(
+                arcana_number=arcana_num,
+                arcana_name=arcana_name,
+                date=today.strftime("%d.%m.%Y"),
+            )
+            result_text = await AIService.chat(
+                messages=[
+                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                    {"role": "user", "content": filled},
+                ],
+                api_params={"max_tokens": 400, "temperature": 0.7},
+            )
+            result_text = result_text.strip().strip('"')
+        except Exception:
+            logger.exception("tarot daily_card AI failed")
+            result_text = "Карты молчат сегодня. Попробуй позже."
 
     has_tarot = bool(user.tarot_subscription)
     text = format_tarot_result(
@@ -263,31 +263,30 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
     arcana_num = _daily_arcana_number(today)
     arcana_name = ARCANA[arcana_num]
 
-    await callback.message.edit_text("🌒 Раскладываю карты...")
-
-    try:
-        prompt = AIService._load_prompt("tarot_spheres.txt")
-        filled = prompt.format(
-            sphere_name=sphere_name,
-            arcana_number=arcana_num,
-            arcana_name=arcana_name,
-            date=datetime.now().strftime("%d.%m.%Y"),
-        )
-        interpretation = await AIService.chat(
-            messages=[
-                {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
-                {"role": "user", "content": filled},
-            ],
-            api_params={"max_tokens": 500, "temperature": 0.7},
-        )
-        interpretation = interpretation.strip().strip('"')
-    except Exception:
-        logger.exception("show_sphere_result AI failed")
-        await callback.message.edit_text(
-            f"✶ Сферы жизни — {sphere_name}\n\nКарты молчат сегодня. Попробуй позже.",
-            reply_markup=tarot_back_keyboard(),
-        )
-        return
+    async with animated_loading(callback.message, "🃏 Раскладываю карты"):
+        try:
+            prompt = AIService._load_prompt("tarot_spheres.txt")
+            filled = prompt.format(
+                sphere_name=sphere_name,
+                arcana_number=arcana_num,
+                arcana_name=arcana_name,
+                date=datetime.now().strftime("%d.%m.%Y"),
+            )
+            interpretation = await AIService.chat(
+                messages=[
+                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                    {"role": "user", "content": filled},
+                ],
+                api_params={"max_tokens": 500, "temperature": 0.7},
+            )
+            interpretation = interpretation.strip().strip('"')
+        except Exception:
+            logger.exception("show_sphere_result AI failed")
+            await callback.message.edit_text(
+                f"✶ Сферы жизни — {sphere_name}\n\nКарты молчат сегодня. Попробуй позже.",
+                reply_markup=tarot_back_keyboard(),
+            )
+            return
 
     text = format_tarot_result(
         title=f"✶ {sphere_name}",
@@ -339,33 +338,32 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
     arcana_two = base % 22 + 1
     dominant = arcana_one if arcana_one >= arcana_two else arcana_two
 
-    await callback.message.edit_text("🌒 Раскладываю карты...")
-
-    try:
-        prompt = AIService._load_prompt("tarot_doubles.txt")
-        filled = prompt.format(
-            arcana_one_number=arcana_one,
-            arcana_one_name=ARCANA[arcana_one],
-            arcana_two_number=arcana_two,
-            arcana_two_name=ARCANA[arcana_two],
-            dominant_arcana_name=ARCANA[dominant],
-            date=datetime.now().strftime("%d.%m.%Y"),
-        )
-        interpretation = await AIService.chat(
-            messages=[
-                {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
-                {"role": "user", "content": filled},
-            ],
-            api_params={"max_tokens": 500, "temperature": 0.7},
-        )
-        interpretation = interpretation.strip().strip('"')
-    except Exception:
-        logger.exception("show_tarot_twins AI failed")
-        await callback.message.edit_text(
-            "☯ Теневые стороны\n\nКарты молчат сегодня. Попробуй позже.",
-            reply_markup=tarot_back_keyboard(),
-        )
-        return
+    async with animated_loading(callback.message, "🃏 Раскладываю карты"):
+        try:
+            prompt = AIService._load_prompt("tarot_doubles.txt")
+            filled = prompt.format(
+                arcana_one_number=arcana_one,
+                arcana_one_name=ARCANA[arcana_one],
+                arcana_two_number=arcana_two,
+                arcana_two_name=ARCANA[arcana_two],
+                dominant_arcana_name=ARCANA[dominant],
+                date=datetime.now().strftime("%d.%m.%Y"),
+            )
+            interpretation = await AIService.chat(
+                messages=[
+                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                    {"role": "user", "content": filled},
+                ],
+                api_params={"max_tokens": 500, "temperature": 0.7},
+            )
+            interpretation = interpretation.strip().strip('"')
+        except Exception:
+            logger.exception("show_tarot_twins AI failed")
+            await callback.message.edit_text(
+                "☯ Теневые стороны\n\nКарты молчат сегодня. Попробуй позже.",
+                reply_markup=tarot_back_keyboard(),
+            )
+            return
 
     text = format_tarot_result(
         title="☯ Теневые стороны",
@@ -404,34 +402,33 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
     }
     month_name = month_names[month_num]
 
-    await callback.message.edit_text("🌒 Открываю портал месяца...")
-
-    try:
-        prompt = AIService._load_prompt("tarot_portal.txt")
-        filled = prompt.format(
-            month_name=month_name,
-            teach_arcana_number=teach,
-            teach_arcana_name=ARCANA[teach],
-            release_arcana_number=release,
-            release_arcana_name=ARCANA[release],
-            strengthen_arcana_number=strengthen,
-            strengthen_arcana_name=ARCANA[strengthen],
-        )
-        interpretation = await AIService.chat(
-            messages=[
-                {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
-                {"role": "user", "content": filled},
-            ],
-            api_params={"max_tokens": 500, "temperature": 0.7},
-        )
-        interpretation = interpretation.strip().strip('"')
-    except Exception:
-        logger.exception("show_tarot_portal AI failed")
-        await callback.message.edit_text(
-            f"🌅 Энергия месяца — {month_name}\n\nКарты молчат сегодня. Попробуй позже.",
-            reply_markup=tarot_back_keyboard(),
-        )
-        return
+    async with animated_loading(callback.message, "🃏 Открываю портал месяца"):
+        try:
+            prompt = AIService._load_prompt("tarot_portal.txt")
+            filled = prompt.format(
+                month_name=month_name,
+                teach_arcana_number=teach,
+                teach_arcana_name=ARCANA[teach],
+                release_arcana_number=release,
+                release_arcana_name=ARCANA[release],
+                strengthen_arcana_number=strengthen,
+                strengthen_arcana_name=ARCANA[strengthen],
+            )
+            interpretation = await AIService.chat(
+                messages=[
+                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                    {"role": "user", "content": filled},
+                ],
+                api_params={"max_tokens": 500, "temperature": 0.7},
+            )
+            interpretation = interpretation.strip().strip('"')
+        except Exception:
+            logger.exception("show_tarot_portal AI failed")
+            await callback.message.edit_text(
+                f"🌅 Энергия месяца — {month_name}\n\nКарты молчат сегодня. Попробуй позже.",
+                reply_markup=tarot_back_keyboard(),
+            )
+            return
 
     text = format_tarot_result(
         title=f"🌅 Энергия месяца — {month_name}",
@@ -478,29 +475,28 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
     if spread_type == "yes_no":
         arcana_name = ARCANA[base_arcana]
         yes_or_no = "Да" if base_arcana % 2 == 1 else "Нет"
-        await message.answer("🌒 Раскладываю карты...")
-
-        try:
-            prompt = AIService._load_prompt("tarot_yes_no.txt")
-            filled = prompt.format(
-                question=question,
-                arcana_number=base_arcana,
-                arcana_name=arcana_name,
-                yes_or_no=yes_or_no,
-            )
-            interpretation = await AIService.chat(
-                messages=[
-                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
-                    {"role": "user", "content": filled},
-                ],
-                api_params={"max_tokens": 500, "temperature": 0.7},
-            )
-            interpretation = interpretation.strip().strip('"')
-        except Exception:
-            logger.exception("tarot yes_no AI failed")
-            await message.answer("🔮 Да/Нет\n\nКарты молчат сегодня. Попробуй позже.", reply_markup=tarot_back_keyboard())
-            await state.clear()
-            return
+        async with animated_loading(message, "🃏 Раскладываю карты"):
+            try:
+                prompt = AIService._load_prompt("tarot_yes_no.txt")
+                filled = prompt.format(
+                    question=question,
+                    arcana_number=base_arcana,
+                    arcana_name=arcana_name,
+                    yes_or_no=yes_or_no,
+                )
+                interpretation = await AIService.chat(
+                    messages=[
+                        {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                        {"role": "user", "content": filled},
+                    ],
+                    api_params={"max_tokens": 500, "temperature": 0.7},
+                )
+                interpretation = interpretation.strip().strip('"')
+            except Exception:
+                logger.exception("tarot yes_no AI failed")
+                await message.answer("🔮 Да/Нет\n\nКарты молчат сегодня. Попробуй позже.", reply_markup=tarot_back_keyboard())
+                await state.clear()
+                return
 
         text = format_tarot_result(
             title="🔮 Да/Нет",
@@ -517,33 +513,32 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
         present_name = ARCANA[present_num]
         future_name = ARCANA[future_num]
 
-        await message.answer("🌒 Раскладываю карты...")
-
-        try:
-            prompt = AIService._load_prompt("tarot_question.txt")
-            filled = prompt.format(
-                question=question,
-                date=today.strftime("%d.%m.%Y"),
-                past_arcana=past_num,
-                past_arcana_name=past_name,
-                present_arcana=present_num,
-                present_arcana_name=present_name,
-                future_arcana=future_num,
-                future_arcana_name=future_name,
-            )
-            interpretation = await AIService.chat(
-                messages=[
-                    {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
-                    {"role": "user", "content": filled},
-                ],
-                api_params={"max_tokens": 500, "temperature": 0.7},
-            )
-            interpretation = interpretation.strip().strip('"')
-        except Exception:
-            logger.exception("tarot question AI failed")
-            await message.answer("◈ Расклад по вопросу\n\nКарты молчат сегодня. Попробуй позже.", reply_markup=tarot_back_keyboard())
-            await state.clear()
-            return
+        async with animated_loading(message, "🃏 Раскладываю карты"):
+            try:
+                prompt = AIService._load_prompt("tarot_question.txt")
+                filled = prompt.format(
+                    question=question,
+                    date=today.strftime("%d.%m.%Y"),
+                    past_arcana=past_num,
+                    past_arcana_name=past_name,
+                    present_arcana=present_num,
+                    present_arcana_name=present_name,
+                    future_arcana=future_num,
+                    future_arcana_name=future_name,
+                )
+                interpretation = await AIService.chat(
+                    messages=[
+                        {"role": "system", "content": "Ты — NURA, психологический проводник. Никогда не называй арканы, карты и их номера в тексте ответа. Переводи их в психологические качества и состояния. Пиши живым человеческим языком без эзотерического жаргона."},
+                        {"role": "user", "content": filled},
+                    ],
+                    api_params={"max_tokens": 500, "temperature": 0.7},
+                )
+                interpretation = interpretation.strip().strip('"')
+            except Exception:
+                logger.exception("tarot question AI failed")
+                await message.answer("◈ Расклад по вопросу\n\nКарты молчат сегодня. Попробуй позже.", reply_markup=tarot_back_keyboard())
+                await state.clear()
+                return
 
         text = format_tarot_result(
             title="◈ Расклад по вопросу",
