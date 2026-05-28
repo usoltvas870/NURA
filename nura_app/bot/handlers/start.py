@@ -1,5 +1,6 @@
 from aiogram import F, Router
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.keyboards.main_menu import main_menu_keyboard
@@ -11,7 +12,8 @@ router = Router()
 
 
 @router.message(Command("menu"))
-async def cmd_menu(message: Message) -> None:
+async def cmd_menu(message: Message, state: FSMContext) -> None:
+    await state.clear()
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
     user = await user_repo.get_by_telegram_id(message.from_user.id)
@@ -39,8 +41,9 @@ async def cmd_help(message: Message) -> None:
 
 
 @router.callback_query(F.data == "main_menu")
-async def callback_main_menu(callback: CallbackQuery) -> None:
+async def callback_main_menu(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
+    await state.clear()
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
     user = await user_repo.get_by_telegram_id(callback.from_user.id)
