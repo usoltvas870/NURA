@@ -73,7 +73,10 @@ async def callback_sample_report(callback: CallbackQuery) -> None:
     )
 
 
-@router.message()
+fallback_router = Router()
+
+
+@fallback_router.message()
 async def unknown_message(message: Message) -> None:
     from bot.texts.start import unknown_message_text
     await message.answer(unknown_message_text())

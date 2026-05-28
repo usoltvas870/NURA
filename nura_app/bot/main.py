@@ -14,7 +14,7 @@ from bot.handlers.errors import global_error_handler
 from bot.handlers.onboarding import router as onboarding_router
 from bot.handlers.payment import router as payment_router
 from bot.handlers.profile import router as profile_router
-from bot.handlers.start import router as start_router
+from bot.handlers.start import router as start_router, fallback_router
 from bot.handlers.tarot import router as tarot_router
 from bot.middlewares import UserRegistrationMiddleware, ThrottlingMiddleware, AntiFloodMiddleware
 from core.config import settings
@@ -63,6 +63,7 @@ async def main():
     dp.include_router(payment_router)
     dp.include_router(profile_router)
     dp.include_router(tarot_router)
+    dp.include_router(fallback_router)
 
     max_db_retries = 10
     for attempt in range(max_db_retries):
