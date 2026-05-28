@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.keyboards.main_menu import main_menu_keyboard
+from bot.utils.formatting import format_tarot_result
 from bot.keyboards.tarot_keyboard import (
     tarot_back_keyboard,
     tarot_menu_keyboard,
@@ -179,11 +180,10 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
         result_text = "Карты молчат сегодня. Попробуй позже."
 
     has_tarot = bool(user.tarot_subscription)
-    text = (
-        f"🌒 Карта дня — {today.strftime('%d.%m.%Y')}\n"
-        f"{'─' * 20}\n\n"
-        f"{arcana_num}. {arcana_name}\n\n"
-        f"{result_text}"
+    text = format_tarot_result(
+        title=f"🌒 Карта дня — {today.strftime('%d.%m.%Y')}",
+        body=result_text,
+        cards=f"{arcana_num}. {arcana_name}",
     )
 
     if has_tarot:
@@ -195,7 +195,7 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
             [InlineKeyboardButton(text="← К раскладам", callback_data="tarot_menu")],
         ])
 
-    await callback.message.edit_text(text, reply_markup=kb)
+    await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
 
 
 # ──────────────────────────────────────
@@ -289,13 +289,12 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
         )
         return
 
-    text = (
-        f"✶ {sphere_name}\n"
-        f"{'─' * 20}\n\n"
-        f"{interpretation}\n\n"
-        f"Аркан · {arcana_name}"
+    text = format_tarot_result(
+        title=f"✶ {sphere_name}",
+        body=interpretation,
+        cards=f"Аркан · {arcana_name}",
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
 
 
 # ──────────────────────────────────────
@@ -368,13 +367,12 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
         )
         return
 
-    text = (
-        f"☯ Теневые стороны\n"
-        f"{'─' * 20}\n\n"
-        f"{interpretation}\n\n"
-        f"{ARCANA[arcana_one]} · {ARCANA[arcana_two]}"
+    text = format_tarot_result(
+        title="☯ Теневые стороны",
+        body=interpretation,
+        cards=f"{ARCANA[arcana_one]} · {ARCANA[arcana_two]}",
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
 
 
 # ──────────────────────────────────────
@@ -435,12 +433,11 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
         )
         return
 
-    text = (
-        f"🌅 Энергия месяца — {month_name}\n"
-        f"{'─' * 20}\n\n"
-        f"{interpretation}"
+    text = format_tarot_result(
+        title=f"🌅 Энергия месяца — {month_name}",
+        body=interpretation,
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
+    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
 
 
 # ──────────────────────────────────────
@@ -505,14 +502,12 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
             await state.clear()
             return
 
-        text = (
-            f"🔮 Да/Нет\n"
-            f"{'─' * 20}\n\n"
-            f"Вопрос: {question}\n\n"
-            f"{interpretation}\n\n"
-            f"Аркан · {arcana_name}"
+        text = format_tarot_result(
+            title="🔮 Да/Нет",
+            body=f"Вопрос: {question}\n\n{interpretation}",
+            cards=f"Аркан · {arcana_name}",
         )
-        await message.answer(text, reply_markup=tarot_back_keyboard())
+        await message.answer(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
 
     else:  # spread_type == "question"
         past_num = (base_arcana - 1) % 22 + 1
@@ -550,15 +545,11 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
             await state.clear()
             return
 
-        text = (
-            f"◈ Расклад по вопросу\n"
-            f"{'─' * 20}\n\n"
-            f"Вопрос: {question}\n\n"
-            f"{interpretation}\n\n"
-            f"Прошлое · {past_name}\n"
-            f"Настоящее · {present_name}\n"
-            f"Будущее · {future_name}"
+        text = format_tarot_result(
+            title="◈ Расклад по вопросу",
+            body=f"Вопрос: {question}\n\n{interpretation}",
+            cards=f"Прошлое · {past_name}  Настоящее · {present_name}  Будущее · {future_name}",
         )
-        await message.answer(text, reply_markup=tarot_back_keyboard())
+        await message.answer(text, reply_markup=tarot_back_keyboard(), parse_mode="HTML")
 
     await state.clear()
