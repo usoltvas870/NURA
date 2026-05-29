@@ -66,9 +66,25 @@ async def _get_user(telegram_id: int):
 
 
 def _daily_arcana_number(today: date) -> int:
+    """Общая карта дня — одинакова для всех (используется как база)."""
     total = sum(int(d) for d in f"{today.day:02d}{today.month:02d}{today.year}")
     while total > 22:
         total = sum(int(d) for d in str(total))
+    return total
+
+
+def _personal_arcana_number(today: date, center_arcana: int) -> int:
+    """
+    Персональная карта дня — уникальна для каждого пользователя.
+    Формула: (общая карта дня + центральный аркан матрицы) → редукция до 1-22
+    Один и тот же человек получает одну карту в день, разные люди — разные.
+    """
+    base = _daily_arcana_number(today)
+    total = base + center_arcana
+    while total > 22:
+        total = sum(int(d) for d in str(total))
+    if total == 0:
+        total = 22
     return total
 
 
@@ -141,7 +157,8 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
         return
 
     today = date.today()
-    arcana_num = _daily_arcana_number(today)
+    center_arcana = user.main_archetype_number or _daily_arcana_number(today)
+    arcana_num = _personal_arcana_number(today, center_arcana)
     arcana_name = ARCANA[arcana_num]
 
     async with animated_loading(callback.message, "🃏 Вытягиваю карту дня"):
@@ -150,11 +167,19 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
             filled = prompt.format(
                 arcana_number=arcana_num,
                 arcana_name=arcana_name,
+                user_archetype_number=user.main_archetype_number or arcana_num,
+                user_archetype_name=user.main_archetype or arcana_name,
+                user_name=user.first_name or user.username or "друг",
                 date=today.strftime("%d.%m.%Y"),
             )
             result_text = await AIService.chat(
                 messages=[
-                    {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
+                    {"role": "system", "content": (
+                        "Ты — NURA, персональный психологический проводник. "
+                        "Обращайся к пользователю по имени. "
+                        "Никогда не называй арканы, карты и их номера. "
+                        "Пиши живым личным языком — не как гороскоп, а как персональный инсайт."
+                    )},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 400, "temperature": 0.7},
@@ -165,10 +190,11 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
             result_text = "Карты молчат сегодня. Попробуй позже."
 
     has_tarot = bool(user.tarot_subscription)
+    user_name_display = user.first_name or user.username or "друг"
     text = (
-        f"🌒 Карта дня — {today.strftime('%d.%m.%Y')}\n"
+        f"🌒 <b>Карта дня для {user_name_display}</b>\n"
+        f"<i>{today.strftime('%d.%m.%Y')}</i>\n"
         f"{'─' * 20}\n\n"
-        f"{arcana_num}. {arcana_name}\n\n"
         f"{result_text}"
     )
 
