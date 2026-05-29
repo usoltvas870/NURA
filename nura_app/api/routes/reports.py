@@ -143,7 +143,7 @@ async def _render_report_by_type(report, session_factory) -> str | None:
         return await ReportService.render_report_html(report, session_factory)
 
     if report_type == ReportType.COMPATIBILITY.value:
-        return await ReportService.render_report_html(report, session_factory)
+        return await ReportService.render_report_html(report, session_factory, template_name="compatibility_report.html")
 
     logger.warning("Unknown report_type=%s for token=%s, falling back to old renderer",
                    report_type, getattr(report, "token", "unknown"))

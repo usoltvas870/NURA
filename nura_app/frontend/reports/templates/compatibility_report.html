@@ -111,4 +111,151 @@
   </details>
 </section>
 
+  {# ── Кнопка сохранения PDF ── #}
+  <div class="save-pdf-bar" id="savePdfBar">
+    <button class="save-pdf-btn" onclick="savePDF()">
+      ⬇️ Сохранить как PDF
+    </button>
+    <span class="save-pdf-hint">
+      В диалоге выбери «Сохранить как PDF» вместо принтера
+    </span>
+  </div>
+
+  <script>
+    function savePDF() {
+      window.print();
+    }
+
+    // Скрыть кнопку во время печати — она не нужна в PDF
+    window.addEventListener('beforeprint', function() {
+      document.getElementById('savePdfBar').style.display = 'none';
+    });
+    window.addEventListener('afterprint', function() {
+      document.getElementById('savePdfBar').style.display = 'flex';
+    });
+  </script>
+
+  <style>
+    /* ── Кнопка на экране ── */
+    .save-pdf-bar {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      z-index: 1000;
+    }
+
+    .save-pdf-btn {
+      background: var(--gold, #c9a96e);
+      color: #1a1a1a;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(201,169,110,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .save-pdf-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(201,169,110,0.55);
+    }
+
+    .save-pdf-btn:active {
+      transform: translateY(0);
+    }
+
+    .save-pdf-hint {
+      font-size: 11px;
+      opacity: 0.5;
+      color: var(--text, #e0d6c8);
+      text-align: right;
+      max-width: 200px;
+      line-height: 1.4;
+    }
+
+    /* ── Стили для печати ── */
+    @media print {
+      /* Скрыть всё лишнее */
+      .save-pdf-bar,
+      .save-pdf-btn,
+      nav,
+      .cover-logo,
+      details summary,
+      button {
+        display: none !important;
+      }
+
+      /* Раскрыть скрытый техслой */
+      details {
+        open: true;
+      }
+      details > div {
+        display: block !important;
+      }
+
+      /* Светлая тема для печати */
+      body {
+        background: #ffffff !important;
+        color: #1a1a1a !important;
+      }
+
+      .report-section {
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .section-header h2 {
+        color: #1a1a1a !important;
+      }
+
+      .section-body p {
+        color: #333333 !important;
+      }
+
+      .section-accent-bar {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      /* Обложка */
+      .cover {
+        background: #1a1a1a !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      .cover-name,
+      .cover-archetype,
+      .cover-date {
+        color: #ffffff !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+
+      /* Разбивка страниц */
+      .report-section {
+        margin-bottom: 16px;
+      }
+
+      .cover {
+        page-break-after: always;
+      }
+
+      /* Убрать отступы браузера */
+      @page {
+        margin: 20mm 15mm;
+        size: A4;
+      }
+    }
+  </style>
+
 {% endblock %}
