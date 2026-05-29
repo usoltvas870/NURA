@@ -14,6 +14,7 @@ from bot.keyboards.tarot_keyboard import (
     tarot_spheres_keyboard,
 )
 from bot.states.tarot_state import TarotStates
+from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
 from bot.utils.loading import animated_loading
 from core.config import settings
 from core.database import get_async_sessionmaker
@@ -63,29 +64,6 @@ async def _get_user(telegram_id: int):
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
     return await user_repo.get_by_telegram_id(telegram_id)
-
-
-def _daily_arcana_number(today: date) -> int:
-    """Общая карта дня — одинакова для всех (используется как база)."""
-    total = sum(int(d) for d in f"{today.day:02d}{today.month:02d}{today.year}")
-    while total > 22:
-        total = sum(int(d) for d in str(total))
-    return total
-
-
-def _personal_arcana_number(today: date, center_arcana: int) -> int:
-    """
-    Персональная карта дня — уникальна для каждого пользователя.
-    Формула: (общая карта дня + центральный аркан матрицы) → редукция до 1-22
-    Один и тот же человек получает одну карту в день, разные люди — разные.
-    """
-    base = _daily_arcana_number(today)
-    total = base + center_arcana
-    while total > 22:
-        total = sum(int(d) for d in str(total))
-    if total == 0:
-        total = 22
-    return total
 
 
 def _paywall_text(spread_name: str) -> str:

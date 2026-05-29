@@ -725,60 +725,38 @@ class AIService:
         seed_hash = sum(ord(c) for c in question)
         return [(base + seed_hash + i * 7) % 22 + 1 for i in range(3)]
 
-    @staticmethod
     async def generate_tarot_daily_card(
-        birth_date: str,
-        user: "User",
-    ) -> dict:
-        from core.services.daily_arcana import calculate_daily_arcana
-
-        daily_arcana = calculate_daily_arcana(birth_date)
-        matrix_context = await AIService._get_matrix_context(user)
-        user_name = user.first_name or user.username or "пользователь"
-
-        template = AIService._load_prompt("tarot_daily_card.txt")
-        user_content = template.format(
+        self,
+        arcana_number: int,
+        arcana_name: str,
+        date_str: str,
+        user_name: str = "друг",
+        user_archetype_number: int = 0,
+        user_archetype_name: str = "",
+    ) -> str:
+        prompt = self._load_prompt("tarot_daily_card.txt")
+        filled = prompt.format(
+            arcana_number=arcana_number,
+            arcana_name=arcana_name,
+            date=date_str,
             user_name=user_name,
-            birth_date=birth_date,
-            daily_arcana=daily_arcana,
-            matrix_context=matrix_context if matrix_context else "(нет данных матрицы)",
+            user_archetype_number=user_archetype_number or arcana_number,
+            user_archetype_name=user_archetype_name or arcana_name,
         )
-
-        async def _retry_callback(bad: str) -> str:
-            return await AIService.chat(
-                [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
-                    {"role": "assistant", "content": bad},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Твой ответ содержит невалидный JSON. "
-                            "Исправь и выдай ТОЛЬКО валидный JSON, "
-                            "строго по схеме, без markdown-блоков."
-                        ),
-                    },
-                ],
-                api_params=FULL_REPORT_PARAMS,
-                timeout=300.0,
-            )
-
-        try:
-            response = await AIService.chat(
-                [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
-                ],
-                api_params={"model": TAROT_DAILY_MODEL, **DEFAULT_PARAMS},
-            )
-            result = await AIService._parse_json_response(response, _retry_callback)
-            from core.schemas import TarotDailyCardResult
-
-            validated = TarotDailyCardResult(**result)
-            return validated.model_dump()
-        except Exception as e:
-            logger.error("generate_tarot_daily_card failed: %s", e, exc_info=True)
-            return dict(FALLBACK_TAROT_DAILY)
+        result = await self.chat(
+            messages=[
+                {"role": "system", "content": (
+                    "Ты — NURA, персональный психологический проводник. "
+                    "Обращайся к пользователю по имени. "
+                    "Никогда не называй арканы, карты и их номера. "
+                    "Пиши живым личным языком — не как гороскоп, "
+                    "а как персональный инсайт."
+                )},
+                {"role": "user", "content": filled},
+            ],
+            api_params={"max_tokens": 400, "temperature": 0.7},
+        )
+        return result.strip().strip('"')
 
     @staticmethod
     async def generate_tarot_weekly_spread(

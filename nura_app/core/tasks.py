@@ -2,7 +2,7 @@ import asyncio
 import logging
 import random
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from celery import Celery
 from celery.schedules import crontab
@@ -12,6 +12,7 @@ from core.config import settings
 from core.database import get_async_sessionmaker
 from core.models import ReportType, User
 from core.repositories import ReportRepository, UserRepository
+from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
 from core.services.ai import AIService
 from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
@@ -440,18 +441,37 @@ async def _send_daily_tarot_card_async() -> dict:
 
     sent = 0
     blocked = 0
+    today = date.today()
     for i, user in enumerate(users):
         if i > 0 and len(users) > 50:
             await asyncio.sleep(0.5)
-        if not user.birth_date:
-            continue
 
         try:
-            card = await AIService.generate_tarot_daily_card(user.birth_date, user)
+            center_arcana = user.main_archetype_number or 0
+            arcana_num = (
+                _personal_arcana_number(today, center_arcana)
+                if center_arcana else _daily_arcana_number(today)
+            )
+            arcana_name = ARCANA[arcana_num]
+            user_name = user.first_name or user.username or "друг"
+
+            card_text = await AIService().generate_tarot_daily_card(
+                arcana_number=arcana_num,
+                arcana_name=arcana_name,
+                date_str=today.strftime("%d.%m.%Y"),
+                user_name=user_name,
+                user_archetype_number=user.main_archetype_number or arcana_num,
+                user_archetype_name=user.main_archetype or arcana_name,
+            )
         except Exception:
             continue
 
-        text = format_daily_card_message(user.first_name, card)
+        text = (
+            f"🌒 <b>Карта дня для {user_name}</b>\n"
+            f"<i>{today.strftime('%d.%m.%Y')}</i>\n"
+            f"{'─' * 20}\n\n"
+            f"{card_text}"
+        )
         keyboard = {
             "inline_keyboard": [
                 [{"text": "✦ Расклад недели", "callback_data": "tarot_weekly"}],
