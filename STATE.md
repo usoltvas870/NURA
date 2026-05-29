@@ -250,3 +250,16 @@
   - Вращающиеся полукруги `◐ ◓ ◑ ◒` каждые 0.5 сек во время AI-генерации
   - 🃏 эмодзи карты вместо 🌒 луны в сообщениях загрузки
   - Все 6 раскладов: `async with animated_loading(...)` → try/except блок с re-indent
+
+- **28.05.2026 — Сессия 17 (задача 1)** — DeepSeek V4 Pro
+  - Compatibility report V2: имена вместо арканов в обложке, новый AI-промпт `compatibility_full.txt`, новый HTML-шаблон `compatibility_report.html`
+  - `_process_compatibility_report()`: параметры `user_name`, `partner_name`, `relation_type` → передаются в AI и шаблон
+  - `generate_compatibility_report.delay()`: добавлен `relation_type` в сигнатуру
+  - Удалена функция `_notify_compatibility` — дублирующее уведомление убрано
+  - `mini_compatibility_text()`: добавлен параметр `is_premium`, CTA-блок «Это только начало» скрыт для premium
+  - `process_partner_date()`: кнопки «📄 Открыть отчёт» / «⬇️ Скачать PDF» первыми для premium; «✨ Подключить Таро» только для free
+
+- **29.05.2026 — Сессия 17 (задача 2)** — DeepSeek V4 Pro
+  - Подтверждение и синхронизация: все изменения задачи 1 уже были на удалённом репозитории
+  - stash/pull/merge: разрешены конфликты в `tasks.py`, `compatibility.py`, `texts/compatibility.py`
+  - Деплой на VPS: `docker compose restart bot celery-worker` — оба контейнера без ошибок
