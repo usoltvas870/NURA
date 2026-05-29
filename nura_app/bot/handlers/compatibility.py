@@ -194,11 +194,10 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
     text = mini_compatibility_text(
         user_name=sender_name,
         partner_name=partner_name,
+        portrait_user=analysis.get("portrait_user", "..."),
+        portrait_partner=analysis.get("portrait_partner", "..."),
+        how_you_interact=analysis.get("how_you_interact", "..."),
         relation_type=relation_type,
-        block_emotional=analysis.get("how_you_interact", "..."),
-        block_portrait_user=analysis.get("portrait_user", "..."),
-        block_portrait_partner=analysis.get("portrait_partner", "..."),
-        is_premium=is_premium,
     )
 
     partner_arcana_name = result.get(

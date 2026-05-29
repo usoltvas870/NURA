@@ -41,30 +41,29 @@ def loading_steps() -> list[str]:
 def mini_compatibility_text(
     user_name: str,
     partner_name: str,
-    relation_type: str,
-    block_emotional: str,
-    block_portrait_user: str,
-    block_portrait_partner: str,
-    is_premium: bool = False,
+    portrait_user: str,
+    portrait_partner: str,
+    how_you_interact: str,
+    relation_type: str = "общение",
 ) -> str:
-    base = (
-        f"<b>✦ Совместимость архетипов</b>\n\n"
-        f"<i>{user_name} + {partner_name}</i>\n\n"
-        "━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"<b>🎭 Портрет {user_name}</b>\n{block_portrait_user}\n\n"
-        f"<b>🎭 Портрет {partner_name}</b>\n{block_portrait_partner}\n\n"
-        f"<b>💞 Эмоциональная совместимость</b>\n{block_emotional}"
+    rel_labels = {
+        "романтика":  "В паре",
+        "дружба":     "В дружбе",
+        "работа":     "В команде",
+        "семья":      "В семье",
+        "общение":    "Как вы взаимодействуете",
+    }
+    interact_label = rel_labels.get(relation_type, "Как вы взаимодействуете")
+
+    return (
+        f"<b>✦ Совместимость</b>\n\n"
+        f"<b>🎭 {user_name}</b>\n"
+        f"{portrait_user}\n\n"
+        f"<b>🎭 {partner_name}</b>\n"
+        f"{portrait_partner}\n\n"
+        f"<b>💞 {interact_label}</b>\n"
+        f"{how_you_interact}"
     )
-    if not is_premium:
-        base += (
-            "\n\n━━━━━━━━━━━━━━━━━━━━\n\n"
-            "✦ Это только начало\n\n"
-            "Полный разбор покажет:\n"
-            "• <b>Зоны напряжения</b> — где может возникать трение\n"
-            "• <b>Сильные стороны</b> — в чём вы усиливаете друг друга\n"
-            "• <b>Рекомендация</b> — как выстроить взаимодействие"
-        )
-    return base
 
 def compat_details_text(
     user_name: str,
