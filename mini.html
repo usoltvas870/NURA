@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NURA AI — Бесплатный разбор Матрицы Судьбы</title>
+  <meta name="description" content="Узнай свой архетип по дате рождения. Бесплатный AI-разбор от NURA." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:        #0A0E0C;
+      --bg-soft:   #111613;
+      --ink:       #F2EFE7;
+      --ink-soft:  rgba(242, 239, 231, 0.72);
+      --ink-mute:  rgba(242, 239, 231, 0.50);
+      --line:      rgba(242, 239, 231, 0.10);
+      --line-strong: rgba(242, 239, 231, 0.18);
+      --m-bg:       #0E2419;
+      --m-bg-soft:  #143527;
+      --m-line:     rgba(151, 197, 161, 0.18);
+      --m-accent:   #C9A55C;
+      --m-accent-soft: rgba(201, 165, 92, 0.16);
+      --m-leaf:     #6BA37A;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 50% 60% at 60% 30%, rgba(201, 165, 92, 0.14), transparent 60%),
+        radial-gradient(ellipse 45% 45% at 30% 80%, rgba(107, 163, 122, 0.10), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      width: min(440px, calc(100% - 32px));
+      padding: 48px 0 40px;
+    }
+
+    .card {
+      background:
+        radial-gradient(ellipse 80% 50% at 40% 0%, rgba(107, 163, 122, 0.16), transparent 60%),
+        linear-gradient(160deg, var(--m-bg) 0%, var(--m-bg-soft) 100%);
+      border: 1px solid var(--m-line);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px 36px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 500;
+      font-size: clamp(28px, 5vw, 38px);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 15px;
+      line-height: 1.6;
+      font-weight: 300;
+      margin: 10px 0 32px;
+    }
+
+    .field {
+      margin-bottom: 18px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      margin-bottom: 8px;
+    }
+
+    .field input {
+      width: 100%;
+      height: 52px;
+      padding: 0 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line-strong);
+      background: rgba(10, 14, 12, 0.5);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      transition: border-color 0.22s ease, box-shadow 0.22s ease;
+      outline: none;
+    }
+
+    .field input::placeholder {
+      color: var(--ink-mute);
+    }
+
+    .field input:focus {
+      border-color: var(--m-accent);
+      box-shadow: 0 0 0 3px rgba(201, 165, 92, 0.12);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 56px;
+      padding: 0 26px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, var(--m-accent), #B08948);
+      color: #1A1206;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      text-decoration: none;
+      margin-top: 8px;
+    }
+
+    .btn:hover:not(:disabled) {
+      box-shadow: 0 14px 36px rgba(201, 165, 92, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid rgba(201, 165, 92, 0.4);
+      color: var(--m-accent);
+      font-weight: 500;
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      background: var(--m-accent-soft);
+      box-shadow: none;
+    }
+
+    /* Loader */
+    .loader {
+      display: none;
+      width: 22px;
+      height: 22px;
+      border: 2.5px solid rgba(26, 18, 6, 0.3);
+      border-top-color: #1A1206;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .btn.loading .loader { display: inline-block; }
+    .btn.loading .btn-text { display: none; }
+    .btn.loading { pointer-events: none; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Error */
+    .error-msg {
+      display: none;
+      color: #E8735A;
+      font-size: 14px;
+      text-align: center;
+      margin-top: 16px;
+      font-weight: 400;
+    }
+
+    .error-msg.visible { display: block; }
+
+    /* Stage visibility */
+    .stage { display: none; }
+    .stage.active { display: block; }
+
+    /* Stage 2 — Results */
+    .result-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 500;
+      font-size: clamp(24px, 4vw, 32px);
+      line-height: 1.15;
+      text-align: center;
+      margin: 0 0 28px;
+    }
+
+    .result-title span {
+      color: var(--m-accent);
+      font-style: italic;
+    }
+
+    .result-blocks {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .result-block {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      background: rgba(10, 14, 12, 0.4);
+      border: 1px solid var(--line);
+    }
+
+    .result-block .icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      width: 28px;
+      text-align: center;
+    }
+
+    .result-block .content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .result-block .label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--m-accent);
+      margin-bottom: 4px;
+    }
+
+    .result-block .value {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 17px;
+      line-height: 1.4;
+      color: var(--ink);
+      font-style: italic;
+    }
+
+    /* Blurred */
+    .result-block.blurred {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-block.blurred .blur-overlay {
+      position: absolute;
+      inset: 0;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(14, 36, 25, 0.65);
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--ink-soft);
+    }
+
+    .result-block.blurred .blur-overlay .lock {
+      font-size: 16px;
+    }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .card { padding: 32px 20px 28px; }
+      .result-block { padding: 14px 16px; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .stage.active { animation: fadeUp 0.45s ease both; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <!-- STAGE 1 — Form -->
+    <div class="card stage active" id="stage-form">
+      <h1>Узнай свой архетип</h1>
+      <p class="subtitle">Бесплатный разбор матрицы судьбы</p>
+
+      <form id="mini-form" novalidate>
+        <div class="field">
+          <label for="name">Имя</label>
+          <input type="text" id="name" name="name" placeholder="Как тебя зовут?" autocomplete="given-name" required />
+        </div>
+        <div class="field">
+          <label for="birth_date">Дата рождения</label>
+          <input type="text" id="birth_date" name="birth_date" placeholder="ДД.ММ.ГГГГ" pattern="\d{2}\.\d{2}\.\d{4}" autocomplete="bday" required />
+        </div>
+
+        <button type="submit" class="btn" id="submit-btn">
+          <span class="btn-text">Получить разбор</span>
+          <span class="loader"></span>
+        </button>
+      </form>
+
+      <div class="error-msg" id="error-msg">Что-то пошло не так, попробуй ещё раз</div>
+    </div>
+
+    <!-- STAGE 2 — Results -->
+    <div class="card stage" id="stage-result">
+      <h1 class="result-title">Твой архетип — <span id="res-archetype"></span></h1>
+
+      <div class="result-blocks">
+        <div class="result-block" id="block-core">
+          <span class="icon">🔮</span>
+          <div class="content">
+            <div class="label">Ключевая сила</div>
+            <div class="value" id="val-core"></div>
+          </div>
+        </div>
+
+        <div class="result-block" id="block-conflict">
+          <span class="icon">⚡</span>
+          <div class="content">
+            <div class="label">Внутренний конфликт</div>
+            <div class="value" id="val-conflict"></div>
+          </div>
+        </div>
+
+        <div class="result-block" id="block-relations">
+          <span class="icon">💫</span>
+          <div class="content">
+            <div class="label">Паттерн в отношениях</div>
+            <div class="value" id="val-relations"></div>
+          </div>
+        </div>
+
+        <div class="result-block" id="block-finance">
+          <span class="icon">💰</span>
+          <div class="content">
+            <div class="label">Финансовый блок</div>
+            <div class="value" id="val-finance"></div>
+          </div>
+        </div>
+
+        <div class="result-block blurred" id="block-extra-1">
+          <span class="icon">✦</span>
+          <div class="content">
+            <div class="label">Личное предназначение</div>
+            <div class="value" id="val-extra-1"></div>
+          </div>
+          <div class="blur-overlay">
+            <span class="lock">🔒</span> Доступно в полном отчёте
+          </div>
+        </div>
+
+        <div class="result-block blurred" id="block-extra-2">
+          <span class="icon">◈</span>
+          <div class="content">
+            <div class="label">Кармический хвост</div>
+            <div class="value" id="val-extra-2"></div>
+          </div>
+          <div class="blur-overlay">
+            <span class="lock">🔒</span> Доступно в полном отчёте
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-ghost" id="pay-btn">
+        Получить полный отчёт — 890 ₽
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    (function() {
+      var stageForm  = document.getElementById('stage-form');
+      var stageResult = document.getElementById('stage-result');
+      var form       = document.getElementById('mini-form');
+      var submitBtn  = document.getElementById('submit-btn');
+      var errorMsg   = document.getElementById('error-msg');
+
+      var sessionId = null;
+
+      function showStage(name) {
+        stageForm.classList.remove('active');
+        stageResult.classList.remove('active');
+        if (name === 'form')   stageForm.classList.add('active');
+        if (name === 'result') stageResult.classList.add('active');
+        errorMsg.classList.remove('visible');
+      }
+
+      function setLoading(btn, loading) {
+        if (loading) {
+          btn.classList.add('loading');
+          btn.disabled = true;
+        } else {
+          btn.classList.remove('loading');
+          btn.disabled = false;
+        }
+      }
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        errorMsg.classList.remove('visible');
+
+        var name = document.getElementById('name').value.trim();
+        var birth = document.getElementById('birth_date').value.trim();
+
+        if (!birth.match(/^\d{2}\.\d{2}\.\d{4}$/)) {
+          errorMsg.textContent = 'Введи дату в формате ДД.ММ.ГГГГ';
+          errorMsg.classList.add('visible');
+          return;
+        }
+
+        setLoading(submitBtn, true);
+
+        fetch('/api/v1/web/mini-analysis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, birth_date: birth })
+        })
+        .then(function(res) {
+          if (!res.ok) throw new Error('API error');
+          return res.json();
+        })
+        .then(function(data) {
+          setLoading(submitBtn, false);
+          sessionId = data.session_id;
+
+          document.getElementById('res-archetype').textContent = data.main_archetype || '...';
+          document.getElementById('val-core').textContent  = data.core_strength || '...';
+          document.getElementById('val-conflict').textContent  = data.emotional_conflict || '...';
+          document.getElementById('val-relations').textContent = data.relationship_pattern || '...';
+          document.getElementById('val-finance').textContent   = data.financial_block || '...';
+          document.getElementById('val-extra-1').textContent   = data.destiny || '...';
+          document.getElementById('val-extra-2').textContent   = data.karmic_tail || '...';
+
+          showStage('result');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        })
+        .catch(function() {
+          setLoading(submitBtn, false);
+          errorMsg.textContent = 'Что-то пошло не так, попробуй ещё раз';
+          errorMsg.classList.add('visible');
+        });
+      });
+
+      document.getElementById('pay-btn').addEventListener('click', function() {
+        var btn = this;
+        setLoading(btn, true);
+
+        fetch('/api/v1/web/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId })
+        })
+        .then(function(res) {
+          if (!res.ok) throw new Error('Payment init error');
+          return res.json();
+        })
+        .then(function(data) {
+          if (data.payment_url) {
+            window.location.href = data.payment_url;
+          } else {
+            throw new Error('No payment_url');
+          }
+        })
+        .catch(function() {
+          setLoading(btn, false);
+          errorMsg.textContent = 'Что-то пошло не так, попробуй ещё раз';
+          errorMsg.classList.add('visible');
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

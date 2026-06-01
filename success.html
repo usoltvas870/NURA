@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NURA AI — Оплата прошла</title>
+  <meta name="description" content="Оплата прошла. Генерируем твою Матрицу Судьбы." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:        #0A0E0C;
+      --bg-soft:   #111613;
+      --ink:       #F2EFE7;
+      --ink-soft:  rgba(242, 239, 231, 0.72);
+      --ink-mute:  rgba(242, 239, 231, 0.50);
+      --line:      rgba(242, 239, 231, 0.10);
+      --line-strong: rgba(242, 239, 231, 0.18);
+      --m-bg:       #0E2419;
+      --m-bg-soft:  #143527;
+      --m-line:     rgba(151, 197, 161, 0.18);
+      --m-accent:   #C9A55C;
+      --m-accent-soft: rgba(201, 165, 92, 0.16);
+      --m-leaf:     #6BA37A;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 50% 60% at 50% 30%, rgba(201, 165, 92, 0.12), transparent 60%),
+        radial-gradient(ellipse 45% 45% at 50% 80%, rgba(107, 163, 122, 0.08), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      width: min(440px, calc(100% - 32px));
+      text-align: center;
+    }
+
+    .card {
+      background:
+        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(107, 163, 122, 0.16), transparent 60%),
+        linear-gradient(160deg, var(--m-bg) 0%, var(--m-bg-soft) 100%);
+      border: 1px solid var(--m-line);
+      border-radius: var(--radius-lg);
+      padding: 48px 32px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .check-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--m-accent-soft);
+      border: 1px solid rgba(201, 165, 92, 0.3);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 24px;
+      color: var(--m-accent);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 500;
+      font-size: clamp(28px, 5vw, 38px);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    h1 .star {
+      color: var(--m-accent);
+      margin-left: 2px;
+    }
+
+    .subtitle {
+      color: var(--ink-soft);
+      font-size: 15px;
+      line-height: 1.6;
+      font-weight: 300;
+      margin: 0 0 36px;
+    }
+
+    .spinner-wrapper {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(201, 165, 92, 0.2);
+      border-top-color: var(--m-accent);
+      border-right-color: var(--m-leaf);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Pulse ring */
+    .spinner-ring {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto;
+    }
+
+    .spinner-ring::before {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      border: 1px solid rgba(201, 165, 92, 0.15);
+      animation: pulse-ring 2s ease-out infinite;
+    }
+
+    @keyframes pulse-ring {
+      0%   { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .status-msg {
+      display: none;
+      color: var(--ink-soft);
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 24px 0 0;
+      font-weight: 300;
+    }
+
+    .status-msg.visible { display: block; }
+    .status-msg .attempt-count {
+      color: var(--ink-mute);
+      font-size: 12px;
+      display: block;
+      margin-top: 6px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 52px;
+      padding: 0 28px;
+      border-radius: 999px;
+      border: 1px solid rgba(201, 165, 92, 0.4);
+      background: transparent;
+      color: var(--m-accent);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      text-decoration: none;
+      margin-top: 28px;
+    }
+
+    .btn:hover {
+      background: var(--m-accent-soft);
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn .btn-spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(201, 165, 92, 0.3);
+      border-top-color: var(--m-accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .btn.loading .btn-text { display: none; }
+    .btn.loading .btn-spinner { display: inline-block; }
+    .btn.loading { pointer-events: none; }
+
+    /* Responsive */
+    @media (max-width: 480px) {
+      .card { padding: 36px 20px 32px; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card { animation: fadeUp 0.5s ease both; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <div class="check-icon">✦</div>
+      <h1>Оплата прошла <span class="star">✦</span></h1>
+      <p class="subtitle" id="status-text">Генерируем твою Матрицу Судьбы. Это займёт 1-2 минуты.</p>
+
+      <div class="spinner-wrapper" id="spinner">
+        <div class="spinner-ring">
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <div class="status-msg" id="timeout-msg">
+        Отчёт готовится. Обычно это занимает до 2 минут.
+        <span class="attempt-count" id="attempt-count"></span>
+      </div>
+
+      <button class="btn" id="retry-btn" style="display: none;">
+        <span class="btn-text">Проверить ещё раз</span>
+        <span class="btn-spinner"></span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('token');
+
+      if (!token) return;
+
+      var MAX_ATTEMPTS = 24;
+      var INTERVAL_MS  = 5000;
+      var attempts     = 0;
+      var timer        = null;
+
+      var spinner     = document.getElementById('spinner');
+      var statusText  = document.getElementById('status-text');
+      var timeoutMsg  = document.getElementById('timeout-msg');
+      var attemptEl   = document.getElementById('attempt-count');
+      var retryBtn    = document.getElementById('retry-btn');
+
+      function updateAttempt() {
+        if (attempts > 0) {
+          attemptEl.textContent = 'Попытка ' + attempts + ' из ' + MAX_ATTEMPTS;
+        }
+      }
+
+      function stopPolling() {
+        if (timer) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      }
+
+      function showTimeout() {
+        stopPolling();
+        spinner.style.display = 'none';
+        statusText.textContent = 'Генерируем твою Матрицу Судьбы. Это займёт 1-2 минуты.';
+        timeoutMsg.classList.add('visible');
+        updateAttempt();
+        retryBtn.style.display = 'inline-flex';
+      }
+
+      function checkReport() {
+        attempts++;
+        updateAttempt();
+
+        fetch('/report/' + token, { method: 'GET' })
+          .then(function(res) {
+            if (res.ok) {
+              stopPolling();
+              window.location.href = '/report/' + token;
+              return;
+            }
+            if (attempts >= MAX_ATTEMPTS) {
+              showTimeout();
+              return;
+            }
+            timer = setTimeout(checkReport, INTERVAL_MS);
+          })
+          .catch(function() {
+            if (attempts >= MAX_ATTEMPTS) {
+              showTimeout();
+              return;
+            }
+            timer = setTimeout(checkReport, INTERVAL_MS);
+          });
+      }
+
+      retryBtn.addEventListener('click', function() {
+        var btn = this;
+        btn.classList.add('loading');
+
+        attempts = 0;
+        timeoutMsg.classList.remove('visible');
+        spinner.style.display = '';
+        statusText.textContent = 'Генерируем твою Матрицу Судьбы. Это займёт 1-2 минуты.';
+        btn.style.display = 'none';
+
+        checkReport();
+
+        setTimeout(function() {
+          btn.classList.remove('loading');
+        }, 600);
+      });
+
+      setTimeout(function() {
+        checkReport();
+      }, 3000);
+    })();
+  </script>
+</body>
+</html>
