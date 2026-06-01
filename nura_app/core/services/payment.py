@@ -105,6 +105,38 @@ class PaymentService:
         }
 
     @staticmethod
+    async def create_web_matrix_payment(
+        user_id: uuid.UUID, report_token: str
+    ) -> dict:
+        idempotence_key = uuid.uuid4().hex[:32]
+        payment = YooPayment.create(
+            {
+                "amount": {
+                    "value": f"{settings.matrix_one_time_price_rub}.00",
+                    "currency": "RUB",
+                },
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": f"{settings.report_base_url}/report/{report_token}",
+                },
+                "capture": True,
+                "save_payment_method": False,
+                "description": "NURA — Полная матрица судьбы (веб)",
+                "metadata": {
+                    "user_id": str(user_id),
+                    "payment_type": "web_matrix",
+                },
+            },
+            idempotence_key,
+        )
+        return {
+            "id": payment.id,
+            "status": payment.status,
+            "payment_url": payment.confirmation.confirmation_url,
+            "payment_method_id": getattr(payment.payment_method, "id", None),
+        }
+
+    @staticmethod
     async def save_matrix_payment(
         session_factory: async_sessionmaker,
         user_id: uuid.UUID,
@@ -146,6 +178,39 @@ class PaymentService:
         metadata = payment_obj.get("metadata", {})
         telegram_id = metadata.get("telegram_id")
         payment_type = metadata.get("payment_type", "subscription")
+
+        if payment_type == "web_matrix":
+            if not yookassa_id:
+                raise ValueError("Missing payment id")
+            user_id_str = metadata.get("user_id")
+            if not user_id_str:
+                raise ValueError("Missing user_id in web_matrix payment")
+
+            payment_repo = PaymentRepository(session_factory)
+            user_repo = UserRepository(session_factory)
+
+            payment = await payment_repo.get_by_yookassa_id(yookassa_id)
+            if payment is None:
+                raise ValueError("Payment not found")
+
+            await payment_repo.update_status(payment.id, "succeeded")
+
+            user = await user_repo.get(uuid.UUID(user_id_str))
+            if user is None:
+                raise ValueError("Web user not found")
+
+            await user_repo.update_has_matrix(user.id, True)
+
+            if user.birth_date:
+                from core.services.report import ReportService
+                from core.tasks import generate_full_report
+
+                report_token = ReportService.generate_token()
+                generate_full_report.delay(
+                    str(user.id), user.birth_date, report_token
+                )
+
+            return {"ok": True}
 
         if not telegram_id or not yookassa_id:
             raise ValueError("Missing telegram_id or payment id")

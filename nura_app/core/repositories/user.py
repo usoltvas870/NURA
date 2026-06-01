@@ -136,3 +136,26 @@ class UserRepository(SQLAlchemyRepository[User]):
             )
             report = result.scalar_one_or_none()
             return report is not None
+
+    async def get_by_web_session_id(self, web_session_id: str) -> User | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User).where(User.web_session_id == web_session_id)
+            )
+            return result.scalar_one_or_none()
+
+    async def create_web_user(
+        self,
+        name: str,
+        birth_date: str,
+        web_session_id: str,
+        email: str | None = None,
+    ) -> User:
+        user = User(
+            id=uuid.uuid4(),
+            name=name,
+            birth_date=birth_date,
+            web_session_id=web_session_id,
+            email=email,
+        )
+        return await self.add(user)
