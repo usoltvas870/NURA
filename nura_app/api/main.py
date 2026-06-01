@@ -8,6 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from api.admin import setup_admin
 from api.deps import limiter
 from api.routes.reports import router as reports_router
+from api.routes.web import router as web_router
 from api.routes.webhook import router as webhook_router
 from api.routes.payment import router as payment_router
 
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(webhook_router)
+app.include_router(web_router)
 app.include_router(reports_router)
 app.include_router(payment_router)
 
