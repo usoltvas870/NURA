@@ -31,9 +31,14 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    telegram_id: Mapped[int] = mapped_column(
-        BigInteger, unique=True, nullable=False, index=True
+    telegram_id: Mapped[int | None] = mapped_column(
+        BigInteger, unique=True, nullable=True, index=True
     )
+    name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    web_session_id: Mapped[str | None] = mapped_column(
+        String(64), unique=True, nullable=True, index=True
+    )
+    email: Mapped[str | None] = mapped_column(String(256), nullable=True)
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     first_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     birth_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
