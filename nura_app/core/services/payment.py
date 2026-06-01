@@ -122,10 +122,11 @@ class PaymentService:
                 "capture": True,
                 "save_payment_method": False,
                 "description": "NURA — Полная матрица судьбы (веб)",
-                "metadata": {
-                    "user_id": str(user_id),
-                    "payment_type": "web_matrix",
-                },
+                    "metadata": {
+                        "user_id": str(user_id),
+                        "payment_type": "web_matrix",
+                        "report_token": report_token,
+                    },
             },
             idempotence_key,
         )
@@ -205,7 +206,7 @@ class PaymentService:
                 from core.services.report import ReportService
                 from core.tasks import generate_full_report
 
-                report_token = ReportService.generate_token()
+                report_token = metadata.get("report_token") or ReportService.generate_token()
                 generate_full_report.delay(
                     str(user.id), user.birth_date, report_token
                 )
