@@ -4,7 +4,8 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from api.deps import limiter
-from core.database import get_async_sessionmaker
+from core.config import settings
+from core.database import get_async_sessionmaker, get_redis
 from core.models import ReportType
 from core.repositories.payment import PaymentRepository
 from core.repositories.report import ReportRepository
@@ -117,3 +118,48 @@ async def create_payment(request: Request, body: CreatePaymentRequest):
     )
 
     return CreatePaymentResponse(payment_url=payment["payment_url"])
+
+
+class GenerateLinkTokenRequest(BaseModel):
+    session_id: str
+
+
+class GenerateLinkTokenResponse(BaseModel):
+    token: str
+    tg_url: str
+
+
+class CheckLinkTokenResponse(BaseModel):
+    user_id: str
+
+
+@router.post("/generate-link-token", response_model=GenerateLinkTokenResponse)
+@limiter.limit("10/minute")
+async def generate_link_token(request: Request, body: GenerateLinkTokenRequest):
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_web_session_id(body.session_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    token = uuid.uuid4().hex
+    redis = get_redis()
+    await redis.setex(f"link_token:{token}", 900, str(user.id))
+
+    bot_username = settings.bot_username
+    return GenerateLinkTokenResponse(
+        token=token,
+        tg_url=f"https://t.me/{bot_username}?start=link_{token}",
+    )
+
+
+@router.get("/check-link-token", response_model=CheckLinkTokenResponse)
+@limiter.limit("30/minute")
+async def check_link_token(request: Request, token: str):
+    redis = get_redis()
+    key = f"link_token:{token}"
+    user_id = await redis.get(key)
+    if not user_id:
+        raise HTTPException(status_code=404, detail="Токен не найден или истёк")
+    await redis.delete(key)
+    return CheckLinkTokenResponse(user_id=user_id)

@@ -2,12 +2,11 @@ import asyncio
 import logging
 
 from aiogram import F, Router
-from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from bot.handlers.validators import validate_date
-from bot.keyboards.main_menu import main_menu_keyboard, open_pwa_keyboard
+from bot.keyboards.main_menu import open_pwa_keyboard
 from bot.states.onboarding_state import OnboardingStates
 from bot.texts.matrix import mini_analysis_text
 from bot.texts.onboarding import (
@@ -28,30 +27,6 @@ from core.tasks import generate_mini_report
 logger = logging.getLogger(__name__)
 
 router = Router()
-
-
-@router.message(Command("start"))
-async def cmd_start(message: Message, state: FSMContext) -> None:
-    await state.clear()
-    session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-    user = await user_repo.get_by_telegram_id(message.from_user.id)
-
-    if user and user.birth_date:
-        await _show_authenticated_menu(message, user)
-        return
-
-    if user is None:
-        user = await user_repo.create(
-            telegram_id=message.from_user.id,
-            username=message.from_user.username,
-            first_name=message.from_user.first_name,
-        )
-
-    from bot.texts.onboarding import onboarding_greeting_text
-    await message.answer(onboarding_greeting_text(message.from_user.first_name or ""))
-    await state.set_state(OnboardingStates.waiting_for_birth_date)
-    await message.answer(ask_birth_date_onboarding_text())
 
 
 @router.message(OnboardingStates.waiting_for_birth_date)
@@ -194,19 +169,3 @@ async def handle_calculate_matrix(callback: CallbackQuery, state: FSMContext) ->
     await callback.answer()
     await state.set_state(OnboardingStates.waiting_for_birth_date)
     await callback.message.edit_text(ask_birth_date_onboarding_text())
-
-
-async def _show_authenticated_menu(message: Message, user) -> None:
-    from bot.texts.start import welcome_back_text
-
-    name = user.first_name or user.username or "пользователь"
-    archetype = user.main_archetype or "не определён"
-    has_tarot = bool(user.tarot_subscription) if user else False
-    await message.answer(
-        welcome_back_text(name=name, archetype=archetype),
-        reply_markup=main_menu_keyboard(
-            has_matrix=bool(user.has_matrix),
-            has_tarot=has_tarot,
-            subscription_status=user.subscription_status,
-        ),
-    )

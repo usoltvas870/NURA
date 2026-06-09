@@ -56,8 +56,8 @@ async def main():
     dp.message.middleware(AntiFloodMiddleware())
     dp.callback_query.middleware(AntiFloodMiddleware())
 
-    dp.include_router(onboarding_router)
     dp.include_router(start_router)
+    dp.include_router(onboarding_router)
     dp.include_router(compatibility_router)
     dp.include_router(chat_router)
     dp.include_router(payment_router)

@@ -159,3 +159,19 @@ class UserRepository(SQLAlchemyRepository[User]):
             email=email,
         )
         return await self.add(user)
+
+    async def update_telegram_id(
+        self,
+        user_id: uuid.UUID,
+        telegram_id: int,
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            if user.telegram_id and user.telegram_id != telegram_id:
+                return None
+            user.telegram_id = telegram_id
+            await session.commit()
+            await session.refresh(user)
+            return user
