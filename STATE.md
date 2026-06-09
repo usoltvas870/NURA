@@ -337,3 +337,20 @@ docker compose restart bot celery-worker
   - update_telegram_id() с защитой от конфликтов в UserRepository
   - Реферальная система: таблица referral_rewards, /start ref_{id}, уведомление реферера, реф-ссылка в профиле
   - Alembic цепочка: e47590a5c5c1 → add_tarot_and_payment_type → b3c1d2e4f5a6 → 5a8cac04bf5e → a1b2c3d4e5f6 → b2c3d4e5f6a7 (head)
+
+- **09.06.2026 — Сессия 20** — Claude Sonnet 4.6 (claude.ai)
+  - PWA P0 полностью закрыт:
+  - manifest.json + 5 иконок (актуальные цвета #C9A55C, #0A0E0C)
+  - service-worker.js (кэш + push handler + notificationclick)
+  - offline.html (брендированный)
+  - iOS meta-теги: index.html, mini.html, success.html, _base.html
+  - nginx.conf: manifest/SW/icons/offline — без кэша, Service-Worker-Allowed: /
+  - VAPID ключи сгенерированы, в .env
+  - api/routes/push.py: subscribe / unsubscribe / vapid-public-key
+  - core/services/web_push.py: отправка pywebpush, обработка 410
+  - core/repositories/user.py: update_push_subscription, clear_push_subscription_by_endpoint
+  - core/tasks.py: _notify_user — дедупликация Web Push → Telegram fallback (ADR-002)
+  - pwa-install.js: Android beforeinstallprompt баннер + iOS 3-шаговая инструкция
+  - Install UI внедрён в index.html и mini.html
+  - pwa-spec.md обновлён: актуальная палитра, статусы §2, чеклист §13
+  - Git remote переведён на SSH: git@github.com:usoltvas870/NURA.git
