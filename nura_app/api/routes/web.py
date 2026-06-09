@@ -15,6 +15,16 @@ from core.services.matrix import MatrixService
 from core.services.payment import PaymentService
 from core.services.report import ReportService
 
+class UserProfileResponse(BaseModel):
+    name: str
+    birth_date: str
+    archetype: str | None
+    archetype_number: int | None
+    has_matrix: bool
+    has_tarot: bool
+    report_token: str | None
+
+
 router = APIRouter(prefix="/api/v1/web")
 
 
@@ -163,3 +173,43 @@ async def check_link_token(request: Request, token: str):
         raise HTTPException(status_code=404, detail="Токен не найден или истёк")
     await redis.delete(key)
     return CheckLinkTokenResponse(user_id=user_id)
+
+
+@router.get("/me", response_model=UserProfileResponse)
+@limiter.limit("60/minute")
+async def get_user_profile(request: Request, session_id: str):
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+
+    user = await user_repo.get_by_web_session_id(session_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Сессия не найдена")
+
+    report_token = None
+    try:
+        from sqlalchemy import select
+        from core.models import Report
+        async with session_factory() as session:
+            result = await session.execute(
+                select(Report.token)
+                .where(
+                    Report.user_id == user.id,
+                    Report.report_type == ReportType.FULL.value,
+                )
+                .order_by(Report.created_at.desc())
+                .limit(1)
+            )
+            row = result.first()
+            report_token = row[0] if row else None
+    except Exception:
+        pass
+
+    return UserProfileResponse(
+        name=user.first_name or user.name or "Пользователь",
+        birth_date=user.birth_date or "",
+        archetype=user.main_archetype,
+        archetype_number=user.main_archetype_number,
+        has_matrix=bool(user.has_matrix),
+        has_tarot=bool(user.tarot_subscription),
+        report_token=report_token,
+    )

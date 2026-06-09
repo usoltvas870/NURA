@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **09.06.2026 — Сессия 19** — Claude Sonnet 4.6 (claude.ai)
+> Последнее обновление: **09.06.2026 — Сессия 23** — Qwen 3.7 Max
 
 ---
 
@@ -74,7 +74,7 @@
 - ✅ PostgreSQL 16 — таблицы users, reports, payments
 - ✅ Redis — кэш, брокер Celery
 - ✅ Celery worker/beat — запущены
-- ✅ Nginx — прокси, SSL, /webhook/, /report/, /api/
+- ✅ Nginx — прокси, SSL, /webhook/, /report/, /api/, /app (SPA routing)
 
 ### Продукт
 - ✅ Мини-разбор в браузере — `mini.html` + `/api/v1/web/mini-analysis`
@@ -91,6 +91,8 @@
 - ✅ Чат с NURA — FSM, 5 сообщений free / безлимит premium
 - ✅ Video Assembler — FFmpeg бэкенд, CLI, Celery-задача, GPU autodetect
 - ✅ Carousel Assembler — Pydantic схемы, HTML-шаблоны, CLI
+- ✅ PWA главный экран `/app` — SPA: приветствие, архетип, карта дня, матрица, install banner, таббар
+- ✅ GET /api/v1/web/me — endpoint профиля для PWA
 
 ### Модель данных (users)
 ```
@@ -128,6 +130,9 @@ referred_by: int | null   # telegram_id пригласившего
 - ✅ **open_pwa кнопка в боте** — onboarding, payment, главное меню.
 - ✅ **Link-токен связка** — `/api/v1/web/link-telegram` + бот-хендлер `/start link_{TOKEN}`.
 - ✅ **Реферальная система** — таблица referral_rewards, `/start ref_{id}`, уведомление реферера, ссылка в профиле.
+- ✅ **GET /api/v1/web/me** — endpoint профиля пользователя (имя, архетип, матрица, таро, токен отчёта).
+- ✅ **/app/index.html** — главный экран PWA (SPA): приветствие, архетип-badge, кнопка матрицы, карта дня, быстрые кнопки, install banner, таббар.
+- ✅ **nginx /app** — location /app + /app/ с try_files для SPA routing.
 - 🟡 **PWA экраны** — таро, чат, профиль как мобильное приложение. (~40ч)
 - 🟡 **Подписка 390₽ через веб** — `POST /api/v1/web/subscribe`. (~4ч)
 
@@ -338,6 +343,7 @@ docker compose restart bot celery-worker
   - Реферальная система: таблица referral_rewards, /start ref_{id}, уведомление реферера, реф-ссылка в профиле
   - Alembic цепочка: e47590a5c5c1 → add_tarot_and_payment_type → b3c1d2e4f5a6 → 5a8cac04bf5e → a1b2c3d4e5f6 → b2c3d4e5f6a7 (head)
 
+<<<<<<< HEAD
 - **09.06.2026 — Сессия 20** — Claude Sonnet 4.6 (claude.ai)
   - PWA P0 полностью закрыт:
   - manifest.json + 5 иконок (актуальные цвета #C9A55C, #0A0E0C)
@@ -379,3 +385,17 @@ docker compose restart bot celery-worker
   - generate_full_report Celery-задача запускается
   - PWA файлы (manifest, SW, иконки, offline, pwa-install.js) — все 200
   - Исправлен AGENTS.md: Celery модуль core.tasks (не core.celery_app)
+
+- **09.06.2026 — Сессия 23** — Qwen 3.7 Max
+  - GET /api/v1/web/me — новый endpoint профиля пользователя (имя, архетип, матрица, таро, токен отчёта)
+  - /app/index.html — главный экран PWA (SPA):
+    - Идентификация через session_id (localStorage + URL param)
+    - Приветствие + имя + архетип-badge
+    - Кнопка «Открыть Матрицу» → /report/{token} (если есть)
+    - Empty state → /mini.html (если нет матрицы)
+    - Карта дня (локальный расчёт по дате рождения)
+    - Быстрые кнопки: Таро / Чат / Отчёты / Подписка
+    - Install banner: Android prompt + iOS 3-шаговая инструкция
+    - Нижний таббар с safe area (4 раздела)
+    - Loader с анимацией при старте
+  - nginx: location /app + /app/ с try_files для SPA
