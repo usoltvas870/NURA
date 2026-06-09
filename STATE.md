@@ -343,7 +343,6 @@ docker compose restart bot celery-worker
   - Реферальная система: таблица referral_rewards, /start ref_{id}, уведомление реферера, реф-ссылка в профиле
   - Alembic цепочка: e47590a5c5c1 → add_tarot_and_payment_type → b3c1d2e4f5a6 → 5a8cac04bf5e → a1b2c3d4e5f6 → b2c3d4e5f6a7 (head)
 
-<<<<<<< HEAD
 - **09.06.2026 — Сессия 20** — Claude Sonnet 4.6 (claude.ai)
   - PWA P0 полностью закрыт:
   - manifest.json + 5 иконок (актуальные цвета #C9A55C, #0A0E0C)
@@ -399,3 +398,14 @@ docker compose restart bot celery-worker
     - Нижний таббар с safe area (4 раздела)
     - Loader с анимацией при старте
   - nginx: location /app + /app/ с try_files для SPA
+- **09.06.2026 — Сессия 24** — DeepSeek V4 Flash
+  - api/routes/tarot_pwa.py: GET /api/v1/tarot/daily-card — персональная карта дня по birth_date
+  - /app/tarot.html — экран Таро PWA:
+    - Карта дня: hero-блок с арканом, фразой, советом, аффирмацией
+    - Кнопка «Поделиться» → Web Share API + clipboard fallback
+    - Сетка 6 раскладов (заблокированы без подписки)
+    - Paywall modal: bottom sheet с описанием подписки
+    - CTA «Подключить за 390₽/мес» → /app/profile?tab=subscription
+    - Loader + skeleton при загрузке
+    - Safe area iOS, нижний таббар
+  - nginx: location = /app/tarot → tarot.html
