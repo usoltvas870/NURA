@@ -354,3 +354,14 @@ docker compose restart bot celery-worker
   - Install UI внедрён в index.html и mini.html
   - pwa-spec.md обновлён: актуальная палитра, статусы §2, чеклист §13
   - Git remote переведён на SSH: git@github.com:usoltvas870/NURA.git
+
+- **09.06.2026 — Сессия 21** — Claude Sonnet 4.6 (claude.ai)
+  - Лендинг P0 закрыт (Блок 2):
+  - Nav CTA: «Открыть бот» → «Открыть NURA» → /app
+  - Hero CTA 2: «Через Telegram» → «🌐 Открыть NURA» → /app, убран opacity
+  - Hero hint: «мини-разбор бесплатно · без регистрации»
+  - 15 ссылок t.me/ai_nura_bot → /app (0 ссылок на бот осталось)
+  - #report-sample: добавлены CTA кнопки ✨ + 🌐
+  - target="_blank" убран у всех /app кнопок
+  - Футер: текст ссылки приведён в соответствие с href
+  - index.html синхронизирован /var/www/ ↔ /opt/nura/ ↔ git
