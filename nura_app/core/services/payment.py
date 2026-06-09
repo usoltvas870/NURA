@@ -138,6 +138,36 @@ class PaymentService:
         }
 
     @staticmethod
+    async def create_web_tarot_payment(user_id: uuid.UUID) -> dict:
+        idempotence_key = uuid.uuid4().hex[:32]
+        payment = YooPayment.create(
+            {
+                "amount": {
+                    "value": f"{settings.tarot_subscription_price_rub}.00",
+                    "currency": "RUB",
+                },
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": f"{settings.report_base_url}/app/profile?tab=subscription",
+                },
+                "capture": True,
+                "save_payment_method": True,
+                "description": "NURA — Таро-практики (подписка)",
+                "metadata": {
+                    "user_id": str(user_id),
+                    "payment_type": "web_tarot",
+                },
+            },
+            idempotence_key,
+        )
+        return {
+            "id": payment.id,
+            "status": payment.status,
+            "payment_url": payment.confirmation.confirmation_url,
+            "payment_method_id": getattr(payment.payment_method, "id", None),
+        }
+
+    @staticmethod
     async def save_matrix_payment(
         session_factory: async_sessionmaker,
         user_id: uuid.UUID,
@@ -210,6 +240,31 @@ class PaymentService:
                 generate_full_report.delay(
                     str(user.id), user.birth_date, report_token
                 )
+
+            return {"ok": True}
+
+        if payment_type == "web_tarot":
+            if not yookassa_id:
+                raise ValueError("Missing payment id")
+            user_id_str = metadata.get("user_id")
+            if not user_id_str:
+                raise ValueError("Missing user_id in web_tarot payment")
+
+            payment_repo = PaymentRepository(session_factory)
+            user_repo = UserRepository(session_factory)
+
+            payment = await payment_repo.get_by_yookassa_id(yookassa_id)
+            if payment is None:
+                raise ValueError("Payment not found")
+
+            await payment_repo.update_status(payment.id, "succeeded")
+
+            user = await user_repo.get(uuid.UUID(user_id_str))
+            if user is None:
+                raise ValueError("Web user not found")
+
+            until = datetime.now(timezone.utc) + timedelta(days=30)
+            await user_repo.update_tarot_subscription(user.id, True, until)
 
             return {"ok": True}
 

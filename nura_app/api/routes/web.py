@@ -15,6 +15,14 @@ from core.services.matrix import MatrixService
 from core.services.payment import PaymentService
 from core.services.report import ReportService
 
+
+class ReportItem(BaseModel):
+    token: str
+    report_type: str
+    created_at: str
+    url: str
+
+
 class UserProfileResponse(BaseModel):
     name: str
     birth_date: str
@@ -23,6 +31,13 @@ class UserProfileResponse(BaseModel):
     has_matrix: bool
     has_tarot: bool
     report_token: str | None
+    subscription_status: str | None
+    subscription_until: str | None
+    tarot_until: str | None
+    has_pwa_push: bool
+    telegram_linked: bool
+    reports: list[ReportItem]
+    ref_link: str | None
 
 
 router = APIRouter(prefix="/api/v1/web")
@@ -180,29 +195,35 @@ async def check_link_token(request: Request, token: str):
 async def get_user_profile(request: Request, session_id: str):
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
+    report_repo = ReportRepository(session_factory)
 
     user = await user_repo.get_by_web_session_id(session_id)
     if user is None:
         raise HTTPException(status_code=404, detail="Сессия не найдена")
 
+    raw_reports = await report_repo.get_by_user_id(user.id)
+    reports = []
     report_token = None
-    try:
-        from sqlalchemy import select
-        from core.models import Report
-        async with session_factory() as session:
-            result = await session.execute(
-                select(Report.token)
-                .where(
-                    Report.user_id == user.id,
-                    Report.report_type == ReportType.FULL.value,
-                )
-                .order_by(Report.created_at.desc())
-                .limit(1)
-            )
-            row = result.first()
-            report_token = row[0] if row else None
-    except Exception:
-        pass
+    for r in sorted(raw_reports, key=lambda x: x.created_at, reverse=True):
+        if r.report_type == ReportType.FULL.value and report_token is None:
+            report_token = r.token
+        reports.append(ReportItem(
+            token=r.token,
+            report_type=r.report_type,
+            created_at=r.created_at.strftime("%d.%m.%Y"),
+            url=f"/report/{r.token}",
+        ))
+
+    ref_link = None
+    if user.telegram_id:
+        ref_link = f"https://t.me/{settings.bot_username}?start=ref_{user.telegram_id}"
+
+    sub_until = None
+    if user.subscription_until:
+        sub_until = user.subscription_until.strftime("%d.%m.%Y")
+    tarot_until = None
+    if user.tarot_subscription_until:
+        tarot_until = user.tarot_subscription_until.strftime("%d.%m.%Y")
 
     return UserProfileResponse(
         name=user.first_name or user.name or "Пользователь",
@@ -212,4 +233,45 @@ async def get_user_profile(request: Request, session_id: str):
         has_matrix=bool(user.has_matrix),
         has_tarot=bool(user.tarot_subscription),
         report_token=report_token,
+        subscription_status=user.subscription_status,
+        subscription_until=sub_until,
+        tarot_until=tarot_until,
+        has_pwa_push=bool(user.has_pwa_push),
+        telegram_linked=bool(user.telegram_id),
+        reports=reports,
+        ref_link=ref_link,
     )
+
+
+class SubscribeRequest(BaseModel):
+    session_id: str
+
+
+class SubscribeResponse(BaseModel):
+    payment_url: str
+
+
+@router.post("/subscribe", response_model=SubscribeResponse)
+@limiter.limit("5/minute")
+async def subscribe_tarot(request: Request, body: SubscribeRequest):
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+
+    user = await user_repo.get_by_web_session_id(body.session_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Сессия не найдена")
+
+    try:
+        payment = await PaymentService.create_web_tarot_payment(user_id=user.id)
+    except Exception:
+        raise HTTPException(status_code=503, detail="Платёжный сервис недоступен")
+
+    payment_repo = PaymentRepository(session_factory)
+    await payment_repo.create(
+        user_id=user.id,
+        amount=390,
+        yookassa_id=payment["id"],
+        payment_type="web_tarot",
+    )
+
+    return SubscribeResponse(payment_url=payment["payment_url"])

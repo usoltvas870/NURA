@@ -91,6 +91,9 @@
 - ✅ Чат с NURA — FSM, 5 сообщений free / безлимит premium
 - ✅ Video Assembler — FFmpeg бэкенд, CLI, Celery-задача, GPU autodetect
 - ✅ Carousel Assembler — Pydantic схемы, HTML-шаблоны, CLI
+- ✅ Экран профиля /app/profile — 4 вкладки (отчёты, подписка, уведомления, настройки), hero-блок с архетипом
+- ✅ POST /api/v1/web/subscribe — оформление таро-подписки 390₽/мес через веб (YooKassa)
+- ✅ create_web_tarot_payment + webhook ветка web_tarot — полный цикл оплаты подписки через PWA
 - ✅ PWA главный экран `/app` — SPA: приветствие, архетип, карта дня, матрица, install banner, таббар
 - ✅ GET /api/v1/web/me — endpoint профиля для PWA
 
@@ -133,7 +136,7 @@ referred_by: int | null   # telegram_id пригласившего
 - ✅ **GET /api/v1/web/me** — endpoint профиля пользователя (имя, архетип, матрица, таро, токен отчёта).
 - ✅ **/app/index.html** — главный экран PWA (SPA): приветствие, архетип-badge, кнопка матрицы, карта дня, быстрые кнопки, install banner, таббар.
 - ✅ **nginx /app** — location /app + /app/ с try_files для SPA routing.
-- 🟡 **PWA экраны** — таро, чат, профиль как мобильное приложение. (~40ч)
+- 🟡 **PWA экраны** — таро ✅, профиль ✅, чат — осталось. (~30ч)
 - 🟡 **Подписка 390₽ через веб** — `POST /api/v1/web/subscribe`. (~4ч)
 
 ### Продукт — Telegram-бот
@@ -409,3 +412,14 @@ docker compose restart bot celery-worker
     - Loader + skeleton при загрузке
     - Safe area iOS, нижний таббар
   - nginx: location = /app/tarot → tarot.html
+
+- **09.06.2026 — Сессия 25** — DeepSeek V4 Flash
+  - UserProfileResponse расширен: reports[], subscription_until, tarot_until, has_pwa_push, telegram_linked, ref_link
+  - POST /api/v1/web/subscribe — endpoint для оформления таро-подписки (→ YooKassa)
+  - /app/profile.html — экран профиля PWA (4 вкладки):
+    - Отчёты: список отчётов с переходом по /report/{token}
+    - Подписка: статус + оффер 390₽/мес с кнопкой оплаты
+    - Уведомления: toggle Web Push + привязка Telegram (generate-link-token)
+    - Настройки: реферальная ссылка, данные аккаунта, поддержка, выход
+  - create_web_tarot_payment() в PaymentService + webhook ветка web_tarot в process_webhook
+  - nginx: location = /app/profile → profile.html
