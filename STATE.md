@@ -371,3 +371,11 @@ docker compose restart bot celery-worker
   - Grandfather clause: premium → has_matrix=True (идемпотентно, данные уже консистентны)
   - Уведомление отправлено 2 premium-пользователям в Telegram
   - Все P0-блоки закрыты кроме YooKassa credentials (на стороне владельца)
+
+- **09.06.2026 — Сессия 22 (продолжение)** — DeepSeek V4 Pro
+  - E2E тестирование: 18/18 проверок пройдено
+  - Критический путь подтверждён: мини-анализ -> платёж -> webhook -> has_matrix -> отчёт -> PWA
+  - process_webhook web_matrix работает корректно
+  - generate_full_report Celery-задача запускается
+  - PWA файлы (manifest, SW, иконки, offline, pwa-install.js) — все 200
+  - Исправлен AGENTS.md: Celery модуль core.tasks (не core.celery_app)
