@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0A0E0C">
+  <title>Профиль — NURA</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <style>
+    :root {
+      --bg: #0A0E0C; --bg2: #0E1410; --card-bg: #131A14;
+      --m-accent: #C9A55C; --m-accent-dim: rgba(201,165,92,0.15);
+      --ink: #E8E0D0; --ink-dim: rgba(232,224,208,0.55);
+      --green: #97C5A1; --green-dim: rgba(151,197,161,0.15);
+      --red: #E07070; --red-dim: rgba(224,112,112,0.12);
+      --border: rgba(151,197,161,0.12); --radius: 16px;
+      --safe-top: env(safe-area-inset-top,0px);
+      --safe-bottom: env(safe-area-inset-bottom,0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      background: var(--bg); color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh; overscroll-behavior: none;
+    }
+    #app { display:flex; flex-direction:column; min-height:100vh; padding-bottom:calc(56px + var(--safe-bottom)); }
+
+    .app-header {
+      position:sticky; top:0; z-index:50;
+      padding:calc(var(--safe-top) + 12px) 20px 12px;
+      background:var(--bg); border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .app-header-logo { font-size:18px; font-weight:700; letter-spacing:.15em; color:var(--m-accent); }
+
+    .profile-hero {
+      background:linear-gradient(135deg, #0E1F11 0%, #0A1810 100%);
+      padding:24px 20px 20px;
+      border-bottom:1px solid var(--border);
+    }
+    .profile-avatar {
+      width:64px; height:64px; border-radius:50%;
+      background:var(--m-accent-dim); border:2px solid var(--m-accent);
+      display:flex; align-items:center; justify-content:center;
+      font-size:28px; margin-bottom:12px;
+    }
+    .profile-name { font-size:20px; font-weight:700; color:var(--ink); margin-bottom:4px; }
+    .profile-birth { font-size:13px; color:var(--ink-dim); margin-bottom:8px; }
+    .profile-archetype {
+      display:inline-flex; align-items:center; gap:6px;
+      background:var(--m-accent-dim); border:1px solid rgba(201,165,92,0.3);
+      border-radius:20px; padding:5px 12px;
+      font-size:12px; color:var(--m-accent); font-weight:600;
+    }
+
+    .tabs {
+      display:flex; gap:0;
+      border-bottom:1px solid var(--border);
+      background:var(--bg); position:sticky; top:calc(var(--safe-top) + 57px); z-index:40;
+      overflow-x:auto; scrollbar-width:none;
+    }
+    .tabs::-webkit-scrollbar { display:none; }
+    .tab-btn {
+      flex:none; padding:12px 16px;
+      font-size:13px; font-weight:500; color:var(--ink-dim);
+      background:none; border:none; cursor:pointer;
+      border-bottom:2px solid transparent;
+      white-space:nowrap; transition:color .2s;
+    }
+    .tab-btn.active { color:var(--m-accent); border-bottom-color:var(--m-accent); }
+
+    .tab-content { display:none; padding:16px; flex-direction:column; gap:12px; }
+    .tab-content.active { display:flex; }
+
+    .info-card {
+      background:var(--card-bg); border:1px solid var(--border);
+      border-radius:var(--radius); padding:16px;
+    }
+    .info-card-title { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:12px; }
+    .info-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); }
+    .info-row:last-child { border-bottom:none; padding-bottom:0; }
+    .info-label { font-size:13px; color:var(--ink-dim); }
+    .info-value { font-size:13px; color:var(--ink); font-weight:500; text-align:right; max-width:60%; }
+
+    .badge { display:inline-flex; align-items:center; gap:4px; border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; }
+    .badge-active { background:rgba(151,197,161,0.15); border:1px solid rgba(151,197,161,0.3); color:var(--green); }
+    .badge-inactive { background:rgba(232,224,208,0.08); border:1px solid var(--border); color:var(--ink-dim); }
+    .badge-premium { background:var(--m-accent-dim); border:1px solid rgba(201,165,92,0.3); color:var(--m-accent); }
+
+    .btn-primary {
+      display:block; width:100%; background:var(--m-accent); color:#0A0E0C;
+      border:none; border-radius:12px; padding:14px;
+      font-size:14px; font-weight:700; cursor:pointer; text-align:center;
+      text-decoration:none; transition:opacity .15s;
+    }
+    .btn-primary:active { opacity:.85; }
+    .btn-secondary {
+      display:block; width:100%;
+      background:none; color:var(--green);
+      border:1px solid rgba(151,197,161,0.25); border-radius:12px; padding:12px;
+      font-size:14px; font-weight:500; cursor:pointer; text-align:center;
+      text-decoration:none; transition:border-color .2s;
+    }
+    .btn-secondary:active { border-color:var(--green); }
+    .btn-danger {
+      display:block; width:100%; background:none;
+      color:var(--red); border:1px solid rgba(224,112,112,0.25);
+      border-radius:12px; padding:12px;
+      font-size:14px; cursor:pointer; text-align:center; transition:border-color .2s;
+    }
+    .btn-danger:active { border-color:var(--red); }
+
+    .report-item {
+      display:flex; align-items:center; gap:12px;
+      padding:12px; background:var(--card-bg);
+      border:1px solid var(--border); border-radius:12px;
+      text-decoration:none; transition:border-color .2s;
+    }
+    .report-item:active { border-color:var(--green); }
+    .report-icon { font-size:22px; flex-shrink:0; }
+    .report-body { flex:1; min-width:0; }
+    .report-type { font-size:13px; font-weight:600; color:var(--ink); }
+    .report-date { font-size:11px; color:var(--ink-dim); margin-top:2px; }
+    .report-arrow { color:var(--ink-dim); font-size:16px; }
+
+    .toggle-row {
+      display:flex; justify-content:space-between; align-items:center;
+      padding:12px 16px; background:var(--card-bg);
+      border:1px solid var(--border); border-radius:12px;
+    }
+    .toggle-label { font-size:14px; color:var(--ink); }
+    .toggle-sub { font-size:11px; color:var(--ink-dim); margin-top:2px; }
+    .toggle-switch {
+      width:44px; height:26px; border-radius:13px;
+      background:rgba(232,224,208,0.15); cursor:pointer;
+      position:relative; transition:background .25s; flex-shrink:0;
+    }
+    .toggle-switch.on { background:var(--green); }
+    .toggle-switch::after {
+      content:''; position:absolute; top:3px; left:3px;
+      width:20px; height:20px; border-radius:50%; background:#fff;
+      transition:left .25s;
+    }
+    .toggle-switch.on::after { left:21px; }
+
+    .link-tg-card {
+      background:var(--green-dim); border:1px solid rgba(151,197,161,0.2);
+      border-radius:var(--radius); padding:16px;
+    }
+    .link-tg-title { font-size:14px; font-weight:600; color:var(--green); margin-bottom:4px; }
+    .link-tg-desc { font-size:12px; color:var(--ink-dim); margin-bottom:12px; line-height:1.5; }
+
+    .ref-block {
+      background:var(--card-bg); border:1px solid var(--border);
+      border-radius:var(--radius); padding:16px;
+    }
+    .ref-title { font-size:13px; font-weight:600; color:var(--ink); margin-bottom:6px; }
+    .ref-link {
+      background:rgba(0,0,0,0.3); border:1px solid var(--border);
+      border-radius:8px; padding:10px 12px;
+      font-size:12px; color:var(--ink-dim); word-break:break-all;
+      font-family:monospace; margin-bottom:10px;
+    }
+    .ref-copy-btn {
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      background:none; border:1px solid var(--border); border-radius:20px;
+      padding:8px 16px; color:var(--ink-dim); font-size:12px;
+      cursor:pointer; width:100%; transition:border-color .2s;
+    }
+    .ref-copy-btn:active { border-color:var(--green); color:var(--green); }
+
+    .plan-card {
+      background:var(--card-bg); border:1px solid var(--border);
+      border-radius:var(--radius); padding:16px;
+    }
+    .plan-card.featured {
+      background:linear-gradient(135deg, rgba(201,165,92,0.1) 0%, rgba(201,165,92,0.05) 100%);
+      border-color:rgba(201,165,92,0.3);
+    }
+    .plan-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+    .plan-name { font-size:15px; font-weight:700; color:var(--ink); }
+    .plan-price { font-size:18px; font-weight:700; color:var(--m-accent); }
+    .plan-price-sub { font-size:11px; color:var(--ink-dim); font-weight:400; }
+    .plan-features { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+    .plan-feature { font-size:12px; color:var(--ink-dim); display:flex; align-items:flex-start; gap:6px; }
+    .plan-feature-check { color:var(--green); flex-shrink:0; }
+
+    .app-tabbar {
+      position:fixed; bottom:0; left:0; right:0;
+      height:calc(56px + var(--safe-bottom)); padding-bottom:var(--safe-bottom);
+      background:#0E1A11; border-top:1px solid var(--border);
+      display:flex; align-items:flex-start; padding-top:8px; z-index:100;
+    }
+    .tab-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; text-decoration:none; padding:2px 0; }
+    .tab-item:active { opacity:.6; }
+    .tab-icon { font-size:20px; line-height:1; }
+    .tab-label { font-size:10px; letter-spacing:.03em; color:var(--ink-dim); }
+    .tab-item.active .tab-label { color:var(--m-accent); }
+    .tab-item.active .tab-icon { filter:drop-shadow(0 0 4px rgba(201,165,92,0.6)); }
+
+    .loader-screen {
+      position:fixed; inset:0; background:var(--bg);
+      display:flex; align-items:center; justify-content:center;
+      flex-direction:column; gap:16px; z-index:300; transition:opacity .4s;
+    }
+    .loader-logo { font-size:28px; font-weight:700; letter-spacing:.2em; color:var(--m-accent); }
+    .loader-dots { display:flex; gap:6px; }
+    .loader-dot { width:6px; height:6px; border-radius:50%; background:var(--m-accent); animation:pulse 1.2s infinite; }
+    .loader-dot:nth-child(2) { animation-delay:.2s; }
+    .loader-dot:nth-child(3) { animation-delay:.4s; }
+    @keyframes pulse { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+
+    .toast {
+      position:fixed; bottom:calc(72px + var(--safe-bottom)); left:50%;
+      transform:translateX(-50%) translateY(20px);
+      background:#1F2D20; border:1px solid var(--border); border-radius:20px;
+      padding:10px 20px; font-size:13px; color:var(--green);
+      opacity:0; transition:opacity .3s, transform .3s; z-index:150; white-space:nowrap;
+    }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    .empty-reports {
+      text-align:center; padding:32px 20px;
+      color:var(--ink-dim); font-size:13px; line-height:1.6;
+    }
+    .empty-reports-icon { font-size:36px; margin-bottom:12px; }
+  </style>
+  <script src="/metrika.js" defer></script>
+</head>
+<body>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
+
+<div class="loader-screen" id="loaderScreen">
+  <div class="loader-logo">NURA</div>
+  <div class="loader-dots">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header class="app-header">
+    <span class="app-header-logo">NURA</span>
+    <a href="/app" style="color:var(--ink-dim);font-size:13px;text-decoration:none">&#8592; Главная</a>
+  </header>
+
+  <div class="profile-hero" id="profileHero">
+    <div class="profile-avatar">&#9672;</div>
+    <div class="profile-name" id="profileName">...</div>
+    <div class="profile-birth" id="profileBirth"></div>
+    <div id="profileArchetype"></div>
+  </div>
+
+  <div class="tabs" id="tabsBar">
+    <button class="tab-btn active" onclick="switchTab('reports')">&#128203; Отчёты</button>
+    <button class="tab-btn" onclick="switchTab('subscription')">&#10022; Подписка</button>
+    <button class="tab-btn" onclick="switchTab('notifications')">&#128276; Уведомления</button>
+    <button class="tab-btn" onclick="switchTab('settings')">&#9881;&#65039; Настройки</button>
+  </div>
+
+  <div id="tab-reports"  class="tab-content active"></div>
+  <div id="tab-subscription" class="tab-content"></div>
+  <div id="tab-notifications" class="tab-content"></div>
+  <div id="tab-settings"  class="tab-content"></div>
+</div>
+
+<nav class="app-tabbar">
+  <a href="/app" class="tab-item"><span class="tab-icon">&#9672;</span><span class="tab-label">Матрица</span></a>
+  <a href="/app/tarot" class="tab-item"><span class="tab-icon">&#127762;</span><span class="tab-label">Таро</span></a>
+  <a href="/app/chat" class="tab-item"><span class="tab-icon">&#128172;</span><span class="tab-label">Чат</span></a>
+  <a href="/app/profile" class="tab-item active"><span class="tab-icon">&#128100;</span><span class="tab-label">Профиль</span></a>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let sessionId = localStorage.getItem('nura_session_id');
+let userData = null;
+
+const urlParams = new URLSearchParams(window.location.search);
+const urlSession = urlParams.get('session_id');
+if (urlSession) { localStorage.setItem('nura_session_id', urlSession); sessionId = urlSession; }
+const initTab = urlParams.get('tab') || 'reports';
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.color = isError ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const names = ['reports','subscription','notifications','settings'];
+    b.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  window.history.replaceState({}, '', '/app/profile?tab=' + name);
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderHero(u) {
+  document.getElementById('profileName').textContent = u.name;
+  document.getElementById('profileBirth').textContent = u.birth_date
+    ? 'Дата рождения: ' + u.birth_date : '';
+  const archEl = document.getElementById('profileArchetype');
+  if (u.archetype) {
+    archEl.innerHTML = '<span class="profile-archetype">&#9672; ' + escHtml(u.archetype) + '</span>';
+  }
+}
+
+function renderReports(u) {
+  const el = document.getElementById('tab-reports');
+  if (!u.reports || u.reports.length === 0) {
+    el.innerHTML =
+      '<div class="empty-reports">' +
+        '<div class="empty-reports-icon">&#128203;</div>' +
+        '<div>У тебя пока нет отчётов.</div>' +
+        '<div style="margin-top:8px">Пройди мини-разбор чтобы получить первый анализ.</div>' +
+      '</div>' +
+      '<a href="/mini.html" class="btn-primary">Получить мини-разбор</a>';
+    return;
+  }
+  const typeLabel = { mini:'Матрица \u00b7 Мини-разбор', full:'Матрица Судьбы', compatibility:'Совместимость' };
+  const typeIcon  = { mini:'\u25C8', full:'\u25C8', compatibility:'\u2764\uFE0F' };
+  const items = u.reports.map(r =>
+    '<a href="' + r.url + '" class="report-item">' +
+      '<div class="report-icon">' + (typeIcon[r.report_type] || '\uD83D\uDCC4') + '</div>' +
+      '<div class="report-body">' +
+        '<div class="report-type">' + (typeLabel[r.report_type] || r.report_type) + '</div>' +
+        '<div class="report-date">' + r.created_at + '</div>' +
+      '</div>' +
+      '<div class="report-arrow">\u2192</div>' +
+    '</a>'
+  ).join('');
+  el.innerHTML =
+    '<div class="info-card">' +
+      '<div class="info-card-title">Твои отчёты</div>' +
+    '</div>' +
+    items +
+    (!u.has_matrix ? '<a href="/mini.html" class="btn-secondary">+ Новый разбор</a>' : '');
+}
+
+function renderSubscription(u) {
+  const el = document.getElementById('tab-subscription');
+
+  if (u.subscription_status === 'premium') {
+    el.innerHTML =
+      '<div class="info-card">' +
+        '<div class="info-card-title">Статус подписки</div>' +
+        '<div class="info-row">' +
+          '<span class="info-label">Матрица Судьбы</span>' +
+          '<span class="badge badge-premium">\u2726 Премиум</span>' +
+        '</div>' +
+        (u.subscription_until ? '<div class="info-row">' +
+          '<span class="info-label">Действует до</span>' +
+          '<span class="info-value">' + u.subscription_until + '</span>' +
+        '</div>' : '') +
+      '</div>' +
+      '<div class="info-card" style="margin-top:4px">' +
+        '<div class="info-row">' +
+          '<span class="info-label">Таро-практики</span>' +
+          '<span class="badge ' + (u.has_tarot ? 'badge-active' : 'badge-inactive') + '">' + (u.has_tarot ? '\u2713 Активна' : 'Не подключена') + '</span>' +
+        '</div>' +
+        (u.has_tarot && u.tarot_until ? '<div class="info-row">' +
+          '<span class="info-label">Действует до</span>' +
+          '<span class="info-value">' + u.tarot_until + '</span>' +
+        '</div>' : '') +
+      '</div>' +
+      (!u.has_tarot ? renderTaroOffer() : '');
+    return;
+  }
+
+  if (u.has_tarot) {
+    el.innerHTML =
+      '<div class="info-card">' +
+        '<div class="info-card-title">Активные подписки</div>' +
+        '<div class="info-row">' +
+          '<span class="info-label">Таро-практики</span>' +
+          '<span class="badge badge-active">\u2713 Активна</span>' +
+        '</div>' +
+        (u.tarot_until ? '<div class="info-row">' +
+          '<span class="info-label">Действует до</span>' +
+          '<span class="info-value">' + u.tarot_until + '</span>' +
+        '</div>' : '') +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--ink-dim);text-align:center;padding:8px 0">' +
+        'Управление подпиской \u2014 через сервис оплаты' +
+      '</div>';
+    return;
+  }
+
+  el.innerHTML =
+    '<div class="info-card">' +
+      '<div class="info-card-title">Статус</div>' +
+      '<div class="info-row">' +
+        '<span class="info-label">Текущий план</span>' +
+        '<span class="badge badge-inactive">Бесплатный</span>' +
+      '</div>' +
+    '</div>' +
+    renderTaroOffer();
+}
+
+function renderTaroOffer() {
+  return '<div class="plan-card featured">' +
+    '<div class="plan-header">' +
+      '<div>' +
+        '<div class="plan-name">\uD83C\uDF12 Таро-практики</div>' +
+        '<div style="font-size:12px;color:var(--ink-dim);margin-top:2px">Ежемесячная подписка</div>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div class="plan-price">390 \u20BD<span class="plan-price-sub">/мес</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="plan-features">' +
+      '<div class="plan-feature"><span class="plan-feature-check">\u2713</span>6 видов раскладов без ограничений</div>' +
+      '<div class="plan-feature"><span class="plan-feature-check">\u2713</span>Персональная карта дня каждое утро</div>' +
+      '<div class="plan-feature"><span class="plan-feature-check">\u2713</span>Расклад по вопросу \u2014 безлимит</div>' +
+      '<div class="plan-feature"><span class="plan-feature-check">\u2713</span>Безлимитные расклады совместимости</div>' +
+      '<div class="plan-feature"><span class="plan-feature-check">\u2713</span>Интерпретации через твою матрицу</div>' +
+    '</div>' +
+    '<button class="btn-primary" onclick="initiateSubscribe()" id="subscribeBtn">Подключить за 390 \u20BD/мес</button>' +
+  '</div>' +
+  '<div style="font-size:11px;color:var(--ink-dim);text-align:center;padding:4px 0">' +
+    'YooKassa \u00b7 Безопасная оплата \u00b7 Можно отменить в любое время' +
+  '</div>';
+}
+
+function renderNotifications(u) {
+  const el = document.getElementById('tab-notifications');
+  const pushOn = u.has_pwa_push;
+
+  el.innerHTML =
+    '<div class="toggle-row" id="pushToggleRow" onclick="togglePush()">' +
+      '<div>' +
+        '<div class="toggle-label">Карта дня</div>' +
+        '<div class="toggle-sub">Push-уведомление каждое утро</div>' +
+      '</div>' +
+      '<div class="toggle-switch ' + (pushOn ? 'on' : '') + '" id="pushToggle"></div>' +
+    '</div>' +
+
+    '<div class="info-card">' +
+      '<div class="info-card-title">О уведомлениях</div>' +
+      '<div style="font-size:13px;color:var(--ink-dim);line-height:1.6">' +
+        'Карта дня приходит в 09:00 МСК. Если push-уведомления не работают \u2014 ' +
+        'карта придёт в Telegram (если аккаунты связаны).' +
+      '</div>' +
+    '</div>' +
+
+    (!u.telegram_linked ?
+      '<div class="link-tg-card">' +
+        '<div class="link-tg-title">\uD83D\uDCF1 Подключи Telegram</div>' +
+        '<div class="link-tg-desc">Если push не пройдёт \u2014 карта придёт в Telegram как резервный канал.</div>' +
+        '<button class="btn-secondary" onclick="linkTelegram()" id="linkTgBtn">Подключить Telegram</button>' +
+      '</div>'
+    :
+      '<div class="info-card">' +
+        '<div class="info-row">' +
+          '<span class="info-label">Telegram</span>' +
+          '<span class="badge badge-active">\u2713 Подключён</span>' +
+        '</div>' +
+      '</div>'
+    );
+}
+
+function renderSettings(u) {
+  const el = document.getElementById('tab-settings');
+  el.innerHTML =
+    (u.ref_link ?
+      '<div class="ref-block">' +
+        '<div class="ref-title">\uD83D\uDC65 Реферальная ссылка</div>' +
+        '<div class="ref-link" id="refLinkText">' + escHtml(u.ref_link) + '</div>' +
+        '<button class="ref-copy-btn" onclick="copyRef()">\uD83D\uDD17 Скопировать ссылку</button>' +
+      '</div>'
+    : '') +
+
+    '<div class="info-card">' +
+      '<div class="info-card-title">Аккаунт</div>' +
+      '<div class="info-row">' +
+        '<span class="info-label">Имя</span>' +
+        '<span class="info-value">' + escHtml(u.name) + '</span>' +
+      '</div>' +
+      '<div class="info-row">' +
+        '<span class="info-label">Дата рождения</span>' +
+        '<span class="info-value">' + escHtml(u.birth_date || 'Не указана') + '</span>' +
+      '</div>' +
+      '<div class="info-row">' +
+        '<span class="info-label">Telegram</span>' +
+        '<span class="info-value">' + (u.telegram_linked
+          ? '<span class="badge badge-active">\u2713 Привязан</span>'
+          : '<span class="badge badge-inactive">Не привязан</span>') + '</span>' +
+      '</div>' +
+    '</div>' +
+
+    '<a href="https://t.me/nura_support" target="_blank" class="btn-secondary">\uD83D\uDCAC Поддержка</a>' +
+
+    '<button class="btn-danger" onclick="confirmLogout()">Выйти из аккаунта</button>';
+}
+
+async function initiateSubscribe() {
+  window.nuraTrack && window.nuraTrack('payment_click', {product: 'tarot_390'});
+  if (!sessionId) { showToast('Войди в аккаунт', true); return; }
+  const btn = document.getElementById('subscribeBtn');
+  if (btn) { btn.textContent = '\u2026'; btn.disabled = true; }
+  try {
+    const res = await fetch('/api/v1/web/subscribe', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({session_id: sessionId}),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.payment_url) window.location.href = data.payment_url;
+    } else if (res.status === 503) {
+      showToast('Оплата временно недоступна \u2014 попробуй позже', true);
+    } else {
+      showToast('Что-то пошло не так', true);
+    }
+  } catch(e) {
+    showToast('Ошибка сети', true);
+  } finally {
+    if (btn) { btn.textContent = 'Подключить за 390 \u20BD/мес'; btn.disabled = false; }
+  }
+}
+
+async function togglePush() {
+  if (!sessionId) { showToast('Войди в аккаунт', true); return; }
+  const toggle = document.getElementById('pushToggle');
+  const isOn = toggle.classList.contains('on');
+
+  if (!isOn) {
+    if (!('Notification' in window)) {
+      showToast('Уведомления не поддерживаются браузером', true); return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      showToast('Разрешение не дано', true); return;
+    }
+    try {
+      const vapidRes = await fetch('/api/v1/push/vapid-public-key');
+      const {public_key} = await vapidRes.json();
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(public_key),
+      });
+      const subJson = sub.toJSON();
+      await fetch('/api/v1/push/subscribe', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          endpoint: subJson.endpoint,
+          keys: subJson.keys,
+          session_id: sessionId,
+        }),
+      });
+      toggle.classList.add('on');
+      userData.has_pwa_push = true;
+      window.nuraTrack && window.nuraTrack('push_granted', {platform: isIOS() ? 'ios' : 'android'});
+      showToast('Уведомления включены \u2713');
+    } catch(e) {
+      showToast('Не удалось подключить уведомления', true);
+    }
+  } else {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await fetch('/api/v1/push/unsubscribe', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({endpoint: sub.endpoint}),
+        });
+        await sub.unsubscribe();
+      }
+      toggle.classList.remove('on');
+      userData.has_pwa_push = false;
+      showToast('Уведомления отключены');
+    } catch(e) {
+      showToast('Ошибка при отключении', true);
+    }
+  }
+}
+
+async function linkTelegram() {
+  if (!sessionId) return;
+  const btn = document.getElementById('linkTgBtn');
+  if (btn) { btn.textContent = '\u2026'; btn.disabled = true; }
+  try {
+    const res = await fetch('/api/v1/web/generate-link-token', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({session_id: sessionId}),
+    });
+    if (res.ok) {
+      const {tg_url} = await res.json();
+      window.open(tg_url, '_blank');
+      window.nuraTrack && window.nuraTrack('telegram_linked');
+      showToast('Открой Telegram и нажми Старт');
+    } else {
+      showToast('Не удалось создать ссылку', true);
+    }
+  } catch(e) {
+    showToast('Ошибка сети', true);
+  } finally {
+    if (btn) { btn.textContent = 'Подключить Telegram'; btn.disabled = false; }
+  }
+}
+
+function copyRef() {
+  const link = document.getElementById('refLinkText');
+  if (!link) return;
+  const text = link.textContent.trim();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('Ссылка скопирована \u2713'));
+  } else {
+    showToast('Скопируй ссылку вручную');
+  }
+}
+
+function confirmLogout() {
+  if (confirm('Выйти из аккаунта? Данные сохранятся на сервере.')) {
+    localStorage.removeItem('nura_session_id');
+    window.location.href = '/';
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function boot() {
+  if (!sessionId) {
+    document.getElementById('loaderScreen').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    document.getElementById('profileName').textContent = 'Гость';
+    document.getElementById('tab-reports').innerHTML =
+      '<div class="empty-reports"><div class="empty-reports-icon">\uD83D\uDD12</div>Войди чтобы увидеть профиль</div>' +
+      '<a href="/mini.html" class="btn-primary">Начать бесплатно</a>';
+    document.getElementById('tab-subscription').innerHTML = renderTaroOffer();
+    document.getElementById('tab-notifications').innerHTML =
+      '<div class="empty-reports"><div class="empty-reports-icon">\uD83D\uDD14</div>Войди чтобы настроить уведомления</div>';
+    document.getElementById('tab-settings').innerHTML =
+      '<a href="/mini.html" class="btn-primary">Войти</a>';
+    switchTab(initTab);
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/v1/web/me?session_id=' + sessionId);
+    if (res.status === 404) {
+      localStorage.removeItem('nura_session_id');
+      window.location.href = '/mini.html';
+      return;
+    }
+    if (!res.ok) throw new Error('API error');
+    userData = await res.json();
+  } catch(e) {
+    userData = {name:'Пользователь',birth_date:'',archetype:null,archetype_number:null,
+                has_matrix:false,has_tarot:false,report_token:null,
+                subscription_status:null,subscription_until:null,tarot_until:null,
+                has_pwa_push:false,telegram_linked:false,reports:[],ref_link:null};
+  }
+
+  renderHero(userData);
+  renderReports(userData);
+  renderSubscription(userData);
+  renderNotifications(userData);
+  renderSettings(userData);
+  switchTab(initTab);
+
+  const loader = document.getElementById('loaderScreen');
+  const appEl = document.getElementById('app');
+  appEl.style.display = '';
+  loader.style.opacity = '0';
+  setTimeout(() => loader.style.display = 'none', 400);
+}
+
+boot();
+</script>
+</body>
+</html>

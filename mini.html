@@ -317,8 +317,10 @@
 
     .stage.active { animation: fadeUp 0.45s ease both; }
   </style>
+  <script src="/metrika.js" defer></script>
 </head>
 <body>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
   <div class="wrapper">
 
     <!-- STAGE 1 — Form -->
@@ -453,6 +455,7 @@
           return;
         }
 
+        window.nuraTrack && window.nuraTrack('form_submit', {form: 'mini_analysis'});
         setLoading(submitBtn, true);
 
         fetch('/api/v1/web/mini-analysis', {

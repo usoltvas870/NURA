@@ -237,11 +237,18 @@
 
     .card { animation: fadeUp 0.5s ease both; }
   </style>
+  <script src="/metrika.js" defer></script>
 </head>
 <body>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
   <div class="wrapper">
     <div class="card">
       <div class="check-icon">✦</div>
+      <script>
+  window.addEventListener('DOMContentLoaded', function() {
+    window.nuraTrack && window.nuraTrack('payment_success', {product: 'matrix_890'});
+  });
+</script>
       <h1>Оплата прошла <span class="star">✦</span></h1>
       <p class="subtitle" id="status-text">Генерируем твою Матрицу Судьбы. Это займёт 1-2 минуты.</p>
 

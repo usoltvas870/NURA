@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0A0E0C">
+  <title>Чат — NURA</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <style>
+    :root {
+      --bg: #0A0E0C; --bg2: #0E1410; --card-bg: #131A14;
+      --m-accent: #C9A55C; --m-accent-dim: rgba(201,165,92,0.15);
+      --ink: #E8E0D0; --ink-dim: rgba(232,224,208,0.55);
+      --green: #97C5A1; --green-dim: rgba(151,197,161,0.15);
+      --border: rgba(151,197,161,0.12); --radius: 16px;
+      --safe-top: env(safe-area-inset-top,0px);
+      --safe-bottom: env(safe-area-inset-bottom,0px);
+      --input-height: 56px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      background: var(--bg); color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      height: 100%; overscroll-behavior: none;
+    }
+    #app {
+      display: flex; flex-direction: column; height: 100dvh;
+      padding-top: calc(var(--safe-top) + 57px);
+      padding-bottom: calc(56px + var(--safe-bottom));
+    }
+    .app-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      padding: calc(var(--safe-top) + 12px) 16px 12px;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .app-header-logo { font-size: 18px; font-weight: 700; letter-spacing: .15em; color: var(--m-accent); flex: 1; }
+    .header-actions { display: flex; gap: 8px; }
+    .header-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 12px;
+      font-size: 12px; color: var(--ink-dim); cursor: pointer;
+      transition: border-color .2s; white-space: nowrap;
+    }
+    .header-btn:active { border-color: var(--green); color: var(--green); }
+    .messages-area {
+      flex: 1; overflow-y: auto; padding: 16px 16px 8px;
+      display: flex; flex-direction: column; gap: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .messages-area::-webkit-scrollbar { display: none; }
+    .msg { display: flex; gap: 8px; max-width: 100%; animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .msg-user { flex-direction: row-reverse; }
+    .msg-avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+    }
+    .msg-avatar-nura { background: var(--m-accent-dim); border: 1px solid rgba(201,165,92,0.3); }
+    .msg-avatar-user { background: var(--green-dim); border: 1px solid rgba(151,197,161,0.2); }
+    .msg-bubble {
+      max-width: calc(100% - 44px);
+      padding: 10px 14px; border-radius: 16px;
+      font-size: 14px; line-height: 1.6;
+    }
+    .msg-bubble-nura {
+      background: var(--card-bg); border: 1px solid var(--border);
+      color: var(--ink); border-top-left-radius: 4px;
+    }
+    .msg-bubble-user {
+      background: rgba(201,165,92,0.12); border: 1px solid rgba(201,165,92,0.2);
+      color: var(--ink); border-top-right-radius: 4px;
+    }
+    .typing-dots { display: flex; gap: 4px; padding: 4px 2px; align-items: center; }
+    .typing-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--ink-dim); animation: typingPulse 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: .2s; }
+    .typing-dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes typingPulse {
+      0%,80%,100% { opacity: .25; transform: scale(.8); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+    .limit-bar {
+      margin: 0 16px 8px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 10px 14px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .limit-text { font-size: 12px; color: var(--ink-dim); }
+    .limit-text strong { color: var(--m-accent); }
+    .limit-upgrade {
+      font-size: 11px; font-weight: 600; color: var(--m-accent);
+      background: var(--m-accent-dim); border-radius: 20px;
+      padding: 4px 10px; white-space: nowrap; text-decoration: none;
+    }
+    .paywall-block {
+      margin: 0 16px 8px;
+      background: linear-gradient(135deg, rgba(201,165,92,0.1) 0%, rgba(201,165,92,0.05) 100%);
+      border: 1px solid rgba(201,165,92,0.25);
+      border-radius: var(--radius); padding: 20px;
+      text-align: center;
+    }
+    .paywall-icon { font-size: 32px; margin-bottom: 8px; }
+    .paywall-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .paywall-sub { font-size: 13px; color: var(--ink-dim); margin-bottom: 16px; line-height: 1.5; }
+    .paywall-btn {
+      display: block; background: var(--m-accent); color: #0A0E0C;
+      border: none; border-radius: 12px; padding: 13px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      text-decoration: none; transition: opacity .15s;
+    }
+    .paywall-btn:active { opacity: .85; }
+    .input-area {
+      position: fixed; left: 0; right: 0;
+      bottom: calc(56px + var(--safe-bottom));
+      background: var(--bg); border-top: 1px solid var(--border);
+      padding: 10px 12px 10px;
+      display: flex; align-items: flex-end; gap: 8px;
+    }
+    .chat-input {
+      flex: 1; background: var(--card-bg);
+      border: 1px solid var(--border); border-radius: 20px;
+      padding: 10px 16px; font-size: 15px; color: var(--ink);
+      resize: none; outline: none; max-height: 100px;
+      line-height: 1.4; font-family: inherit;
+      transition: border-color .2s;
+    }
+    .chat-input:focus { border-color: rgba(151,197,161,0.3); }
+    .chat-input::placeholder { color: var(--ink-dim); }
+    .send-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--m-accent); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+      transition: opacity .15s, transform .1s;
+    }
+    .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .send-btn:not(:disabled):active { transform: scale(.92); }
+    .welcome-block {
+      background: linear-gradient(135deg, #0E1F11 0%, #0A1810 100%);
+      border: 1px solid rgba(151,197,161,0.15);
+      border-radius: var(--radius); padding: 20px;
+      text-align: center;
+    }
+    .welcome-icon { font-size: 36px; margin-bottom: 10px; }
+    .welcome-title { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .welcome-text { font-size: 13px; color: var(--ink-dim); line-height: 1.6; margin-bottom: 14px; }
+    .welcome-hints { display: flex; flex-direction: column; gap: 8px; }
+    .hint-btn {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 10px 14px;
+      font-size: 13px; color: var(--ink-dim); cursor: pointer;
+      text-align: left; transition: border-color .2s;
+    }
+    .hint-btn:active { border-color: var(--green); color: var(--ink); }
+    .app-tabbar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: calc(56px + var(--safe-bottom)); padding-bottom: var(--safe-bottom);
+      background: #0E1A11; border-top: 1px solid var(--border);
+      display: flex; align-items: flex-start; padding-top: 8px; z-index: 100;
+    }
+    .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; padding: 2px 0; }
+    .tab-item:active { opacity: .6; }
+    .tab-icon { font-size: 20px; line-height: 1; }
+    .tab-label { font-size: 10px; letter-spacing: .03em; color: var(--ink-dim); }
+    .tab-item.active .tab-label { color: var(--m-accent); }
+    .tab-item.active .tab-icon { filter: drop-shadow(0 0 4px rgba(201,165,92,.6)); }
+    .loader-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px; z-index: 300; transition: opacity .4s;
+    }
+    .loader-logo { font-size: 28px; font-weight: 700; letter-spacing: .2em; color: var(--m-accent); }
+    .loader-dots { display: flex; gap: 6px; }
+    .loader-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--m-accent); animation: pulse 1.2s infinite; }
+    .loader-dot:nth-child(2) { animation-delay: .2s; }
+    .loader-dot:nth-child(3) { animation-delay: .4s; }
+    @keyframes pulse { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+  </style>
+  <script src="/metrika.js" defer></script>
+</head>
+<body>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
+
+<div class="loader-screen" id="loaderScreen">
+  <div class="loader-logo">NURA</div>
+  <div class="loader-dots">
+    <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header class="app-header">
+    <span class="app-header-logo">NURA · Чат</span>
+    <div class="header-actions">
+      <button class="header-btn" onclick="clearHistory()">Очистить</button>
+    </div>
+  </header>
+
+  <div class="messages-area" id="messagesArea"></div>
+  <div id="statusBar"></div>
+
+  <div class="input-area" id="inputArea">
+    <textarea class="chat-input" id="chatInput"
+      placeholder="Спроси NURA о своей матрице…"
+      rows="1"
+      onkeydown="handleKeydown(event)"
+      oninput="autoResize(this)"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>➤</button>
+  </div>
+</div>
+
+<nav class="app-tabbar">
+  <a href="/app" class="tab-item"><span class="tab-icon">◈</span><span class="tab-label">Матрица</span></a>
+  <a href="/app/tarot" class="tab-item"><span class="tab-icon">🌒</span><span class="tab-label">Таро</span></a>
+  <a href="/app/chat" class="tab-item active"><span class="tab-icon">💬</span><span class="tab-label">Чат</span></a>
+  <a href="/app/profile" class="tab-item"><span class="tab-icon">👤</span><span class="tab-label">Профиль</span></a>
+</nav>
+
+<script>
+let sessionId = localStorage.getItem('nura_session_id');
+let chatHistory = [];
+let messagesLeft = -1;
+let isLoading = false;
+let isPaywalled = false;
+let userData = null;
+
+const urlParams = new URLSearchParams(window.location.search);
+const urlSession = urlParams.get('session_id');
+if (urlSession) { localStorage.setItem('nura_session_id', urlSession); sessionId = urlSession; window.history.replaceState({}, '', '/app/chat'); }
+
+function loadHistory() {
+  try {
+    const saved = localStorage.getItem('nura_chat_history');
+    if (saved) chatHistory = JSON.parse(saved);
+  } catch(e) { chatHistory = []; }
+}
+
+function saveHistory() {
+  try {
+    const trimmed = chatHistory.slice(-20);
+    localStorage.setItem('nura_chat_history', JSON.stringify(trimmed));
+  } catch(e) {}
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function formatText(text) {
+  return escHtml(text)
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+}
+
+function scrollToBottom(smooth) {
+  const area = document.getElementById('messagesArea');
+  area.scrollTo({ top: area.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+}
+
+function appendMessage(role, content) {
+  const area = document.getElementById('messagesArea');
+  const div = document.createElement('div');
+  div.className = 'msg msg-' + role;
+  const isNura = role === 'nura';
+  div.innerHTML =
+    '<div class="msg-avatar msg-avatar-' + role + '">' + (isNura ? '◈' : '👤') + '</div>' +
+    '<div class="msg-bubble msg-bubble-' + role + '">' + formatText(content) + '</div>';
+  area.appendChild(div);
+  scrollToBottom(true);
+  return div;
+}
+
+function showTyping() {
+  const area = document.getElementById('messagesArea');
+  const div = document.createElement('div');
+  div.id = 'typingIndicator';
+  div.className = 'msg msg-nura';
+  div.innerHTML =
+    '<div class="msg-avatar msg-avatar-nura">◈</div>' +
+    '<div class="msg-bubble msg-bubble-nura">' +
+    '<div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>' +
+    '</div>';
+  area.appendChild(div);
+  scrollToBottom(true);
+}
+
+function removeTyping() {
+  const t = document.getElementById('typingIndicator');
+  if (t) t.remove();
+}
+
+function updateStatusBar() {
+  const bar = document.getElementById('statusBar');
+  if (isPaywalled) {
+    bar.innerHTML =
+      '<div class="paywall-block">' +
+      '<div class="paywall-icon">💎</div>' +
+      '<div class="paywall-title">Лимит бесплатных сообщений</div>' +
+      '<div class="paywall-sub">Ты использовал 5 бесплатных сообщений.<br>Чат без ограничений — по подписке Таро.</div>' +
+      '<a href="/app/profile?tab=subscription" class="paywall-btn">Подключить за 390 ₽/мес</a>' +
+      '</div>';
+    document.getElementById('inputArea').style.display = 'none';
+    return;
+  }
+  if (messagesLeft >= 0 && messagesLeft <= 3) {
+    bar.innerHTML =
+      '<div class="limit-bar">' +
+      '<span class="limit-text">Осталось <strong>' + messagesLeft + '</strong> бесплатных сообщений</span>' +
+      '<a href="/app/profile?tab=subscription" class="limit-upgrade">390 ₽/мес</a>' +
+      '</div>';
+  } else {
+    bar.innerHTML = '';
+  }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text || isLoading || isPaywalled) return;
+
+  if (!sessionId) {
+    appendMessage('nura', 'Войди в аккаунт чтобы общаться с NURA.');
+    return;
+  }
+
+  appendMessage('user', text);
+  input.value = '';
+  input.style.height = '';
+  document.getElementById('sendBtn').disabled = true;
+  isLoading = true;
+  showTyping();
+
+  chatHistory.push({ role: 'user', content: text });
+
+  try {
+    const res = await fetch('/api/v1/web/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: sessionId,
+        message: text,
+        history: chatHistory.slice(-20, -1),
+      }),
+    });
+
+    removeTyping();
+
+    if (res.status === 402) {
+      isPaywalled = true;
+      chatHistory.pop();
+      updateStatusBar();
+      appendMessage('nura', 'Ты использовал все бесплатные сообщения. Подключи подписку чтобы продолжить.');
+      return;
+    }
+
+    if (res.status === 404) {
+      appendMessage('nura', 'Сессия истекла. Обнови страницу.');
+      return;
+    }
+
+    if (!res.ok) {
+      appendMessage('nura', 'Что-то пошло не так. Попробуй ещё раз.');
+      chatHistory.pop();
+      return;
+    }
+
+    const data = await res.json();
+    chatHistory.push({ role: 'assistant', content: data.reply });
+    messagesLeft = data.messages_left;
+    saveHistory();
+    appendMessage('nura', data.reply);
+    updateStatusBar();
+
+  } catch(e) {
+    removeTyping();
+    appendMessage('nura', 'Нет соединения. Проверь интернет и попробуй снова.');
+    chatHistory.pop();
+  } finally {
+    isLoading = false;
+    updateSendBtn();
+  }
+}
+
+function handleKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = '';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  updateSendBtn();
+}
+
+function updateSendBtn() {
+  const input = document.getElementById('chatInput');
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = !input.value.trim() || isLoading || isPaywalled;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('chatInput').addEventListener('input', updateSendBtn);
+});
+
+function clearHistory() {
+  if (!confirm('Очистить историю чата?')) return;
+  chatHistory = [];
+  localStorage.removeItem('nura_chat_history');
+  const area = document.getElementById('messagesArea');
+  area.innerHTML = '';
+  renderWelcome();
+}
+
+function renderWelcome() {
+  const area = document.getElementById('messagesArea');
+  const name = userData ? (userData.name || 'пользователь') : 'пользователь';
+  const archetype = userData && userData.archetype ? userData.archetype : null;
+  const greeting = archetype
+    ? name + ', твой архетип — ' + archetype + '.\nЯ знаю твою матрицу и готова говорить с тобой на её языке.'
+    : name + ', я — NURA.\nЗадай мне вопрос о себе, своих паттернах или Матрице Судьбы.';
+
+  const welcomeDiv = document.createElement('div');
+  welcomeDiv.className = 'welcome-block';
+  welcomeDiv.innerHTML =
+    '<div class="welcome-icon">◈</div>' +
+    '<div class="welcome-title">Чат с NURA</div>' +
+    '<div class="welcome-text">' + escHtml(greeting) + '</div>' +
+    '<div class="welcome-hints">' +
+    '<button class="hint-btn" onclick="useHint(this)">Какие сильные стороны в моей матрице?</button>' +
+    '<button class="hint-btn" onclick="useHint(this)">Что повторяется в моих отношениях?</button>' +
+    '<button class="hint-btn" onclick="useHint(this)">Что мешает мне зарабатывать больше?</button>' +
+    '</div>';
+  area.appendChild(welcomeDiv);
+}
+
+function useHint(btn) {
+  const input = document.getElementById('chatInput');
+  input.value = btn.textContent;
+  input.focus();
+  autoResize(input);
+  updateSendBtn();
+  const hints = document.querySelector('.welcome-hints');
+  if (hints) hints.style.display = 'none';
+}
+
+function renderHistory() {
+  const area = document.getElementById('messagesArea');
+  area.innerHTML = '';
+  if (chatHistory.length === 0) {
+    renderWelcome();
+    return;
+  }
+  for (const msg of chatHistory.slice(-20)) {
+    const role = msg.role === 'user' ? 'user' : 'nura';
+    appendMessage(role, msg.content);
+  }
+}
+
+async function boot() {
+  loadHistory();
+  if (sessionId) {
+    try {
+      const res = await fetch('/api/v1/web/me?session_id=' + sessionId);
+      if (res.ok) userData = await res.json();
+    } catch(e) {}
+  }
+  renderHistory();
+  updateStatusBar();
+  const loader = document.getElementById('loaderScreen');
+  const appEl = document.getElementById('app');
+  appEl.style.display = '';
+  loader.style.opacity = '0';
+  setTimeout(function() { loader.style.display = 'none'; }, 400);
+}
+
+boot();
+</script>
+</body>
+</html>

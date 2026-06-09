@@ -275,3 +275,74 @@ async def subscribe_tarot(request: Request, body: SubscribeRequest):
     )
 
     return SubscribeResponse(payment_url=payment["payment_url"])
+
+
+class ChatRequest(BaseModel):
+    session_id: str
+    message: str = Field(..., min_length=1, max_length=2000)
+    history: list[dict] = Field(default_factory=list)
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    messages_left: int
+
+
+_WEB_CHAT_FREE_LIMIT = 5
+
+
+@router.post("/chat", response_model=ChatResponse)
+@limiter.limit("20/minute")
+async def web_chat(request: Request, body: ChatRequest):
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    report_repo = ReportRepository(session_factory)
+
+    user = await user_repo.get_by_web_session_id(body.session_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Сессия не найдена")
+
+    has_unlimited = bool(user.tarot_subscription) or (
+        user.subscription_status == "premium"
+    )
+    redis = get_redis()
+    counter_key = f"chat_count:{user.id}"
+
+    if not has_unlimited:
+        raw = await redis.get(counter_key)
+        used = int(raw) if raw else 0
+        if used >= _WEB_CHAT_FREE_LIMIT:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Лимит {_WEB_CHAT_FREE_LIMIT} бесплатных сообщений исчерпан",
+            )
+
+    matrix_data: dict = {}
+    user_name = user.first_name or user.name or "пользователь"
+    try:
+        reports = await report_repo.get_by_user_id(user.id)
+        for r in sorted(reports, key=lambda x: x.created_at, reverse=True):
+            if r.matrix_data and r.report_type in ("mini", "full"):
+                matrix_data = r.matrix_data
+                break
+    except Exception:
+        pass
+
+    try:
+        reply = await AIService.chat_response(
+            user_message=body.message,
+            chat_history=body.history[-10:],
+            matrix_data=matrix_data,
+            user_name=user_name,
+        )
+    except Exception:
+        raise HTTPException(status_code=503, detail="AI временно недоступен")
+
+    messages_left = -1
+    if not has_unlimited:
+        new_count = await redis.incr(counter_key)
+        if new_count == 1:
+            await redis.expire(counter_key, 86400)
+        messages_left = max(0, _WEB_CHAT_FREE_LIMIT - new_count)
+
+    return ChatResponse(reply=reply, messages_left=messages_left)

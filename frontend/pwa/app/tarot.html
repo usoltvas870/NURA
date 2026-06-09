@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0A0E0C">
+  <title>Таро — NURA</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <style>
+    :root {
+      --bg: #0A0E0C;
+      --bg2: #0E1410;
+      --card-bg: #131A14;
+      --m-accent: #C9A55C;
+      --m-accent-dim: rgba(201,165,92,0.15);
+      --ink: #E8E0D0;
+      --ink-dim: rgba(232,224,208,0.55);
+      --green: #97C5A1;
+      --green-dim: rgba(151,197,161,0.15);
+      --border: rgba(151,197,161,0.12);
+      --radius: 16px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overscroll-behavior: none;
+    }
+    #app { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: calc(56px + var(--safe-bottom)); }
+
+    .app-header {
+      position: sticky; top: 0; z-index: 50;
+      padding: calc(var(--safe-top) + 12px) 20px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .app-header-logo { font-size: 18px; font-weight: 700; letter-spacing: 0.15em; color: var(--m-accent); }
+    .app-header-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--m-accent-dim); border: 1px solid var(--m-accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; cursor: pointer;
+    }
+
+    .app-content { flex: 1; padding: 20px 16px 8px; display: flex; flex-direction: column; gap: 16px; }
+
+    .section-title {
+      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--ink-dim); margin-bottom: 10px;
+    }
+
+    .daily-hero {
+      background: linear-gradient(135deg, #0E1F11 0%, #111D14 50%, #0A1810 100%);
+      border: 1px solid rgba(151,197,161,0.2);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .daily-hero::before {
+      content: '';
+      position: absolute; top: -20px; right: -20px;
+      width: 120px; height: 120px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(201,165,92,0.08) 0%, transparent 70%);
+    }
+    .daily-hero-date {
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--green); margin-bottom: 12px;
+    }
+    .daily-hero-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+    .daily-hero-symbol {
+      width: 64px; height: 64px; border-radius: 16px;
+      background: var(--m-accent-dim); border: 1px solid rgba(201,165,92,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 30px; flex-shrink: 0;
+    }
+    .daily-hero-meta { flex: 1; }
+    .daily-hero-number { font-size: 11px; color: var(--ink-dim); margin-bottom: 2px; }
+    .daily-hero-name { font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .daily-hero-phrase { font-size: 13px; color: var(--m-accent); font-weight: 500; }
+    .daily-hero-text { font-size: 14px; color: var(--ink-dim); line-height: 1.6; margin-bottom: 12px; }
+    .daily-hero-advice {
+      background: rgba(201,165,92,0.08); border-left: 2px solid var(--m-accent);
+      border-radius: 0 8px 8px 0; padding: 10px 14px;
+      font-size: 13px; color: var(--ink); line-height: 1.5; margin-bottom: 12px;
+    }
+    .daily-hero-affirmation {
+      font-size: 12px; color: var(--green); font-style: italic; text-align: center;
+    }
+    .share-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: none; border: 1px solid var(--border); border-radius: 20px;
+      padding: 8px 16px; color: var(--ink-dim); font-size: 12px;
+      cursor: pointer; margin-top: 14px; width: 100%;
+      transition: border-color 0.2s;
+    }
+    .share-btn:active { border-color: var(--green); color: var(--green); }
+
+    .spreads-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .spread-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 14px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.1s;
+      position: relative;
+    }
+    .spread-card:active { transform: scale(0.97); }
+    .spread-card.locked { opacity: 0.75; }
+    .spread-card.locked:active { transform: scale(0.97); border-color: var(--m-accent); }
+    .spread-icon { font-size: 22px; margin-bottom: 6px; }
+    .spread-name { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+    .spread-desc { font-size: 11px; color: var(--ink-dim); }
+    .spread-lock {
+      position: absolute; top: 10px; right: 10px;
+      font-size: 13px; color: var(--m-accent); opacity: 0.7;
+    }
+
+    .paywall-cta {
+      background: linear-gradient(135deg, rgba(201,165,92,0.12) 0%, rgba(201,165,92,0.06) 100%);
+      border: 1px solid rgba(201,165,92,0.25);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+    }
+    .paywall-cta-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .paywall-cta-sub { font-size: 13px; color: var(--ink-dim); margin-bottom: 16px; line-height: 1.5; }
+    .paywall-btn {
+      display: block; width: 100%;
+      background: var(--m-accent); color: #0A0E0C;
+      border: none; border-radius: 12px;
+      padding: 14px; font-size: 14px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .paywall-btn:active { opacity: 0.85; }
+
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: flex; align-items: flex-end; z-index: 200;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-sheet {
+      background: #131A14;
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px calc(24px + var(--safe-bottom));
+      width: 100%;
+      border-top: 1px solid rgba(151,197,161,0.2);
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .modal-overlay.open .modal-sheet { transform: translateY(0); }
+    .modal-handle {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.15); margin: 0 auto 20px;
+    }
+    .modal-spread-icon { font-size: 36px; text-align: center; margin-bottom: 10px; }
+    .modal-title { font-size: 18px; font-weight: 700; color: var(--ink); text-align: center; margin-bottom: 6px; }
+    .modal-desc { font-size: 13px; color: var(--ink-dim); text-align: center; line-height: 1.6; margin-bottom: 20px; }
+    .modal-features {
+      background: rgba(151,197,161,0.05); border-radius: 12px;
+      padding: 14px 16px; margin-bottom: 20px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .modal-feature { font-size: 13px; color: var(--ink-dim); }
+    .modal-feature span { color: var(--green); margin-right: 6px; }
+    .modal-cta {
+      display: block; width: 100%;
+      background: var(--m-accent); color: #0A0E0C;
+      border: none; border-radius: 12px;
+      padding: 14px; font-size: 14px; font-weight: 700;
+      cursor: pointer; text-decoration: none; text-align: center;
+      margin-bottom: 10px;
+    }
+    .modal-cancel {
+      display: block; width: 100%; background: none;
+      border: none; color: var(--ink-dim); font-size: 14px;
+      padding: 10px; cursor: pointer; text-align: center;
+    }
+
+    .app-tabbar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: calc(56px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: #0E1A11; border-top: 1px solid var(--border);
+      display: flex; align-items: flex-start; padding-top: 8px; z-index: 100;
+    }
+    .tab-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 3px; text-decoration: none; padding: 2px 0; transition: opacity 0.2s;
+    }
+    .tab-item:active { opacity: 0.6; }
+    .tab-icon { font-size: 20px; line-height: 1; }
+    .tab-label { font-size: 10px; letter-spacing: 0.03em; color: var(--ink-dim); }
+    .tab-item.active .tab-label { color: var(--m-accent); }
+    .tab-item.active .tab-icon { filter: drop-shadow(0 0 4px rgba(201,165,92,0.6)); }
+
+    .loader-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px; z-index: 300; transition: opacity 0.4s;
+    }
+    .loader-logo { font-size: 28px; font-weight: 700; letter-spacing: 0.2em; color: var(--m-accent); }
+    .loader-dots { display: flex; gap: 6px; }
+    .loader-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--m-accent); animation: pulse 1.2s infinite;
+    }
+    .loader-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loader-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%,80%,100% { opacity:0.2; transform:scale(0.8); }
+      40% { opacity:1; transform:scale(1); }
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--card-bg) 25%, #1a2b1d 50%, var(--card-bg) 75%);
+      background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    .toast {
+      position: fixed; bottom: calc(72px + var(--safe-bottom)); left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1F2D20; border: 1px solid var(--border);
+      border-radius: 20px; padding: 10px 20px;
+      font-size: 13px; color: var(--green);
+      opacity: 0; transition: opacity 0.3s, transform 0.3s;
+      z-index: 150; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+  <script src="/metrika.js" defer></script>
+</head>
+<body>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
+
+<div class="loader-screen" id="loaderScreen">
+  <div class="loader-logo">NURA</div>
+  <div class="loader-dots">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header class="app-header">
+    <span class="app-header-logo">NURA</span>
+    <div class="app-header-avatar" onclick="window.location.href='/app/profile'">🌒</div>
+  </header>
+  <main class="app-content" id="mainContent">
+    <div class="skeleton" style="height:220px;border-radius:16px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="skeleton" style="height:90px;border-radius:16px"></div>
+      <div class="skeleton" style="height:90px;border-radius:16px"></div>
+      <div class="skeleton" style="height:90px;border-radius:16px"></div>
+      <div class="skeleton" style="height:90px;border-radius:16px"></div>
+    </div>
+  </main>
+</div>
+
+<nav class="app-tabbar">
+  <a href="/app" class="tab-item" data-tab="home">
+    <span class="tab-icon">◈</span>
+    <span class="tab-label">Матрица</span>
+  </a>
+  <a href="/app/tarot" class="tab-item active" data-tab="tarot">
+    <span class="tab-icon">🌒</span>
+    <span class="tab-label">Таро</span>
+  </a>
+  <a href="/app/chat" class="tab-item" data-tab="chat">
+    <span class="tab-icon">💬</span>
+    <span class="tab-label">Чат</span>
+  </a>
+  <a href="/app/profile" class="tab-item" data-tab="profile">
+    <span class="tab-icon">👤</span>
+    <span class="tab-label">Профиль</span>
+  </a>
+</nav>
+
+<div class="modal-overlay" id="paywallModal" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-spread-icon" id="modalIcon">✦</div>
+    <div class="modal-title" id="modalTitle">Расклад недели</div>
+    <div class="modal-desc" id="modalDesc">Три карты — Тело, Ум, Дух. Твои энергии на всю неделю.</div>
+    <div class="modal-features">
+      <div class="modal-feature"><span>✓</span>Карта дня каждый день</div>
+      <div class="modal-feature"><span>✓</span>6 видов раскладов без ограничений</div>
+      <div class="modal-feature"><span>✓</span>Безлимитные расклады совместимости</div>
+      <div class="modal-feature"><span>✓</span>Персональные интерпретации по матрице</div>
+    </div>
+    <a href="/app/profile?tab=subscription" class="modal-cta">Подключить за 390 ₽/мес</a>
+    <button class="modal-cancel" onclick="closeModal()">Не сейчас</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SPREADS = [
+  {id:'weekly',   icon:'✦',  name:'Расклад недели',    desc:'Тело · Ум · Дух',           locked:true,  fullDesc:'Три карты раскрывают три пространства твоей недели: тело, ум и дух.'},
+  {id:'question', icon:'◈',  name:'По вопросу',        desc:'Прошлое · Сейчас · Будущее', locked:true,  fullDesc:'Задай свой вопрос — три карты откроют контекст, ситуацию и направление.'},
+  {id:'life',     icon:'✶',  name:'Сферы жизни',       desc:'Деньги · Отношения · Путь',  locked:true,  fullDesc:'Три сферы — три аркана. Выбери, куда направить внимание.'},
+  {id:'doubles',  icon:'☯',  name:'Двойники',          desc:'Два аркана · один конфликт', locked:true,  fullDesc:'Два аркана из твоей матрицы — напряжение между ними и как его разрешить.'},
+  {id:'portal',   icon:'🌅', name:'Портал месяца',     desc:'Открытие нового цикла',       locked:true,  fullDesc:'Три карты на новый месяц: что войти, что отпустить, что создать.'},
+  {id:'yesno',    icon:'👁',  name:'Да / Нет',          desc:'Один аркан · одна правда',   locked:true,  fullDesc:'Задай вопрос — один аркан покажет качество энергии вокруг него.'},
+];
+
+let sessionId = localStorage.getItem('nura_session_id');
+let hasSubscription = false;
+
+const urlParams = new URLSearchParams(window.location.search);
+const urlSession = urlParams.get('session_id');
+if (urlSession) {
+  localStorage.setItem('nura_session_id', urlSession);
+  sessionId = urlSession;
+  window.history.replaceState({}, '', '/app/tarot');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function openSpread(spread) {
+  if (spread.locked && !hasSubscription) {
+    document.getElementById('modalIcon').textContent = spread.icon;
+    document.getElementById('modalTitle').textContent = spread.name;
+    document.getElementById('modalDesc').textContent = spread.fullDesc;
+    document.getElementById('paywallModal').classList.add('open');
+  }
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('paywallModal')) {
+    document.getElementById('paywallModal').classList.remove('open');
+  }
+}
+
+async function shareCard(name, phrase) {
+  const text = `${name} — ${phrase}\n\nМоя карта дня от NURA`;
+  const url = 'https://nura-ai.ru/app/tarot';
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: 'Карта дня — NURA', text, url });
+    } else {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      showToast('Скопировано');
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError') showToast('Скопировано');
+  }
+}
+
+function renderDailyCard(card) {
+  return `
+    <div>
+      <div class="section-title">Карта дня</div>
+      <div class="daily-hero">
+        <div class="daily-hero-date">🌒 ${card.date_label}</div>
+        <div class="daily-hero-top">
+          <div class="daily-hero-symbol">${card.arcana_symbol}</div>
+          <div class="daily-hero-meta">
+            <div class="daily-hero-number">Аркан ${card.arcana_number}</div>
+            <div class="daily-hero-name">${escHtml(card.arcana_name)}</div>
+            <div class="daily-hero-phrase">${escHtml(card.key_phrase)}</div>
+          </div>
+        </div>
+        <div class="daily-hero-text">${escHtml(card.interpretation)}</div>
+        <div class="daily-hero-advice">💡 ${escHtml(card.advice)}</div>
+        <div class="daily-hero-affirmation">«${escHtml(card.affirmation)}»</div>
+        <button class="share-btn" onclick="shareCard('${escJs(card.arcana_name)}','${escJs(card.key_phrase)}')">
+          🔗 Поделиться картой дня
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderSpreads(hasTarot) {
+  hasSubscription = hasTarot;
+  const cards = SPREADS.map(s => `
+    <div class="spread-card ${s.locked && !hasTarot ? 'locked' : ''}"
+         onclick="openSpread(${JSON.stringify(s).replace(/"/g,"'")})">
+      <div class="spread-icon">${s.icon}</div>
+      <div class="spread-name">${s.name}</div>
+      <div class="spread-desc">${s.desc}</div>
+      ${s.locked && !hasTarot ? '<div class="spread-lock">🔒</div>' : ''}
+    </div>
+  `).join('');
+
+  const paywall = !hasTarot ? `
+    <div class="paywall-cta">
+      <div class="paywall-cta-title">✦ Открой все расклады</div>
+      <div class="paywall-cta-sub">6 видов раскладов · Персональные интерпретации · Карта дня в уведомлениях</div>
+      <a href="/app/profile?tab=subscription" class="paywall-btn">Подключить за 390 ₽/мес</a>
+    </div>
+  ` : '';
+
+  return `
+    <div>
+      <div class="section-title">Расклады</div>
+      <div class="spreads-grid">${cards}</div>
+    </div>
+    ${paywall}
+  `;
+}
+
+function escHtml(str) {
+  return String(str||'').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escJs(str) {
+  return String(str||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+async function boot() {
+  let hasTarot = false;
+  if (sessionId) {
+    try {
+      const res = await fetch(`/api/v1/web/me?session_id=${sessionId}`);
+      if (res.ok) {
+        const data = await res.json();
+        hasTarot = data.has_tarot || false;
+      }
+    } catch(e) {}
+  }
+
+  const content = document.getElementById('mainContent');
+
+  if (!sessionId) {
+    content.innerHTML = renderSpreads(false) + `
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:13px;color:var(--ink-dim);margin-bottom:12px">Войди чтобы видеть персональную карту дня</div>
+        <a href="/mini.html" style="background:var(--m-accent);color:#0A0E0C;border-radius:12px;padding:10px 20px;font-size:13px;font-weight:700;text-decoration:none">Начать</a>
+      </div>
+    `;
+    showApp();
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/v1/tarot/daily-card?session_id=${sessionId}`);
+    if (res.ok) {
+      const card = await res.json();
+      content.innerHTML = renderDailyCard(card) + renderSpreads(hasTarot);
+    } else {
+      content.innerHTML = renderSpreads(hasTarot);
+    }
+  } catch(e) {
+    content.innerHTML = renderSpreads(hasTarot);
+  }
+
+  showApp();
+}
+
+function showApp() {
+  const loader = document.getElementById('loaderScreen');
+  const appEl = document.getElementById('app');
+  appEl.style.display = '';
+  loader.style.opacity = '0';
+  setTimeout(() => loader.style.display = 'none', 400);
+}
+
+boot();
+</script>
+</body>
+</html>

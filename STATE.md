@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **09.06.2026 — Сессия 23** — Qwen 3.7 Max
+> Последнее обновление: **09.06.2026 — Сессия 26** — Qwen 3.7 Max
 
 ---
 
@@ -96,6 +96,8 @@
 - ✅ create_web_tarot_payment + webhook ветка web_tarot — полный цикл оплаты подписки через PWA
 - ✅ PWA главный экран `/app` — SPA: приветствие, архетип, карта дня, матрица, install banner, таббар
 - ✅ GET /api/v1/web/me — endpoint профиля для PWA
+- ✅ POST /api/v1/web/chat — чат с NURA через браузер (5 free / безлимит premium, Redis counter)
+- ✅ /app/chat.html — экран чата PWA (bubbles, typing, hints, localStorage, paywall)
 
 ### Модель данных (users)
 ```
@@ -136,7 +138,7 @@ referred_by: int | null   # telegram_id пригласившего
 - ✅ **GET /api/v1/web/me** — endpoint профиля пользователя (имя, архетип, матрица, таро, токен отчёта).
 - ✅ **/app/index.html** — главный экран PWA (SPA): приветствие, архетип-badge, кнопка матрицы, карта дня, быстрые кнопки, install banner, таббар.
 - ✅ **nginx /app** — location /app + /app/ с try_files для SPA routing.
-- 🟡 **PWA экраны** — таро ✅, профиль ✅, чат — осталось. (~30ч)
+- 🟡 **PWA экраны** — таро ✅, профиль ✅, чат ✅ — все 4 готовы. (~30ч)
 - 🟡 **Подписка 390₽ через веб** — `POST /api/v1/web/subscribe`. (~4ч)
 
 ### Продукт — Telegram-бот
@@ -423,3 +425,24 @@ docker compose restart bot celery-worker
     - Настройки: реферальная ссылка, данные аккаунта, поддержка, выход
   - create_web_tarot_payment() в PaymentService + webhook ветка web_tarot в process_webhook
   - nginx: location = /app/profile → profile.html
+
+- **09.06.2026 — Сессия 26** — Qwen 3.7 Max
+  - POST /api/v1/web/chat — endpoint чата с NURA через браузер:
+    - AIService.chat_response с history[-10:] и matrix_data из отчётов
+    - Redis counter chat_count:{user_id} — 5 бесплатных, TTL 24ч, -1 для подписчиков
+    - 402 при исчерпании лимита
+  - /app/chat.html — экран чата PWA:
+    - Full-height layout (100dvh) с fixed header и input area
+    - Bubbles: пользователь (золото) / NURA (зелёный)
+    - Typing indicator (анимированные точки)
+    - localStorage история (последние 20 сообщений)
+    - Hint-кнопки при пустой истории (подсказки по матрице)
+    - Limit bar при ≤3 сообщений + paywall block при 0
+    - Auto-resize textarea, Enter → отправка, Shift+Enter → перенос
+    - Кнопка «Очистить» историю с подтверждением
+  - nginx: location = /app/chat → chat.html
+  - PWA P1 ЗАКРЫТ — все 4 экрана готовы:
+    - /app → index.html ✅
+    - /app/tarot → tarot.html ✅
+    - /app/profile → profile.html ✅
+    - /app/chat → chat.html ✅

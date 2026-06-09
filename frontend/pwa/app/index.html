@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0A0E0C">
+  <title>NURA</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <style>
+    :root {
+      --bg: #0A0E0C;
+      --bg2: #0E1410;
+      --card-bg: #131A14;
+      --m-accent: #C9A55C;
+      --m-accent-dim: rgba(201,165,92,0.15);
+      --ink: #E8E0D0;
+      --ink-dim: rgba(232,224,208,0.55);
+      --green: #97C5A1;
+      --green-dim: rgba(151,197,161,0.15);
+      --border: rgba(151,197,161,0.12);
+      --radius: 16px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      overscroll-behavior: none;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding-bottom: calc(56px + var(--safe-bottom));
+    }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: calc(var(--safe-top) + 12px) 20px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .app-header-logo {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--m-accent);
+    }
+    .app-header-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--m-accent-dim);
+      border: 1px solid var(--m-accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .app-header-avatar:active { opacity: 0.7; }
+
+    .app-content {
+      flex: 1;
+      padding: 20px 16px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .greeting-card {
+      background: linear-gradient(135deg, var(--card-bg) 0%, #0E1F11 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .greeting-hello {
+      font-size: 13px;
+      color: var(--ink-dim);
+      margin-bottom: 4px;
+      letter-spacing: 0.05em;
+    }
+    .greeting-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 10px;
+    }
+    .archetype-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--m-accent-dim);
+      border: 1px solid rgba(201,165,92,0.3);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: var(--m-accent);
+      font-weight: 600;
+    }
+
+    .matrix-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--m-accent);
+      color: #0A0E0C;
+      border: none;
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .matrix-btn:active { opacity: 0.85; transform: scale(0.98); }
+    .matrix-btn-icon { font-size: 20px; }
+
+    .section-title {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      margin-bottom: 10px;
+    }
+    .daily-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .daily-card-symbol {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      background: var(--green-dim);
+      border: 1px solid rgba(151,197,161,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .daily-card-body { flex: 1; min-width: 0; }
+    .daily-card-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 3px;
+    }
+    .daily-card-phrase {
+      font-size: 12px;
+      color: var(--green);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .daily-card-text {
+      font-size: 13px;
+      color: var(--ink-dim);
+      line-height: 1.5;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .quick-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, transform 0.1s;
+    }
+    .quick-btn:active { transform: scale(0.97); border-color: var(--green); }
+    .quick-btn-icon { font-size: 22px; }
+    .quick-btn-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .quick-btn-sub {
+      font-size: 11px;
+      color: var(--ink-dim);
+    }
+
+    .install-banner {
+      background: var(--green-dim);
+      border: 1px solid rgba(151,197,161,0.25);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .install-banner-text { flex: 1; }
+    .install-banner-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--green);
+      margin-bottom: 2px;
+    }
+    .install-banner-sub {
+      font-size: 12px;
+      color: var(--ink-dim);
+    }
+    .install-banner-btn {
+      background: var(--green);
+      color: #0A0E0C;
+      border: none;
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .install-banner-close {
+      background: none;
+      border: none;
+      color: var(--ink-dim);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0 2px;
+    }
+
+    .app-tabbar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: calc(56px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: #0E1A11;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      padding-top: 8px;
+      z-index: 100;
+    }
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      text-decoration: none;
+      padding: 2px 0;
+      transition: opacity 0.2s;
+    }
+    .tab-item:active { opacity: 0.6; }
+    .tab-icon { font-size: 20px; line-height: 1; }
+    .tab-label {
+      font-size: 10px;
+      letter-spacing: 0.03em;
+      color: var(--ink-dim);
+    }
+    .tab-item.active .tab-label { color: var(--m-accent); }
+    .tab-item.active .tab-icon { filter: drop-shadow(0 0 4px rgba(201,165,92,0.6)); }
+
+    .loader-screen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+      z-index: 200;
+      transition: opacity 0.4s;
+    }
+    .loader-logo {
+      font-size: 32px; font-weight: 700;
+      letter-spacing: 0.2em; color: var(--m-accent);
+    }
+    .loader-dots {
+      display: flex; gap: 6px;
+    }
+    .loader-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--m-accent);
+      animation: pulse 1.2s infinite;
+    }
+    .loader-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loader-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--card-bg) 25%, #1a2b1d 50%, var(--card-bg) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skel-line { height: 14px; margin-bottom: 8px; }
+    .skel-line.short { width: 60%; }
+    .skel-line.medium { width: 80%; }
+
+    .empty-state {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 20px;
+      text-align: center;
+    }
+    .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state-title {
+      font-size: 16px; font-weight: 700;
+      color: var(--ink); margin-bottom: 8px;
+    }
+    .empty-state-text {
+      font-size: 13px; color: var(--ink-dim);
+      line-height: 1.6; margin-bottom: 16px;
+    }
+    .cta-btn {
+      display: inline-block;
+      background: var(--m-accent);
+      color: #0A0E0C;
+      border: none; border-radius: 12px;
+      padding: 12px 24px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+    }
+  </style>
+  <script src="/metrika.js" defer></script>
+</head>
+<body>
+  <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
+
+<div class="loader-screen" id="loaderScreen">
+  <div class="loader-logo">NURA</div>
+  <div class="loader-dots">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header class="app-header">
+    <span class="app-header-logo">NURA</span>
+    <div class="app-header-avatar" onclick="window.location.href='/app/profile'" id="avatarBtn">&#9672;</div>
+  </header>
+
+  <main class="app-content" id="mainContent">
+    <div id="skeletonBlock">
+      <div class="greeting-card">
+        <div class="skeleton skel-line short"></div>
+        <div class="skeleton skel-line medium" style="height:22px;margin-bottom:10px"></div>
+        <div class="skeleton skel-line" style="width:40%;height:28px;border-radius:20px"></div>
+      </div>
+      <div class="skeleton" style="height:54px;border-radius:16px"></div>
+      <div class="skeleton" style="height:100px;border-radius:16px"></div>
+    </div>
+  </main>
+</div>
+
+<nav class="app-tabbar">
+  <a href="/app" class="tab-item active" data-tab="home">
+    <span class="tab-icon">&#9672;</span>
+    <span class="tab-label">&#1052;&#1072;&#1090;&#1088;&#1080;&#1094;&#1072;</span>
+  </a>
+  <a href="/app/tarot" class="tab-item" data-tab="tarot">
+    <span class="tab-icon">&#127762;</span>
+    <span class="tab-label">&#1058;&#1072;&#1088;&#1086;</span>
+  </a>
+  <a href="/app/chat" class="tab-item" data-tab="chat">
+    <span class="tab-icon">&#128172;</span>
+    <span class="tab-label">&#1063;&#1072;&#1090;</span>
+  </a>
+  <a href="/app/profile" class="tab-item" data-tab="profile">
+    <span class="tab-icon">&#128100;</span>
+    <span class="tab-label">&#1055;&#1088;&#1086;&#1092;&#1080;&#1083;&#1100;</span>
+  </a>
+</nav>
+
+<script>
+const ARCANA = {
+  1:'&#1052;&#1072;&#1075;',2:'&#1046;&#1088;&#1080;&#1094;&#1072;',3:'&#1048;&#1084;&#1087;&#1077;&#1088;&#1072;&#1090;&#1088;&#1080;&#1094;&#1072;',4:'&#1048;&#1084;&#1087;&#1077;&#1088;&#1072;&#1090;&#1086;&#1088;',5:'&#1048;&#1077;&#1088;&#1086;&#1092;&#1072;&#1085;&#1090;',
+  6:'&#1042;&#1083;&#1102;&#1073;&#1083;&#1105;&#1085;&#1085;&#1099;&#1077;',7:'&#1050;&#1086;&#1083;&#1077;&#1089;&#1085;&#1080;&#1094;&#1072;',8:'&#1057;&#1080;&#1083;&#1072;',9:'&#1054;&#1090;&#1096;&#1077;&#1083;&#1100;&#1085;&#1080;&#1082;',10:'&#1050;&#1086;&#1083;&#1077;&#1089;&#1086; &#1057;&#1091;&#1076;&#1100;&#1073;&#1099;',
+  11:'&#1057;&#1087;&#1088;&#1072;&#1074;&#1077;&#1076;&#1083;&#1080;&#1074;&#1086;&#1089;&#1090;&#1100;',12:'&#1055;&#1086;&#1074;&#1077;&#1096;&#1077;&#1085;&#1085;&#1099;&#1081;',13:'&#1057;&#1084;&#1077;&#1088;&#1090;&#1100;',14:'&#1059;&#1084;&#1077;&#1088;&#1077;&#1085;&#1085;&#1086;&#1089;&#1090;&#1100;',
+  15:'&#1044;&#1100;&#1103;&#1074;&#1086;&#1083;',16:'&#1041;&#1072;&#1096;&#1085;&#1103;',17:'&#1047;&#1074;&#1077;&#1079;&#1076;&#1072;',18:'&#1051;&#1091;&#1085;&#1072;',19:'&#1057;&#1086;&#1083;&#1085;&#1094;&#1077;',
+  20:'&#1057;&#1091;&#1076;',21:'&#1052;&#1080;&#1088;',22:'&#1064;&#1091;&#1090;'
+};
+const ARCANA_SYMBOL = {
+  1:'\u{1FA84}',2:'\u{1F319}',3:'\u{1F338}',4:'\u{1F451}',5:'\u{1F511}',6:'\u2764\uFE0F',7:'\u2694\uFE0F',8:'\u{1F981}',9:'\u{1F56F}\uFE0F',
+  10:'\u2638\uFE0F',11:'\u2696\uFE0F',12:'\u{1F30A}',13:'\u{1F98B}',14:'\u{1F3FA}',15:'\u{1F517}',16:'\u26A1',
+  17:'\u2B50',18:'\u{1F315}',19:'\u2600\uFE0F',20:'\u{1F3BA}',21:'\u{1F30D}',22:'\u{1F0CF}'
+};
+const ARCANA_PHRASE = {
+  1:'\u0412\u043E\u043B\u044F \u0438 \u043C\u0430\u0441\u0442\u0435\u0440\u0441\u0442\u0432\u043E',2:'\u0418\u043D\u0442\u0443\u0438\u0446\u0438\u044F \u0438 \u0442\u0430\u0439\u043D\u0430',3:'\u0418\u0437\u043E\u0431\u0438\u043B\u0438\u0435 \u0438 \u0442\u0432\u043E\u0440\u0447\u0435\u0441\u0442\u0432\u043E',
+  4:'\u0421\u0442\u0430\u0431\u0438\u043B\u044C\u043D\u043E\u0441\u0442\u044C \u0438 \u0432\u043B\u0430\u0441\u0442\u044C',5:'\u0422\u0440\u0430\u0434\u0438\u0446\u0438\u0438 \u0438 \u043C\u0443\u0434\u0440\u043E\u0441\u0442\u044C',6:'\u0412\u044B\u0431\u043E\u0440 \u0438 \u0441\u043E\u044E\u0437',
+  7:'\u041F\u043E\u0431\u0435\u0434\u0430 \u0438 \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435',8:'\u0421\u0438\u043B\u0430 \u0434\u0443\u0445\u0430',9:'\u0423\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u0435 \u0438 \u043F\u043E\u0438\u0441\u043A',
+  10:'\u0426\u0438\u043A\u043B\u044B \u043F\u0435\u0440\u0435\u043C\u0435\u043D',11:'\u0411\u0430\u043B\u0430\u043D\u0441 \u0438 \u043A\u0430\u0440\u043C\u0430',12:'\u0416\u0435\u0440\u0442\u0432\u0430 \u0440\u0430\u0434\u0438 \u0440\u043E\u0441\u0442\u0430',
+  13:'\u0422\u0440\u0430\u043D\u0441\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F',14:'\u0413\u0430\u0440\u043C\u043E\u043D\u0438\u044F \u0438 \u0442\u0435\u0440\u043F\u0435\u043D\u0438\u0435',15:'\u0418\u0441\u043A\u0443\u0448\u0435\u043D\u0438\u0435 \u0438 \u0446\u0435\u043F\u0438',
+  16:'\u0412\u043D\u0435\u0437\u0430\u043F\u043D\u044B\u0435 \u043F\u0435\u0440\u0435\u043C\u0435\u043D\u044B',17:'\u041D\u0430\u0434\u0435\u0436\u0434\u0430 \u0438 \u0432\u0434\u043E\u0445\u043D\u043E\u0432\u0435\u043D\u0438\u0435',18:'\u0418\u043B\u043B\u044E\u0437\u0438\u0438 \u0438 \u0441\u0442\u0440\u0430\u0445\u0438',
+  19:'\u0420\u0430\u0434\u043E\u0441\u0442\u044C \u0438 \u0443\u0441\u043F\u0435\u0445',20:'\u041F\u0440\u043E\u0431\u0443\u0436\u0434\u0435\u043D\u0438\u0435',21:'\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0438\u0435 \u0446\u0438\u043A\u043B\u0430',22:'\u041D\u0430\u0447\u0430\u043B\u043E \u043F\u0443\u0442\u0438'
+};
+const ARCANA_DESC = {
+  1:'\u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0442\u0432\u043E\u044F \u0432\u043E\u043B\u044F \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E \u0441\u0438\u043B\u044C\u043D\u0430. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439 \u0435\u0451 \u043E\u0441\u043E\u0437\u043D\u0430\u043D\u043D\u043E \u2014 \u0432\u0441\u0451, \u0447\u0442\u043E \u0442\u044B \u043D\u0430\u0447\u043D\u0451\u0448\u044C \u0441\u0435\u0439\u0447\u0430\u0441, \u0438\u043C\u0435\u0435\u0442 \u0448\u0430\u043D\u0441 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C\u0441\u044F \u0443\u0441\u043F\u0435\u0445\u043E\u043C.',
+  2:'\u0414\u0435\u043D\u044C \u0434\u043B\u044F \u0432\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u0435\u0433\u043E \u0433\u043E\u043B\u043E\u0441\u0430. \u041D\u0435 \u0442\u043E\u0440\u043E\u043F\u0438\u0441\u044C \u0441 \u0440\u0435\u0448\u0435\u043D\u0438\u044F\u043C\u0438 \u2014 \u0434\u0430\u0439 \u0438\u043D\u0442\u0443\u0438\u0446\u0438\u0438 \u043F\u043E\u0434\u0441\u043A\u0430\u0437\u0430\u0442\u044C \u043F\u0443\u0442\u044C.',
+  3:'\u0411\u043B\u0430\u0433\u043E\u043F\u0440\u0438\u044F\u0442\u043D\u044B\u0439 \u0434\u0435\u043D\u044C \u0434\u043B\u044F \u0442\u0432\u043E\u0440\u0447\u0435\u0441\u0442\u0432\u0430 \u0438 \u0437\u0430\u0431\u043E\u0442\u044B \u043E \u0431\u043B\u0438\u0437\u043A\u0438\u0445. \u041F\u043E\u0437\u0432\u043E\u043B\u044C \u0441\u0435\u0431\u0435 \u043F\u043E\u043B\u0443\u0447\u0430\u0442\u044C, \u043D\u0435 \u0442\u043E\u043B\u044C\u043A\u043E \u043E\u0442\u0434\u0430\u0432\u0430\u0442\u044C.',
+  4:'\u0412\u0440\u0435\u043C\u044F \u0441\u0442\u0440\u0443\u043A\u0442\u0443\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u043B\u0430\u043D\u044B \u0438 \u0432\u0437\u044F\u0442\u044C \u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u044C. \u0422\u0432\u043E\u0438 \u0440\u0435\u0448\u0435\u043D\u0438\u044F \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0437\u0430\u043B\u043E\u0436\u0430\u0442 \u0444\u0443\u043D\u0434\u0430\u043C\u0435\u043D\u0442.',
+  5:'\u041E\u0431\u0440\u0430\u0442\u0438\u0441\u044C \u043A \u043F\u0440\u043E\u0432\u0435\u0440\u0435\u043D\u043D\u043E\u043C\u0443 \u043E\u043F\u044B\u0442\u0443 \u2014 \u0441\u0432\u043E\u0435\u043C\u0443 \u0438\u043B\u0438 \u043D\u0430\u0441\u0442\u0430\u0432\u043D\u0438\u043A\u0430. \u0414\u0435\u043D\u044C \u0442\u0440\u0430\u0434\u0438\u0446\u0438\u0439 \u0438 \u0443\u0441\u0442\u043E\u0439\u0447\u0438\u0432\u044B\u0445 \u0446\u0435\u043D\u043D\u043E\u0441\u0442\u0435\u0439.',
+  6:'\u0412\u0430\u0436\u043D\u044B\u0439 \u0434\u0435\u043D\u044C \u0434\u043B\u044F \u043E\u0442\u043D\u043E\u0448\u0435\u043D\u0438\u0439 \u0438 \u0432\u044B\u0431\u043E\u0440\u043E\u0432. \u041F\u0440\u0438\u0441\u043B\u0443\u0448\u0430\u0439\u0441\u044F \u043A \u0441\u0435\u0440\u0434\u0446\u0443, \u0430 \u043D\u0435 \u0442\u043E\u043B\u044C\u043A\u043E \u043A \u0440\u0430\u0437\u0443\u043C\u0443.',
+  7:'\u0414\u0432\u0438\u0433\u0430\u0439\u0441\u044F \u0432\u043F\u0435\u0440\u0451\u0434 \u043D\u0435\u0441\u043C\u043E\u0442\u0440\u044F \u043D\u0430 \u043F\u0440\u0435\u043F\u044F\u0442\u0441\u0442\u0432\u0438\u044F. \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043F\u043E\u0431\u0435\u0436\u0434\u0430\u0435\u0442 \u0442\u043E\u0442, \u043A\u0442\u043E \u043D\u0435 \u043E\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442\u0441\u044F.',
+  8:'\u0412\u043D\u0443\u0442\u0440\u0435\u043D\u043D\u044F\u044F \u0441\u0438\u043B\u0430 \u0432\u0430\u0436\u043D\u0435\u0435 \u0432\u043D\u0435\u0448\u043D\u0435\u0439. \u041C\u044F\u0433\u043A\u043E\u0441\u0442\u044C \u0438 \u0441\u043F\u043E\u043A\u043E\u0439\u0441\u0442\u0432\u0438\u0435 \u0440\u0435\u0448\u0430\u044E\u0442 \u0431\u043E\u043B\u044C\u0448\u0435, \u0447\u0435\u043C \u043D\u0430\u043F\u043E\u0440.',
+  9:'\u0414\u0435\u043D\u044C \u0434\u043B\u044F \u0443\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u044F \u0438 \u0440\u0430\u0437\u043C\u044B\u0448\u043B\u0435\u043D\u0438\u0439. \u041D\u0430\u0439\u0434\u0438 \u043C\u043E\u043C\u0435\u043D\u0442 \u0442\u0438\u0448\u0438\u043D\u044B \u2014 \u0442\u0430\u043C \u043E\u0442\u0432\u0435\u0442.',
+  10:'\u041F\u0435\u0440\u0435\u043C\u0435\u043D\u044B \u043D\u0435 \u0441\u043B\u0443\u0447\u0430\u0439\u043D\u044B \u2014 \u043E\u043D\u0438 \u0447\u0430\u0441\u0442\u044C \u0442\u0432\u043E\u0435\u0433\u043E \u043F\u0443\u0442\u0438. \u041F\u0440\u0438\u043C\u0438 \u043F\u0440\u043E\u0438\u0441\u0445\u043E\u0434\u044F\u0449\u0435\u0435 \u043A\u0430\u043A \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C.',
+  11:'\u0414\u0435\u043D\u044C \u0447\u0435\u0441\u0442\u043D\u044B\u0445 \u0440\u0435\u0448\u0435\u043D\u0438\u0439. \u0412\u0441\u0451 \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u2014 \u0434\u0435\u0439\u0441\u0442\u0432\u0443\u0439 \u0442\u0430\u043A, \u0447\u0442\u043E\u0431\u044B \u043D\u0435 \u0431\u044B\u043B\u043E \u0441\u0442\u044B\u0434\u043D\u043E.',
+  12:'\u041F\u0430\u0443\u0437\u0430 \u0438 \u043F\u0440\u0438\u043D\u044F\u0442\u0438\u0435. \u0418\u043D\u043E\u0433\u0434\u0430 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C\u0441\u044F \u2014 \u0437\u043D\u0430\u0447\u0438\u0442 \u043F\u0440\u043E\u0434\u0432\u0438\u043D\u0443\u0442\u044C\u0441\u044F.',
+  13:'\u0427\u0442\u043E-\u0442\u043E \u0437\u0430\u0432\u0435\u0440\u0448\u0430\u0435\u0442\u0441\u044F, \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043A\u0440\u044B\u043B\u043E\u0441\u044C \u043D\u043E\u0432\u043E\u0435. \u041D\u0435 \u0434\u0435\u0440\u0436\u0438\u0441\u044C \u0437\u0430 \u0443\u0445\u043E\u0434\u044F\u0449\u0435\u0435.',
+  14:'\u0413\u0430\u0440\u043C\u043E\u043D\u0438\u044F \u0432 \u0434\u0435\u0442\u0430\u043B\u044F\u0445. \u041D\u0435 \u0442\u043E\u0440\u043E\u043F\u0438\u0441\u044C \u2014 \u043D\u0430\u0439\u0434\u0438 \u0437\u043E\u043B\u043E\u0442\u0443\u044E \u0441\u0435\u0440\u0435\u0434\u0438\u043D\u0443.',
+  15:'\u0417\u0430\u043C\u0435\u0447\u0430\u0439, \u0447\u0442\u043E \u0434\u0435\u0440\u0436\u0438\u0442 \u0442\u0435\u0431\u044F \u0432 \u043B\u043E\u0432\u0443\u0448\u043A\u0435. \u041E\u0441\u043E\u0437\u043D\u0430\u043D\u0438\u0435 \u2014 \u043F\u0435\u0440\u0432\u044B\u0439 \u0448\u0430\u0433 \u043A \u0441\u0432\u043E\u0431\u043E\u0434\u0435.',
+  16:'\u041D\u0435\u043E\u0436\u0438\u0434\u0430\u043D\u043D\u043E\u0441\u0442\u044C \u043E\u0441\u0432\u043E\u0431\u043E\u0436\u0434\u0430\u0435\u0442. \u0420\u0430\u0437\u0440\u0443\u0448\u0435\u043D\u0438\u0435 \u0441\u0442\u0430\u0440\u043E\u0433\u043E \u2014 \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u043E \u0434\u043B\u044F \u043D\u043E\u0432\u043E\u0433\u043E.',
+  17:'\u0412\u0435\u0440\u044C \u0432 \u043B\u0443\u0447\u0448\u0435\u0435. \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043E\u0441\u043E\u0431\u0435\u043D\u043D\u043E \u0441\u0438\u043B\u044C\u043D\u043E \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u0438\u0435.',
+  18:'\u0411\u0443\u0434\u044C \u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u0435\u043D \u043A \u0438\u043B\u043B\u044E\u0437\u0438\u044F\u043C \u2014 \u0441\u0432\u043E\u0438\u043C \u0438 \u0447\u0443\u0436\u0438\u043C. \u0414\u0435\u043D\u044C \u0442\u043E\u043D\u043A\u043E\u0439 \u0438\u043D\u0442\u0443\u0438\u0446\u0438\u0438.',
+  19:'\u042F\u0440\u043A\u0438\u0439, \u0442\u0451\u043F\u043B\u044B\u0439 \u0434\u0435\u043D\u044C. \u041F\u043E\u0437\u0432\u043E\u043B\u044C \u0441\u0435\u0431\u0435 \u0440\u0430\u0434\u043E\u0432\u0430\u0442\u044C\u0441\u044F \u0438 \u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0441\u0432\u0435\u0442\u043E\u043C.',
+  20:'\u041F\u0440\u043E\u0448\u043B\u043E\u0435 \u043F\u0440\u043E\u0441\u0438\u0442 \u043F\u0435\u0440\u0435\u043E\u0441\u043C\u044B\u0441\u043B\u0435\u043D\u0438\u044F. \u0427\u0435\u0441\u0442\u043D\u044B\u0439 \u0432\u0437\u0433\u043B\u044F\u0434 \u043D\u0430\u0437\u0430\u0434 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u043F\u0443\u0442\u044C \u0432\u043F\u0435\u0440\u0451\u0434.',
+  21:'\u0426\u0438\u043A\u043B \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D. \u041F\u0440\u0438\u043C\u0438 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442 \u0438 \u0433\u043E\u0442\u043E\u0432\u044C\u0441\u044F \u043A \u043D\u043E\u0432\u043E\u043C\u0443 \u0432\u0438\u0442\u043A\u0443.',
+  22:'\u041D\u0430\u0447\u0430\u043B\u043E \u0447\u0435\u0433\u043E-\u0442\u043E \u043D\u0435\u0438\u0437\u0432\u0435\u0434\u0430\u043D\u043D\u043E\u0433\u043E. \u0414\u043E\u0432\u0435\u0440\u044F\u0439 \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u0443, \u0434\u0430\u0436\u0435 \u0435\u0441\u043B\u0438 \u043F\u0443\u0442\u044C \u043D\u0435 \u044F\u0441\u0435\u043D.'
+};
+
+function getTodayArcana(birthDate) {
+  try {
+    const parts = birthDate.split('.');
+    if (parts.length !== 3) return 1;
+    const today = new Date();
+    const sum = [...(parts[0]+parts[1]+parts[2]+
+      String(today.getDate()).padStart(2,'0')+
+      String(today.getMonth()+1).padStart(2,'0')+
+      String(today.getFullYear())
+    )].reduce((a,c) => a + (parseInt(c)||0), 0);
+    let n = sum;
+    while (n > 22) { n = String(n).split('').reduce((a,c)=>a+(parseInt(c)||0),0); }
+    return n || 22;
+  } catch(e) { return 1; }
+}
+
+function formatDate() {
+  const d = new Date();
+  const months = ['\u044F\u043D\u0432\u0430\u0440\u044F','\u0444\u0435\u0432\u0440\u0430\u043B\u044F','\u043C\u0430\u0440\u0442\u0430','\u0430\u043F\u0440\u0435\u043B\u044F','\u043C\u0430\u044F','\u0438\u044E\u043D\u044F',
+                  '\u0438\u044E\u043B\u044F','\u0430\u0432\u0433\u0443\u0441\u0442\u0430','\u0441\u0435\u043D\u0442\u044F\u0431\u0440\u044F','\u043E\u043A\u0442\u044F\u0431\u0440\u044F','\u043D\u043E\u044F\u0431\u0440\u044F','\u0434\u0435\u043A\u0430\u0431\u0440\u044F'];
+  return `${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+function isPWAInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+}
+
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+let sessionId = localStorage.getItem('nura_session_id');
+let userData = null;
+
+async function loadUserData() {
+  if (!sessionId) return null;
+  try {
+    const res = await fetch(`/api/v1/web/me?session_id=${sessionId}`);
+    if (res.status === 404) {
+      localStorage.removeItem('nura_session_id');
+      sessionId = null;
+      return null;
+    }
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) {
+    return null;
+  }
+}
+
+function renderApp(user) {
+  const content = document.getElementById('mainContent');
+  const skel = document.getElementById('skeletonBlock');
+  if (skel) skel.remove();
+
+  const greeting = getGreeting();
+
+  if (!user) {
+    content.innerHTML = `
+      <div class="greeting-card">
+        <div class="greeting-hello">${greeting}</div>
+        <div class="greeting-name">\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C</div>
+        <span class="archetype-badge">\u2726 \u0410\u0440\u0445\u0435\u0442\u0438\u043F \u043D\u0435 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0451\u043D</span>
+      </div>
+      <div class="empty-state">
+        <div class="empty-state-icon">\u25C8</div>
+        <div class="empty-state-title">\u041E\u0442\u043A\u0440\u043E\u0439 \u0441\u0432\u043E\u044E \u041C\u0430\u0442\u0440\u0438\u0446\u0443 \u0421\u0443\u0434\u044C\u0431\u044B</div>
+        <div class="empty-state-text">
+          \u0423\u0437\u043D\u0430\u0439 \u0430\u0440\u0445\u0435\u0442\u0438\u043F, \u044D\u043D\u0435\u0440\u0433\u0438\u0438 \u0438 \u043A\u043B\u044E\u0447\u0435\u0432\u044B\u0435 \u0447\u0438\u0441\u043B\u0430 \u0441\u0432\u043E\u0435\u0439 \u0436\u0438\u0437\u043D\u0438
+          \u0447\u0435\u0440\u0435\u0437 \u0430\u043D\u0430\u043B\u0438\u0437 \u041C\u0430\u0442\u0440\u0438\u0446\u044B \u0421\u0443\u0434\u044C\u0431\u044B
+        </div>
+        <a href="/mini.html" class="cta-btn">\u041D\u0430\u0447\u0430\u0442\u044C \u0431\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E</a>
+      </div>
+      ${renderInstallBanner()}
+    `;
+    return;
+  }
+
+  userData = user;
+  const arcanaNum = getTodayArcana(user.birth_date);
+  const arcanaName = ARCANA[arcanaNum] || '\u041C\u0430\u0433';
+  const arcanaSymbol = ARCANA_SYMBOL[arcanaNum] || '\u2726';
+  const arcanaPhrase = ARCANA_PHRASE[arcanaNum] || '';
+  const arcanaDesc = ARCANA_DESC[arcanaNum] || '';
+
+  const matrixBlock = user.has_matrix && user.report_token
+    ? `<a href="/report/${user.report_token}" class="matrix-btn">
+        <span>\u25C8 \u041E\u0442\u043A\u0440\u044B\u0442\u044C \u041C\u0430\u0442\u0440\u0438\u0446\u0443 \u0421\u0443\u0434\u044C\u0431\u044B</span>
+        <span class="matrix-btn-icon">\u2192</span>
+      </a>`
+    : `<div class="empty-state" style="padding:20px">
+        <div class="empty-state-title" style="font-size:14px">\u041C\u0430\u0442\u0440\u0438\u0446\u0430 \u0435\u0449\u0451 \u043D\u0435 \u0440\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u043D\u0430</div>
+        <div class="empty-state-text">\u041F\u0440\u043E\u0439\u0434\u0438 \u043C\u0438\u043D\u0438-\u0440\u0430\u0437\u0431\u043E\u0440 \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u043E\u043B\u043D\u044B\u0439 \u0430\u043D\u0430\u043B\u0438\u0437</div>
+        <a href="/mini.html" class="cta-btn" style="font-size:13px;padding:10px 20px">\u0420\u0430\u0441\u0441\u0447\u0438\u0442\u0430\u0442\u044C</a>
+      </div>`;
+
+  content.innerHTML = `
+    <div class="greeting-card">
+      <div class="greeting-hello">${greeting}</div>
+      <div class="greeting-name">${escHtml(user.name)}</div>
+      ${user.archetype
+        ? `<span class="archetype-badge">\u25C8 ${escHtml(user.archetype)}</span>`
+        : `<span class="archetype-badge" style="color:var(--ink-dim);border-color:var(--border)">\u25C8 \u0410\u0440\u0445\u0435\u0442\u0438\u043F \u043D\u0435 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0451\u043D</span>`
+      }
+    </div>
+
+    ${matrixBlock}
+
+    <div>
+      <div class="section-title">\u041A\u0430\u0440\u0442\u0430 \u0434\u043D\u044F \u00B7 ${formatDate()}</div>
+      <div class="daily-card">
+        <div class="daily-card-symbol">${arcanaSymbol}</div>
+        <div class="daily-card-body">
+          <div class="daily-card-name">${arcanaName}</div>
+          <div class="daily-card-phrase">${arcanaPhrase}</div>
+          <div class="daily-card-text">${arcanaDesc}</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">\u0420\u0430\u0437\u0434\u0435\u043B\u044B</div>
+      <div class="quick-grid">
+        <a href="/app/tarot" class="quick-btn">
+          <span class="quick-btn-icon">\u{1F312}</span>
+          <span class="quick-btn-label">\u0422\u0430\u0440\u043E</span>
+          <span class="quick-btn-sub">\u0420\u0430\u0441\u043A\u043B\u0430\u0434\u044B \u0438 \u043A\u0430\u0440\u0442\u0430 \u0434\u043D\u044F</span>
+        </a>
+        <a href="/app/chat" class="quick-btn">
+          <span class="quick-btn-icon">\u{1F4AC}</span>
+          <span class="quick-btn-label">\u0427\u0430\u0442 \u0441 NURA</span>
+          <span class="quick-btn-sub">\u0417\u0430\u0434\u0430\u0439 \u0432\u043E\u043F\u0440\u043E\u0441</span>
+        </a>
+        <a href="/app/profile" class="quick-btn">
+          <span class="quick-btn-icon">\u{1F4CB}</span>
+          <span class="quick-btn-label">\u041E\u0442\u0447\u0451\u0442\u044B</span>
+          <span class="quick-btn-sub">\u0422\u0432\u043E\u0438 \u0440\u0430\u0437\u0431\u043E\u0440\u044B</span>
+        </a>
+        <a href="/app/profile?tab=subscription" class="quick-btn">
+          <span class="quick-btn-icon">\u2726</span>
+          <span class="quick-btn-label">\u041F\u043E\u0434\u043F\u0438\u0441\u043A\u0430</span>
+          <span class="quick-btn-sub">${user.has_tarot ? '\u0410\u043A\u0442\u0438\u0432\u043D\u0430' : '\u0422\u0430\u0440\u043E 390\u20BD/\u043C\u0435\u0441'}</span>
+        </a>
+      </div>
+    </div>
+
+    ${!isPWAInstalled() ? renderInstallBanner() : ''}
+  `;
+}
+
+function renderInstallBanner() {
+  if (localStorage.getItem('install_dismissed')) return '';
+  if (isPWAInstalled()) return '';
+  return `
+    <div class="install-banner" id="installBanner">
+      <div class="install-banner-text">
+        <div class="install-banner-title">\u0414\u043E\u0431\u0430\u0432\u044C \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u044B\u0439 \u044D\u043A\u0440\u0430\u043D</div>
+        <div class="install-banner-sub">\u041A\u0430\u0440\u0442\u0430 \u0434\u043D\u044F \u2014 \u0441\u0440\u0430\u0437\u0443 \u043D\u0430 \u0438\u043A\u043E\u043D\u043A\u0435</div>
+      </div>
+      <button class="install-banner-btn" id="installBtn">\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C</button>
+      <button class="install-banner-close" onclick="dismissInstall()">\u2715</button>
+    </div>
+  `;
+}
+
+function dismissInstall() {
+  localStorage.setItem('install_dismissed', '1');
+  const b = document.getElementById('installBanner');
+  if (b) b.remove();
+}
+
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+});
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'installBtn') {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(choice => {
+      if (choice.outcome === 'accepted') {
+        window.nuraTrack && window.nuraTrack('pwa_installed', {platform:'android'});
+      }
+      deferredPrompt = null; dismissInstall();
+    });
+    } else if (isIOS()) {
+      showIOSInstall();
+    }
+  }
+});
+
+function showIOSInstall() {
+  const modal = document.createElement('div');
+  modal.id = 'iosModal';
+  modal.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.75);
+    display:flex;align-items:flex-end;z-index:300;
+  `;
+  modal.innerHTML = `
+    <div style="background:#131A14;border-radius:20px 20px 0 0;padding:24px 20px calc(24px + var(--safe-bottom));width:100%;border-top:1px solid rgba(151,197,161,0.2)">
+      <div style="text-align:center;margin-bottom:20px">
+        <img src="/icons/icon-192.png" width="56" height="56" style="border-radius:14px" alt="NURA">
+        <div style="font-size:18px;font-weight:700;color:#E8E0D0;margin-top:10px">\u0414\u043E\u0431\u0430\u0432\u044C NURA \u043D\u0430 \u044D\u043A\u0440\u0430\u043D</div>
+        <div style="font-size:13px;color:rgba(232,224,208,0.55);margin-top:6px">\u041F\u043E\u043B\u0443\u0447\u0430\u0439 \u043A\u0430\u0440\u0442\u0443 \u0434\u043D\u044F \u0431\u0435\u0437 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(201,165,92,0.15);border:1px solid rgba(201,165,92,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#C9A55C;flex-shrink:0">1</div>
+          <div style="font-size:14px;color:#E8E0D0">\u041D\u0430\u0436\u043C\u0438 <strong>\u00AB\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F\u00BB</strong> \u0432 Safari <span style="font-size:16px">\u2B06\uFE0F</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(201,165,92,0.15);border:1px solid rgba(201,165,92,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#C9A55C;flex-shrink:0">2</div>
+          <div style="font-size:14px;color:#E8E0D0">\u0412\u044B\u0431\u0435\u0440\u0438 <strong>\u00AB\u041D\u0430 \u044D\u043A\u0440\u0430\u043D \u00AB\u0414\u043E\u043C\u043E\u0439\u00BB\u00BB</strong></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(201,165,92,0.15);border:1px solid rgba(201,165,92,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#C9A55C;flex-shrink:0">3</div>
+          <div style="font-size:14px;color:#E8E0D0">\u041D\u0430\u0436\u043C\u0438 <strong>\u00AB\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C\u00BB</strong></div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('iosModal').remove();dismissInstall();"
+        style="width:100%;background:rgba(151,197,161,0.15);color:#E8E0D0;border:1px solid rgba(151,197,161,0.2);border-radius:12px;padding:14px;font-size:14px;cursor:pointer">
+        \u041C\u043E\u0436\u0435\u0442 \u043F\u043E\u0442\u043E\u043C
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return '\u0414\u043E\u0431\u0440\u043E\u0435 \u0443\u0442\u0440\u043E';
+  if (h >= 12 && h < 17) return '\u0414\u043E\u0431\u0440\u044B\u0439 \u0434\u0435\u043D\u044C';
+  if (h >= 17 && h < 22) return '\u0414\u043E\u0431\u0440\u044B\u0439 \u0432\u0435\u0447\u0435\u0440';
+  return '\u0414\u043E\u0431\u0440\u043E\u0439 \u043D\u043E\u0447\u0438';
+}
+
+function escHtml(str) {
+  return String(str||'').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function boot() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlSession = urlParams.get('session_id');
+  if (urlSession) {
+    localStorage.setItem('nura_session_id', urlSession);
+    sessionId = urlSession;
+    window.history.replaceState({}, '', '/app');
+  }
+
+  const loader = document.getElementById('loaderScreen');
+  const appEl = document.getElementById('app');
+
+  const user = await loadUserData();
+
+  renderApp(user);
+
+  if (user) {
+    window.nuraTrack && window.nuraTrack('app_home_loaded', {
+      has_matrix: !!user.has_matrix,
+      has_tarot: !!user.has_tarot,
+    });
+  }
+
+  appEl.style.display = '';
+  loader.style.opacity = '0';
+  setTimeout(() => loader.style.display = 'none', 400);
+}
+
+boot();
+</script>
+</body>
+</html>
