@@ -514,5 +514,85 @@
       });
     })();
   </script>
+<!-- PWA Install Banner (Android) -->
+<div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;
+  background:#111613;border-top:1px solid rgba(201,165,92,0.2);
+  padding:16px 20px;z-index:9999;align-items:center;gap:12px;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <img src="/icons/icon-192.png" width="44" height="44"
+    style="border-radius:10px;flex-shrink:0" alt="NURA">
+  <div style="flex:1;min-width:0">
+    <div style="color:#F2EFE7;font-size:14px;font-weight:600;margin-bottom:2px">
+      Установить NURA
+    </div>
+    <div style="color:rgba(242,239,231,0.55);font-size:12px">
+      Открывай одним нажатием, работает офлайн
+    </div>
+  </div>
+  <button onclick="window.NURA_PWA.triggerAndroidInstall()"
+    style="background:#C9A55C;color:#1A1206;border:none;border-radius:8px;
+    padding:8px 16px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap">
+    Установить
+  </button>
+  <button onclick="window.NURA_PWA.dismissInstallBanner()"
+    style="background:none;border:none;color:rgba(242,239,231,0.4);
+    font-size:20px;cursor:pointer;padding:4px;line-height:1">&#215;</button>
+</div>
+
+<!-- PWA iOS Install Modal -->
+<div id="pwa-ios-modal" style="display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.75);z-index:10000;align-items:flex-end;
+  justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+  <div style="background:#111613;border-radius:20px 20px 0 0;
+    padding:28px 24px 40px;width:100%;max-width:480px;
+    border-top:1px solid rgba(201,165,92,0.2);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="color:#F2EFE7;font-size:18px;font-weight:600">Установить NURA</div>
+      <button onclick="window.NURA_PWA.hideIOSInstallModal()"
+        style="background:rgba(242,239,231,0.1);border:none;color:#F2EFE7;
+        width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer">&#215;</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="background:#C9A55C;color:#1A1206;width:28px;height:28px;
+          border-radius:50%;display:flex;align-items:center;justify-content:center;
+          font-weight:700;font-size:14px;flex-shrink:0">1</div>
+        <div>
+          <div style="color:#F2EFE7;font-size:14px;margin-bottom:2px">
+            Нажми <strong>«Поделиться»</strong></div>
+          <div style="color:rgba(242,239,231,0.5);font-size:13px">
+            Иконка □↑ внизу экрана Safari</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="background:#C9A55C;color:#1A1206;width:28px;height:28px;
+          border-radius:50%;display:flex;align-items:center;justify-content:center;
+          font-weight:700;font-size:14px;flex-shrink:0">2</div>
+        <div>
+          <div style="color:#F2EFE7;font-size:14px;margin-bottom:2px">
+            Выбери <strong>«На экран "Домой"»</strong></div>
+          <div style="color:rgba(242,239,231,0.5);font-size:13px">
+            Прокрути список действий вниз</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="background:#C9A55C;color:#1A1206;width:28px;height:28px;
+          border-radius:50%;display:flex;align-items:center;justify-content:center;
+          font-weight:700;font-size:14px;flex-shrink:0">3</div>
+        <div>
+          <div style="color:#F2EFE7;font-size:14px;margin-bottom:2px">
+            Нажми <strong>«Добавить»</strong></div>
+          <div style="color:rgba(242,239,231,0.5);font-size:13px">
+            NURA появится на главном экране</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:24px;padding:12px;background:rgba(201,165,92,0.08);
+      border-radius:8px;color:rgba(242,239,231,0.6);font-size:12px;text-align:center">
+      ✦ После установки карта дня приходит прямо на экран
+    </div>
+  </div>
+</div>
+<script src="/pwa-install.js"></script>
 </body>
 </html>
