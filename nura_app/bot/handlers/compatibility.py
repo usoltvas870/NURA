@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from celery.result import AsyncResult
 
 from bot.handlers.validators import validate_date
@@ -218,6 +218,7 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         compat_arcana_first_number=arcana_first_number,
         compat_arcana_second_name=arcana_second_name,
         compat_arcana_second_number=arcana_second_number,
+        compat_how_interact=analysis.get("how_you_interact", "Союз двух архетипов"),
     )
 
     share_text = (
@@ -246,6 +247,10 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
 
     keyboard_rows.append(
         [InlineKeyboardButton(text="🔍 Как мы это считаем", callback_data="compat_details")],
+    )
+
+    keyboard_rows.append(
+        [InlineKeyboardButton(text="🖼 Поделиться карточкой", callback_data="share_compat_card")],
     )
 
     keyboard_rows.append(
@@ -326,3 +331,42 @@ async def show_compat_details(callback: CallbackQuery, state: FSMContext) -> Non
             [InlineKeyboardButton(text="← Назад к результату", callback_data="compatibility")]
         ])
     )
+
+
+@router.callback_query(F.data == "share_compat_card")
+async def send_compat_card(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer("Генерирую карточку…")
+
+    data = await state.get_data()
+    sender_name   = data.get("compat_user_name", "Пользователь")
+    partner_name  = data.get("compat_partner_name", "Партнёр")
+    a1_name       = data.get("compat_arcana_first_name", "Аркан")
+    a1_num        = int(data.get("compat_arcana_first_number", 1))
+    a2_name       = data.get("compat_arcana_second_name", "Аркан")
+    a2_num        = int(data.get("compat_arcana_second_number", 1))
+    compat_line   = data.get("compat_how_interact", "Союз двух архетипов")
+
+    try:
+        from core.services.share_card import generate_compat_card
+
+        img_bytes = generate_compat_card(
+            sender_name=sender_name,
+            partner_name=partner_name,
+            user_arcana_name=a1_name,
+            user_arcana_number=a1_num,
+            partner_arcana_name=a2_name,
+            partner_arcana_number=a2_num,
+            compatibility_line=compat_line,
+        )
+
+        photo = BufferedInputFile(img_bytes, filename="nura_compat.png")
+        caption = (
+            f"✦ {sender_name} + {partner_name}\n"
+            f"{a1_name} · {a2_name}\n\n"
+            f"Проверь свою совместимость: nura-ai.ru"
+        )
+        await callback.message.answer_photo(photo=photo, caption=caption)
+
+    except Exception as e:
+        logger.exception("share_card error: %s", e)
+        await callback.message.answer("Не удалось создать карточку. Попробуй ещё раз.")
