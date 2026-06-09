@@ -30,10 +30,11 @@ PWA (`nura-ai.ru`) — это тот же сайт, но с тремя допо�
 | Мини-анализ `mini.html` | ✅ Готово | `/opt/nura/mini.html` |
 | Страница успеха `success.html` | ✅ Готово | `/opt/nura/success.html` |
 | Страница отчёта `/report/{token}` | ✅ Готово | FastAPI |
-| `manifest.json` | ❌ Нет | — |
-| Service Worker | ❌ Нет | — |
-| iOS meta-теги | ❌ Нет | — |
-| Иконки PWA | ❌ Нет | — |
+| `manifest.json` | ✅ Готово (сессия 19) | — |
+| Service Worker | ✅ Готово (сессия 19) | — |
+| iOS meta-теги | ✅ Готово (сессия 19) | — |
+| Иконки PWA | ✅ Готово (сессия 19) | — |
+| `offline.html` | ✅ Готово (сессия 19) | — |
 | Install UI | ❌ Нет | — |
 | Web Push backend | ❌ Нет | — |
 | PWA экраны `/app/*` | ❌ Нет | — |
@@ -103,6 +104,12 @@ PWA (`nura-ai.ru`) — это тот же сайт, но с тремя допо�
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "categories": ["lifestyle", "health"],
@@ -111,9 +118,24 @@ PWA (`nura-ai.ru`) — это тот же сайт, но с тремя допо�
 ```
 
 **Требования к иконкам:**
-- `icon-192.png` и `icon-512.png` — логотип NURA на тёмном фоне `#0A0E0C`
-- `maskable` варианты — с отступом 10% со всех сторон (safe zone для Android)
+- Фон: `#0A0E0C` (--bg) — основной тёмный фон бренда
+- Акцент: `#C9A55C` (--m-accent) — золото матрицы, основной цвет символа ✦
+- Вторичный фон круга: `#111613` (--bg-soft)
+- Текст NURA: `#C9A55C` (золото, не белый)
+- `icon-192.png` и `icon-512.png` — символ ✦ + надпись NURA на тёмном фоне
+- `maskable` варианты — с отступом 12% со всех сторон (safe zone для Android)
 - `apple-touch-icon.png` — 180×180, для тега `<link rel="apple-touch-icon">`
+
+**Палитра CSS-переменных (из index.html):**
+| Переменная | Значение | Назначение |
+|---|---|---|
+| `--bg` | `#0A0E0C` | Основной фон |
+| `--bg-soft` | `#111613` | Вторичный фон |
+| `--ink` | `#F2EFE7` | Текст (тёплый белый) |
+| `--m-accent` | `#C9A55C` | Золото матрицы — основной акцент |
+| `--m-leaf` | `#6BA37A` | Изумрудный |
+| `--t-accent` | `#D8B36A` | Золото таро |
+| `--t-violet` | `#7E7AC8` | Фиолетовый таро |
 
 ---
 
@@ -779,13 +801,13 @@ function getNotificationStrategy() {
 
 ### Перед деплоем
 
-- [ ] `manifest.json` — все поля заполнены, иконки доступны по URL
-- [ ] Иконки созданы: 192, 512 (any + maskable), apple-touch-icon 180
-- [ ] `service-worker.js` — регистрируется без ошибок в DevTools
-- [ ] iOS meta-теги добавлены на все страницы
-- [ ] `nginx.conf` обновлён (manifest, SW, /app маршруты)
+- [x] `manifest.json` — все поля заполнены, иконки доступны по URL
+- [x] Иконки созданы: 192, 512 (any + maskable), apple-touch-icon 180
+- [x] `service-worker.js` — регистрируется без ошибок в DevTools
+- [x] iOS meta-теги добавлены на все страницы
+- [x] `nginx.conf` обновлён (manifest, SW, /app маршруты)
 - [ ] VAPID ключи сгенерированы, добавлены в `.env`
-- [ ] Alembic-миграция применена: `has_pwa_push`, `push_endpoint`, `push_p256dh`, `push_auth`
+- [x] Alembic-миграция применена: `has_pwa_push`, `push_endpoint`, `push_p256dh`, `push_auth`
 - [ ] `api/routes/push.py` подключён в `api/main.py`
 - [ ] `send_daily_card` обновлён с дедупликацией
 
