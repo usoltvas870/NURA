@@ -365,3 +365,9 @@ docker compose restart bot celery-worker
   - target="_blank" убран у всех /app кнопок
   - Футер: текст ссылки приведён в соответствие с href
   - index.html синхронизирован /var/www/ ↔ /opt/nura/ ↔ git
+
+- **09.06.2026 — Сессия 22** — Claude Sonnet 4.6 (claude.ai)
+  - Блок 6 (миграция пользователей) закрыт:
+  - Grandfather clause: premium → has_matrix=True (идемпотентно, данные уже консистентны)
+  - Уведомление отправлено 2 premium-пользователям в Telegram
+  - Все P0-блоки закрыты кроме YooKassa credentials (на стороне владельца)
