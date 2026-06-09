@@ -7,9 +7,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from bot.handlers.validators import validate_date
-from bot.keyboards.main_menu import main_menu_keyboard
+from bot.keyboards.main_menu import main_menu_keyboard, open_pwa_keyboard
 from bot.states.onboarding_state import OnboardingStates
-from bot.texts.matrix import invalid_format_text
 from bot.texts.matrix import mini_analysis_text
 from bot.texts.onboarding import (
     ask_birth_date_onboarding_text,
@@ -91,13 +90,9 @@ async def process_onboarding_birth_date(
     generate_mini_report.delay(str(db_user.id), date_str, username)
 
     await asyncio.sleep(0.5)
-    has_tarot = bool(db_user.tarot_subscription) if db_user else False
     await loading_msg.edit_text(
         onboarding_done_text(archetype_name, archetype_number),
-        reply_markup=main_menu_keyboard(
-            has_tarot=has_tarot,
-            subscription_status=db_user.subscription_status,
-        ),
+        reply_markup=open_pwa_keyboard(),
     )
 
 

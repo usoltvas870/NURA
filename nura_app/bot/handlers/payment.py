@@ -7,7 +7,7 @@ from bot.keyboards.main_menu import main_menu_keyboard
 from bot.texts.payment import (
     payment_error_text,
     payment_pending_text,
-    report_ready_text,
+    report_ready_pwa_text,
 )
 from core.config import settings
 from core.database import get_async_sessionmaker
@@ -96,6 +96,7 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
             "⚠️ Не закрывай это окно, пока платёж не завершится.",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
+                    [InlineKeyboardButton(text="🌐 Оформить в NURA", url="https://nura-ai.ru/app/profile?action=subscribe")],
                     [InlineKeyboardButton(text="💎 Оплатить 390 ₽/мес", url=subscription["payment_url"])],
                     [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
                 ]
@@ -287,12 +288,15 @@ async def open_report(callback: CallbackQuery) -> None:
         return
 
     report_url = f"{settings.report_base_url}/report/{token}"
+    pwa_url = f"https://nura-ai.ru/report/{token}"
     buttons = [[InlineKeyboardButton(text="👁 Открыть отчёт", url=report_url)]]
     if report.kitchen_analysis:
         buttons.insert(0, [InlineKeyboardButton(text="🧮 Показать расчёт", callback_data=f"kitchen:{token}")])
+    buttons.append([InlineKeyboardButton(text="🌐 Открыть в NURA", url=pwa_url)])
     buttons.append([InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")])
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
-    await callback.message.answer(report_ready_text(), reply_markup=kb)
+    arch = report.matrix_data.get("archetype_name") if report.matrix_data else None
+    await callback.message.answer(report_ready_pwa_text(arch), reply_markup=kb)
 
 
 @router.callback_query(F.data.startswith("kitchen:"))

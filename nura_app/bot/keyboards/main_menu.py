@@ -7,6 +7,7 @@ def main_menu_keyboard(
     subscription_status: str = "free",
     # backward-compat: ignored, use has_matrix
     purchased_matrix: bool = False,
+    has_pwa_shown: bool = False,
 ) -> InlineKeyboardMarkup:
     matrix_btn = (
         InlineKeyboardButton(text="◈ Моя матрица", callback_data="my_matrix")
@@ -27,6 +28,10 @@ def main_menu_keyboard(
             InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
         ],
     ]
+    if has_matrix:
+        keyboard.insert(0, [
+            InlineKeyboardButton(text="🌐 Открыть в NURA", url="https://nura-ai.ru/app")
+        ])
     # Кнопка «Купить разбор» скрывается если:
     # - has_matrix=True (матрица уже куплена)
     # - subscription_status="premium" (подписка даёт доступ ко всему)
@@ -104,3 +109,10 @@ def reports_keyboard(reports: list) -> InlineKeyboardMarkup:
         buttons.append(row)
     buttons.append([InlineKeyboardButton(text="👤 Назад в профиль", callback_data="back_to_profile")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def open_pwa_keyboard(url: str = "https://nura-ai.ru/app") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🌐 Открыть в NURA", url=url)],
+        [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+    ])

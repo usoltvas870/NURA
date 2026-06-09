@@ -48,3 +48,11 @@ def payment_error_text() -> str:
 
 def already_paid_text() -> str:
     return "Этот отчёт уже оплачен. Вот ссылка:"
+
+
+def report_ready_pwa_text(archetype: str | None = None) -> str:
+    base = "✦ Твоя Матрица Судьбы готова!\n\n"
+    if archetype:
+        base += f"Твой архетип — {archetype}.\n\n"
+    base += "Открой NURA, чтобы увидеть полный разбор."
+    return base

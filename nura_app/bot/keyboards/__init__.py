@@ -4,6 +4,7 @@ from bot.keyboards.main_menu import (
     profile_keyboard,
     subscription_keyboard,
     reports_keyboard,
+    open_pwa_keyboard,
 )
 from bot.keyboards.tarot_keyboard import (
     tarot_menu_keyboard,
@@ -19,6 +20,7 @@ __all__ = [
     "profile_keyboard",
     "subscription_keyboard",
     "reports_keyboard",
+    "open_pwa_keyboard",
     "tarot_menu_keyboard",
     "tarot_back_keyboard",
     "tarot_paywall_keyboard",
