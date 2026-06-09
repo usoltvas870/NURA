@@ -16,6 +16,7 @@ from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
 from core.services.ai import AIService
 from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
+from core.services.web_push import send_web_push
 
 logger = logging.getLogger(__name__)
 
@@ -386,6 +387,42 @@ async def _process_compatibility_report(
     }
 
 
+async def _notify_user(
+    user: User,
+    text: str,
+    keyboard: dict | None = None,
+    push_title: str = "NURA",
+    push_body: str = "",
+    push_url: str = "/app/tarot",
+    push_tag: str = "daily-card",
+) -> bool:
+    if user.has_pwa_push and user.push_endpoint:
+        success = await send_web_push(
+            endpoint=user.push_endpoint,
+            p256dh=user.push_p256dh,
+            auth=user.push_auth,
+            title=push_title,
+            body=push_body or text[:100],
+            url=push_url,
+            tag=push_tag,
+        )
+        if success:
+            return True
+        session_factory = get_async_sessionmaker()
+        user_repo = UserRepository(session_factory)
+        await user_repo.update_push_subscription(
+            user_id=user.id,
+            endpoint=None,
+            p256dh=None,
+            auth=None,
+            has_pwa_push=False,
+        )
+
+    if user.telegram_id:
+        return await _send_message(user.telegram_id, text, keyboard)
+    return False
+
+
 @celery_app.task(name="core.tasks.send_daily_card")
 def send_daily_card() -> dict:
     return _run_async(_send_daily_card_async())
@@ -415,7 +452,15 @@ async def _send_daily_card_async() -> dict:
         if needs_rate_limit and i > 0:
             await asyncio.sleep(0.5)
 
-        ok = await _send_message(user.telegram_id, text, keyboard)
+        ok = await _notify_user(
+            user,
+            text,
+            keyboard,
+            push_title="🌒 Карта дня",
+            push_body="Твоя карта дня готова",
+            push_url="/app/tarot",
+            push_tag="daily-card",
+        )
         if not ok:
             async with session_factory() as session:
                 db_user = await session.get(User, user.id)
@@ -478,7 +523,15 @@ async def _send_daily_tarot_card_async() -> dict:
                 [{"text": "🏠 В меню", "callback_data": "main_menu"}],
             ],
         }
-        ok = await _send_message(user.telegram_id, text, keyboard)
+        ok = await _notify_user(
+            user,
+            text,
+            keyboard,
+            push_title="🌒 Карта дня",
+            push_body=f"Карта дня для {user_name}",
+            push_url="/app/tarot",
+            push_tag="daily-tarot-card",
+        )
         if ok:
             sent += 1
         else:

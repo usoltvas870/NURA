@@ -11,6 +11,7 @@ from api.routes.reports import router as reports_router
 from api.routes.web import router as web_router
 from api.routes.webhook import router as webhook_router
 from api.routes.payment import router as payment_router
+from api.routes.push import router as push_router
 
 app = FastAPI(title="NURA API", version="1.0.0", docs_url=None, redoc_url=None)
 app.state.limiter = limiter
@@ -28,6 +29,7 @@ app.include_router(webhook_router)
 app.include_router(web_router)
 app.include_router(reports_router)
 app.include_router(payment_router)
+app.include_router(push_router)
 
 setup_admin(app)
 

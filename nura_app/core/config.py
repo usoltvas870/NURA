@@ -79,6 +79,11 @@ class Settings(BaseSettings):
     rate_limit_requests: int = 30
     rate_limit_window: int = 60
 
+    # Web Push (VAPID)
+    vapid_private_key: str = ""
+    vapid_public_key: str = ""
+    vapid_claims_email: str = "admin@nura-ai.ru"
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

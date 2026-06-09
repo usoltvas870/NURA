@@ -188,3 +188,34 @@ class UserRepository(SQLAlchemyRepository[User]):
             await session.commit()
             await session.refresh(user)
             return user
+
+    async def update_push_subscription(
+        self,
+        user_id: uuid.UUID,
+        endpoint: str | None,
+        p256dh: str | None,
+        auth: str | None,
+        has_pwa_push: bool,
+    ) -> None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return
+            user.has_pwa_push = has_pwa_push
+            user.push_endpoint = endpoint
+            user.push_p256dh = p256dh
+            user.push_auth = auth
+            await session.commit()
+
+    async def clear_push_subscription_by_endpoint(self, endpoint: str) -> None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User).where(User.push_endpoint == endpoint)
+            )
+            user = result.scalar_one_or_none()
+            if user:
+                user.has_pwa_push = False
+                user.push_endpoint = None
+                user.push_p256dh = None
+                user.push_auth = None
+                await session.commit()
