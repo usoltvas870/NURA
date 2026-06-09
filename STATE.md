@@ -36,7 +36,7 @@
 - Бот шлёт deep-link в PWA с auth-токеном после каждого ключевого действия
 - Блокировка Telegram = потеря канала привлечения, но не потеря продукта
 
-**Документация:** `docs/platform-strategy.md` (создать), `docs/pwa-spec.md` (создать)
+**Документация:** `docs/platform-strategy.md` ✅, `docs/pwa-spec.md` ✅, `docs/bot-spec-pwa-patch.md` ✅
 
 ### 🆕 ADR-002 — Дедупликация уведомлений (09.06.2026)
 
@@ -127,13 +127,13 @@ email: str | null
 - 🟡 **Kitchen UI в отчёте** — аккордеон «Почему я так думаю?». (~3ч)
 - 🟡 **Заглушки таро-раскладов** — weekly, doubles, portal, yes/no требуют финального тестирования.
 
-### Документация (план обновления из Сессии 18)
-- 🔴 **`docs/platform-strategy.md`** — создать (ADR-001, роли платформ, пути пользователя)
-- 🔴 **`docs/pwa-spec.md`** — создать (экраны, manifest, SW, install UI, Web Push, Web Share)
-- 🟡 **`docs/bot-spec.md`** — обновить (убрать оплату подписки, добавить deep-link как обязательный шаг)
-- 🟡 **`docs/launch-checklist.md`** — обновить (mini.html уже готов, добавить PWA P0 блок)
-- 🟡 **`docs/tarot-integration-plan.md`** — добавить раздел «Таро в PWA»
-- 🟡 **`docs/README.md`** — добавить новые документы, пометить устаревшие
+### Документация (обновление из Сессии 18)
+- ✅ **`docs/platform-strategy.md`** — создан (ADR-001/002/003, роли платформ, пути пользователя)
+- ✅ **`docs/pwa-spec.md`** — создан (manifest, SW, Web Push, install UI, экраны /app/*)
+- ✅ **`docs/bot-spec-pwa-patch.md`** — создан (патч: §1.0, §16, deep-link, link-токен, новые callbacks)
+- ✅ **`docs/launch-checklist.md`** — переписан (YooKassa блокер, PWA P0/P1, статусы, ~206ч общий итог)
+- ✅ **`docs/README.md`** — обновлён (новые документы, карта зависимостей, приоритеты источников)
+- 🟡 **`docs/tarot-integration-plan.md`** — нужно добавить раздел «Таро в PWA» (следующая сессия)
 
 ### Технический долг
 - 🟡 Celery result backend — Redis reconnect warning
@@ -215,12 +215,14 @@ docker compose restart bot celery-worker
 
 | Документ | Что | Часы | Статус |
 |----------|-----|------|--------|
-| `docs/platform-strategy.md` | Стратегия платформ, ADRs, пути пользователя | — | 🔴 Создать |
-| `docs/pwa-spec.md` | Техническая спецификация PWA | — | 🔴 Создать |
+| `docs/platform-strategy.md` | Стратегия платформ, ADRs, пути пользователя | — | ✅ Готов |
+| `docs/pwa-spec.md` | Техническая спецификация PWA | — | ✅ Готов |
+| `docs/bot-spec-pwa-patch.md` | Патч бота под PWA-архитектуру | — | ✅ Готов |
+| `docs/launch-checklist.md` | Актуальный план задач, ~206ч | — | ✅ Обновлён |
+| `docs/README.md` | Индекс документации | — | ✅ Обновлён |
+| `docs/tarot-integration-plan.md` | Добавить раздел «Таро в PWA» | — | 🟡 Следующая сессия |
 | `docs/report-upgrade-sessions.md` | Страница отчёта: 16 шагов | 81 | 📝 В работе (шаги 1-7 частично) |
-| `docs/tarot-integration-plan.md` | Таро на всех поверхностях + PWA | 40+ | 📝 Нужно обновить |
-| `docs/launch-checklist.md` | Доделки: миграция, тесты, деплой | ~30 | 📝 Нужно обновить |
-| PWA P0 (manifest + SW + push) | Техническая основа PWA | 19 | 🔴 Не начато |
+| PWA P0 (manifest + SW + push) | Техническая основа PWA | 22 | 🔴 Не начато |
 | Виральные механики (Спринт 1) | Карточка + реферальная ссылка | ~3 дня | 🔴 Не начато |
 
 ### Ключевые продуктовые решения (зафиксированы)
@@ -305,11 +307,12 @@ docker compose restart bot celery-worker
 
 - **09.06.2026 — Сессия 18** — Claude Sonnet 4.6 (claude.ai)
   - **Стратегическое решение**: PWA как ядро продукта (ADR-001). Telegram = воронка + fallback.
-  - **Разделение ролей платформ**: зафиксированы в ADR-001, ADR-002, ADR-003
-  - **Три ADR**: PWA как ядро, дедупликация уведомлений (`has_pwa_push`), связка через link-токен
-  - **Связка PWA ↔ Telegram**: три точки входа, механика link-токена описана
-  - **Создан `NURA_Platform_Architecture_v2.docx`** — разделение ролей платформ
-  - **Создан `NURA_Viral_Mechanics_v2.docx`** — виральные механики с PWA-слоем
-  - **Аудит документации**: выявлены устаревшие документы, составлен план обновления
-  - **Начало обновления документации**: `STATE.md` обновлён (эта запись)
-  - **Следующие документы к созданию**: `platform-strategy.md`, `pwa-spec.md`
+  - **Три ADR зафиксированы**: ADR-001 (PWA как ядро), ADR-002 (дедупликация уведомлений `has_pwa_push`), ADR-003 (link-токен связка аккаунтов)
+  - **Полное обновление документации сессии 18**:
+    - ✅ Создан `docs/platform-strategy.md` — главный стратегический документ
+    - ✅ Создан `docs/pwa-spec.md` — полная техническая спецификация PWA
+    - ✅ Создан `docs/bot-spec-pwa-patch.md` — патч бота (§1.0, §16, deep-link, callbacks)
+    - ✅ Переписан `docs/launch-checklist.md` — актуальные статусы, PWA P0/P1, ~206ч
+    - ✅ Обновлён `docs/README.md` — карта зависимостей, новые документы
+    - ✅ Обновлён `STATE.md` — ADRs, все статусы актуальны
+  - **Создан `NURA_Platform_Architecture_v2.docx`** и **`NURA_Viral_Mechanics_v2.docx`** для внешнего использования
