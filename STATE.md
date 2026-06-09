@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **09.06.2026 — Сессия 18** — Claude Sonnet 4.6 (claude.ai)
+> Последнее обновление: **09.06.2026 — Сессия 19** — Claude Sonnet 4.6 (claude.ai)
 
 ---
 
@@ -101,6 +101,11 @@ subscription_status: str  # free | premium | blocked
 telegram_id: int | null   # null для веб-пользователей
 web_session_id: str | null
 email: str | null
+has_pwa_push: bool | null
+push_endpoint: str | null
+push_p256dh: str | null
+push_auth: str | null
+referred_by: int | null   # telegram_id пригласившего
 ```
 
 ---
@@ -109,7 +114,7 @@ email: str | null
 
 ### Критический путь (блокирует монетизацию)
 - 🔴 **YooKassa credentials** — shop_id и secret_key в `.env` плейсхолдеры. Без них оплата не работает в проде. Вставить реальные ключи и протестировать webhook.
-- 🟡 **Alembic первая миграция** — таблицы создаются через `init_db.py`. Нужна нормальная Alembic-миграция для prod-деплоя. Добавить поля `has_pwa_push`, `web_session_id`, `email`.
+- ✅ **Alembic миграция** — полная Alembic-цепочка, 6 миграций, head: b2c3d4e5f6a7.
 - 🟡 **Webhook для web_matrix** — `process_webhook()` ветка `web_matrix` написана, но не протестирована end-to-end.
 
 ### Продукт — PWA (новые задачи из ADR-001)
@@ -117,12 +122,18 @@ email: str | null
 - 🔴 **Install UI** — iOS-инструкция (GIF) + Android auto-prompt. (~4ч)
 - 🔴 **Web Push бэкенд** — VAPID ключи, `/api/push/subscribe`, `has_pwa_push` в БД. (~6ч)
 - 🔴 **Дедупликация уведомлений** — `has_pwa_push` флаг в Celery `send_daily_card`. (~3ч)
+- ✅ **has_pwa_push, push_endpoint, push_p256dh, push_auth** — миграция a1b2c3d4e5f6, поля в моделях.
+- ✅ **web_session_id, email в users** — миграция 5a8cac04bf5e.
+- ✅ **has_matrix, has_tarot, compatibility_used** — миграция b3c1d2e4f5a6.
+- ✅ **open_pwa кнопка в боте** — onboarding, payment, главное меню.
+- ✅ **Link-токен связка** — `/api/v1/web/link-telegram` + бот-хендлер `/start link_{TOKEN}`.
+- ✅ **Реферальная система** — таблица referral_rewards, `/start ref_{id}`, уведомление реферера, ссылка в профиле.
 - 🟡 **PWA экраны** — таро, чат, профиль как мобильное приложение. (~40ч)
 - 🟡 **Подписка 390₽ через веб** — `POST /api/v1/web/subscribe`. (~4ч)
-- 🟡 **Link-токен связка** — `/api/v1/web/link-telegram` + бот-хендлер `link_TOKEN`. (~4ч)
 
 ### Продукт — Telegram-бот
-- 🟡 **Виральные механики** — карточка-картинка (Pillow), реферальная ссылка, ограниченная видимость. (Спринт 1, ~3 дня)
+- ✅ **Реферальная система** — `/start ref_{id}`, referral_rewards, уведомление реферера, реф-ссылка в профиле.
+- 🟡 **Виральные механики — карточка-картинка (Pillow) для share** — ограниченная видимость, share-совместимость. (Спринт 1)
 - 🟡 **Kitchen UI в боте** — кнопка «🔍 Показать расчёт». (~2ч)
 - 🟡 **Kitchen UI в отчёте** — аккордеон «Почему я так думаю?». (~3ч)
 - 🟡 **Заглушки таро-раскладов** — weekly, doubles, portal, yes/no требуют финального тестирования.
@@ -151,7 +162,7 @@ email: str | null
 | DeepSeek API Key | ✅ Снят | В .env стоит рабочий, не менять |
 | Отчёт совместимости | ✅ Снят | V2 готов (Сессия 17) |
 | YooKassa credentials | 🔴 Активен | shop_id и secret_key — плейсхолдеры |
-| Alembic миграция | 🟡 Частично | init_db.py работает, нужна нормальная миграция |
+| Alembic миграция | ✅ Снят | полная Alembic-цепочка, 6 миграций, head: b2c3d4e5f6a7 |
 
 ---
 
@@ -223,7 +234,7 @@ docker compose restart bot celery-worker
 | `docs/tarot-integration-plan.md` | Добавить раздел «Таро в PWA» | — | 🟡 Следующая сессия |
 | `docs/report-upgrade-sessions.md` | Страница отчёта: 16 шагов | 81 | 📝 В работе (шаги 1-7 частично) |
 | PWA P0 (manifest + SW + push) | Техническая основа PWA | 22 | 🔴 Не начато |
-| Виральные механики (Спринт 1) | Карточка + реферальная ссылка | ~3 дня | 🔴 Не начато |
+| Виральные механики (Спринт 1) | Карточка + реферальная ссылка | ~3 дня | 🟡 Частично (рефералка готова, карточка — нет) |
 
 ### Ключевые продуктовые решения (зафиксированы)
 
@@ -315,4 +326,14 @@ docker compose restart bot celery-worker
     - ✅ Переписан `docs/launch-checklist.md` — актуальные статусы, PWA P0/P1, ~206ч
     - ✅ Обновлён `docs/README.md` — карта зависимостей, новые документы
     - ✅ Обновлён `STATE.md` — ADRs, все статусы актуальны
-  - **Создан `NURA_Platform_Architecture_v2.docx`** и **`NURA_Viral_Mechanics_v2.docx`** для внешнего использования
+   - **Создан `NURA_Platform_Architecture_v2.docx`** и **`NURA_Viral_Mechanics_v2.docx`** для внешнего использования
+
+- **09.06.2026 — Сессия 19** — Claude Sonnet 4.6 (claude.ai)
+  - Alembic: 4 PWA-поля (has_pwa_push, push_endpoint, push_p256dh, push_auth) — миграция a1b2c3d4e5f6
+  - Аудит БД ↔ models.py: 22+7+8 колонок — полная синхронизация
+  - open_pwa_keyboard() во всех ключевых хендлерах бота (онбординг, покупка, главное меню)
+  - Link-токен механика: POST /generate-link-token + GET /check-link-token + /start link_{TOKEN}
+  - get_redis() синглтон в core/database.py
+  - update_telegram_id() с защитой от конфликтов в UserRepository
+  - Реферальная система: таблица referral_rewards, /start ref_{id}, уведомление реферера, реф-ссылка в профиле
+  - Alembic цепочка: e47590a5c5c1 → add_tarot_and_payment_type → b3c1d2e4f5a6 → 5a8cac04bf5e → a1b2c3d4e5f6 → b2c3d4e5f6a7 (head)
