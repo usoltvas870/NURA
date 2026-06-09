@@ -29,6 +29,13 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
         await _handle_link_token(message, token)
         return
 
+    if args and args.startswith("ref_"):
+        ref_part = args[4:]
+        if ref_part.isdigit():
+            referrer_telegram_id = int(ref_part)
+            if referrer_telegram_id != message.from_user.id:
+                await _handle_referral(message, referrer_telegram_id)
+
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
     user = await user_repo.get_by_telegram_id(message.from_user.id)
@@ -191,6 +198,39 @@ async def callback_sample_report(callback: CallbackQuery) -> None:
             [InlineKeyboardButton(text="← Назад", callback_data="my_matrix")],
         ])
     )
+
+
+async def _handle_referral(message: Message, referrer_telegram_id: int) -> None:
+    try:
+        from core.database import get_async_sessionmaker
+        from core.repositories.referral import ReferralRepository
+
+        session_factory = get_async_sessionmaker()
+        user_repo = UserRepository(session_factory)
+        ref_repo = ReferralRepository(session_factory)
+
+        current_user = await user_repo.get_by_telegram_id(message.from_user.id)
+        referrer = await user_repo.get_by_telegram_id(referrer_telegram_id)
+
+        if current_user and referrer:
+            set_ok = await user_repo.set_referred_by(current_user.id, referrer_telegram_id)
+            if set_ok:
+                await ref_repo.create_reward(
+                    referrer_id=referrer.id,
+                    referred_id=current_user.id,
+                    event="registration",
+                )
+                try:
+                    await message.bot.send_message(
+                        referrer_telegram_id,
+                        "👥 По твоей ссылке зарегистрировался новый пользователь!\n\n"
+                        "Когда он купит матрицу — ты получишь бонус.",
+                    )
+                except Exception:
+                    pass
+
+    except Exception:
+        logger.exception("Referral handling error")
 
 
 fallback_router = Router()

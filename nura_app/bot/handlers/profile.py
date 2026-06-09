@@ -84,6 +84,14 @@ async def _show_profile(message: Message, user, reports) -> None:
         text = profile_mini_text(name, user.main_archetype, reports_count, birth_date=birth_date)
         kb = profile_keyboard(has_matrix=True)
 
+    if user.telegram_id:
+        ref_link = f"https://t.me/{settings.bot_username}?start=ref_{user.telegram_id}"
+        text += (
+            f"\n\n👥 <b>Твоя реферальная ссылка:</b>\n"
+            f"<code>{ref_link}</code>\n"
+            "Поделись с другом — получи бонус когда он купит матрицу."
+        )
+
     await message.answer(text, reply_markup=kb)
 
 

@@ -160,6 +160,19 @@ class UserRepository(SQLAlchemyRepository[User]):
         )
         return await self.add(user)
 
+    async def set_referred_by(
+        self,
+        user_id: uuid.UUID,
+        referrer_telegram_id: int,
+    ) -> bool:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None or user.referred_by is not None:
+                return False
+            user.referred_by = referrer_telegram_id
+            await session.commit()
+            return True
+
     async def update_telegram_id(
         self,
         user_id: uuid.UUID,
