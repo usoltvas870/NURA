@@ -118,6 +118,7 @@ class FullReportResult(BaseModel):
         ...,
         description="карта здоровья: 7 чакр с детальным разбором — состояние, причина дисбаланса, органы под управлением, практика восстановления (на основе арканов матрицы)",
     )
+    dashboard_insights: dict | None = None
 
 
 class KitchenEntry(BaseModel):

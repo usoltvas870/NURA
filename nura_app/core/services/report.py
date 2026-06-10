@@ -387,6 +387,7 @@ class ReportService:
             "karmic_lesson_text": karmic_lesson_text,
             "analysis": analysis,
             "kitchen_analysis": kitchen_analysis,
+            "dashboard_insights": analysis.get("dashboard_insights") or {},
             "chakra_data": chakra_data,
             "life_periods": {"nodes": life_periods_nodes} if life_periods_nodes else {},
             "daily_tarot_arcana": daily_tarot_arcana,
