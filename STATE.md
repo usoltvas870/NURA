@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **10.06.2026 — Сессия 33** — DeepSeek V4 Pro
+> Последнее обновление: **10.06.2026 — Сессия 34** — DeepSeek V4 Pro
 
 ---
 
@@ -80,7 +80,7 @@
 - ✅ Мини-разбор в браузере — `mini.html` + `/api/v1/web/mini-analysis`
 - ✅ Оплата матрицы через веб — `create_web_matrix_payment()`, `/api/v1/web/create-payment`
 - ✅ Полный AI-отчёт V2 — генерация 15 секций, HTML/PDF, сайдбар, @media print, психоблоки, карта здоровья
-- ✅ Промпт full_report.txt — min 400 слов/поле, max_tokens 32000, 2 параллельных AI-запроса (Сессия 33)
+- ✅ Промпт full_report.txt — 2 параллельных запроса (Part A + Part B), min 400-600 слов/поле, max_tokens 32000, результат ~11900 слов (Сессия 34)
 - ✅ Страница отчёта `/report/{token}` — деплоена
 - ✅ Kitchen-слой бэкенд — AI-генерация 12 полей, хранение в БД (JSONB), API `/report/{token}/kitchen`
 - ✅ Kitchen-аккордеон в отчёте V2 («Почему я так думаю?» в S3–S13) — Сессия 32
@@ -503,3 +503,10 @@ docker compose restart bot celery-worker
   - _process_full_report() получает user_name ДО AI-вызова
   - CoT-инструкция обновлена: 10 шагов, акцент на объём, персонализация через {name}
   - Целевой объём AI-текста: ~10000+ слов (было ~2600)
+
+- **10.06.2026 — Сессия 34** — DeepSeek V4 Pro
+  - full_report.txt переработан: системная роль NURA, {name}+{birth_date}, min 400-600 слов на поле, запрет эзотерического жаргона
+  - ai.py: 2 параллельных запроса asyncio.gather (Part A 9 полей + Part B 8 полей)
+  - max_tokens 32000, temperature 0.8, top_p 0.95
+  - Результат: 11903 слов (было 4896) — рост ×2.4, паритет с рынком
+  - 7/7 тестов, ruff clean, деплой api+celery-worker+bot
