@@ -100,10 +100,13 @@ def tarot_spheres_keyboard() -> InlineKeyboardMarkup:
         ]
     )
 
+
+
 def tarot_result_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text= 🌐 Открыть в PWA, url=https://nura-ai.ru/app/tarot)],
-            [InlineKeyboardButton(text=← К раскладам, callback_data=tarot_menu)],
+            [InlineKeyboardButton(text="🌐 Открыть в PWA", url="https://nura-ai.ru/app/tarot")],
+            [InlineKeyboardButton(text="← К раскладам", callback_data="tarot_menu")],
         ]
     )
+

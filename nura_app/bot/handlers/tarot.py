@@ -227,7 +227,7 @@ async def show_tarot_weekly(callback: CallbackQuery) -> None:
         f"🌀 Дух \u2014 {s.get('card_name', '')}\n"
         f"{s.get('interpretation', '')}\n"
         f"Практика: {s.get('practice', '')}\n\n"
-        f"{'\u2500' * 16}\n"
+        f"{'─' * 16}\n"
         f"{overall}"
     )
     await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
