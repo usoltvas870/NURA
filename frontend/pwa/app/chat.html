@@ -183,6 +183,14 @@
     @keyframes pulse { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
   </style>
   <script src="/metrika.js" defer></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js', {scope: '/'})
+          .catch(function(e) { console.warn('SW:', e); });
+      });
+    }
+  </script>
 </head>
 <body>
   <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>

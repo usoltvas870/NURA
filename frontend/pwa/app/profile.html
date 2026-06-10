@@ -229,6 +229,14 @@
     .empty-reports-icon { font-size:36px; margin-bottom:12px; }
   </style>
   <script src="/metrika.js" defer></script>
+<script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function() {
+        navigator.serviceWorker.register("/service-worker.js", {scope: "/"})
+          .catch(function(e) { console.warn("SW:", e); });
+      });
+    }
+  </script>
 </head>
 <body>
   <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
