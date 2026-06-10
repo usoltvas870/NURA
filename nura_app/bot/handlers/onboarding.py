@@ -21,7 +21,7 @@ from core.database import get_async_sessionmaker
 from core.models import ReportType
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
-from core.services.matrix import MatrixService
+from core.services.matrix import ARCANA, MatrixService
 from core.tasks import generate_mini_report
 
 logger = logging.getLogger(__name__)
@@ -156,12 +156,70 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
             InlineKeyboardButton(text="👁 Посмотреть пример отчёта", callback_data="sample_report")
         ])
 
+    if mini_report and mini_report.matrix_data:
+        buttons.append([InlineKeyboardButton(text="🔍 Показать расчёт", callback_data="show_kitchen")])
+
     buttons.append([InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")])
 
     await callback.message.edit_text(
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
     )
+
+
+def _kitchen_from_matrix(matrix_data: dict) -> str:
+    birth_date = matrix_data.get("birth_date", "")
+    center = matrix_data.get("center", 0)
+    portrait_zone = matrix_data.get("portrait_zone", 0)
+    relationship_line = matrix_data.get("relationship_line", [])
+    karmic_tail = matrix_data.get("karmic_tail", [])
+
+    center_info = ARCANA.get(center, {})
+    portrait_info = ARCANA.get(portrait_zone, {})
+
+    lines = ["🔍 Как NURA считала твой разбор:"]
+    if birth_date:
+        lines.append(f"Дата: {birth_date}")
+    lines.append(
+        f"Центр матрицы: Аркан {center} ({center_info.get('name', '...')}) "
+        f"→ {center_info.get('key', '')}"
+    )
+    if relationship_line:
+        lines.append(
+            f"Линия личности: {' → '.join(str(v) for v in relationship_line)}"
+        )
+    if karmic_tail:
+        lines.append(
+            f"Линия кармы: {' → '.join(str(v) for v in karmic_tail)}"
+        )
+    if portrait_zone and portrait_info:
+        lines.append(
+            f"Цель года: {portrait_zone} ({portrait_info.get('name', '...')})"
+        )
+    lines.append("")
+    lines.append("Именно эти позиции легли в основу твоего разбора ✶")
+    return "\n".join(lines)
+
+
+@router.callback_query(F.data == "show_kitchen")
+async def show_kitchen_callback(callback: CallbackQuery) -> None:
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    report_repo = ReportRepository(session_factory)
+    user = await user_repo.get_by_telegram_id(callback.from_user.id)
+
+    if not user:
+        await callback.answer("Пользователь не найден", show_alert=True)
+        return
+
+    mini_report = await report_repo.get_by_user_id_and_type(user.id, ReportType.MINI)
+    if not mini_report or not mini_report.matrix_data:
+        await callback.answer("Нет данных для расчёта", show_alert=True)
+        return
+
+    text = _kitchen_from_matrix(mini_report.matrix_data)
+    await callback.message.edit_text(text, reply_markup=open_pwa_keyboard())
+    await callback.answer()
 
 
 @router.callback_query(F.data == "calculate_matrix")
