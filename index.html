@@ -2,19 +2,9 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <!-- PWA -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0A0E0C">
-  <!-- iOS -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="NURA">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <!-- Service Worker -->
-  <script>if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));</script>
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NURA AI — Матрица Судьбы и Таро-ритуалы</title>
   <meta name="description" content="Telegram-бот NURA: глубокий разбор Матрицы Судьбы и ежедневные таро-ритуалы на основе твоего цифрового кода. Бесплатный расчёт по дате рождения." />
   <!-- Yandex.Metrika counter -->
@@ -30,9 +20,10 @@
   <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
   <!-- /Yandex.Metrika counter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
     :root {
       /* Базовая палитра */
       --bg:        #0A0E0C;
@@ -330,6 +321,54 @@
     .nav-cta { display: flex; align-items: center; gap: 12px; }
     .nav-cta .btn { min-height: 42px; font-size: 14px; padding: 0 18px; }
 
+    /* Mobile burger + drawer */
+    .nav-burger {
+      display: none;
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      border: 1px solid var(--line-strong);
+      background: transparent;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .nav-burger span {
+      width: 18px; height: 1.5px;
+      background: var(--ink);
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+    .nav-burger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    .nav-burger.open span:nth-child(2) { opacity: 0; }
+    .nav-burger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+    .nav-drawer {
+      display: none;
+      flex-direction: column;
+      gap: 0;
+      padding: 8px 20px 16px;
+      border-top: 1px solid var(--line);
+    }
+    .nav-drawer.open { display: flex; }
+    .nav-drawer a {
+      padding: 14px 4px;
+      font-size: 15px;
+      color: var(--ink-soft);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-drawer a .swatch { width: 8px; height: 8px; border-radius: 50%; }
+    .nav-drawer a .swatch.m { background: var(--m-leaf); }
+    .nav-drawer a .swatch.t { background: var(--t-accent); }
+    .nav-drawer .btn {
+      margin-top: 14px;
+      border-bottom: none;
+      justify-content: center;
+    }
+
     /* HERO */
     .hero {
       padding: 56px 0 32px;
@@ -403,6 +442,7 @@
       -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 58%, rgba(0,0,0,0.7) 78%, transparent 100%);
               mask-image: radial-gradient(circle at 50% 50%, #000 58%, rgba(0,0,0,0.7) 78%, transparent 100%);
       filter: contrast(1.05) saturate(1.08) brightness(1.02);
+    }
     }
 
     /* Product split cards */
@@ -495,6 +535,15 @@
       color: var(--ink-mute);
       font-weight: 400;
     }
+    .ps-jump {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      transition: transform 0.25s ease;
+    }
+    .ps-card.m .ps-jump { color: var(--m-accent); }
+    .ps-card.t .ps-jump { color: var(--t-accent); }
+    .ps-card:hover .ps-jump { transform: translateX(4px); }
 
     /* PROBLEM block */
     section { padding: 100px 0; }
@@ -779,6 +828,15 @@
       color: var(--ink-mute);
       font-size: 13px;
     }
+    .offer-textlink {
+      text-align: center;
+      font-size: 13.5px;
+      color: var(--ink-soft);
+      letter-spacing: 0.01em;
+      transition: color 0.2s ease;
+      align-self: center;
+    }
+    .offer-textlink:hover { color: var(--m-accent); }
 
     .offer h3 {
       font-size: clamp(28px, 3vw, 38px);
@@ -935,6 +993,118 @@
     @media (max-width: 980px) {
       .report-grid { grid-template-columns: 1fr; }
       .report-sample { padding: 72px 0; }
+    }
+
+    /* WHAT'S INSIDE THE REPORT — 6-card numbered grid */
+    .inside-report {
+      padding: 100px 0;
+      background: var(--bg);
+      position: relative;
+    }
+    .inside-report::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 50% 40% at 50% 0%, rgba(201, 165, 92, 0.07), transparent 65%);
+      pointer-events: none;
+    }
+    .inside-report .container { position: relative; z-index: 1; }
+    .inside-report .section-head { margin-bottom: 46px; }
+    .inside-report .ir-sub {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 18px auto 0;
+      color: var(--m-accent);
+      font-size: 13.5px;
+      letter-spacing: 0.02em;
+      font-weight: 500;
+    }
+    .inside-report .ir-sub::before {
+      content: "";
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--m-accent);
+    }
+
+    .ir-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    .ir-card {
+      padding: 32px 30px 30px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(201, 165, 92, 0.26);
+      background: linear-gradient(160deg, rgba(201, 165, 92, 0.07) 0%, rgba(201, 165, 92, 0.018) 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s ease;
+    }
+    .ir-card.in { opacity: 1; transform: translateY(0); }
+    .ir-card:hover { border-color: rgba(201, 165, 92, 0.5); }
+    .ir-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 30px; right: 30px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201, 165, 92, 0.55), transparent);
+      opacity: 0.7;
+    }
+    .ir-num {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.26em;
+      color: var(--m-accent);
+    }
+    .ir-card h4 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 27px;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+    .ir-card p {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 14px;
+      line-height: 1.62;
+      font-weight: 300;
+    }
+    .ir-actions {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 46px;
+    }
+    .ir-textlink {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--m-accent);
+      letter-spacing: 0.01em;
+      padding: 10px 4px;
+      border-bottom: 1px solid rgba(201, 165, 92, 0.35);
+      transition: border-color 0.2s ease, gap 0.2s ease;
+    }
+    .ir-textlink:hover { border-color: var(--m-accent); gap: 12px; }
+
+    @media (max-width: 980px) {
+      .inside-report { padding: 72px 0; }
+      .ir-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .ir-grid { grid-template-columns: 1fr; }
+      .ir-actions .btn { width: 100%; }
     }
 
     /* TAROT card peek */
@@ -1255,8 +1425,15 @@
     .final-paid-row .btn {
       min-height: 44px;
       padding: 0 20px;
-      font-size: 14px;
     }
+    .final-textlink {
+      font-size: 14px;
+      color: var(--ink-soft);
+      border-bottom: 1px solid var(--line-strong);
+      padding-bottom: 2px;
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+    .final-textlink:hover { color: var(--m-accent); border-color: var(--m-accent); }
     .final-or {
       color: var(--ink-mute);
       font-size: 13px;
@@ -1294,6 +1471,7 @@
     @media (max-width: 980px) {
       .nav-products { display: none; }
       .nav-cta .btn-ghost-m { display: none; }
+      .nav-burger { display: flex; }
       .hero-inner { grid-template-columns: 1fr; gap: 32px; min-height: 0; }
       .hero-image-wrap { aspect-ratio: 1 / 1; max-width: 380px; margin: 0 auto; max-height: 380px; }
       .hero-text { order: 0; }
@@ -1336,6 +1514,17 @@
     .hero-inner > * { animation: fadeUp 0.7s ease both; }
     .hero-inner > *:nth-child(2) { animation-delay: 0.1s; }
 
+    /* Scroll reveal for cards */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+    }
+
   </style>
 </head>
 <body>
@@ -1353,9 +1542,17 @@
         <a href="#faq" style="color: var(--ink-mute);">FAQ</a>
       </nav>
       <div class="nav-cta">
-        <a class="btn btn-ghost-m" href="#matrix">Узнать о Матрице</a>
-        <a class="btn btn-m" href="/app" rel="noopener">Открыть NURA</a>
+        <a class="btn btn-ghost-m" href="/app">Открыть NURA</a>
+        <button class="nav-burger" id="navBurger" aria-label="Меню" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
       </div>
+    </div>
+    <div class="nav-drawer" id="navDrawer">
+      <a href="#matrix"><span class="swatch m"></span>Матрица Судьбы</a>
+      <a href="#tarot"><span class="swatch t"></span>Таро-ритуалы</a>
+      <a href="#faq">FAQ</a>
+      <a class="btn btn-ghost-m" href="/app">Открыть NURA</a>
     </div>
   </header>
 
@@ -1365,7 +1562,7 @@
     <section class="hero">
       <div class="container hero-inner">
         <div class="hero-text">
-          <span class="eyebrow"><span class="dot"></span>Telegram-бот · Самопознание 2.0</span>
+          <span class="eyebrow"><span class="dot"></span>AI · Самопознание 2.0</span>
           <h1>
             Твой цифровой код<br>
             <span class="accent-m">судьбы</span> и энергия <span class="accent-t">дня</span>
@@ -1377,13 +1574,10 @@
 
           <div class="hero-cta">
             <div class="hero-cta-row">
-              <a class="btn btn-free btn-lg" href="/mini">
+              <a class="btn btn-free btn-lg" href="/mini.html">
                 ✨ Попробовать бесплатно
               </a>
-              <a class="btn btn-free btn-lg" href="/app" rel="noopener" style="">
-                🌐 Открыть NURA
-              </a>
-              <span class="hero-cta-hint">мини-разбор бесплатно · без регистрации</span>
+              <span class="hero-cta-hint">мини-разбор · без регистрации · 2 минуты</span>
             </div>
           </div>
         </div>
@@ -1427,7 +1621,7 @@
             </div>
             <div class="ps-meta">
               <span class="ps-price">890 ₽ <small>· разово</small></span>
-              <span class="btn btn-ghost-m" style="min-height: 44px; padding: 0 18px; font-size: 13px;">Подробнее →</span>
+              <span class="ps-jump">Матрица Судьбы →</span>
             </div>
           </a>
 
@@ -1450,7 +1644,7 @@
             </div>
             <div class="ps-meta">
               <span class="ps-price">390 ₽ <small>· в месяц</small></span>
-              <span class="btn btn-ghost-t" style="min-height: 44px; padding: 0 18px; font-size: 13px;">Подробнее →</span>
+              <span class="ps-jump">Таро-ритуалы →</span>
             </div>
           </a>
         </div>
@@ -1560,12 +1754,10 @@
               <div class="ob-meta">Разовая покупка · доступ навсегда</div>
               <div class="ob-price">890 ₽<small>/ навсегда</small></div>
             </div>
-            <a class="btn btn-m btn-lg" href="/app">
-              Купить Матрицу
+            <a class="btn btn-m btn-lg" href="/mini.html">
+              Купить Матрицу — 890 ₽
             </a>
-            <a class="btn btn-ghost-m" href="/app">
-              Сначала бесплатный разбор
-            </a>
+            <a class="offer-textlink" href="/mini.html">← Сначала попробуй бесплатно</a>
             <div class="ob-meta" style="text-align: center;">🔒 Только дата рождения. Без спама.</div>
           </div>
         </div>
@@ -1638,14 +1830,55 @@
         </div>
 
         <div class="report-cta">
-          <a class="btn btn-m btn-lg" href="/app">
-            Купить Матрицу — 890 ₽
-          </a>
-          <span class="report-hint">Полный отчёт — 15 секций, 30–50 страниц, PDF навсегда</span>
-          <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-            <a href="/mini" class="btn btn-m">✨ Получить свой разбор — бесплатно</a>
-            <a href="/app" class="btn btn-ghost-m">🌐 Открыть NURA</a>
+          <span class="report-hint">Полный отчёт — 17 секций, 30–50 страниц, PDF навсегда</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHAT'S INSIDE THE REPORT -->
+    <section class="inside-report" id="inside-report">
+      <div class="container">
+        <div class="section-head">
+          <span class="eyebrow" style="color: var(--m-accent);">Что внутри разбора</span>
+          <h2 style="margin-top: 16px;">Шесть опор твоего <span class="accent-m" style="color: var(--m-leaf); font-style: italic;">отчёта</span></h2>
+          <span class="ir-sub">17 секций · персонализировано под твою дату рождения</span>
+        </div>
+
+        <div class="ir-grid">
+          <div class="ir-card">
+            <span class="ir-num">01</span>
+            <h4>Архетип личности</h4>
+            <p>Кто ты по структуре характера, а не по гороскопу. Как ты принимаешь решения, в чём твоя сила и за что ты сам себя обесцениваешь.</p>
           </div>
+          <div class="ir-card">
+            <span class="ir-num">02</span>
+            <h4>Кармический хвост</h4>
+            <p>Что ты принёс из прошлого как готовую привычку — и какой урок будет повторяться, пока ты его не проживёшь до конца.</p>
+          </div>
+          <div class="ir-card">
+            <span class="ir-num">03</span>
+            <h4>Психологические блоки</h4>
+            <p>Внутренние запреты, которые включаются автоматически. Где ты тормозишь себя сам и какое убеждение стоит за этим тормозом.</p>
+          </div>
+          <div class="ir-card">
+            <span class="ir-num">04</span>
+            <h4>Деньги и карьера</h4>
+            <p>Твоя естественная стратегия дохода, конкретные профессии под твой склад и денежные блоки — с примерами из реальной жизни.</p>
+          </div>
+          <div class="ir-card">
+            <span class="ir-num">05</span>
+            <h4>Прогноз на год</h4>
+            <p>Активные периоды на 2026–2028 по трём сферам: отношения, деньги, развитие. Не предсказание — карта твоих ближайших циклов.</p>
+          </div>
+          <div class="ir-card">
+            <span class="ir-num">06</span>
+            <h4>7 дней практик</h4>
+            <p>Семь конкретных заданий на неделю — тело, ум, дух. Маленькие действия, которые начинают сдвигать привычный сценарий.</p>
+          </div>
+        </div>
+
+        <div class="ir-actions">
+          <a class="ir-textlink" href="/sample-report.html">👁 Посмотреть образец отчёта →</a>
         </div>
       </div>
     </section>
@@ -1722,11 +1955,8 @@
               <div class="ob-meta">Подписка · отмена в один клик</div>
               <div class="ob-price">390 ₽<small>/ месяц</small></div>
             </div>
-            <a class="btn btn-t btn-lg" href="/app">
-              Подключить Таро
-            </a>
-            <a class="btn btn-ghost-t" href="/app">
-              Получить пробную карту
+            <a class="btn btn-t btn-lg" href="/app/tarot">
+              Подключить Таро — 390 ₽/мес
             </a>
             <div class="ob-meta" style="text-align: center;">Первая карта дня — бесплатно.</div>
           </div>
@@ -1745,15 +1975,11 @@
         <div>
           <span class="eyebrow">Один + один = глубже</span>
           <h2 style="margin: 14px 0 18px;">Матрица — это карта.<br>Таро — компас на каждый день.</h2>
-          <p class="lead" style="margin-bottom: 28px;">
+          <p class="lead" style="margin-bottom: 0;">
             Матрица показывает структуру: кто ты, какие сценарии у тебя зашиты, куда стоит идти.
             Таро добавляет динамику: какая энергия сегодня, что выбрать сейчас, как пройти неделю.
             Вместе они работают как личный навигатор.
           </p>
-          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <a class="btn btn-m" href="/app">Купить Матрицу — 890 ₽</a>
-            <a class="btn btn-t" href="/app">Таро — 390 ₽/мес</a>
-          </div>
         </div>
       </div>
     </section>
@@ -1895,17 +2121,13 @@
           и реши, что тебе ближе.
         </p>
         <div class="final-actions" style="flex-direction: column; align-items: center; gap: 18px;">
-          <a class="btn btn-free btn-lg" href="/mini" style="min-width: 280px;">
+          <a class="btn btn-free btn-lg" href="/mini.html" style="min-width: 280px;">
             ✨ Начать бесплатно
           </a>
           <div class="final-paid-row">
-            <a class="btn btn-ghost-m" href="/app">
-              Матрица · 890 ₽
-            </a>
+            <a class="final-textlink" href="/mini.html">Матрица · 890 ₽</a>
             <span class="final-or">или</span>
-            <a class="btn btn-ghost-t" href="/app">
-              Таро · 390 ₽/мес
-            </a>
+            <a class="final-textlink" href="/app/tarot">Таро · 390 ₽/мес</a>
           </div>
         </div>
         <div class="final-note">🔒 Только дата рождения. Никакого спама. Без карты.</div>
@@ -1918,7 +2140,7 @@
     <div class="container footer-inner">
       <div class="logo"><span class="logo-mark">N</span><span>NURA AI</span></div>
       <div class="footer-links">
-        <a href="/app">NURA App</a>
+        <a href="https://t.me/ai_nura_bot" target="_blank" rel="noopener">Telegram-бот</a>
         <a href="https://t.me/nura_ai_channel" target="_blank" rel="noopener">Канал</a>
         <a href="#">Политика конфиденциальности</a>
         <a href="#">Контакты</a>
@@ -1952,6 +2174,67 @@
         });
       });
     });
+    // Reveal "Что внутри разбора" cards on scroll
+    (function() {
+      var cards = document.querySelectorAll('.ir-card');
+      if (!cards.length) return;
+      if (!('IntersectionObserver' in window)) {
+        cards.forEach(function(c) { c.classList.add('in'); });
+        return;
+      }
+      var io = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            var el = entry.target;
+            var i = Array.prototype.indexOf.call(cards, el);
+            el.style.transitionDelay = (i % 3) * 0.09 + 's';
+            el.classList.add('in');
+            io.unobserve(el);
+          }
+        });
+      }, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });
+      cards.forEach(function(c) { io.observe(c); });
+    })();
+
+    // Mobile nav drawer
+    (function() {
+      var burger = document.getElementById('navBurger');
+      var drawer = document.getElementById('navDrawer');
+      if (!burger || !drawer) return;
+      function close() {
+        drawer.classList.remove('open');
+        burger.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+      }
+      burger.addEventListener('click', function() {
+        var open = drawer.classList.toggle('open');
+        burger.classList.toggle('open', open);
+        burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      drawer.addEventListener('click', function(e) {
+        if (e.target.closest('a')) close();
+      });
+    })();
+
+    // Generic scroll-reveal for cards across the page
+    (function() {
+      var targets = document.querySelectorAll('.problem, .inside-card, .report-page, .step, .review, .tarot-card');
+      if (!targets.length) return;
+      if (!('IntersectionObserver' in window)) {
+        targets.forEach(function(t) { t.classList.add('in'); });
+        return;
+      }
+      targets.forEach(function(t) { t.classList.add('reveal'); });
+      var io = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -6% 0px' });
+      targets.forEach(function(t) { io.observe(t); });
+    })();
   </script>
 </body>
 </html>
