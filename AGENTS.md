@@ -176,6 +176,29 @@ MCP-серверы подключаются автоматически из `.op
 
 В `.opencode/agents/` есть специализированные сабагенты. Используй их через Task tool для сложных подзадач вместо того, чтобы делать всё самому.
 
+## Slash-команды
+
+| Команда | Что делает | Агент |
+|---------|-----------|-------|
+| `/plan` | Декомпозиция задачи на шаги | planner |
+| `/tdd` | TDD-цикл (тест → код → рефактор) | build |
+| `/security` | Security-аудит по чеклисту | security-reviewer |
+| `/build-fix` | Исправление ошибки ruff/pytest/alembic | build-resolver |
+| `/code-review` | Code review по приоритетам | code-reviewer |
+| `/db-review` | Аудит SQL запросов (N+1, индексы) | database-reviewer |
+
+## Skills (загружены в контекст)
+
+| Skill | Назначение |
+|-------|-----------|
+| `fastapi-patterns` | Архитектура NURA: routes→services→repositories→models, DI, Pydantic v2, async SQLAlchemy |
+| `security-review` | 10 категорий security-аудита: secrets, SQLi, XSS, auth, AI prompt injection |
+| `tdd-workflow` | Red-Green-Refactor для pytest-asyncio |
+| `error-handling` | Domain exceptions, error handling в API и bot слоях |
+| `context-budget` | Оптимизация токенов — не тащи лишнее, используй правильную модель |
+
+Все скиллы в `.opencode/skills/`. Команды в `.opencode/commands/`.
+
 ## VPS Access
 
 Проект NURA развёрнут на отдельном VPS.

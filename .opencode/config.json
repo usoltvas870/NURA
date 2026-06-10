@@ -1,0 +1,110 @@
+{
+  "model": "deepseek/deepseek-v4-flash",
+  "small_model": "deepseek/deepseek-v4-flash",
+  "default_agent": "build",
+  "instructions": [
+    "AGENTS.md",
+    ".opencode/skills/security-review/SKILL.md",
+    ".opencode/skills/fastapi-patterns/SKILL.md",
+    ".opencode/skills/tdd-workflow/SKILL.md",
+    ".opencode/skills/context-budget/SKILL.md",
+    ".opencode/skills/error-handling/SKILL.md"
+  ],
+  "agent": {
+    "build": {
+      "description": "Дефолтный агент для разработки на Python/FastAPI",
+      "mode": "primary",
+      "model": "deepseek/deepseek-v4-flash",
+      "prompt_file": "",
+      "tools": ["read", "write", "edit", "bash", "grep", "glob", "task", "todowrite"]
+    },
+    "code-reviewer": {
+      "description": "Code review по Review Priority из AGENTS.md",
+      "mode": "subagent",
+      "model": "deepseek/deepseek-v4-pro",
+      "prompt": "Ты code-reviewer. Проверяй код по Review Priority: 🔴 blocker (security, data loss, race), 🟡 suggestion (validation, naming, test), 💭 nit. Используй security-review SKILL.md чеклист. Формат: 🔴 проблема: файл:строка → фикс. Никаких объяснений.",
+      "tools": ["read", "grep", "glob"]
+    },
+    "planner": {
+      "description": "Декомпозиция задач на шаги",
+      "mode": "subagent",
+      "model": "deepseek/deepseek-v4-pro",
+      "prompt": "Ты planner. Разбей задачу на шаги. Каждый шаг: файлы → изменения → тесты → проверка. Используй /plan команду. Формат: - [ ] шаг: описание. Никаких объяснений.",
+      "tools": ["read", "grep", "glob"]
+    },
+    "security-reviewer": {
+      "description": "Security аудит по чеклисту",
+      "mode": "subagent",
+      "model": "deepseek/deepseek-v4-pro",
+      "prompt": "Ты security-reviewer. Проверяй код по security-review SKILL.md — все 10 категорий. 🔴 blocker при нарушении. Формат: 🔴 [CRIT] проблема → фикс. Никаких объяснений.",
+      "tools": ["read", "grep", "glob"]
+    },
+    "database-reviewer": {
+      "description": "Оптимизация SQLAlchemy запросов",
+      "mode": "subagent",
+      "model": "deepseek/deepseek-v4-pro",
+      "prompt": "Ты database-reviewer для PostgreSQL 16. Ищи: N+1 запросы, missing indexes, лишние JOIN, неиспользованные eager load, неправильные типы колонок, синхронные запросы в async коде. Формат: 🔴 проблема: файл:строка → фикс.",
+      "tools": ["read", "grep", "glob"]
+    },
+    "build-resolver": {
+      "description": "Исправление ошибок ruff/pytest/alembic",
+      "mode": "subagent",
+      "model": "deepseek/deepseek-v4-flash",
+      "prompt": "Ты build-resolver. Прочитай ошибку. Найди первопричину. Исправь минимально. Проверь что проходит. Используй /build-fix команду.",
+      "tools": ["read", "edit", "bash", "grep", "glob"]
+    }
+  },
+  "command": {
+    "plan": {
+      "description": "Декомпозировать задачу на шаги",
+      "agent": "planner",
+      "args": ["task"],
+      "prompt_file": ".opencode/commands/plan.md"
+    },
+    "tdd": {
+      "description": "Написать тесты + код по TDD",
+      "agent": "build",
+      "args": ["feature"],
+      "prompt_file": ".opencode/commands/tdd.md"
+    },
+    "security": {
+      "description": "Запустить security-аудит",
+      "agent": "security-reviewer",
+      "args": ["path"],
+      "prompt_file": ".opencode/commands/security.md"
+    },
+    "build-fix": {
+      "description": "Исправить ошибку сборки/теста",
+      "agent": "build-resolver",
+      "args": ["error"],
+      "prompt_file": ".opencode/commands/build-fix.md"
+    },
+    "code-review": {
+      "description": "Запросить code review",
+      "agent": "code-reviewer",
+      "args": ["path"]
+    },
+    "db-review": {
+      "description": "Аудит SQL запросов",
+      "agent": "database-reviewer",
+      "args": ["path"]
+    }
+  },
+  "rules": [
+    {
+      "name": "no-explain-code",
+      "condition": "response_contains_code",
+      "rule": "Не объясняй код. Выдай только код и путь к файлу."
+    },
+    {
+      "name": "no-greetings",
+      "condition": "conversation_start",
+      "rule": "Не начинай с приветствий. Сразу ответ по делу."
+    },
+    {
+      "name": "ruff-before-stop",
+      "condition": "before_stop",
+      "rule": "Перед завершением проверь ruff check ."
+    }
+  ]
+}
