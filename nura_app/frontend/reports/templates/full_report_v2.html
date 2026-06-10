@@ -1891,10 +1891,12 @@
     <li><a href="#s6"><span class="toc-num">06</span>Предназначение</a></li>
     <li><a href="#s7"><span class="toc-num">07</span>Таланты и сила</a></li>
     <li><a href="#s8"><span class="toc-num">08</span>Теневая сторона</a></li>
+    <li><a href="#health"><span class="toc-num">✦</span>Карта здоровья</a></li>
     <li><a href="#s9"><span class="toc-num">09</span>Отношения</a></li>
     <li><a href="#s10"><span class="toc-num">10</span>Деньги и карьера</a></li>
     <li><a href="#s11"><span class="toc-num">11</span>Сценарии</a></li>
     <li><a href="#s12"><span class="toc-num">12</span>Внутренние конфликты</a></li>
+    <li><a href="#psychological-blocks"><span class="toc-num">✦</span>Психоблоки</a></li>
     <li><a href="#s13"><span class="toc-num">13</span>Циклы и прогноз</a></li>
     <li><a href="#s14"><span class="toc-num">14</span>Семь дней</a></li>
     <li><a href="#s15"><span class="toc-num">15</span>Карта дня</a></li>
@@ -1930,10 +1932,12 @@
         <li><a href="#s6"  data-target="s6"><span class="num">06</span><span>Предназначение</span></a></li>
         <li><a href="#s7"  data-target="s7"><span class="num">07</span><span>Таланты и сила</span></a></li>
         <li><a href="#s8"  data-target="s8"><span class="num">08</span><span>Теневая сторона</span></a></li>
+        <li><a href="#health" data-target="health"><span class="num">✦</span><span>Карта здоровья</span></a></li>
         <li><a href="#s9"  data-target="s9"><span class="num">09</span><span>Отношения</span></a></li>
         <li><a href="#s10" data-target="s10"><span class="num">10</span><span>Деньги и карьера</span></a></li>
         <li><a href="#s11" data-target="s11"><span class="num">11</span><span>Сценарии</span></a></li>
         <li><a href="#s12" data-target="s12"><span class="num">12</span><span>Внутренние конфликты</span></a></li>
+        <li><a href="#psychological-blocks" data-target="psychological-blocks"><span class="num">✦</span><span>Психоблоки</span></a></li>
         <li><a href="#s13" data-target="s13"><span class="num">13</span><span>Циклы и прогноз</span></a></li>
         <li><a href="#s14" data-target="s14"><span class="num">14</span><span>Семь дней</span></a></li>
         <li><a href="#s15" data-target="s15"><span class="num">15</span><span>Карта дня</span></a></li>
@@ -2173,6 +2177,20 @@
         </div>
       </div>
 
+      {% if kitchen_analysis and kitchen_analysis.karmic_tail_analysis.logic %}
+      <div class="why" id="why-s4">
+        <button class="why-btn" type="button" data-toggle="why-s4">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.karmic_tail_analysis.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
 
@@ -2203,6 +2221,20 @@
         </div>
       </div>
 
+      {% if kitchen_analysis and kitchen_analysis.ancestral_programs.logic %}
+      <div class="why" id="why-s5">
+        <button class="why-btn" type="button" data-toggle="why-s5">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.ancestral_programs.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
 
@@ -2226,6 +2258,20 @@
         {{ analysis.life_purpose | safe if analysis.life_purpose else '<p>Загружается...</p>' }}
       </div>
 
+      {% if kitchen_analysis and kitchen_analysis.life_purpose.logic %}
+      <div class="why" id="why-s6">
+        <button class="why-btn" type="button" data-toggle="why-s6">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.life_purpose.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
 
@@ -2242,6 +2288,20 @@
       <div class="prose">
         {{ analysis.strengths | safe if analysis.strengths else '<p>Загружается...</p>' }}
       </div>
+
+      {% if kitchen_analysis and kitchen_analysis.strengths.logic %}
+      <div class="why" id="why-s7">
+        <button class="why-btn" type="button" data-toggle="why-s7">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.strengths.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
@@ -2260,8 +2320,26 @@
         {{ analysis.shadow_side | safe if analysis.shadow_side else '<p>Загружается...</p>' }}
       </div>
 
+      {% if kitchen_analysis and kitchen_analysis.shadow_side.logic %}
+      <div class="why" id="why-s8">
+        <button class="why-btn" type="button" data-toggle="why-s8">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.shadow_side.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
+
+      {% if chakra_data %}
+      {% include '_health_map.html' %}
+      {% endif %}
 
     <!-- ===========================================
          09 · RELATIONSHIPS
@@ -2276,6 +2354,20 @@
       <div class="prose">
         {{ analysis.relationship_dynamics | safe if analysis.relationship_dynamics else '<p>Загружается...</p>' }}
       </div>
+
+      {% if kitchen_analysis and kitchen_analysis.relationship_dynamics.logic %}
+      <div class="why" id="why-s9">
+        <button class="why-btn" type="button" data-toggle="why-s9">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.relationship_dynamics.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
@@ -2301,6 +2393,20 @@
         {{ analysis.financial_scenario | safe if analysis.financial_scenario else '<p>Загружается...</p>' }}
       </div>
 
+      {% if kitchen_analysis and kitchen_analysis.financial_scenario.logic %}
+      <div class="why" id="why-s10">
+        <button class="why-btn" type="button" data-toggle="why-s10">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.financial_scenario.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
 
@@ -2317,6 +2423,20 @@
       <div class="prose">
         {{ analysis.recurring_mistakes | safe if analysis.recurring_mistakes else '<p>Загружается...</p>' }}
       </div>
+
+      {% if kitchen_analysis and kitchen_analysis.recurring_mistakes.logic %}
+      <div class="why" id="why-s11">
+        <button class="why-btn" type="button" data-toggle="why-s11">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.recurring_mistakes.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
@@ -2335,8 +2455,26 @@
         {{ analysis.internal_conflicts | safe if analysis.internal_conflicts else '<p>Загружается...</p>' }}
       </div>
 
+      {% if kitchen_analysis and kitchen_analysis.internal_conflicts.logic %}
+      <div class="why" id="why-s12">
+        <button class="why-btn" type="button" data-toggle="why-s12">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.internal_conflicts.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
+
+      {% if psych_blocks %}
+      {% include '_psychological_blocks.html' %}
+      {% endif %}
 
     <!-- ===========================================
          13 · CYCLES
@@ -2367,6 +2505,20 @@
       <div class="prose">
         {{ analysis.life_forecast | safe if analysis.life_forecast else '<p>Загружается...</p>' }}
       </div>
+
+      {% if kitchen_analysis and kitchen_analysis.life_forecast.logic %}
+      <div class="why" id="why-s13">
+        <button class="why-btn" type="button" data-toggle="why-s13">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <p>{{ kitchen_analysis.life_forecast.logic | safe }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>

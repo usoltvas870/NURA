@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **10.06.2026 — Сессия 30** — DeepSeek V4 Flash
+> Последнее обновление: **10.06.2026 — Сессия 32** — DeepSeek V4 Flash
 
 ---
 
@@ -79,9 +79,10 @@
 ### Продукт
 - ✅ Мини-разбор в браузере — `mini.html` + `/api/v1/web/mini-analysis`
 - ✅ Оплата матрицы через веб — `create_web_matrix_payment()`, `/api/v1/web/create-payment`
-- ✅ Полный AI-отчёт V2 — генерация 15 секций, HTML/PDF, сайдбар, @media print
+- ✅ Полный AI-отчёт V2 — генерация 15 секций, HTML/PDF, сайдбар, @media print, психоблоки, карта здоровья
 - ✅ Страница отчёта `/report/{token}` — деплоена
 - ✅ Kitchen-слой бэкенд — AI-генерация 12 полей, хранение в БД (JSONB), API `/report/{token}/kitchen`
+- ✅ Kitchen-аккордеон в отчёте V2 («Почему я так думаю?» в S3–S13) — Сессия 32
 - ✅ Подписка 390₽/мес — YooKassa recurrent, Celery downgrade/check
 - ✅ Telegram-бот — поллинг, /start, мини-разбор, таро-меню, FSM
 - ✅ Таро-бот — 11 хендлеров, 6 раскладов, FSM, AI-промпты (без названий арканов), анимация загрузки
@@ -148,8 +149,9 @@ referred_by: int | null   # telegram_id пригласившего
 - ✅ **Реферальная система** — `/start ref_{id}`, referral_rewards, уведомление реферера, реф-ссылка в профиле.
 - ✅ **Виральные механики — карточка-картинка (Pillow) для share** — Сессия 28, share-совместимость.
 - ✅ **Kitchen UI в боте** — кнопка «🔍 Показать расчёт». (Сессия 30)
-- 🟡 **Kitchen UI в отчёте** — аккордеон «Почему я так думаю?». (~3ч)
-- 🟡 **Заглушки таро-раскладов** — weekly, doubles, portal, yes/no требуют финального тестирования.
+- ✅ **Kitchen UI в отчёте** — аккордеон S3–S13 в отчёте (Сессия 32)
+- ✅ **Таро-расклады в боте** — weekly, doubles, portal, yes/no работают (Сессия 31)
+- ✅ **Экран результата расклада в PWA** — все 6 типов, has_tarot gate, Web Share (Сессия 31)
 
 ### Документация (обновление из Сессии 18)
 - ✅ **`docs/platform-strategy.md`** — создан (ADR-001/002/003, роли платформ, пути пользователя)
@@ -477,4 +479,16 @@ docker compose restart bot celery-worker
 - **10.06.2026 — Сессия 30** — DeepSeek V4 Flash
   - Kitchen UI в боте: callback `show_kitchen`, расчёт из matrix_data без AI-вызова
   - Кнопка «🔍 Показать расчёт» добавлена под мини-разбором
+
+- **10.06.2026 — Сессия 31** — DeepSeek V4 Flash
+  - Диагностика и фикс таро-раскладов в боте (weekly/doubles/portal/yes_no)
+  - POST /api/v1/tarot/spread — новый endpoint для PWA
+  - Экран результата расклада в PWA (inline, 6 типов, Web Share, loading/error)
+  - Input-экран для расклада «По вопросу» и «Да/Нет»
   - `open_pwa` кнопка после показа расчёта
+
+- **10.06.2026 — Сессия 32** — DeepSeek V4 Flash
+  - `_psychological_blocks.html` подключён к `full_report_v2.html` (после S12)
+  - `_health_map.html` подключён к `full_report_v2.html` (после S8)
+  - Kitchen-аккордеон «Почему я так думаю?» добавлен в S4–S13
+  - Сайдбар обновлён (секции здоровья и психоблоков)
