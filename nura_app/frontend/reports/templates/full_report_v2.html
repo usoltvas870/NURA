@@ -528,6 +528,14 @@
     line-height: 1.15;
   }
   .tl-item h3 em { font-style: italic; color: var(--m-leaf); }
+  .karmic-body {
+    margin-top: 28px;
+    padding: 28px 32px;
+    background: rgba(20, 53, 39, 0.2);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-lg);
+  }
+  .karmic-body .prose p:first-child { margin-top: 0; }
 
   /* ===========================================================
      SECTION 5 — TWO COLUMNS (ROD)
@@ -1651,6 +1659,13 @@
     .tl-tag { font-size: 9px; color: #8B7332; }
     .tl-arc { font-size: 11px; color: #888; }
     .tl-item h3 { font-size: 22px; }
+    .karmic-body {
+      margin-top: 20px;
+      padding: 16px 20px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
 
     /* --- ROD (2-column) --- */
     .rod {
@@ -2218,27 +2233,24 @@
           <span class="tl-tag">Причина &middot; прошлое</span>
           <div class="tl-arc">Аркан {{ karmic_tail_list[0] }} — низ матрицы &middot; {{ arcana_names.get('bottom', '') }} в тени</div>
           <h3>Корень <em>кармического паттерна</em></h3>
-          <div class="prose">
-            <p>{{ karmic_cause_text | safe if karmic_cause_text else 'Загружается...' }}</p>
-          </div>
         </div>
 
         <div class="tl-item now">
           <span class="tl-tag">Следствие &middot; сейчас</span>
           <div class="tl-arc">Аркан {{ karmic_tail_list[1] }} — центр матрицы &middot; {{ archetype_name }}</div>
           <h3>Как это <em>проявляется сегодня</em></h3>
-          <div class="prose">
-            <p>{{ karmic_effect_text | safe if karmic_effect_text else 'Загружается...' }}</p>
-          </div>
         </div>
 
         <div class="tl-item">
           <span class="tl-tag">Урок &middot; трансформация</span>
           <div class="tl-arc">Аркан {{ karmic_tail_list[2] }} — верх матрицы &middot; {{ arcana_names.get('top', '') }}</div>
           <h3>Путь <em>выхода из цикла</em></h3>
-          <div class="prose">
-            <p>{{ karmic_lesson_text | safe if karmic_lesson_text else 'Загружается...' }}</p>
-          </div>
+        </div>
+      </div>
+
+      <div class="karmic-body">
+        <div class="prose">
+          <p>{{ analysis.karmic_tail_analysis | safe if analysis.karmic_tail_analysis else 'Загружается...' }}</p>
         </div>
       </div>
 
