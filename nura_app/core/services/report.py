@@ -459,14 +459,18 @@ class ReportService:
     @staticmethod
     def parse_recommendations(text: str) -> list[dict]:
         """
-        Парсит ai_recommendations в список из 7 элементов.
-        Ожидаемый формат: "1. текст\n2. текст\n..."
+        Парсит ai_recommendations в список до 7 элементов.
+        Ожидаемые форматы:
+          "1. текст 2. текст..." (без newline) или
+          "1. текст\n2. текст\n..." (с newline)
         """
         import re
-        days_raw = re.split(r'\n(?=\d+\.)', text.strip())
+        parts = re.split(r'\s+(?=\d+\.\s)', text.strip())
+        if len(parts) < 2:
+            parts = re.split(r'\n(?=\d+\.)', text.strip())
         result = []
-        for item in days_raw:
-            match = re.match(r'^(\d+)\.\s*(.+)', item, re.DOTALL)
+        for item in parts:
+            match = re.match(r'^(\d+)\.\s*(.+)', item.strip(), re.DOTALL)
             if match:
                 number = int(match.group(1))
                 day_text = match.group(2).strip()
@@ -484,8 +488,8 @@ class ReportService:
                     category = 'Практика'
                 result.append({'number': number, 'text': day_text, 'category': category})
         if len(result) == 0:
-            result = [{'number': i+1, 'text': text, 'category': 'Практика'} for i in range(1)]
-        return result
+            result = [{'number': 1, 'text': text[:500], 'category': 'Практика'}]
+        return result[:7]
 
     @staticmethod
     def parse_psych_blocks(raw_text: str, arcana_names: dict[str, str] | None = None) -> list[dict]:
