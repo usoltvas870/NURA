@@ -187,25 +187,16 @@ PWA (`nura-ai.ru`) — это тот же сайт, но с тремя допо�
 ### 6.2 Содержимое service-worker.js
 
 ```javascript
-const CACHE_NAME = 'nura-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/mini',
-  '/offline.html',
-  '/icons/icon-192.png',
-];
+const CACHE_NAME = 'nura-v2';
+const STATIC_ASSETS = ['/', '/offline.html', '/icons/icon-192.png'];
 
-// Установка — кэшируем статику
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
-  );
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(STATIC_ASSETS)));
   self.skipWaiting();
 });
 
-// Активация — удаляем старые кэши
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
+self.addEventListener('activate', e => {
+  e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     )
@@ -213,74 +204,44 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch — Network First для API, Cache First для статики
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  if (url.pathname.startsWith('/api/')) return;
+  if (url.pathname.startsWith('/report/')) return;
+  if (e.request.mode === 'navigate') return;
+  e.respondWith(
+    caches.match(e.request).then(cached =>
+      cached || fetch(e.request).catch(() => caches.match('/offline.html'))
+    )
+  );
+});
 
-  // API запросы — всегда сеть
-  if (url.pathname.startsWith('/api/')) {
-    return;
-  }
-
-  // Отчёты — всегда сеть (персональные данные)
-  if (url.pathname.startsWith('/report/')) {
-    return;
-  }
-
-  // Статика — кэш с fallback на сеть
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request).catch(() =>
-        caches.match('/offline.html')
-      );
+self.addEventListener('push', e => {
+  if (!e.data) return;
+  const d = e.data.json();
+  e.waitUntil(
+    self.registration.showNotification(d.title || 'NURA', {
+      body: d.body || 'Открой NURA',
+      icon: '/icons/icon-192.png',
+      vibrate: [100, 50, 100],
+      data: { url: d.url || '/app' },
+      tag: d.tag || 'nura-default',
+      renotify: false
     })
   );
 });
 
-// ════════════════════════════════════════
-// WEB PUSH — обработка входящих пушей
-// ════════════════════════════════════════
-
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
-  const data = event.data.json();
-
-  const options = {
-    body: data.body || 'Открой NURA',
-    icon: '/icons/icon-192.png',
-    // badge не указываем — iOS игнорирует, Android отображает
-    vibrate: [100, 50, 100],
-    data: {
-      url: data.url || '/app'
-    },
-    // Группировка уведомлений одного типа
-    tag: data.tag || 'nura-default',
-    renotify: false
-  };
-
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'NURA', options)
-  );
-});
-
-// Клик по уведомлению — открываем нужный экран
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  const targetUrl = event.notification.data?.url || '/app';
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      // Если приложение уже открыто — переходим в него
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(targetUrl);
-          return client.focus();
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const target = e.notification.data?.url || '/app';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes(self.location.origin) && 'focus' in c) {
+          c.navigate(target); return c.focus();
         }
       }
-      // Иначе открываем новое окно
-      return clients.openWindow(targetUrl);
+      return clients.openWindow(target);
     })
   );
 });

@@ -122,9 +122,9 @@ class FullReportResult(BaseModel):
 
 
 class KitchenEntry(BaseModel):
-    positions: list[str]
-    energies: list[str]
-    logic: str
+    positions: str | list[str] | None = None
+    energies: str | list[str] | None = None
+    logic: str = ""
 
 
 class KitchenReportResult(BaseModel):
@@ -140,8 +140,8 @@ class KitchenReportResult(BaseModel):
     ancestral_programs: KitchenEntry
     life_purpose: KitchenEntry
     life_forecast: KitchenEntry
-    psychological_blocks: KitchenEntry = Field(default_factory=lambda: KitchenEntry(positions=[], energies=[], logic=""))
-    health_analysis: KitchenEntry = Field(default_factory=lambda: KitchenEntry(positions=[], energies=[], logic=""))
+    psychological_blocks: KitchenEntry = Field(default_factory=KitchenEntry)
+    health_analysis: KitchenEntry = Field(default_factory=KitchenEntry)
 
 
 class ReportResponse(BaseModel):

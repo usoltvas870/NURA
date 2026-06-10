@@ -2251,10 +2251,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.karmic_tail_analysis.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.karmic_tail_analysis.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.karmic_tail_analysis.positions is string %}{{ kitchen_analysis.karmic_tail_analysis.positions }}{% else %}{{ kitchen_analysis.karmic_tail_analysis.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.karmic_tail_analysis.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.karmic_tail_analysis.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.karmic_tail_analysis.energies is string %}{{ kitchen_analysis.karmic_tail_analysis.energies }}{% else %}{{ kitchen_analysis.karmic_tail_analysis.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.karmic_tail_analysis.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.karmic_tail_analysis.logic | safe }}</div></div>
@@ -2298,10 +2298,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.ancestral_programs.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.ancestral_programs.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.ancestral_programs.positions is string %}{{ kitchen_analysis.ancestral_programs.positions }}{% else %}{{ kitchen_analysis.ancestral_programs.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.ancestral_programs.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.ancestral_programs.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.ancestral_programs.energies is string %}{{ kitchen_analysis.ancestral_programs.energies }}{% else %}{{ kitchen_analysis.ancestral_programs.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.ancestral_programs.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.ancestral_programs.logic | safe }}</div></div>
@@ -2343,10 +2343,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.life_purpose.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.life_purpose.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.life_purpose.positions is string %}{{ kitchen_analysis.life_purpose.positions }}{% else %}{{ kitchen_analysis.life_purpose.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.life_purpose.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.life_purpose.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.life_purpose.energies is string %}{{ kitchen_analysis.life_purpose.energies }}{% else %}{{ kitchen_analysis.life_purpose.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.life_purpose.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.life_purpose.logic | safe }}</div></div>
@@ -2382,10 +2382,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.strengths.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.strengths.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.strengths.positions is string %}{{ kitchen_analysis.strengths.positions }}{% else %}{{ kitchen_analysis.strengths.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.strengths.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.strengths.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.strengths.energies is string %}{{ kitchen_analysis.strengths.energies }}{% else %}{{ kitchen_analysis.strengths.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.strengths.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.strengths.logic | safe }}</div></div>
@@ -2421,10 +2421,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.shadow_side.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.shadow_side.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.shadow_side.positions is string %}{{ kitchen_analysis.shadow_side.positions }}{% else %}{{ kitchen_analysis.shadow_side.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.shadow_side.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.shadow_side.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.shadow_side.energies is string %}{{ kitchen_analysis.shadow_side.energies }}{% else %}{{ kitchen_analysis.shadow_side.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.shadow_side.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.shadow_side.logic | safe }}</div></div>
@@ -2460,10 +2460,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.relationship_dynamics.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.relationship_dynamics.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.relationship_dynamics.positions is string %}{{ kitchen_analysis.relationship_dynamics.positions }}{% else %}{{ kitchen_analysis.relationship_dynamics.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.relationship_dynamics.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.relationship_dynamics.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.relationship_dynamics.energies is string %}{{ kitchen_analysis.relationship_dynamics.energies }}{% else %}{{ kitchen_analysis.relationship_dynamics.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.relationship_dynamics.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.relationship_dynamics.logic | safe }}</div></div>
@@ -2506,10 +2506,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.financial_scenario.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.financial_scenario.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.financial_scenario.positions is string %}{{ kitchen_analysis.financial_scenario.positions }}{% else %}{{ kitchen_analysis.financial_scenario.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.financial_scenario.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.financial_scenario.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.financial_scenario.energies is string %}{{ kitchen_analysis.financial_scenario.energies }}{% else %}{{ kitchen_analysis.financial_scenario.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.financial_scenario.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.financial_scenario.logic | safe }}</div></div>
@@ -2545,10 +2545,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.recurring_mistakes.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.recurring_mistakes.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.recurring_mistakes.positions is string %}{{ kitchen_analysis.recurring_mistakes.positions }}{% else %}{{ kitchen_analysis.recurring_mistakes.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.recurring_mistakes.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.recurring_mistakes.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.recurring_mistakes.energies is string %}{{ kitchen_analysis.recurring_mistakes.energies }}{% else %}{{ kitchen_analysis.recurring_mistakes.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.recurring_mistakes.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.recurring_mistakes.logic | safe }}</div></div>
@@ -2584,10 +2584,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.internal_conflicts.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.internal_conflicts.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.internal_conflicts.positions is string %}{{ kitchen_analysis.internal_conflicts.positions }}{% else %}{{ kitchen_analysis.internal_conflicts.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.internal_conflicts.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.internal_conflicts.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.internal_conflicts.energies is string %}{{ kitchen_analysis.internal_conflicts.energies }}{% else %}{{ kitchen_analysis.internal_conflicts.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.internal_conflicts.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.internal_conflicts.logic | safe }}</div></div>
@@ -2643,10 +2643,10 @@
         <div class="why-body">
           <div class="why-card">
             {% if kitchen_analysis.life_forecast.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{{ kitchen_analysis.life_forecast.positions | join(', ') }}</div></div>
+            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.life_forecast.positions is string %}{{ kitchen_analysis.life_forecast.positions }}{% else %}{{ kitchen_analysis.life_forecast.positions | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.life_forecast.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{{ kitchen_analysis.life_forecast.energies | join(', ') }}</div></div>
+            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.life_forecast.energies is string %}{{ kitchen_analysis.life_forecast.energies }}{% else %}{{ kitchen_analysis.life_forecast.energies | join(', ') }}{% endif %}</div></div>
             {% endif %}
             {% if kitchen_analysis.life_forecast.logic %}
             <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.life_forecast.logic | safe }}</div></div>

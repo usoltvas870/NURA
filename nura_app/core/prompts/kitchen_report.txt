@@ -9,29 +9,106 @@
 Матрица:
 {matrix_text}
 
+ВАЖНО: Для каждой секции указывай ТОЛЬКО те позиции и арканы,
+которые НЕПОСРЕДСТВЕННО участвуют в расчёте данной секции.
+Максимум 3-5 арканов на секцию. НЕ перечисляй всю матрицу.
+
 Для каждой зоны ответа из полного отчёта укажи:
 1. Какие позиции матрицы участвуют
 2. Какие числа (энергии) стоят в этих позициях
 3. Как эти энергии формируют вывод
 
+Ограничения по секциям:
+  main_archetype:
+    positions: "только центр матрицы"
+    energies: "аркан центра"
+    logic: "2-3 предложения"
+
+  strengths:
+    positions: "зона таланта (верхний угол), линия неба"
+    energies: "аркан таланта, арканы линии неба"
+    logic: "2-3 предложения"
+
+  shadow_side:
+    positions: "зона комфорта (нижний угол)"
+    energies: "аркан комфорта"
+    logic: "2-3 предложения"
+
+  relationship_dynamics:
+    positions: "точка отношений, левый и правый углы"
+    energies: "арканы этих трёх позиций"
+    logic: "2-3 предложения"
+
+  financial_scenario:
+    positions: "линия денег: верх → центр → низ"
+    energies: "3 аркана денежной линии"
+    logic: "2-3 предложения"
+
+  recurring_mistakes:
+    positions: "центр + 1-2 ключевые позиции"
+    energies: "2-3 аркана"
+    logic: "2-3 предложения"
+
+  internal_conflicts:
+    positions: "центр + 1-2 ключевые позиции"
+    energies: "2-3 аркана"
+    logic: "2-3 предложения"
+
+  life_cycles:
+    positions: "центр + 1-2 ключевые позиции"
+    energies: "2-3 аркана"
+    logic: "2-3 предложения"
+
+  karmic_tail_analysis:
+    positions: "только 3 позиции хвоста: низ (G), центр (E), верх (F)"
+    energies: "3 аркана хвоста: аркан G — аркан E — аркан F"
+    logic: "2-3 предложения о связи этих трёх позиций"
+
+  ancestral_programs:
+    positions: "только линия отца (G) и линия матери (I)"
+    energies: "арканы G и I"
+    logic: "2-3 предложения"
+
+  life_purpose:
+    positions: "линия неба: F → E → H"
+    energies: "арканы F, E, H"
+    logic: "2-3 предложения"
+
+  life_forecast:
+    positions: "центр + 1-2 ключевые позиции"
+    energies: "2-3 аркана"
+    logic: "2-3 предложения"
+
+  psychological_blocks:
+    positions: "центр + 1-2 ключевые позиции"
+    energies: "2-3 аркана"
+    logic: "2-3 предложения"
+
+  health_analysis:
+    positions: "центр + 1-2 ключевые позиции"
+    energies: "2-3 аркана"
+    logic: "2-3 предложения"
+
 Верни ТОЛЬКО валидный JSON (без markdown-блоков ```json), строго по схеме ниже.
 Каждое поле — объект с ключами:
-- "positions": ["левый угол (4)"]
-- "energies": ["4 — Император"]
+- "positions": "строка — только релевантные позиции (3-5 слов)"
+- "energies": "строка — только релевантные арканы (3-5 названий)"
 - "logic": "строка объяснения на 2-4 предложения"
 
 Схема:
 {{
-  "main_archetype": {{ "positions": [], "energies": [], "logic": "" }},
-  "strengths": {{ "positions": [], "energies": [], "logic": "" }},
-  "shadow_side": {{ "positions": [], "energies": [], "logic": "" }},
-  "relationship_dynamics": {{ "positions": [], "energies": [], "logic": "" }},
-  "financial_scenario": {{ "positions": [], "energies": [], "logic": "" }},
-  "recurring_mistakes": {{ "positions": [], "energies": [], "logic": "" }},
-  "internal_conflicts": {{ "positions": [], "energies": [], "logic": "" }},
-  "life_cycles": {{ "positions": [], "energies": [], "logic": "" }},
-  "karmic_tail_analysis": {{ "positions": [], "energies": [], "logic": "" }},
-  "ancestral_programs": {{ "positions": [], "energies": [], "logic": "" }},
-  "life_purpose": {{ "positions": [], "energies": [], "logic": "" }},
-  "life_forecast": {{ "positions": [], "energies": [], "logic": "" }}
+  "main_archetype": {{ "positions": "", "energies": "", "logic": "" }},
+  "strengths": {{ "positions": "", "energies": "", "logic": "" }},
+  "shadow_side": {{ "positions": "", "energies": "", "logic": "" }},
+  "relationship_dynamics": {{ "positions": "", "energies": "", "logic": "" }},
+  "financial_scenario": {{ "positions": "", "energies": "", "logic": "" }},
+  "recurring_mistakes": {{ "positions": "", "energies": "", "logic": "" }},
+  "internal_conflicts": {{ "positions": "", "energies": "", "logic": "" }},
+  "life_cycles": {{ "positions": "", "energies": "", "logic": "" }},
+  "karmic_tail_analysis": {{ "positions": "", "energies": "", "logic": "" }},
+  "ancestral_programs": {{ "positions": "", "energies": "", "logic": "" }},
+  "life_purpose": {{ "positions": "", "energies": "", "logic": "" }},
+  "life_forecast": {{ "positions": "", "energies": "", "logic": "" }},
+  "psychological_blocks": {{ "positions": "", "energies": "", "logic": "" }},
+  "health_analysis": {{ "positions": "", "energies": "", "logic": "" }}
 }}
