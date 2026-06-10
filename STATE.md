@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **10.06.2026 — Сессия 32** — DeepSeek V4 Flash
+> Последнее обновление: **10.06.2026 — Сессия 33** — DeepSeek V4 Pro
 
 ---
 
@@ -80,6 +80,7 @@
 - ✅ Мини-разбор в браузере — `mini.html` + `/api/v1/web/mini-analysis`
 - ✅ Оплата матрицы через веб — `create_web_matrix_payment()`, `/api/v1/web/create-payment`
 - ✅ Полный AI-отчёт V2 — генерация 15 секций, HTML/PDF, сайдбар, @media print, психоблоки, карта здоровья
+- ✅ Промпт full_report.txt — min 400 слов/поле, max_tokens 32000, 2 параллельных AI-запроса (Сессия 33)
 - ✅ Страница отчёта `/report/{token}` — деплоена
 - ✅ Kitchen-слой бэкенд — AI-генерация 12 полей, хранение в БД (JSONB), API `/report/{token}/kitchen`
 - ✅ Kitchen-аккордеон в отчёте V2 («Почему я так думаю?» в S3–S13) — Сессия 32
@@ -492,3 +493,13 @@ docker compose restart bot celery-worker
   - `_health_map.html` подключён к `full_report_v2.html` (после S8)
   - Kitchen-аккордеон «Почему я так думаю?» добавлен в S4–S13
   - Сайдбар обновлён (секции здоровья и психоблоков)
+
+- **10.06.2026 — Сессия 33** — DeepSeek V4 Pro
+  - Промпт full_report.txt полностью переписан: min 400-600 слов/поле, системная роль, {name}/{birth_date}
+  - FULL_REPORT_PARAMS: temperature 0.7→0.8, top_p 0.9→0.95
+  - Разбивка на 2 параллельных AI-запроса через asyncio.gather (Part A — личность, Part B — жизнь)
+  - full_report_part_a.txt (9 полей) + full_report_part_b.txt (8 полей)
+  - generate_full_report() принимает name, передаёт в промпт для персонализации
+  - _process_full_report() получает user_name ДО AI-вызова
+  - CoT-инструкция обновлена: 10 шагов, акцент на объём, персонализация через {name}
+  - Целевой объём AI-текста: ~10000+ слов (было ~2600)
