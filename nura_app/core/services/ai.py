@@ -266,9 +266,9 @@ DEFAULT_PARAMS = {
 }
 
 FULL_REPORT_PARAMS = {
-    "temperature": 0.7,
+    "temperature": 0.8,
     "max_tokens": 32000,
-    "top_p": 0.9,
+    "top_p": 0.95,
     "frequency_penalty": 0.0,
     "presence_penalty": 0.0,
 }
@@ -438,35 +438,49 @@ class AIService:
 
     @staticmethod
     async def generate_full_report(
-        birth_date: str, matrix_data: "MatrixData | dict"
+        birth_date: str, matrix_data: "MatrixData | dict", name: str = "пользователь"
     ) -> dict:
         from core.services.matrix import MatrixService
 
         md = AIService._to_matrix_data(matrix_data)
         matrix_text = MatrixService.format_for_prompt(md)
         cot = AIService._load_prompt("cot_instruction.txt")
-        template = AIService._load_prompt("full_report.txt")
-        user_content = template.format(chain_of_thought=cot, matrix_text=matrix_text)
 
-        async def _retry_callback(bad: str) -> str:
-            return await AIService.chat(
-                [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
-                    {"role": "assistant", "content": bad},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Твой ответ содержит невалидный JSON. "
-                            "Исправь и выдай ТОЛЬКО валидный JSON, "
-                            "строго по схеме, без markdown-блоков."
-                        ),
-                    },
-                ],
-                api_params=FULL_REPORT_PARAMS,
-            )
+        template_a = AIService._load_prompt("full_report_part_a.txt")
+        template_b = AIService._load_prompt("full_report_part_b.txt")
 
-        try:
+        user_content_a = template_a.format(
+            chain_of_thought=cot,
+            matrix_text=matrix_text,
+            name=name,
+            birth_date=birth_date,
+        )
+        user_content_b = template_b.format(
+            chain_of_thought=cot,
+            matrix_text=matrix_text,
+            name=name,
+            birth_date=birth_date,
+        )
+
+        async def _generate_part(user_content: str) -> dict:
+            async def _retry_callback(bad: str) -> str:
+                return await AIService.chat(
+                    [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_content},
+                        {"role": "assistant", "content": bad},
+                        {
+                            "role": "user",
+                            "content": (
+                                "Твой ответ содержит невалидный JSON. "
+                                "Исправь и выдай ТОЛЬКО валидный JSON, "
+                                "строго по схеме, без markdown-блоков."
+                            ),
+                        },
+                    ],
+                    api_params=FULL_REPORT_PARAMS,
+                )
+
             response = await AIService.chat(
                 [
                     {"role": "system", "content": SYSTEM_PROMPT},
@@ -475,8 +489,15 @@ class AIService:
                 api_params=FULL_REPORT_PARAMS,
                 timeout=300.0,
             )
-            result = await AIService._parse_json_response(response, _retry_callback)
-            validated = FullReportResult(**result)
+            return await AIService._parse_json_response(response, _retry_callback)
+
+        try:
+            results_a, results_b = await asyncio.gather(
+                _generate_part(user_content_a),
+                _generate_part(user_content_b),
+            )
+            merged = {**results_a, **results_b}
+            validated = FullReportResult(**merged)
             return validated.model_dump()
         except Exception:
             logger.exception("generate_full_report failed — returning FALLBACK_FULL")

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import random
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
@@ -219,15 +218,16 @@ async def _process_full_report(
     report_repo = ReportRepository(session_factory)
     user_repo = UserRepository(session_factory)
 
+    user = await user_repo.get(uid)
+    user_name = user.first_name or user.username or "пользователь" if user else "пользователь"
+
     matrix = MatrixService.calculate(birth_date)
     from asyncio import gather
-    analysis_task = AIService.generate_full_report(birth_date, matrix)
+    analysis_task = AIService.generate_full_report(birth_date, matrix, name=user_name)
     kitchen_task = AIService.generate_kitchen_report(birth_date, matrix)
     analysis, kitchen_analysis = await gather(analysis_task, kitchen_task)
     token = report_token or ReportService.generate_token()
 
-    user = await user_repo.get(uid)
-    user_name = user.first_name or user.username or "пользователь" if user else "пользователь"
     archetype_name = MatrixService.get_archetype_name(matrix.center)
 
     matrix_dict = matrix.model_dump()
