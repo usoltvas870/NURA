@@ -12,6 +12,7 @@ from bot.keyboards.tarot_keyboard import (
     tarot_more_keyboard,
     tarot_paywall_keyboard,
     tarot_spheres_keyboard,
+    tarot_result_keyboard,
 )
 from bot.states.tarot_state import TarotStates
 from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
@@ -177,7 +178,7 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
     )
 
     if has_tarot:
-        kb = tarot_back_keyboard()
+        kb = tarot_result_keyboard()
     else:
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
         kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -198,10 +199,38 @@ async def show_tarot_weekly(callback: CallbackQuery) -> None:
     if not user.tarot_subscription and not settings.test_mode:
         await callback.message.edit_text(_paywall_text("Расклад недели"), reply_markup=tarot_paywall_keyboard())
         return
-    await callback.message.edit_text(
-        "🌒 Расклад недели — в разработке. Скоро здесь появится твой расклад.",
-        reply_markup=tarot_back_keyboard(),
+    if not user.birth_date:
+        await callback.message.edit_text("Для расклада нужна твоя дата рождения. Заполни её в /start", reply_markup=tarot_back_keyboard())
+        return
+    async with animated_loading(callback.message, "🎴 Раскладываю карты"):
+        try:
+            result = await AIService.generate_tarot_weekly_spread(user.birth_date, user)
+        except Exception:
+            logger.exception("show_tarot_weekly AI failed")
+            await callback.message.edit_text(
+                "✦ Расклад недели\n\nКарты молчат сегодня. Попробуй позже.",
+                reply_markup=tarot_back_keyboard(),
+            )
+            return
+    b = result.get("body", {})
+    m = result.get("mind", {})
+    s = result.get("spirit", {})
+    overall = result.get("overall", "")
+    text = (
+        f"✦ Расклад недели\n\n"
+        f"💪 Тело \u2014 {b.get('card_name', '')}\n"
+        f"{b.get('interpretation', '')}\n"
+        f"Практика: {b.get('practice', '')}\n\n"
+        f"🧠 Ум \u2014 {m.get('card_name', '')}\n"
+        f"{m.get('interpretation', '')}\n"
+        f"Практика: {m.get('practice', '')}\n\n"
+        f"🌀 Дух \u2014 {s.get('card_name', '')}\n"
+        f"{s.get('interpretation', '')}\n"
+        f"Практика: {s.get('practice', '')}\n\n"
+        f"{'\u2500' * 16}\n"
+        f"{overall}"
     )
+    await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
 
 
 @router.callback_query(F.data == "tarot_question")
@@ -270,7 +299,7 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
         f"{interpretation}\n\n"
         f"Аркан · {arcana_name}"
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
+    await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
 
 
 @router.callback_query(F.data == "tarot_spheres")
@@ -340,7 +369,7 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
         f"{interpretation}\n\n"
         f"{ARCANA[arcana_one]} · {ARCANA[arcana_two]}"
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
+    await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
 
 
 @router.callback_query(F.data == "tarot_portal")
@@ -401,7 +430,7 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
         f"{'─' * 20}\n\n"
         f"{interpretation}"
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
+    await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
 
 
 @router.callback_query(F.data == "tarot_blocks")
@@ -465,7 +494,7 @@ async def show_tarot_blocks(callback: CallbackQuery) -> None:
         f"{'─' * 20}\n\n"
         f"{interpretation}"
     )
-    await callback.message.edit_text(text, reply_markup=tarot_back_keyboard())
+    await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
 
 
 @router.callback_query(F.data == "tarot_yes_no")
@@ -528,7 +557,7 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
             f"{interpretation}\n\n"
             f"Аркан · {arcana_name}"
         )
-        await message.answer(text, reply_markup=tarot_back_keyboard())
+        await message.answer(text, reply_markup=tarot_result_keyboard())
 
     else:
         past_num = (base_arcana - 1) % 22 + 1
@@ -574,6 +603,6 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
             f"Настоящее · {present_name}\n"
             f"Будущее · {future_name}"
         )
-        await message.answer(text, reply_markup=tarot_back_keyboard())
+        await message.answer(text, reply_markup=tarot_result_keyboard())
 
     await state.clear()
