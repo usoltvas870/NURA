@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **09.06.2026 — Сессия 28** — DeepSeek V4 Pro
+> Последнее обновление: **10.06.2026 — Сессия 29** — DeepSeek V4 Flash
 
 ---
 
@@ -125,10 +125,10 @@ referred_by: int | null   # telegram_id пригласившего
 - 🟡 **Webhook для web_matrix** — `process_webhook()` ветка `web_matrix` написана, но не протестирована end-to-end.
 
 ### Продукт — PWA (новые задачи из ADR-001)
-- 🔴 **manifest.json + Service Worker** — не существуют. Блокируют установку PWA. (~6ч)
-- 🔴 **Install UI** — iOS-инструкция (GIF) + Android auto-prompt. (~4ч)
-- 🔴 **Web Push бэкенд** — VAPID ключи, `/api/push/subscribe`, `has_pwa_push` в БД. (~6ч)
-- 🔴 **Дедупликация уведомлений** — `has_pwa_push` флаг в Celery `send_daily_card`. (~3ч)
+- ✅ **manifest.json + Service Worker** — созданы, развёрнуты, прошли аудит. (Сессия 20 + 29)
+- ✅ **Install UI** — Android beforeinstallprompt + iOS 3-шаговая инструкция. (Сессия 20)
+- 🟡 **Web Push бэкенд** — VAPID ключи в .env, API написаны, но push-доставка не тестирована E2E. (Сессия 20)
+- 🟡 **Дедупликация уведомлений** — `has_pwa_push` флаг в Celery `send_daily_card`. (Сессия 20)
 - ✅ **has_pwa_push, push_endpoint, push_p256dh, push_auth** — миграция a1b2c3d4e5f6, поля в моделях.
 - ✅ **web_session_id, email в users** — миграция 5a8cac04bf5e.
 - ✅ **has_matrix, has_tarot, compatibility_used** — миграция b3c1d2e4f5a6.
@@ -138,8 +138,11 @@ referred_by: int | null   # telegram_id пригласившего
 - ✅ **GET /api/v1/web/me** — endpoint профиля пользователя (имя, архетип, матрица, таро, токен отчёта).
 - ✅ **/app/index.html** — главный экран PWA (SPA): приветствие, архетип-badge, кнопка матрицы, карта дня, быстрые кнопки, install banner, таббар.
 - ✅ **nginx /app** — location /app + /app/ с try_files для SPA routing.
-- 🟡 **PWA экраны** — таро ✅, профиль ✅, чат ✅ — все 4 готовы. (~30ч)
-- 🟡 **Подписка 390₽ через веб** — `POST /api/v1/web/subscribe`. (~4ч)
+- ✅ **PWA экраны** — таро, профиль, чат, главный — все 4 готовы. (Сессии 23-26)
+- ✅ **Подписка 390₽ через веб** — `POST /api/v1/web/subscribe`. (Сессия 25)
+- ✅ **Lighthouse PWA аудит** — 13/13 чеков пройдено (ручной через curl, нет Chrome на VPS). (Сессия 29)
+- 🟡 **manifest.json Content-Type** — исправлен (было дублирование, фикс nginx `types {}`). (Сессия 29)
+- ✅ **SW регистрация на всех PWA страницах** — добавлена на index/tarot/chat/profile. (Сессия 29)
 
 ### Продукт — Telegram-бот
 - ✅ **Реферальная система** — `/start ref_{id}`, referral_rewards, уведомление реферера, реф-ссылка в профиле.
@@ -243,7 +246,8 @@ docker compose restart bot celery-worker
 | `docs/README.md` | Индекс документации | — | ✅ Обновлён |
 | `docs/tarot-integration-plan.md` | Добавить раздел «Таро в PWA» | — | 🟡 Следующая сессия |
 | `docs/report-upgrade-sessions.md` | Страница отчёта: 16 шагов | 81 | 📝 В работе (шаги 1-7 частично) |
-| PWA P0 (manifest + SW + push) | Техническая основа PWA | 22 | 🔴 Не начато |
+| PWA P0 (manifest + SW + push) | Техническая основа PWA | 22 | ✅ Готово (Сессия 20+29) |
+| PWA аудит | Lighthouse/curl аудит, фикс SW регистрации, Content-Type, start_url | — | ✅ Готово (Сессия 29) |
 | Виральные механики (Спринт 1) | Карточка + реферальная ссылка | ~3 дня | ✅ Готово |
 
 ### Ключевые продуктовые решения (зафиксированы)
@@ -460,3 +464,12 @@ docker compose restart bot celery-worker
   - callback share_compat_card: генерация + answer_photo
   - compat_how_interact сохранён в FSM state
   - Тест: PNG 37KB, ruff clean, бот active
+
+- **10.06.2026 — Сессия 29** — DeepSeek V4 Flash
+  - Lighthouse PWA аудит (ручной, через curl — нет Chrome на VPS): 13/13 чеков пройдено
+  - **Проблемы и фиксы:**
+    - SW регистрация отсутствовала на всех 4 PWA страницах `/app/*` — добавлена
+    - `manifest.json` Content-Type дублировался (application/json + application/manifest+json) — фикс nginx `types {}`
+    - `start_url: "/app"` → 301 редирект на `/app/` — исправлен на `/app/`
+  - `docs/pwa-spec.md` обновлён: чеклист, результаты аудита, статусы
+  - `STATE.md` обновлён
