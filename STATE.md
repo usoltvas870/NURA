@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **11.06.2026 — Сессия 37** — DeepSeek V4 Flash
+> Последнее обновление: **11.06.2026 — Сессия 38** — DeepSeek V4 Pro
 
 ---
 
@@ -130,7 +130,7 @@ referred_by: int | null   # telegram_id пригласившего
 ### Критический путь (блокирует монетизацию)
 - 🔴 **YooKassa credentials** — shop_id и secret_key в `.env` плейсхолдеры. Без них оплата не работает в проде. Вставить реальные ключи и протестировать webhook.
 - ✅ **Alembic миграция** — полная Alembic-цепочка, 6 миграций, head: b2c3d4e5f6a7.
-- 🟡 **Webhook для web_matrix** — `process_webhook()` ветка `web_matrix` написана, но не протестирована end-to-end.
+- ✅ **Webhook hardening** — все три ветки `process_webhook()` (web_matrix, web_tarot, telegram) защищены: идемпотентность, TOCTOU-safe claim (`SELECT FOR UPDATE`), auth-проверка `payment.user_id`, metadata null-safe, откат статуса при сбое, `birth_date.isoformat()` для Celery, логирование. (Сессия 38)
 
 ### Продукт — PWA (новые задачи из ADR-001)
 - ✅ **manifest.json + Service Worker** — созданы, развёрнуты, прошли аудит. (Сессия 20 + 29)
@@ -544,5 +544,15 @@ docker compose restart bot celery-worker
     - report.py: `_build_v2_report_data()` — добавлен парсинг `psychological_blocks` через `parse_psych_blocks()`, поле `psych_blocks` передаётся в контекст
     - full_report_v2.html: добавлен `{% include '_health_map.html' %}` после секции 08
     - full_report_v2.html: пункты «Карта здоровья» и «Психоблоки» в сайдбаре и TOC обёрнуты в `{% if chakra_data %}` / `{% if psych_blocks %}`
-  - Сгенерирован тестовый отчёт с проверкой секций: https://nura-ai.ru/report/66c3fda5
-  - Деплой api + celery-worker
+   - Сгенерирован тестовый отчёт с проверкой секций: https://nura-ai.ru/report/66c3fda5
+   - Деплой api + celery-worker
+
+- **11.06.2026 — Сессия 38** — DeepSeek V4 Pro
+   - Полный аудит безопасности `process_webhook()` — найдено 13 багов и edge cases
+   - **PaymentRepository.claim_succeeded()** — новый метод с `SELECT FOR UPDATE` для атомарного TOCTOU-safe claim'а платежа
+   - **Ветка web_matrix**: идемпотентность, auth-проверка `payment.user_id`, metadata null-safe (`or {}`), откат статуса при сбое `update_has_matrix`, `birth_date.isoformat()`, try/except для `generate_full_report.delay()`, warning при отсутствии birth_date, логирование
+   - **Ветка web_tarot**: те же фиксы (idempotency, auth, rollback, logging)
+   - **Telegram-ветка**: те же фиксы + валидация `telegram_id`, `try/except` для `send_msg`, auth-проверка `payment.user_id == user.id`
+   - Перманентные ошибки → 200 + `{"status": "needs_review"}` (вместо 404 → бесконечные ретраи YooKassa)
+   - Только «Payment not found» → `ValueError` → 404 (транзиентная гонка, ретрай оправдан)
+   - ruff clean, закоммичено, запушено
