@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 import uuid
 
@@ -8,6 +9,8 @@ from core.config import settings
 from core.models import Payment as PaymentModel
 from core.repositories.payment import PaymentRepository
 from core.repositories.user import UserRepository
+
+logger = logging.getLogger(__name__)
 
 Configuration.account_id = settings.yookassa_shop_id
 Configuration.secret_key = settings.yookassa_secret_key
@@ -206,16 +209,27 @@ class PaymentService:
             return {"status": "ignored"}
 
         yookassa_id = payment_obj.get("id")
-        metadata = payment_obj.get("metadata", {})
+        metadata = payment_obj.get("metadata") or {}
         telegram_id = metadata.get("telegram_id")
         payment_type = metadata.get("payment_type", "subscription")
 
         if payment_type == "web_matrix":
             if not yookassa_id:
-                raise ValueError("Missing payment id")
+                logger.error("web_matrix webhook: missing yookassa_id, needs_review")
+                return {"status": "needs_review", "detail": "Missing payment id"}
+
             user_id_str = metadata.get("user_id")
             if not user_id_str:
-                raise ValueError("Missing user_id in web_matrix payment")
+                logger.error("web_matrix webhook: missing user_id, needs_review")
+                return {"status": "needs_review", "detail": "Missing user_id in web_matrix payment"}
+
+            try:
+                user_id = uuid.UUID(user_id_str)
+            except (ValueError, AttributeError):
+                logger.error(
+                    "web_matrix webhook: invalid user_id=%r, needs_review", user_id_str
+                )
+                return {"status": "needs_review", "detail": "Invalid user_id format"}
 
             payment_repo = PaymentRepository(session_factory)
             user_repo = UserRepository(session_factory)
@@ -224,31 +238,114 @@ class PaymentService:
             if payment is None:
                 raise ValueError("Payment not found")
 
-            await payment_repo.update_status(payment.id, "succeeded")
+            if payment.status == "succeeded":
+                logger.info(
+                    "web_matrix: idempotent skip — payment %s already succeeded "
+                    "for user %s",
+                    yookassa_id, payment.user_id,
+                )
+                return {"ok": True, "idempotent": True}
 
-            user = await user_repo.get(uuid.UUID(user_id_str))
+            if payment.user_id != user_id:
+                logger.error(
+                    "web_matrix: user_id mismatch — payment.user_id=%s vs "
+                    "metadata.user_id=%s, yookassa_id=%s, needs_review",
+                    payment.user_id, user_id, yookassa_id,
+                )
+                return {
+                    "status": "needs_review",
+                    "detail": "Payment user_id mismatch",
+                }
+
+            claimed = await payment_repo.claim_succeeded(yookassa_id)
+            if claimed is None:
+                logger.info(
+                    "web_matrix: lost race for payment %s — already claimed "
+                    "by concurrent webhook",
+                    yookassa_id,
+                )
+                return {"ok": True, "idempotent": True}
+
+            logger.info(
+                "web_matrix: claimed payment %s for user %s, activating matrix",
+                yookassa_id, user_id,
+            )
+
+            user = await user_repo.get(user_id)
             if user is None:
-                raise ValueError("Web user not found")
+                logger.error(
+                    "web_matrix: user %s not found after claim — "
+                    "reverting payment %s, needs_review",
+                    user_id, yookassa_id,
+                )
+                await payment_repo.update_status(payment.id, "pending")
+                return {
+                    "status": "needs_review",
+                    "detail": "Web user not found",
+                }
 
-            await user_repo.update_has_matrix(user.id, True)
+            try:
+                await user_repo.update_has_matrix(user.id, True)
+            except Exception:
+                logger.error(
+                    "web_matrix: update_has_matrix failed for user %s, "
+                    "reverting payment %s to pending",
+                    user_id, yookassa_id, exc_info=True,
+                )
+                await payment_repo.update_status(payment.id, "pending")
+                raise
+
+            logger.info(
+                "web_matrix: matrix activated for user %s, payment %s",
+                user_id, yookassa_id,
+            )
 
             if user.birth_date:
                 from core.services.report import ReportService
                 from core.tasks import generate_full_report
 
                 report_token = metadata.get("report_token") or ReportService.generate_token()
-                generate_full_report.delay(
-                    str(user.id), user.birth_date, report_token
+                try:
+                    generate_full_report.delay(
+                        str(user.id),
+                        user.birth_date.isoformat(),
+                        report_token,
+                    )
+                except Exception:
+                    logger.error(
+                        "web_matrix: generate_full_report.delay failed "
+                        "for user %s, payment %s",
+                        user.id, yookassa_id, exc_info=True,
+                    )
+            else:
+                logger.warning(
+                    "web_matrix: user %s has no birth_date — skipping report "
+                    "generation for payment %s",
+                    user_id, yookassa_id,
                 )
 
             return {"ok": True}
 
         if payment_type == "web_tarot":
             if not yookassa_id:
-                raise ValueError("Missing payment id")
+                logger.error("web_tarot webhook: missing yookassa_id, needs_review")
+                return {"status": "needs_review", "detail": "Missing payment id"}
+
             user_id_str = metadata.get("user_id")
             if not user_id_str:
-                raise ValueError("Missing user_id in web_tarot payment")
+                logger.error("web_tarot webhook: missing user_id, needs_review")
+                return {
+                    "status": "needs_review",
+                    "detail": "Missing user_id in web_tarot payment",
+                }
+
+            try:
+                user_id = uuid.UUID(user_id_str)
+            except (ValueError, AttributeError):
+                logger.error(
+                    "web_tarot webhook: invalid user_id=%r, needs_review", user_id_str
+                )
+                return {"status": "needs_review", "detail": "Invalid user_id format"}
 
             payment_repo = PaymentRepository(session_factory)
             user_repo = UserRepository(session_factory)
@@ -257,19 +354,86 @@ class PaymentService:
             if payment is None:
                 raise ValueError("Payment not found")
 
-            await payment_repo.update_status(payment.id, "succeeded")
+            if payment.status == "succeeded":
+                logger.info(
+                    "web_tarot: idempotent skip — payment %s already succeeded "
+                    "for user %s",
+                    yookassa_id, payment.user_id,
+                )
+                return {"ok": True, "idempotent": True}
 
-            user = await user_repo.get(uuid.UUID(user_id_str))
+            if payment.user_id != user_id:
+                logger.error(
+                    "web_tarot: user_id mismatch — payment.user_id=%s vs "
+                    "metadata.user_id=%s, yookassa_id=%s, needs_review",
+                    payment.user_id, user_id, yookassa_id,
+                )
+                return {
+                    "status": "needs_review",
+                    "detail": "Payment user_id mismatch",
+                }
+
+            claimed = await payment_repo.claim_succeeded(yookassa_id)
+            if claimed is None:
+                logger.info(
+                    "web_tarot: lost race for payment %s — already claimed "
+                    "by concurrent webhook",
+                    yookassa_id,
+                )
+                return {"ok": True, "idempotent": True}
+
+            logger.info(
+                "web_tarot: claimed payment %s for user %s, activating tarot",
+                yookassa_id, user_id,
+            )
+
+            user = await user_repo.get(user_id)
             if user is None:
-                raise ValueError("Web user not found")
+                logger.error(
+                    "web_tarot: user %s not found after claim — "
+                    "reverting payment %s, needs_review",
+                    user_id, yookassa_id,
+                )
+                await payment_repo.update_status(payment.id, "pending")
+                return {
+                    "status": "needs_review",
+                    "detail": "Web user not found",
+                }
 
             until = datetime.now(timezone.utc) + timedelta(days=30)
-            await user_repo.update_tarot_subscription(user.id, True, until)
+            try:
+                await user_repo.update_tarot_subscription(user.id, True, until)
+            except Exception:
+                logger.error(
+                    "web_tarot: update_tarot_subscription failed for user %s, "
+                    "reverting payment %s to pending",
+                    user_id, yookassa_id, exc_info=True,
+                )
+                await payment_repo.update_status(payment.id, "pending")
+                raise
+
+            logger.info(
+                "web_tarot: subscription activated for user %s until %s, payment %s",
+                user_id, until.isoformat(), yookassa_id,
+            )
 
             return {"ok": True}
 
         if not telegram_id or not yookassa_id:
-            raise ValueError("Missing telegram_id or payment id")
+            logger.error(
+                "telegram webhook: missing telegram_id=%r or yookassa_id=%r, "
+                "needs_review",
+                telegram_id, yookassa_id,
+            )
+            return {"status": "needs_review", "detail": "Missing telegram_id or payment id"}
+
+        try:
+            telegram_id_int = int(telegram_id)
+        except (ValueError, TypeError):
+            logger.error(
+                "telegram webhook: invalid telegram_id=%r, needs_review", telegram_id
+            )
+            return {"status": "needs_review", "detail": "Invalid telegram_id format"}
 
         payment_repo = PaymentRepository(session_factory)
         user_repo = UserRepository(session_factory)
@@ -278,37 +442,143 @@ class PaymentService:
         if payment is None:
             raise ValueError("Payment not found")
 
-        await payment_repo.update_status(payment.id, "succeeded")
+        if payment.status == "succeeded":
+            logger.info(
+                "telegram: idempotent skip — payment %s already succeeded "
+                "for telegram %s",
+                yookassa_id, telegram_id_int,
+            )
+            return {"ok": True, "idempotent": True}
 
-        user = await user_repo.get_by_telegram_id(telegram_id)
+        claimed = await payment_repo.claim_succeeded(yookassa_id)
+        if claimed is None:
+            logger.info(
+                "telegram: lost race for payment %s — already claimed "
+                "by concurrent webhook",
+                yookassa_id,
+            )
+            return {"ok": True, "idempotent": True}
+
+        logger.info(
+            "telegram: claimed payment %s for telegram %s, type=%s",
+            yookassa_id, telegram_id_int, payment_type,
+        )
+
+        user = await user_repo.get_by_telegram_id(telegram_id_int)
         if user is None:
-            raise ValueError("User not found")
+            logger.error(
+                "telegram: user telegram_id=%s not found after claim — "
+                "reverting payment %s, needs_review",
+                telegram_id_int, yookassa_id,
+            )
+            await payment_repo.update_status(payment.id, "pending")
+            return {
+                "status": "needs_review",
+                "detail": "User not found",
+            }
+
+        if payment.user_id != user.id:
+            logger.error(
+                "telegram: user_id mismatch — payment.user_id=%s vs "
+                "user.id=%s (telegram=%s), yookassa_id=%s, needs_review",
+                payment.user_id, user.id, telegram_id_int, yookassa_id,
+            )
+            await payment_repo.update_status(payment.id, "pending")
+            return {
+                "status": "needs_review",
+                "detail": "Payment user_id mismatch",
+            }
 
         until = datetime.now(timezone.utc) + timedelta(days=30)
 
         if payment_type == "tarot":
-            await user_repo.update_tarot_subscription(user.id, True, until)
+            try:
+                await user_repo.update_tarot_subscription(user.id, True, until)
+            except Exception:
+                logger.error(
+                    "telegram: update_tarot_subscription failed for user %s, "
+                    "reverting payment %s to pending",
+                    user.id, yookassa_id, exc_info=True,
+                )
+                await payment_repo.update_status(payment.id, "pending")
+                raise
+
+            logger.info(
+                "telegram: tarot activated for user %s until %s, payment %s",
+                user.id, until.isoformat(), yookassa_id,
+            )
+
         elif payment_type == "matrix":
-            await user_repo.update_has_matrix(user.id, True)
+            try:
+                await user_repo.update_has_matrix(user.id, True)
+            except Exception:
+                logger.error(
+                    "telegram: update_has_matrix failed for user %s, "
+                    "reverting payment %s to pending",
+                    user.id, yookassa_id, exc_info=True,
+                )
+                await payment_repo.update_status(payment.id, "pending")
+                raise
+
+            logger.info(
+                "telegram: matrix activated for user %s, payment %s",
+                user.id, yookassa_id,
+            )
 
             if user.birth_date:
                 from core.services.report import ReportService
                 from core.tasks import generate_full_report
 
                 report_token = ReportService.generate_token()
-                generate_full_report.delay(
-                    str(user.id), user.birth_date, report_token
+                try:
+                    generate_full_report.delay(
+                        str(user.id),
+                        user.birth_date.isoformat(),
+                        report_token,
+                    )
+                except Exception:
+                    logger.error(
+                        "telegram: generate_full_report.delay failed "
+                        "for user %s, payment %s",
+                        user.id, yookassa_id, exc_info=True,
+                    )
+            else:
+                logger.warning(
+                    "telegram: user %s has no birth_date — skipping report "
+                    "generation for payment %s",
+                    user.id, yookassa_id,
                 )
 
-            from core.tasks import _send_message as send_msg
+            try:
+                from core.tasks import _send_message as send_msg
 
-            await send_msg(
-                user.telegram_id,
-                "✦ Оплата прошла успешно!\n\n"
-                "Генерирую твою Матрицу Судьбы...\n"
-                "Это займёт 1-2 минуты.",
-            )
+                await send_msg(
+                    user.telegram_id,
+                    "✦ Оплата прошла успешно!\n\n"
+                    "Генерирую твою Матрицу Судьбы...\n"
+                    "Это займёт 1-2 минуты.",
+                )
+            except Exception:
+                logger.error(
+                    "telegram: send_msg failed for user %s, payment %s",
+                    user.id, yookassa_id, exc_info=True,
+                )
+
         else:
-            await user_repo.update_subscription(user.id, "premium", until)
+            try:
+                await user_repo.update_subscription(user.id, "premium", until)
+            except Exception:
+                logger.error(
+                    "telegram: update_subscription failed for user %s, "
+                    "reverting payment %s to pending",
+                    user.id, yookassa_id, exc_info=True,
+                )
+                await payment_repo.update_status(payment.id, "pending")
+                raise
+
+            logger.info(
+                "telegram: subscription activated for user %s until %s, payment %s",
+                user.id, until.isoformat(), yookassa_id,
+            )
 
         return {"ok": True}

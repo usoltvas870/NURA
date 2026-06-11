@@ -34,6 +34,30 @@ class PaymentRepository(SQLAlchemyRepository[Payment]):
             )
             return result.scalar_one_or_none()
 
+    async def claim_succeeded(self, yookassa_id: str) -> Payment | None:
+        """
+        Atomically fetch and mark payment as succeeded.
+
+        Uses SELECT ... FOR UPDATE to prevent concurrent claims (TOCTOU-safe).
+        Returns Payment if successfully claimed (status was pending),
+        None if payment not found or already succeeded.
+        """
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(Payment)
+                .where(Payment.yookassa_id == yookassa_id)
+                .with_for_update()
+            )
+            payment = result.scalar_one_or_none()
+            if payment is None:
+                return None
+            if payment.status == "succeeded":
+                return None
+            payment.status = "succeeded"
+            await session.commit()
+            await session.refresh(payment)
+            return payment
+
     async def update_status(
         self,
         payment_id: uuid.UUID,
