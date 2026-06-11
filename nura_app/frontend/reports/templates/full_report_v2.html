@@ -1979,12 +1979,12 @@
     <li><a href="#s6"><span class="toc-num">06</span>Предназначение</a></li>
     <li><a href="#s7"><span class="toc-num">07</span>Таланты и сила</a></li>
     <li><a href="#s8"><span class="toc-num">08</span>Теневая сторона</a></li>
-    <li><a href="#health"><span class="toc-num">✦</span>Карта здоровья</a></li>
+    {% if chakra_data %}<li><a href="#health"><span class="toc-num">✦</span>Карта здоровья</a></li>{% endif %}
     <li><a href="#s9"><span class="toc-num">09</span>Отношения</a></li>
     <li><a href="#s10"><span class="toc-num">10</span>Деньги и карьера</a></li>
     <li><a href="#s11"><span class="toc-num">11</span>Сценарии</a></li>
     <li><a href="#s12"><span class="toc-num">12</span>Внутренние конфликты</a></li>
-    <li><a href="#psychological-blocks"><span class="toc-num">✦</span>Психоблоки</a></li>
+    {% if psych_blocks %}<li><a href="#psychological-blocks"><span class="toc-num">✦</span>Психоблоки</a></li>{% endif %}
     <li><a href="#s13"><span class="toc-num">13</span>Циклы и прогноз</a></li>
     <li><a href="#s14"><span class="toc-num">14</span>Семь дней</a></li>
     <li><a href="#s15"><span class="toc-num">15</span>Карта дня</a></li>
@@ -2020,12 +2020,12 @@
         <li><a href="#s6"  data-target="s6"><span class="num">06</span><span>Предназначение</span></a></li>
         <li><a href="#s7"  data-target="s7"><span class="num">07</span><span>Таланты и сила</span></a></li>
         <li><a href="#s8"  data-target="s8"><span class="num">08</span><span>Теневая сторона</span></a></li>
-        <li><a href="#health" data-target="health"><span class="num">✦</span><span>Карта здоровья</span></a></li>
+        {% if chakra_data %}<li><a href="#health" data-target="health"><span class="num">✦</span><span>Карта здоровья</span></a></li>{% endif %}
         <li><a href="#s9"  data-target="s9"><span class="num">09</span><span>Отношения</span></a></li>
         <li><a href="#s10" data-target="s10"><span class="num">10</span><span>Деньги и карьера</span></a></li>
         <li><a href="#s11" data-target="s11"><span class="num">11</span><span>Сценарии</span></a></li>
         <li><a href="#s12" data-target="s12"><span class="num">12</span><span>Внутренние конфликты</span></a></li>
-        <li><a href="#psychological-blocks" data-target="psychological-blocks"><span class="num">✦</span><span>Психоблоки</span></a></li>
+        {% if psych_blocks %}<li><a href="#psychological-blocks" data-target="psychological-blocks"><span class="num">✦</span><span>Психоблоки</span></a></li>{% endif %}
         <li><a href="#s13" data-target="s13"><span class="num">13</span><span>Циклы и прогноз</span></a></li>
         <li><a href="#s14" data-target="s14"><span class="num">14</span><span>Семь дней</span></a></li>
         <li><a href="#s15" data-target="s15"><span class="num">15</span><span>Карта дня</span></a></li>
@@ -2516,6 +2516,10 @@
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
     </section>
+
+      {% if chakra_data %}
+      {% include '_health_map.html' %}
+      {% endif %}
 
     <!-- ===========================================
          09 · RELATIONSHIPS

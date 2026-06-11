@@ -331,6 +331,9 @@ class ReportService:
             except Exception:
                 pass
 
+        psy_raw = analysis.get("psychological_blocks", "")
+        psych_blocks = ReportService.parse_psych_blocks(psy_raw, arcana_names)
+
         life_periods_nodes = []
         if life_periods_data:
             raw_nodes = life_periods_data if isinstance(life_periods_data, list) else life_periods_data.get("nodes", [])
@@ -391,6 +394,7 @@ class ReportService:
             "chakra_data": chakra_data,
             "life_periods": {"nodes": life_periods_nodes} if life_periods_nodes else {},
             "daily_tarot_arcana": daily_tarot_arcana,
+            "psych_blocks": psych_blocks,
             "recommendations_parsed": ReportService.parse_recommendations(
                 analysis.get("ai_recommendations", "")
             ),
