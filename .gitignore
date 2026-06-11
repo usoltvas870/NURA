@@ -10,7 +10,11 @@ venv/
 env/
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/mcp.json
+!.vscode/settings.json
+!.vscode/tasks.json
 .idea/
 *.swp
 *.swo
