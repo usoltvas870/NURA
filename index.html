@@ -408,13 +408,15 @@
     .hero-inner {
       position: relative;
       z-index: 2;
-      display: grid;
-      grid-template-columns: 1fr;
-      max-width: 600px;
-      margin-left: 0;
+      width: 100%;
       gap: 0;
     }
-    .hero-text { display: flex; flex-direction: column; gap: 26px; }
+    .hero-text {
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+      max-width: 560px;
+    }
     .hero-text h1 { max-width: 14ch; }
     .hero-text .lead { max-width: 52ch; }
     .hero-text h1 .accent-m { color: var(--m-leaf); }
