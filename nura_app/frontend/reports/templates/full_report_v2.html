@@ -466,18 +466,32 @@
     margin-top: 18px;
   }
   .why-body .why-card {
-    background: rgba(20, 53, 39, 0.4);
-    border: 1px solid var(--m-line);
-    border-radius: var(--radius-md);
-    padding: 22px 24px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    line-height: 1.8;
-    color: var(--ink-soft);
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
   }
-  .why-body .why-card .row { display: grid; grid-template-columns: 220px 1fr; gap: 16px; padding: 4px 0; }
-  .why-body .why-card .row .k { color: var(--ink-faint); }
-  .why-body .why-card .row .v { color: var(--m-accent); }
+  .why-code {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 12.5px;
+  }
+  .why-line {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .why-comment {
+    color: var(--ink-faint);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .why-value {
+    color: var(--m-accent);
+    line-height: 1.5;
+  }
 
   /* ===========================================================
      SECTION 4 — KARMIC TAIL (vertical timeline)
@@ -1332,7 +1346,7 @@
     .cv-name { font-size: 28px; margin-bottom: 36px; }
     .cv-info .row { grid-template-columns: 100px 1fr; gap: 12px; }
     .dashboard { grid-template-columns: 1fr; }
-    .why-body .why-card .row { grid-template-columns: 1fr; }
+    /* why-code is flex column, mobile-friendly by default */
     .ch-head h2 { font-size: 32px; }
     .destiny-chapter .ch-head h2 { font-size: 40px; }
     .tarot-teaser { padding: 28px 20px; }
@@ -1620,22 +1634,31 @@
       margin-top: 0;
     }
     .why-body .why-card {
-      background: #fafafa;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 14px 16px;
+      padding: 0;
+      background: none;
+      border: none;
+    }
+    .why-code {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
       font-family: 'Courier New', monospace;
-      font-size: 11px;
-      color: #555;
+      font-size: 10.5px;
     }
-    .why-body .why-card .row {
-      display: grid;
-      grid-template-columns: 180px 1fr;
-      gap: 12px;
-      padding: 2px 0;
+    .why-line {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    .why-body .why-card .row .k { color: #888; }
-    .why-body .why-card .row .v { color: #8B7332; }
+    .why-comment {
+      color: #888;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+    .why-value {
+      color: #8B7332;
+      line-height: 1.4;
+    }
 
     /* --- KARMIC TAIL --- */
     .timeline { padding-left: 28px; }
@@ -2261,15 +2284,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.karmic_tail_analysis.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.karmic_tail_analysis.positions is string %}{{ kitchen_analysis.karmic_tail_analysis.positions }}{% else %}{{ kitchen_analysis.karmic_tail_analysis.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.karmic_tail_analysis.positions is string %}{{ kitchen_analysis.karmic_tail_analysis.positions }}{% else %}{{ kitchen_analysis.karmic_tail_analysis.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.karmic_tail_analysis.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.karmic_tail_analysis.energies is string %}{{ kitchen_analysis.karmic_tail_analysis.energies }}{% else %}{{ kitchen_analysis.karmic_tail_analysis.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.karmic_tail_analysis.energies is string %}{{ kitchen_analysis.karmic_tail_analysis.energies }}{% else %}{{ kitchen_analysis.karmic_tail_analysis.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.karmic_tail_analysis.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.karmic_tail_analysis.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.karmic_tail_analysis.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -2308,15 +2340,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.ancestral_programs.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.ancestral_programs.positions is string %}{{ kitchen_analysis.ancestral_programs.positions }}{% else %}{{ kitchen_analysis.ancestral_programs.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.ancestral_programs.positions is string %}{{ kitchen_analysis.ancestral_programs.positions }}{% else %}{{ kitchen_analysis.ancestral_programs.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.ancestral_programs.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.ancestral_programs.energies is string %}{{ kitchen_analysis.ancestral_programs.energies }}{% else %}{{ kitchen_analysis.ancestral_programs.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.ancestral_programs.energies is string %}{{ kitchen_analysis.ancestral_programs.energies }}{% else %}{{ kitchen_analysis.ancestral_programs.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.ancestral_programs.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.ancestral_programs.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.ancestral_programs.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -2353,15 +2394,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.life_purpose.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.life_purpose.positions is string %}{{ kitchen_analysis.life_purpose.positions }}{% else %}{{ kitchen_analysis.life_purpose.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.life_purpose.positions is string %}{{ kitchen_analysis.life_purpose.positions }}{% else %}{{ kitchen_analysis.life_purpose.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.life_purpose.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.life_purpose.energies is string %}{{ kitchen_analysis.life_purpose.energies }}{% else %}{{ kitchen_analysis.life_purpose.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.life_purpose.energies is string %}{{ kitchen_analysis.life_purpose.energies }}{% else %}{{ kitchen_analysis.life_purpose.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.life_purpose.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.life_purpose.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.life_purpose.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -2392,15 +2442,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.strengths.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.strengths.positions is string %}{{ kitchen_analysis.strengths.positions }}{% else %}{{ kitchen_analysis.strengths.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.strengths.positions is string %}{{ kitchen_analysis.strengths.positions }}{% else %}{{ kitchen_analysis.strengths.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.strengths.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.strengths.energies is string %}{{ kitchen_analysis.strengths.energies }}{% else %}{{ kitchen_analysis.strengths.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.strengths.energies is string %}{{ kitchen_analysis.strengths.energies }}{% else %}{{ kitchen_analysis.strengths.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.strengths.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.strengths.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.strengths.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -2431,15 +2490,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.shadow_side.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.shadow_side.positions is string %}{{ kitchen_analysis.shadow_side.positions }}{% else %}{{ kitchen_analysis.shadow_side.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.shadow_side.positions is string %}{{ kitchen_analysis.shadow_side.positions }}{% else %}{{ kitchen_analysis.shadow_side.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.shadow_side.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.shadow_side.energies is string %}{{ kitchen_analysis.shadow_side.energies }}{% else %}{{ kitchen_analysis.shadow_side.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.shadow_side.energies is string %}{{ kitchen_analysis.shadow_side.energies }}{% else %}{{ kitchen_analysis.shadow_side.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.shadow_side.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.shadow_side.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.shadow_side.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -2470,15 +2538,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.relationship_dynamics.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.relationship_dynamics.positions is string %}{{ kitchen_analysis.relationship_dynamics.positions }}{% else %}{{ kitchen_analysis.relationship_dynamics.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.relationship_dynamics.positions is string %}{{ kitchen_analysis.relationship_dynamics.positions }}{% else %}{{ kitchen_analysis.relationship_dynamics.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.relationship_dynamics.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.relationship_dynamics.energies is string %}{{ kitchen_analysis.relationship_dynamics.energies }}{% else %}{{ kitchen_analysis.relationship_dynamics.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.relationship_dynamics.energies is string %}{{ kitchen_analysis.relationship_dynamics.energies }}{% else %}{{ kitchen_analysis.relationship_dynamics.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.relationship_dynamics.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.relationship_dynamics.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.relationship_dynamics.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -2516,15 +2593,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.financial_scenario.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.financial_scenario.positions is string %}{{ kitchen_analysis.financial_scenario.positions }}{% else %}{{ kitchen_analysis.financial_scenario.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.financial_scenario.positions is string %}{{ kitchen_analysis.financial_scenario.positions }}{% else %}{{ kitchen_analysis.financial_scenario.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.financial_scenario.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.financial_scenario.energies is string %}{{ kitchen_analysis.financial_scenario.energies }}{% else %}{{ kitchen_analysis.financial_scenario.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.financial_scenario.energies is string %}{{ kitchen_analysis.financial_scenario.energies }}{% else %}{{ kitchen_analysis.financial_scenario.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.financial_scenario.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.financial_scenario.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.financial_scenario.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -2555,15 +2641,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.recurring_mistakes.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.recurring_mistakes.positions is string %}{{ kitchen_analysis.recurring_mistakes.positions }}{% else %}{{ kitchen_analysis.recurring_mistakes.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.recurring_mistakes.positions is string %}{{ kitchen_analysis.recurring_mistakes.positions }}{% else %}{{ kitchen_analysis.recurring_mistakes.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.recurring_mistakes.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.recurring_mistakes.energies is string %}{{ kitchen_analysis.recurring_mistakes.energies }}{% else %}{{ kitchen_analysis.recurring_mistakes.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.recurring_mistakes.energies is string %}{{ kitchen_analysis.recurring_mistakes.energies }}{% else %}{{ kitchen_analysis.recurring_mistakes.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.recurring_mistakes.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.recurring_mistakes.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.recurring_mistakes.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -2594,15 +2689,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.internal_conflicts.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.internal_conflicts.positions is string %}{{ kitchen_analysis.internal_conflicts.positions }}{% else %}{{ kitchen_analysis.internal_conflicts.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.internal_conflicts.positions is string %}{{ kitchen_analysis.internal_conflicts.positions }}{% else %}{{ kitchen_analysis.internal_conflicts.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.internal_conflicts.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.internal_conflicts.energies is string %}{{ kitchen_analysis.internal_conflicts.energies }}{% else %}{{ kitchen_analysis.internal_conflicts.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.internal_conflicts.energies is string %}{{ kitchen_analysis.internal_conflicts.energies }}{% else %}{{ kitchen_analysis.internal_conflicts.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.internal_conflicts.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.internal_conflicts.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.internal_conflicts.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
@@ -2653,15 +2757,24 @@
           <span>Почему я так думаю</span>
         </button>
         <div class="why-body">
-          <div class="why-card">
+          <div class="why-code">
             {% if kitchen_analysis.life_forecast.positions %}
-            <div class="row"><div class="k">Позиции матрицы</div><div class="v">{% if kitchen_analysis.life_forecast.positions is string %}{{ kitchen_analysis.life_forecast.positions }}{% else %}{{ kitchen_analysis.life_forecast.positions | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">{% if kitchen_analysis.life_forecast.positions is string %}{{ kitchen_analysis.life_forecast.positions }}{% else %}{{ kitchen_analysis.life_forecast.positions | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.life_forecast.energies %}
-            <div class="row"><div class="k">Арканы</div><div class="v">{% if kitchen_analysis.life_forecast.energies is string %}{{ kitchen_analysis.life_forecast.energies }}{% else %}{{ kitchen_analysis.life_forecast.energies | join(', ') }}{% endif %}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">{% if kitchen_analysis.life_forecast.energies is string %}{{ kitchen_analysis.life_forecast.energies }}{% else %}{{ kitchen_analysis.life_forecast.energies | join(', ') }}{% endif %}</span>
+            </div>
             {% endif %}
             {% if kitchen_analysis.life_forecast.logic %}
-            <div class="row"><div class="k">Логика расчёта</div><div class="v">{{ kitchen_analysis.life_forecast.logic | safe }}</div></div>
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">{{ kitchen_analysis.life_forecast.logic | safe }}</span>
+            </div>
             {% endif %}
           </div>
         </div>
