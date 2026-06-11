@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -68,6 +69,12 @@ class User(Base):
     referred_by: Mapped[int | None] = mapped_column(
         BigInteger, nullable=True
     )
+    has_pwa_push: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )
+    push_endpoint: Mapped[str | None] = mapped_column(Text, nullable=True)
+    push_p256dh: Mapped[str | None] = mapped_column(Text, nullable=True)
+    push_auth: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

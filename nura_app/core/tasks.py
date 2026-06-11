@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 from celery import Celery
 from celery.schedules import crontab
 from sqlalchemy import select
+from sqlalchemy.orm import load_only
 
 from core.config import settings
 from core.database import get_async_sessionmaker
@@ -15,7 +16,7 @@ from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
 from core.services.ai import AIService
 from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
-from core.services.web_push import send_web_push
+from core.services.web_push import PushSubscriptionExpired, send_web_push
 
 logger = logging.getLogger(__name__)
 
@@ -396,31 +397,52 @@ async def _notify_user(
     push_url: str = "/app/tarot",
     push_tag: str = "daily-card",
 ) -> bool:
+    push_ok = False
+    telegram_ok = False
+
     if user.has_pwa_push and user.push_endpoint:
-        success = await send_web_push(
-            endpoint=user.push_endpoint,
-            p256dh=user.push_p256dh,
-            auth=user.push_auth,
-            title=push_title,
-            body=push_body or text[:100],
-            url=push_url,
-            tag=push_tag,
-        )
-        if success:
-            return True
-        session_factory = get_async_sessionmaker()
-        user_repo = UserRepository(session_factory)
-        await user_repo.update_push_subscription(
-            user_id=user.id,
-            endpoint=None,
-            p256dh=None,
-            auth=None,
-            has_pwa_push=False,
-        )
+        try:
+            push_ok = await send_web_push(
+                endpoint=user.push_endpoint,
+                p256dh=user.push_p256dh,
+                auth=user.push_auth,
+                title=push_title,
+                body=push_body or text[:100],
+                url=push_url,
+                tag=push_tag,
+            )
+        except PushSubscriptionExpired:
+            logger.info(
+                "Clearing expired push subscription for user %s", user.id
+            )
+            session_factory = get_async_sessionmaker()
+            user_repo = UserRepository(session_factory)
+            try:
+                await user_repo.update_push_subscription(
+                    user_id=user.id,
+                    endpoint=None,
+                    p256dh=None,
+                    auth=None,
+                    has_pwa_push=False,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to clear push subscription for user %s", user.id
+                )
+        except Exception:
+            logger.exception(
+                "Push notification failed for user %s", user.id
+            )
 
     if user.telegram_id:
-        return await _send_message(user.telegram_id, text, keyboard)
-    return False
+        try:
+            telegram_ok = await _send_message(user.telegram_id, text, keyboard)
+        except Exception:
+            logger.exception(
+                "Telegram notification failed for user %s", user.id
+            )
+
+    return push_ok or telegram_ok
 
 
 @celery_app.task(name="core.tasks.send_daily_card")
@@ -432,14 +454,27 @@ async def _send_daily_card_async() -> dict:
     session_factory = get_async_sessionmaker()
     async with session_factory() as session:
         result = await session.execute(
-            select(User).where(User.subscription_status != "blocked")
+            select(User)
+            .options(
+                load_only(
+                    User.id,
+                    User.telegram_id,
+                    User.has_pwa_push,
+                    User.push_endpoint,
+                    User.push_p256dh,
+                    User.push_auth,
+                )
+            )
+            .where(
+                User.subscription_status.in_(["free", "premium", "active"])
+            )
         )
         users = result.scalars().all()
 
     total = len(users)
     needs_rate_limit = total > 50
     sent = 0
-    blocked = 0
+    failed = 0
 
     text = "🌒 Твоя карта дня готова"
     keyboard = {
@@ -449,29 +484,28 @@ async def _send_daily_card_async() -> dict:
     }
 
     for i, user in enumerate(users):
-        if needs_rate_limit and i > 0:
-            await asyncio.sleep(0.5)
+        if needs_rate_limit and i > 0 and user.telegram_id:
+            await asyncio.sleep(0.05)
 
-        ok = await _notify_user(
-            user,
-            text,
-            keyboard,
-            push_title="🌒 Карта дня",
-            push_body="Твоя карта дня готова",
-            push_url="/app/tarot",
-            push_tag="daily-card",
-        )
-        if not ok:
-            async with session_factory() as session:
-                db_user = await session.get(User, user.id)
-                if db_user is not None:
-                    db_user.subscription_status = "blocked"
-                    await session.commit()
-            blocked += 1
-        else:
-            sent += 1
+        try:
+            ok = await _notify_user(
+                user,
+                text,
+                keyboard,
+                push_title="🌒 Карта дня",
+                push_body="Твоя карта дня готова",
+                push_url="/app/tarot",
+                push_tag="daily-card",
+            )
+            if ok:
+                sent += 1
+            else:
+                failed += 1
+        except Exception:
+            logger.exception("Failed to notify user %s in daily card task", user.id)
+            failed += 1
 
-    return {"sent": sent, "blocked": blocked, "total": total}
+    return {"sent": sent, "failed": failed, "total": total}
 
 
 @celery_app.task(name="core.tasks.send_daily_tarot_card")
@@ -485,11 +519,11 @@ async def _send_daily_tarot_card_async() -> dict:
     users = await user_repo.get_users_with_tarot()
 
     sent = 0
-    blocked = 0
+    failed = 0
     today = date.today()
     for i, user in enumerate(users):
-        if i > 0 and len(users) > 50:
-            await asyncio.sleep(0.5)
+        if i > 0 and len(users) > 50 and user.telegram_id:
+            await asyncio.sleep(0.05)
 
         try:
             center_arcana = user.main_archetype_number or 0
@@ -523,25 +557,26 @@ async def _send_daily_tarot_card_async() -> dict:
                 [{"text": "🏠 В меню", "callback_data": "main_menu"}],
             ],
         }
-        ok = await _notify_user(
-            user,
-            text,
-            keyboard,
-            push_title="🌒 Карта дня",
-            push_body=f"Карта дня для {user_name}",
-            push_url="/app/tarot",
-            push_tag="daily-tarot-card",
-        )
-        if ok:
-            sent += 1
-        else:
-            async with session_factory() as session:
-                db_user = await session.get(User, user.id)
-                if db_user is not None:
-                    db_user.tarot_subscription = False
-                    await session.commit()
-            blocked += 1
-    return {"sent": sent, "blocked": blocked, "total": len(users)}
+        try:
+            ok = await _notify_user(
+                user,
+                text,
+                keyboard,
+                push_title="🌒 Карта дня",
+                push_body=f"Карта дня для {user_name}",
+                push_url="/app/tarot",
+                push_tag="daily-tarot-card",
+            )
+            if ok:
+                sent += 1
+            else:
+                failed += 1
+        except Exception:
+            logger.exception(
+                "Failed to notify user %s in daily tarot card task", user.id
+            )
+            failed += 1
+    return {"sent": sent, "failed": failed, "total": len(users)}
 
 
 @celery_app.task(name="core.tasks.check_expiring_subscriptions")

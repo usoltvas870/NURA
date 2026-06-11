@@ -3,6 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.orm import load_only
 
 from core.models import Report, ReportType, User
 from core.repositories.base import SQLAlchemyRepository
@@ -114,7 +115,25 @@ class UserRepository(SQLAlchemyRepository[User]):
     async def get_users_with_tarot(self) -> list[User]:
         async with self._session_factory() as session:
             result = await session.execute(
-                select(User).where(User.tarot_subscription == True)  # noqa: E712
+                select(User)
+                .options(
+                    load_only(
+                        User.id,
+                        User.telegram_id,
+                        User.has_pwa_push,
+                        User.push_endpoint,
+                        User.push_p256dh,
+                        User.push_auth,
+                        User.main_archetype,
+                        User.main_archetype_number,
+                        User.first_name,
+                        User.username,
+                    )
+                )
+                .where(
+                    User.tarot_subscription == True,  # noqa: E712
+                    User.subscription_status.in_(["free", "premium", "active"]),
+                )
             )
             return list(result.scalars().all())
 

@@ -8,6 +8,10 @@ from core.config import settings
 logger = logging.getLogger(__name__)
 
 
+class PushSubscriptionExpired(WebPushException):
+    """410 Gone — подписка перманентно невалидна, нужно сбросить."""
+
+
 async def send_web_push(
     endpoint: str,
     p256dh: str,
@@ -44,7 +48,7 @@ async def send_web_push(
     except WebPushException as exc:
         if exc.response is not None and exc.response.status_code == 410:
             logger.info("Push subscription expired (410): %.40s", endpoint)
-            return False
+            raise PushSubscriptionExpired(str(exc)) from exc
         logger.error("Web push failed: %s", exc)
         return False
 
