@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **11.06.2026 — Сессия 38** — DeepSeek V4 Pro
+> Последнее обновление: **11.06.2026 — Сессия 39** — DeepSeek V4 Flash
 
 ---
 
@@ -556,3 +556,10 @@ docker compose restart bot celery-worker
    - Перманентные ошибки → 200 + `{"status": "needs_review"}` (вместо 404 → бесконечные ретраи YooKassa)
    - Только «Payment not found» → `ValueError` → 404 (транзиентная гонка, ретрай оправдан)
    - ruff clean, закоммичено, запушено
+
+- **11.06.2026 — Сессия 39** — DeepSeek V4 Flash
+   - Лендинг: hero-изображение nura-hero.png → nura-hero.webp (-95%, 1.8MB → 87KB)
+   - Лендинг: hero-layout — max-width перенесён с .hero-inner на .hero-text (560px), .hero-inner упрощён (width:100%, без grid)
+   - Лендинг: фикс бага — .hero-inner width:100% переопределял .container, текст уходил к левому краю
+   - Nginx: добавлен Cache-Control: no-cache, no-store, must-revalidate для HTML страниц (браузер больше не кеширует старую версию)
+   - Файлы лендинга синхронизированы: git ↔ /opt/nura/ ↔ /var/www/nura-ai.ru/
