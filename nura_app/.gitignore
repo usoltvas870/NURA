@@ -9,4 +9,4 @@ static/reports/
 dist/
 .coverage
 .ruff_cache/
-frontend/carousel/output/*.png
+templates/carousel/output/*.png

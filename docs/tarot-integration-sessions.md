@@ -547,7 +547,7 @@ ParseMode везде HTML (уже установлен DefaultBotProperties).
 
 **Модель:** ⚡ Flash
 
-**Файлы:** `frontend/reports/templates/_tarot_card.html`, `core/services/daily_arcana.py`, `core/services/report.py`, `full_report.html`
+**Файлы:** `templates/reports/_tarot_card.html`, `core/services/daily_arcana.py`, `core/services/report.py`, `full_report.html`
 
 **Промпт:**
 ```
@@ -565,7 +565,7 @@ ParseMode везде HTML (уже установлен DefaultBotProperties).
 - "daily_tarot_arcana": get_today_arcana_with_name(birth_date, matrix.arcana_names)
 Оставить current_year_arcana — он нужен для других секций отчёта.
 
---- ЧАСТЬ 3: frontend/reports/templates/_tarot_card.html ---
+--- ЧАСТЬ 3: templates/reports/_tarot_card.html ---
 Заменить:
 {% if current_year_arcana %}
 ...
@@ -587,7 +587,7 @@ ParseMode везде HTML (уже установлен DefaultBotProperties).
 </div>
 {% endif %}
 
---- ЧАСТЬ 4: frontend/reports/templates/full_report.html ---
+--- ЧАСТЬ 4: templates/reports/full_report.html ---
 Убедиться что _tarot_card.html включается с правильными данными:
 {% include '_tarot_card.html' %}
 (daily_tarot_arcana передаётся через контекст)
@@ -662,7 +662,7 @@ ParseMode везде HTML (уже установлен DefaultBotProperties).
     - tarot_menu_keyboard — 4 кнопки
     - tarot_back_keyboard — 2 кнопки
 
-11. frontend/reports/templates/_tarot_card.html:
+11. templates/reports/_tarot_card.html:
     - Использует daily_tarot_arcana вместо current_year_arcana
     - Визуальная карта с анимацией
 

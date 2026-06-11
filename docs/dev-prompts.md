@@ -175,7 +175,7 @@ System prompt — захардкодить в коде (не из файла), �
   - Возвращает пути к файлам
 
 Шаблон отчёта — создать отдельный файл:
-frontend/reports/full_report.html — HTML-шаблон с переменными подстановки.
+templates/reports/full_report.html — HTML-шаблон с переменными подстановки.
 
 Шаблон должен содержать все секции из report-spec.md:
 - Cover с лого NURA

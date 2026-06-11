@@ -39,8 +39,8 @@ def format_line_nums(nums: list[int] | None) -> str:
 
 
 class ReportService:
-    TEMPLATE_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "reports" / "templates"
-    OUTPUT_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "reports" / "output"
+    TEMPLATE_DIR = Path(__file__).resolve().parent.parent.parent / "templates" / "reports"
+    OUTPUT_DIR = Path(__file__).resolve().parent.parent.parent / "templates" / "reports" / "output"
 
     @classmethod
     def _env(cls) -> Environment:

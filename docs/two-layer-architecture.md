@@ -177,7 +177,7 @@ async def generate_full_with_kitchen(birth_date: str, matrix_data):
 
 ### 3.2 Отображение в HTML-шаблоне
 
-В `frontend/reports/templates/`:
+В `templates/reports/`:
 - Секция скрыта по умолчанию (`display: none`)
 - Кнопка "Показать расчёт" переключает видимость
 - Данные в переменной `kitchen_data`, вшитой в `<script>` или подгружаемой через fetch
@@ -195,7 +195,7 @@ async def generate_full_with_kitchen(birth_date: str, matrix_data):
 | `api/routes/report.py` или новый файл | **NEW** — эндпоинт `/report/{token}/kitchen` |
 | `bot/handlers/profile.py` | Добавить кнопку "Показать расчёт" + обработчик |
 | `bot/keyboards/main_menu.py` | Добавить кнопку в разметку |
-| `frontend/reports/templates/full_report.html` | Добавить блок кухонного слоя (скрытый + кнопка) |
+| `templates/reports/full_report.html` | Добавить блок кухонного слоя (скрытый + кнопка) |
 | `core/schemas.py` → `core/models/report.py` (или аналоги) | Миграция: поле `kitchen_analysis` в таблице reports |
 
 ---

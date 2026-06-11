@@ -36,7 +36,8 @@
 | `alembic/` | DB migrations |
 | `tests/` | Test suites |
 | `docs/` | Project documentation |
-| `frontend/` | Landing page + report HTML templates |
+| `frontend/` | Landing page (корень проекта) |
+| `templates/` | Jinja2-шаблоны отчётов (`reports/`) и слайдов (`carousel/`) |
 
 ## Source of Truth
 

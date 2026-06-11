@@ -1,7 +1,7 @@
 # NURA — Report Spec
 
 > Актуально на 26.05.2026. Версия шаблона: V2 (`full_report_v2.html`).
-> Источники истины: `nura_app/frontend/reports/templates/full_report_v2.html`, `nura_app/core/services/report.py`, `nura_app/core/schemas/__init__.py`.
+> Источники истины: `nura_app/templates/reports/full_report_v2.html`, `nura_app/core/services/report.py`, `nura_app/core/schemas/__init__.py`.
 
 ---
 
@@ -522,7 +522,7 @@ class MiniAnalysisResult(BaseModel):
 ## 7. Шаблоны — файловая структура
 
 ```
-nura_app/frontend/reports/templates/
+nura_app/templates/reports/
 ├── full_report_v2.html          ← АКТИВНЫЙ шаблон V2 (2531 строк, самодостаточный)
 ├── mini_report.html             ← мини-разбор
 ├── full_report.html             ← УСТАРЕВШИЙ, не используется в продакшене

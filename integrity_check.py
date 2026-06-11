@@ -343,7 +343,7 @@ def main() -> None:
         ("core/prompts/tarot_daily_card.txt", "Prompt: daily card"),
         ("core/prompts/tarot_weekly_spread.txt", "Prompt: weekly spread"),
         ("core/prompts/tarot_question.txt", "Prompt: question"),
-        ("frontend/reports/templates/_tarot_card.html", "Tarot card template"),
+        ("templates/reports/_tarot_card.html", "Tarot card template"),
         ("core/repositories/user.py", "User repository"),
         ("core/schemas/__init__.py", "Schemas"),
     ]
@@ -430,7 +430,7 @@ def main() -> None:
 
     # 15. Template
     print("\n[15] ПРОВЕРКА HTML ШАБЛОНА")
-    check_tarot_template(NURA_APP / "frontend/reports/templates/_tarot_card.html")
+    check_tarot_template(NURA_APP / "templates/reports/_tarot_card.html")
 
     # 16. Landing index.html
     print("\n[16] ПРОВЕРКА ЛЕНДИНГА (index.html)")

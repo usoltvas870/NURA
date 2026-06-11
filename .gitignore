@@ -36,7 +36,7 @@ videos/
 .coverage
 
 # Carousel test output
-nura_app/frontend/carousel/output/*.png
+nura_app/templates/carousel/output/*.png
 
 # Trend radar data (local only)
 nura-trend-radar/data/

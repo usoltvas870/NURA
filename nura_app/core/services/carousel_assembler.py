@@ -9,8 +9,8 @@ NURA_APP = NURA_ROOT / "nura_app"
 
 
 class CarouselAssembler:
-    TEMPLATE_DIR = NURA_APP / "frontend" / "carousel" / "templates"
-    OUTPUT_DIR = NURA_APP / "frontend" / "carousel" / "output"
+    TEMPLATE_DIR = NURA_APP / "templates" / "carousel"
+    OUTPUT_DIR = NURA_APP / "templates" / "carousel" / "output"
 
     _TEMPLATE_MAP = {
         "cover": "slide_cover.html",

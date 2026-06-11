@@ -15,7 +15,7 @@ TASKS = ROOT / "core" / "tasks.py"
 REPORT_SERVICE = ROOT / "core" / "services" / "report.py"
 COT_PROMPT = ROOT / "core" / "prompts" / "cot_instruction.txt"
 FULL_REPORT_TXT = ROOT / "core" / "prompts" / "full_report.txt"
-TEMPLATES_DIR = ROOT / "frontend" / "reports" / "templates"
+TEMPLATES_DIR = ROOT / "templates" / "reports"
 FULL_REPORT_HTML = TEMPLATES_DIR / "full_report.html"
 STYLES_HTML = TEMPLATES_DIR / "_styles.html"
 
