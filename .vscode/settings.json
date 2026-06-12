@@ -1,0 +1,32 @@
+{
+  "chat.includeApplyingInstructions": true,
+  "chat.includeReferencedInstructions": true,
+  "chat.useAgentsMdFile": true,
+  "chat.useNestedAgentsMdFiles": true,
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    ".opencode/node_modules": true,
+    "nura-trend-radar/data": true,
+    "videos": true
+  },
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/nura_app"
+  ],
+  "python.defaultInterpreterPath": "${workspaceFolder}/nura_app/.venv/Scripts/python.exe",
+  "python.testing.cwd": "${workspaceFolder}/nura_app",
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "search.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    ".opencode/node_modules": true,
+    "nura-trend-radar/data": true,
+    "videos": true
+  }
+}
