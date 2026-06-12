@@ -130,16 +130,24 @@ PWA (`nura-ai.ru`) — это тот же сайт, но с тремя допо�
 - `maskable` варианты — с отступом 12% со всех сторон (safe zone для Android)
 - `apple-touch-icon.png` — 180×180, для тега `<link rel="apple-touch-icon">`
 
-**Палитра CSS-переменных (из index.html):**
+**Палитра CSS-переменных PWA-экранов (`/app/*`):**
 | Переменная | Значение | Назначение |
 |---|---|---|
 | `--bg` | `#0A0E0C` | Основной фон |
-| `--bg-soft` | `#111613` | Вторичный фон |
-| `--ink` | `#F2EFE7` | Текст (тёплый белый) |
+| `--bg2` | `#0E1410` | Вторичный фон |
+| `--card-bg` | `#131A14` | Фон карточек |
 | `--m-accent` | `#C9A55C` | Золото матрицы — основной акцент |
-| `--m-leaf` | `#6BA37A` | Изумрудный |
-| `--t-accent` | `#D8B36A` | Золото таро |
-| `--t-violet` | `#7E7AC8` | Фиолетовый таро |
+| `--m-accent-dim` | `rgba(201,165,92,0.15)` | Акцент (полупрозрачный) |
+| `--ink` | `#E8E0D0` | Текст (тёплый белый) |
+| `--ink-dim` | `rgba(232,224,208,0.55)` | Вторичный текст |
+| `--green` | `#97C5A1` | Зелёный акцент |
+| `--green-dim` | `rgba(151,197,161,0.15)` | Зелёный (полупрозрачный) |
+| `--border` | `rgba(151,197,161,0.12)` | Границы |
+| `--radius` | `16px` | Скругление |
+| `--safe-top` | `env(safe-area-inset-top, 0px)` | Safe area сверху |
+| `--safe-bottom` | `env(safe-area-inset-bottom, 0px)` | Safe area снизу |
+
+**Палитра лендинга (`index.html`) — те же переменные, что и у отчёта, см. `report-spec.md`.**
 
 ---
 
@@ -660,7 +668,7 @@ CSS с учётом safe area (iPhone X+):
   right: 0;
   height: calc(56px + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: #0E2419;
+  background: #0E1A11;
   border-top: 1px solid rgba(151, 197, 161, 0.15);
   display: flex;
   align-items: flex-start;
