@@ -274,19 +274,33 @@
       justify-content: space-between;
       gap: 24px;
     }
-    .logo {
+    .nav-brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      font-size: 14px;
+      text-decoration: none;
+      color: var(--m-accent);
     }
-    .nav-logo-img {
-      height: 144px;
-      width: auto;
-      display: block;
-      filter: brightness(1);
+    .nb-diamond {
+      font-size: 11px;
+      color: var(--m-accent);
+      opacity: 0.9;
+      line-height: 1;
+    }
+    .nb-divider {
+      font-size: 18px;
+      color: var(--m-accent);
+      opacity: 0.3;
+      font-weight: 100;
+      line-height: 1;
+    }
+    .nb-name {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 22px;
+      font-weight: 300;
+      letter-spacing: 0.18em;
+      color: var(--m-accent);
+      line-height: 1;
     }
 
     .nav-products {
@@ -1534,11 +1548,10 @@
   <!-- NAV -->
   <header class="nav">
     <div class="container nav-inner">
-      <a class="logo" href="#top">
-        <img src="/static/nura-logo.png"
-             alt="NURA AI"
-             class="nav-logo-img"
-             height="28"/>
+      <a href="#top" class="nav-brand">
+        <span class="nb-diamond">✦</span>
+        <span class="nb-divider">|</span>
+        <span class="nb-name">NURA</span>
       </a>
       <nav class="nav-products" aria-label="Продукты">
         <a href="#matrix"><span class="swatch m"></span>Матрица Судьбы</a>
