@@ -282,15 +282,11 @@
       letter-spacing: 0.18em;
       font-size: 14px;
     }
-    .logo-mark {
-      width: 30px; height: 30px;
-      border-radius: 50%;
-      display: grid; place-items: center;
-      background: linear-gradient(135deg, var(--m-accent), var(--t-accent));
-      color: #14110A;
-      font-size: 14px;
-      font-weight: 700;
-      font-family: 'Cormorant Garamond', serif;
+    .nav-logo-img {
+      height: 28px;
+      width: auto;
+      display: block;
+      filter: brightness(1);
     }
 
     .nav-products {
@@ -1539,8 +1535,10 @@
   <header class="nav">
     <div class="container nav-inner">
       <a class="logo" href="#top">
-        <span class="logo-mark">N</span>
-        <span>NURA AI</span>
+        <img src="/static/nura-logo.png"
+             alt="NURA AI"
+             class="nav-logo-img"
+             height="28"/>
       </a>
       <nav class="nav-products" aria-label="Продукты">
         <a href="#matrix"><span class="swatch m"></span>Матрица Судьбы</a>
