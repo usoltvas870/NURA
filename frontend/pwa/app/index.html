@@ -5,24 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0A0E0C">
+  <meta name="theme-color" content="#12100E">
   <title>NURA</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
     :root {
-      --bg: #0A0E0C;
-      --bg2: #0E1410;
-      --card-bg: #131A14;
-      --m-accent: #C9A55C;
-      --m-accent-dim: rgba(201,165,92,0.15);
-      --ink: #E8E0D0;
-      --ink-dim: rgba(232,224,208,0.55);
-      --green: #97C5A1;
-      --green-dim: rgba(151,197,161,0.15);
-      --border: rgba(151,197,161,0.12);
-      --radius: 16px;
-      --safe-top: env(safe-area-inset-top, 0px);
+      /* Дизайн-система (лендинг) */
+      --bg:        #12100E;
+      --bg-soft:   #1C1814;
+      --bg-card:   #242018;
+      --ink:       #F2EFE7;
+      --ink-soft:  rgba(242, 239, 231, 0.72);
+      --ink-mute:  rgba(242, 239, 231, 0.50);
+      --line:      rgba(242, 239, 231, 0.10);
+      --line-strong: rgba(242, 239, 231, 0.18);
+
+      /* Матрица: изумрудный мир */
+      --m-bg:       #0E2419;
+      --m-bg-soft:  #143527;
+      --m-line:     rgba(151, 197, 161, 0.18);
+      --m-accent:   #C9A55C;
+      --m-accent-soft: rgba(201, 165, 92, 0.16);
+      --m-leaf:     #6BA37A;
+
+      /* Таро: ночь и серебро-золото */
+      --t-bg:       #0F1830;
+      --t-bg-soft:  #19244A;
+      --t-line:     rgba(180, 195, 230, 0.18);
+      --t-accent:   #D8B36A;
+      --t-accent-soft: rgba(216, 179, 106, 0.16);
+      --t-violet:   #7E7AC8;
+
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+
+      /* Алиасы обратной совместимости PWA */
+      --border:     var(--m-line);
+      --green:      var(--m-leaf);
+      --green-dim:  var(--m-line);
+      --ink-dim:    var(--ink-soft);
+      --card-bg:    var(--bg-card);
+      --m-accent-dim: var(--m-accent-soft);
+      --bg2:        var(--bg-soft);
+      --radius:     var(--radius-md);
+
+      /* PWA-специфичные */
+      --safe-top:    env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
@@ -31,7 +64,7 @@
     html, body {
       background: var(--bg);
       color: var(--ink);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'DM Sans', system-ui, sans-serif;
       min-height: 100vh;
       overscroll-behavior: none;
     }

@@ -526,7 +526,10 @@ class ReportService:
                 block["arcana_name"] = arcana_names.get(num, ARCANA.get(int(num), {}).get("name", ""))
 
             def _extract(label_pattern: str, next_labels: list[str]) -> str:
-                pat = rf"(?:{label_pattern})\s*[:\-–—]?\s*(.+?)(?=(?:{'|'.join(next_labels)})|$)"
+                if next_labels:
+                    pat = rf"(?:{label_pattern})\s*[:–—]?\s*(.+?)(?=(?:{'|'.join(next_labels)})|$)"
+                else:
+                    pat = rf"(?:{label_pattern})\s*[:–—]?\s*(.+)$"
                 m = re.search(pat, section, re.IGNORECASE | re.DOTALL)
                 return m.group(1).strip() if m else ""
 
