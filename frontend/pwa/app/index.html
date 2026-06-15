@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>NURA</title>
+  <script>
+    (function(){
+      var t = localStorage.getItem('nura-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
   <style>
@@ -20,6 +26,18 @@
       --r-sm:6px; --r-md:12px; --r-lg:18px;
       --bg-alpha:rgba(18,16,14,.97);
     }
+    [data-theme="light"] {
+      --bg:#F7F3ED; --bg-soft:#EFEAE2; --bg-card:#F0EBE2;
+      --ink:#1C1814; --ink-soft:rgba(28,24,20,.70);
+      --ink-mute:rgba(28,24,20,.48); --ink-faint:#8A7F75;
+      --line:rgba(28,24,20,.10); --line-strong:rgba(28,24,20,.18);
+      --m-accent:#9B7A2F; --m-accent-soft:rgba(155,122,47,.14);
+      --m-leaf:#4A7A5A; --m-leaf-soft:rgba(74,122,90,.10);
+      --t-accent:#A67C3D; --t-accent-soft:rgba(166,124,61,.14);
+      --t-violet:#6A6798; --danger:#C45C5C;
+      --bg-alpha:rgba(247,243,237,.92);
+    }
+    [data-theme="light"] body { background:var(--bg); color:var(--ink); }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{-webkit-tap-highlight-color:transparent}
     body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);
@@ -151,6 +169,7 @@
     <span class="logo-sep"></span>
     <span>NURA</span>
   </div>
+  <button class="icon-btn" id="themeToggle" aria-label="Тема" title="Светлая / тёмная тема" style="font-size:14px">◑</button>
   <a href="profile.html" class="icon-btn" aria-label="Профиль">👤</a>
 </header>
 
@@ -254,6 +273,31 @@
       })
       .catch(function() {});
   }
+</script>
+
+<script>
+(function(){
+  var btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  var root = document.documentElement;
+  var STORAGE_KEY = 'nura-theme';
+
+  var saved = localStorage.getItem(STORAGE_KEY) || 'dark';
+  applyTheme(saved);
+
+  btn.addEventListener('click', function(){
+    var current = root.getAttribute('data-theme') || 'dark';
+    var next = current === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    localStorage.setItem(STORAGE_KEY, next);
+  });
+
+  function applyTheme(theme){
+    root.setAttribute('data-theme', theme);
+    btn.textContent = theme === 'dark' ? '◑' : '◐';
+    btn.title = theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему';
+  }
+})();
 </script>
 </body>
 </html>
