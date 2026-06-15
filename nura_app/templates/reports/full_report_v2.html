@@ -1965,6 +1965,162 @@
     /* --- Hide SVG gradients that WeasyPrint can't render --- */
     .matrix-viz defs { display: none; }
   }
+
+  /* ===========================================================
+     BLOCK — HEALTH MAP (CHAKRAS)
+     =========================================================== */
+  .section-health .section-accent-bar { background: var(--green); }
+
+  .chakra-list {
+    display: flex; flex-direction: column; gap: var(--section-gap);
+  }
+
+  .chakra-row {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 18px;
+    background: rgba(245,243,238,0.02);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    position: relative; overflow: hidden;
+    page-break-inside: avoid;
+  }
+
+  .chakra-row::before {
+    content: ""; position: absolute; top: 0; left: 0;
+    width: 4px; height: 100%;
+    background: var(--chakra-color);
+    opacity: 0.5; border-radius: 0 2px 2px 0;
+  }
+
+  .chakra-indicator {
+    flex-shrink: 0; width: 24px; height: 80px;
+    background: rgba(245,243,238,0.06); border-radius: 12px;
+    position: relative; overflow: hidden; margin-top: 4px;
+  }
+
+  .chakra-indicator-fill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: var(--fill);
+    background: linear-gradient(to top, var(--chakra-color), transparent);
+    border-radius: 12px; transition: height 0.4s ease;
+  }
+
+  .status-high .chakra-indicator-fill { box-shadow: 0 0 12px var(--chakra-color); }
+  .status-medium .chakra-indicator-fill { box-shadow: 0 0 8px var(--chakra-color); }
+  .status-low .chakra-indicator-fill { box-shadow: none; opacity: 0.7; }
+
+  .chakra-icon-wrap {
+    flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: rgba(245,243,238,0.04);
+    border: 1px solid var(--line); font-size: 22px;
+  }
+
+  .chakra-row .chakra-icon-wrap {
+    border-color: var(--chakra-color);
+    background: color-mix(in srgb, var(--chakra-color) 12%, transparent);
+  }
+
+  .chakra-info { flex: 1; min-width: 0; }
+
+  .chakra-header {
+    display: flex; align-items: baseline; flex-wrap: wrap;
+    gap: 6px 10px; margin-bottom: 8px;
+  }
+
+  .chakra-header h4 {
+    font-family: var(--font-heading); font-size: 16px;
+    color: var(--ink); margin: 0;
+  }
+
+  .chakra-sanskrit {
+    font-family: var(--font-heading); font-size: 14px;
+    color: var(--ink-faint); opacity: 0.7;
+  }
+
+  .chakra-loc {
+    font-size: 11px; color: var(--ink-faint);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .chakra-positions {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+
+  .chakra-pos-item {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px;
+    background: rgba(245,243,238,0.04);
+    border: 1px solid rgba(245,243,238,0.08);
+    font-size: 12px;
+  }
+
+  .chakra-pos-label {
+    font-size: 10px; color: var(--ink-faint);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .chakra-pos-val {
+    font-family: var(--font-heading); font-size: 14px; color: var(--ink);
+  }
+
+  .chakra-row.status-high .chakra-pos-val { color: var(--green); }
+  .chakra-row.status-medium .chakra-pos-val { color: var(--m-accent); }
+  .chakra-row.status-low .chakra-pos-val { color: #e06040; }
+
+  .chakra-organs {
+    font-size: 12px; color: var(--ink-faint); margin-bottom: 8px; line-height: 1.5;
+  }
+
+  .chakra-organs-label {
+    text-transform: uppercase; letter-spacing: 0.5px;
+    font-size: 10px; color: rgba(245,243,238,0.4);
+  }
+
+  .chakra-analysis {
+    font-size: 13px; color: rgba(245,243,238,0.7);
+    line-height: 1.6; margin-bottom: 6px;
+  }
+
+  .chakra-practice {
+    font-size: 12px; color: var(--green); font-style: italic; line-height: 1.5;
+  }
+
+  .chakra-organism-block { margin-top: var(--section-gap); }
+
+  .organism-row {
+    border-color: rgba(217,122,50,0.25);
+    background: rgba(217,122,50,0.04);
+  }
+
+  .organism-row::before { background: #e06040; opacity: 0.4; }
+
+  .chakra-global-analysis {
+    margin-top: 20px; padding: 18px;
+    background: rgba(53,92,77,0.06);
+    border: 1px solid rgba(53,92,77,0.15);
+    border-radius: var(--radius);
+  }
+
+  .chakra-global-analysis h4 {
+    font-family: var(--font-heading); font-size: 16px;
+    color: var(--green); margin-bottom: 8px;
+  }
+
+  .chakra-global-analysis p { font-size: 14px; color: var(--ink-soft); line-height: 1.7; }
+
+  .chakra-global-practice {
+    margin-top: 12px; padding: 14px 18px;
+    background: rgba(151,197,161,0.05);
+    border-radius: var(--radius);
+  }
+
+  .chakra-global-practice h4 {
+    font-family: var(--font-heading); font-size: 14px;
+    color: var(--green); margin-bottom: 6px;
+  }
+
+  .chakra-global-practice p { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
 </style>
 </head>
 <body>
