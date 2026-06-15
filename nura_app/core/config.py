@@ -39,41 +39,26 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
 
-    # Telegram
-    telegram_bot_token: str = ""
-    telegram_webhook_url: str = ""
-    bot_username: str = "Nura_ai_bot"
-
-    # DeepSeek
-    deepseek_api_key: str = ""
+    # DeepSeek AI
+    deepseek_api_key: str | None = None
     deepseek_base_url: str = "https://api.deepseek.com/v1"
     deepseek_model: str = "deepseek-chat"
 
+    # Telegram
+    telegram_bot_token: str | None = None
+    bot_username: str | None = None
+
     # YooKassa
-    yookassa_shop_id: str = ""
-    yookassa_secret_key: str = ""
-    yookassa_return_url: str = ""
+    yookassa_shop_id: str | None = None
+    yookassa_secret_key: str | None = None
 
     # Report
     report_base_url: str = "https://nura-ai.ru"
 
-    # Subscription
-    subscription_price_rub: int = 390
+    # Pricing
+    subscription_price_rub: int = 590
     tarot_subscription_price_rub: int = 390
     matrix_one_time_price_rub: int = 890
-
-    # Admin panel
-    admin_username: str = "admin"
-    admin_password: str = "admin"
-
-    # Content pipeline
-    jobs_dir: str = ""
-
-    # Test mode — all paid features free
-    test_mode: bool = True
-
-    # Support
-    support_username: str = "@nura_support"
 
     # Rate limit
     rate_limit_requests: int = 30
@@ -84,10 +69,13 @@ class Settings(BaseSettings):
     vapid_public_key: str = ""
     vapid_claims_email: str = "admin@nura-ai.ru"
 
+    # Test mode bypass (WARNING: only for dev)
+    test_mode: bool = False
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
-        "extra": "ignore",
+        "extra": "ignore",  # .env has legacy vars (DATABASE_URL, TELEGRAM_WEBHOOK_URL etc.)
     }
 
 

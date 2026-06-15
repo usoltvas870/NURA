@@ -17,6 +17,7 @@ from bot.keyboards.tarot_keyboard import (
 from bot.states.tarot_state import TarotStates
 from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
 from bot.utils.loading import animated_loading
+from core.arcana_data import ARCANA
 from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
@@ -25,31 +26,6 @@ from core.services.ai import AIService
 logger = logging.getLogger(__name__)
 
 router = Router()
-
-ARCANA = {
-    1:  "Маг",
-    2:  "Верховная Жрица",
-    3:  "Императрица",
-    4:  "Император",
-    5:  "Иерофант",
-    6:  "Влюблённые",
-    7:  "Колесница",
-    8:  "Сила",
-    9:  "Отшельник",
-    10: "Колесо Фортуны",
-    11: "Справедливость",
-    12: "Повешенный",
-    13: "Смерть",
-    14: "Умеренность",
-    15: "Дьявол",
-    16: "Башня",
-    17: "Звезда",
-    18: "Луна",
-    19: "Солнце",
-    20: "Суд",
-    21: "Мир",
-    22: "Шут",
-}
 
 _SPHERE_NAMES: dict[str, str] = {
     "tarot_sphere_money": "Деньги и реализация",
@@ -138,7 +114,7 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
     today = date.today()
     center_arcana = user.main_archetype_number or _daily_arcana_number(today)
     arcana_num = _personal_arcana_number(today, center_arcana)
-    arcana_name = ARCANA[arcana_num]
+    arcana_name = ARCANA[arcana_num]["name"]
 
     async with animated_loading(callback.message, "🃏 Вытягиваю карту дня"):
         try:
@@ -266,7 +242,7 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
     sphere_name = _SPHERE_NAMES[callback.data]
     today = date.today()
     arcana_num = _daily_arcana_number(today)
-    arcana_name = ARCANA[arcana_num]
+    arcana_name = ARCANA[arcana_num]["name"]
 
     async with animated_loading(callback.message, "🃏 Раскладываю карты"):
         try:
@@ -341,10 +317,10 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
             prompt = AIService._load_prompt("tarot_doubles.txt")
             filled = prompt.format(
                 arcana_one_number=arcana_one,
-                arcana_one_name=ARCANA[arcana_one],
+                arcana_one_name=ARCANA[arcana_one]["name"],
                 arcana_two_number=arcana_two,
-                arcana_two_name=ARCANA[arcana_two],
-                dominant_arcana_name=ARCANA[dominant],
+                arcana_two_name=ARCANA[arcana_two]["name"],
+                dominant_arcana_name=ARCANA[dominant]["name"],
                 date=datetime.now().strftime("%d.%m.%Y"),
             )
             interpretation = await AIService.chat(
@@ -367,7 +343,7 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
         f"☯ Теневые стороны\n"
         f"{'─' * 20}\n\n"
         f"{interpretation}\n\n"
-        f"{ARCANA[arcana_one]} · {ARCANA[arcana_two]}"
+        f"{ARCANA[arcana_one]['name']} · {ARCANA[arcana_two]['name']}"
     )
     await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
 
@@ -403,11 +379,11 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
             filled = prompt.format(
                 month_name=month_name,
                 teach_arcana_number=teach,
-                teach_arcana_name=ARCANA[teach],
+                teach_arcana_name=ARCANA[teach]["name"],
                 release_arcana_number=release,
-                release_arcana_name=ARCANA[release],
+                release_arcana_name=ARCANA[release]["name"],
                 strengthen_arcana_number=strengthen,
-                strengthen_arcana_name=ARCANA[strengthen],
+                strengthen_arcana_name=ARCANA[strengthen]["name"],
             )
             interpretation = await AIService.chat(
                 messages=[
@@ -461,11 +437,11 @@ async def show_tarot_blocks(callback: CallbackQuery) -> None:
             prompt = AIService._load_prompt("tarot_blocks.txt")
             filled = prompt.format(
                 block_arcana_number=block_num,
-                block_arcana_name=ARCANA[block_num],
+                block_arcana_name=ARCANA[block_num]["name"],
                 cause_arcana_number=cause_num,
-                cause_arcana_name=ARCANA[cause_num],
+                cause_arcana_name=ARCANA[cause_num]["name"],
                 solution_arcana_number=solution_num,
-                solution_arcana_name=ARCANA[solution_num],
+                solution_arcana_name=ARCANA[solution_num]["name"],
                 date=datetime.now().strftime("%d.%m.%Y"),
             )
             interpretation = await AIService.chat(
@@ -525,7 +501,7 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
     base_arcana = _daily_arcana_number(today)
 
     if spread_type == "yes_no":
-        arcana_name = ARCANA[base_arcana]
+        arcana_name = ARCANA[base_arcana]["name"]
         yes_or_no = "Да" if base_arcana % 2 == 1 else "Нет"
         async with animated_loading(message, "🃏 Раскладываю карты"):
             try:
@@ -563,9 +539,9 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
         past_num = (base_arcana - 1) % 22 + 1
         present_num = base_arcana
         future_num = base_arcana % 22 + 1
-        past_name = ARCANA[past_num]
-        present_name = ARCANA[present_num]
-        future_name = ARCANA[future_num]
+        past_name = ARCANA[past_num]["name"]
+        present_name = ARCANA[present_num]["name"]
+        future_name = ARCANA[future_num]["name"]
 
         async with animated_loading(message, "🃏 Раскладываю карты"):
             try:
