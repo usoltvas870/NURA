@@ -1423,7 +1423,7 @@ class TestCmdStart:
             patch("bot.handlers.start.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.start.onboarding_greeting_text") as mock_greet,
             patch("bot.handlers.start.ask_birth_date_onboarding_text") as mock_ask,
-            patch("bot.handlers.start.OnboardingStates") as mock_obs,
+            patch("bot.handlers.start.OnboardingStates"),
         ):
             repo_instance = MagicMock()
             repo_instance.get_by_telegram_id = AsyncMock(return_value=None)
@@ -2571,11 +2571,6 @@ class TestOpenReport:
             await open_report(mock_callback)
 
         # Должна быть кнопка "Показать расчёт"
-        # Ищем kitchen: в callback_data
-        kitchen_calls = [
-            c for c in mock_ikb.call_args_list
-            if "kitchen" in str(c)
-        ]
         # ikm был вызван хотя бы раз
         mock_ikm.assert_called()
 
@@ -2817,7 +2812,7 @@ class TestCompatibility:
             patch("bot.handlers.compatibility.ask_partner_name_text") as mock_apn,
             patch("bot.handlers.compatibility.InlineKeyboardMarkup") as mock_ikm,
             patch("bot.handlers.compatibility.InlineKeyboardButton") as mock_ikb,
-            patch("bot.handlers.compatibility.CompatibilityStates") as mock_cs,
+            patch("bot.handlers.compatibility.CompatibilityStates"),
         ):
             repo_instance = MagicMock()
             repo_instance.get_by_telegram_id = AsyncMock(return_value=user)
@@ -2852,7 +2847,7 @@ class TestCompatibility:
             patch("bot.handlers.compatibility.ask_partner_name_text") as mock_apn,
             patch("bot.handlers.compatibility.InlineKeyboardMarkup") as mock_ikm,
             patch("bot.handlers.compatibility.InlineKeyboardButton") as mock_ikb,
-            patch("bot.handlers.compatibility.CompatibilityStates") as mock_cs,
+            patch("bot.handlers.compatibility.CompatibilityStates"),
         ):
             repo_instance = MagicMock()
             repo_instance.get_by_telegram_id = AsyncMock(return_value=user)
@@ -2887,7 +2882,7 @@ class TestProcessPartnerName:
             patch("bot.handlers.compatibility.ask_relation_type_text") as mock_art,
             patch("bot.handlers.compatibility.InlineKeyboardMarkup") as mock_ikm,
             patch("bot.handlers.compatibility.InlineKeyboardButton") as mock_ikb,
-            patch("bot.handlers.compatibility.CompatibilityStates") as mock_cs,
+            patch("bot.handlers.compatibility.CompatibilityStates"),
         ):
             mock_art.return_value = "Тип отношений?"
             mock_ikm.return_value = MagicMock()
@@ -2915,7 +2910,7 @@ class TestProcessRelationType:
             patch("bot.handlers.compatibility.ask_partner_date_text") as mock_apd,
             patch("bot.handlers.compatibility.InlineKeyboardMarkup") as mock_ikm,
             patch("bot.handlers.compatibility.InlineKeyboardButton") as mock_ikb,
-            patch("bot.handlers.compatibility.CompatibilityStates") as mock_cs,
+            patch("bot.handlers.compatibility.CompatibilityStates"),
         ):
             mock_apd.return_value = "Дата рождения партнёра?"
             mock_ikm.return_value = MagicMock()

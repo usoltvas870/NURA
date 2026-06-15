@@ -514,7 +514,7 @@ class TestProcessWebhook:
         """web_tarot — активация таро-подписки."""
         # Сначала создаём платёж
         pay_repo = PaymentRepository(session_factory)
-        payment = await pay_repo.create(
+        await pay_repo.create(
             user_id=test_user.id,
             amount=990,
             yookassa_id="yo-web-tarot-001",

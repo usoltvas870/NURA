@@ -1083,7 +1083,7 @@ class TestSpreadCommonErrors:
     ):
         """503 — все типы раскладов обрабатывают ошибку AI."""
         # Activate the appropriate mock fixture
-        fixture = request.getfixturevalue(mock_fixture)
+        request.getfixturevalue(mock_fixture)
         response = client.post("/api/v1/tarot/spread", json=body)
         assert response.status_code == 503
         assert "AI временно недоступен" in response.json()["detail"]
@@ -1302,14 +1302,8 @@ class TestSpreadPortalExtra:
     async def test_portal_uses_current_month_name(
         self, client, mock_get_user, mock_ai_chat,
     ):
-        """200 — имя месяца вставляется из month_names."""
-        month_names = {
-            1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрель",
-            5: "Май", 6: "Июнь", 7: "Июль", 8: "Август",
-            9: "Сентябрь", 10: "Октябрь", 11: "Ноябрь", 12: "Декабрь",
-        }
+        """200 — возвращает арканы для текущего месяца."""
         current_month = datetime.now().month
-        expected_name = month_names[current_month]
 
         # We can't easily verify the prompt content from the response,
         # but we can verify the request succeeds
