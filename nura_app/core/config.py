@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -72,10 +73,18 @@ class Settings(BaseSettings):
     # Test mode bypass (WARNING: only for dev)
     test_mode: bool = False
 
+    @field_validator("test_mode", mode="before")
+    @classmethod
+    def _protect_test_mode(cls, v: bool, info) -> bool:
+        """Принудительно False в production, что бы ни было в .env."""
+        if info.data.get("app_env") == "production":
+            return False
+        return v
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
-        "extra": "ignore",  # .env has legacy vars (DATABASE_URL, TELEGRAM_WEBHOOK_URL etc.)
+        "extra": "ignore",
     }
 
 

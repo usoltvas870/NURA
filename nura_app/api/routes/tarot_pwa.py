@@ -178,7 +178,6 @@ async def _handle_life_spread(user, birth_date: str, user_name: str) -> SpreadRe
     arcana = ARCANA_DATA.get(arcana_num, ARCANA_DATA[1])
 
     prompt = AIService._load_prompt("tarot_spheres.txt")
-    sphere_names = {"Деньги и реализация", "Отношения", "Предназначение"}
     sphere_name = "Деньги и реализация"
     filled = prompt.format(
         sphere_name=sphere_name,
@@ -296,7 +295,6 @@ async def _handle_portal_spread(user, birth_date: str, user_name: str) -> Spread
 
 
 async def _handle_yesno_spread(user, birth_date: str, question: str, user_name: str) -> SpreadResponse:
-    today = date.today()
     base_arcana = calculate_daily_arcana(birth_date)
     arcana = ARCANA_DATA.get(base_arcana, ARCANA_DATA[1])
     yes_or_no = "Да" if base_arcana % 2 == 1 else "Нет"

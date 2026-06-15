@@ -13,6 +13,7 @@ from core.database import get_async_sessionmaker
 from core.models import ReportType, User
 from core.repositories import ReportRepository, UserRepository
 from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
+from core.fallbacks import FALLBACK_TAROT_DAILY
 from core.services.ai import AIService
 from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
@@ -355,7 +356,7 @@ async def _process_compatibility_report(
         },
         template_name="compatibility_report.html",
     )
-    pdf = await ReportService.generate_pdf(html)
+    pdf = await ReportService.generate_pdf(html) if relation_type == "романтика" else None
     paths = ReportService.save_report_files(token, html, pdf)
 
     existing = await report_repo.get_by_user_id_and_type(uid, ReportType.COMPATIBILITY)
@@ -385,6 +386,7 @@ async def _process_compatibility_report(
         "archetype_first_number": matrix1.center,
         "archetype_second_name": archetype_second_name,
         "archetype_second_number": matrix2.center,
+        "relation_type": relation_type,
     }
 
 
@@ -450,6 +452,10 @@ def send_daily_card() -> dict:
     return _run_async(_send_daily_card_async())
 
 
+# Cache daily-card AI text by arcana number so each archetype calls AI once
+ARCANE_CACHE: dict[int, str] = {}
+
+
 async def _send_daily_card_async() -> dict:
     session_factory = get_async_sessionmaker()
     async with session_factory() as session:
@@ -459,6 +465,11 @@ async def _send_daily_card_async() -> dict:
                 load_only(
                     User.id,
                     User.telegram_id,
+                    User.first_name,
+                    User.username,
+                    User.birth_date,
+                    User.main_archetype_number,
+                    User.main_archetype,
                     User.has_pwa_push,
                     User.push_endpoint,
                     User.push_p256dh,
@@ -471,41 +482,71 @@ async def _send_daily_card_async() -> dict:
         )
         users = result.scalars().all()
 
-    total = len(users)
-    needs_rate_limit = total > 50
+    today = date.today()
+    send_semaphore = asyncio.Semaphore(5)
     sent = 0
     failed = 0
 
-    text = "🌒 Твоя карта дня готова"
-    keyboard = {
-        "inline_keyboard": [
-            [{"text": "🌒 Получить карту", "callback_data": "tarot_daily_card"}],
-        ],
-    }
+    async def _send_one(user: User) -> bool:
+        nonlocal sent, failed
+        arcana_num = user.main_archetype_number or 0
+        daily_arcana = (
+            _personal_arcana_number(today, arcana_num)
+            if arcana_num
+            else _daily_arcana_number(today)
+        )
+        arcana_name = ARCANA.get(daily_arcana, f"Аркан {daily_arcana}")
 
-    for i, user in enumerate(users):
-        if needs_rate_limit and i > 0 and user.telegram_id:
-            await asyncio.sleep(0.05)
+        # Cache AI-generated card text by daily arcana number
+        if daily_arcana not in ARCANE_CACHE:
+            user_name = user.first_name or user.username or "друг"
+            try:
+                card_text = await AIService().generate_tarot_daily_card(
+                    arcana_number=daily_arcana,
+                    arcana_name=arcana_name,
+                    date_str=today.strftime("%d.%m.%Y"),
+                    user_name=user_name,
+                    user_archetype_number=arcana_num or daily_arcana,
+                    user_archetype_name=user.main_archetype or arcana_name,
+                )
+                ARCANE_CACHE[daily_arcana] = card_text
+            except Exception:
+                logger.exception(
+                    "Daily card AI failed for arcana %s, using fallback",
+                    daily_arcana,
+                )
+                ARCANE_CACHE[daily_arcana] = (
+                    f"🌒 Карта дня — {arcana_name} ({daily_arcana})\n\n"
+                    f"{FALLBACK_TAROT_DAILY['interpretation']}"
+                )
 
-        try:
-            ok = await _notify_user(
-                user,
-                text,
-                keyboard,
-                push_title="🌒 Карта дня",
-                push_body="Твоя карта дня готова",
-                push_url="/app/tarot",
-                push_tag="daily-card",
-            )
-            if ok:
-                sent += 1
-            else:
+        cached = ARCANE_CACHE[daily_arcana]
+        user_name = user.first_name or user.username or "друг"
+        text = f"🌒 {user_name}, твоя карта дня\n\n{cached}"
+
+        async with send_semaphore:
+            try:
+                ok = await _notify_user(
+                    user,
+                    text,
+                    push_title="🌒 Карта дня",
+                    push_body=cached[:120],
+                    push_url="/app/tarot",
+                    push_tag="daily-card",
+                )
+                if ok:
+                    sent += 1
+                else:
+                    failed += 1
+                return ok
+            except Exception:
+                logger.exception("Failed to notify user %s in daily card task", user.id)
                 failed += 1
-        except Exception:
-            logger.exception("Failed to notify user %s in daily card task", user.id)
-            failed += 1
+                return False
 
-    return {"sent": sent, "failed": failed, "total": total}
+    await asyncio.gather(*[_send_one(u) for u in users])
+    logger.info("send_daily_card: sent=%d failed=%d total=%d", sent, failed, len(users))
+    return {"sent": sent, "failed": failed, "total": len(users)}
 
 
 @celery_app.task(name="core.tasks.send_daily_tarot_card")

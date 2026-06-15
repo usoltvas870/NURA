@@ -9,6 +9,20 @@ from typing import TYPE_CHECKING
 import httpx
 
 from core.config import settings
+from core.fallbacks import (
+    CHAT_PARAMS,
+    DEFAULT_PARAMS,
+    FALLBACK_CHAT,
+    FALLBACK_COMPATIBILITY,
+    FALLBACK_FULL,
+    FALLBACK_KITCHEN,
+    FALLBACK_MINI,
+    FALLBACK_TAROT_QUESTION,
+    FALLBACK_TAROT_SPREAD,
+    FULL_REPORT_PARAMS,
+    TAROT_QUESTION_MODEL,
+    TAROT_SPREAD_MODEL,
+)
 from core.schemas import (
     CompatibilityFullResult,
     DailyInsightResult,
@@ -93,193 +107,6 @@ CHAT_SYSTEM_PROMPT_TEMPLATE = """Ты — NURA, девушка, AI-провод�
 - Без эзотерики, без страха, без оценочных суждений
 - Конкретно и точно
 - Каждый ответ — шаг к ясности"""
-
-FALLBACK_MINI = {
-    "main_archetype": (
-        "Твой главный архетип определён, но для точной интерпретации мне нужно "
-        "чуть больше времени. Попробуй запросить разбор ещё раз через минуту — "
-        "я выдам полный анализ."
-    ),
-    "core_strength": (
-        "Твоя сильная сторона связана с твоим архетипом. Чтобы раскрыть её точно, "
-        "дай мне ещё одну попытку."
-    ),
-    "emotional_conflict": (
-        "Эмоциональный паттерн виден в матрице, но я хочу дать тебе точный разбор. "
-        "Повтори запрос через минуту."
-    ),
-    "relationship_pattern": (
-        "Паттерн отношений зашифрован в твоих углах матрицы. Мне нужно чуть больше "
-        "времени, чтобы расшифровать его точно."
-    ),
-    "financial_block": (
-        "Денежный сценарий связан с твоей линией денег. Запроси разбор повторно — "
-        "я выдам конкретный анализ."
-    ),
-}
-
-FALLBACK_FULL = {
-    "main_archetype": (
-        "Твой главный архетип определён. Для глубокого анализа мне требуется "
-        "дополнительное время."
-    ),
-    "strengths": (
-        "Твои сильные стороны заложены в зоне талантов. Я вернусь с точным "
-        "анализом через минуту."
-    ),
-    "shadow_side": (
-        "Теневая сторона связана с кармическим хвостом. Мне нужно время для "
-        "точной интерпретации."
-    ),
-    "relationship_dynamics": (
-        "Динамика отношений видна по линии отношений. Я подготовлю точный разбор "
-        "и вернусь."
-    ),
-    "financial_scenario": (
-        "Финансовый сценарий зашифрован в линии денег. Дай мне минуту для анализа."
-    ),
-    "recurring_mistakes": (
-        "Повторяющиеся сценарии определены. Я уточню анализ и вернусь с результатом."
-    ),
-    "internal_conflicts": (
-        "Внутренние конфликты видны на пересечении линий матрицы. Мне нужно время "
-        "для точного разбора."
-    ),
-    "life_cycles": (
-        "Жизненные циклы заложены в архетипе. Я подготовлю точный анализ."
-    ),
-    "ai_recommendations": (
-        "Рекомендации будут готовы через минуту. Они будут привязаны к твоим "
-        "конкретным позициям матрицы."
-    ),
-    "karmic_tail_analysis": (
-        "Кармический хвост — это ключ к твоим повторяющимся сценариям. "
-        "Мне нужно время для точной интерпретации трёх узлов."
-    ),
-    "ancestral_programs": (
-        "Родовые программы по линиям отца и матери зашифрованы в твоей матрице. "
-        "Я подготовлю разбор и вернусь."
-    ),
-    "life_purpose": (
-        "Твоё предназначение раскрывается через линию неба и зону талантов. "
-        "Мне нужно время для глубокого анализа."
-    ),
-    "life_forecast": (
-        "Прогноз жизненных периодов строится на основе твоего архетипа и циклов. "
-        "Я уточню расчёты и вернусь с результатом."
-    ),
-    "psychological_blocks": (
-        "Психологические блоки зашифрованы в ключевых арканах твоей матрицы. "
-        "Мне нужно время для точного анализа убеждений и их проработки."
-    ),
-    "health_analysis": (
-        "Карта здоровья строится на основе всех позиций твоей матрицы. "
-        "Я подготовлю детальный разбор по чакрам и вернусь."
-    ),
-}
-
-FALLBACK_COMPATIBILITY = {
-    "portrait_user": "Не удалось загрузить разбор. Попробуй позже.",
-    "portrait_partner": "Не удалось загрузить разбор. Попробуй позже.",
-    "how_you_interact": "Не удалось загрузить разбор. Попробуй позже.",
-    "tension_zones": "Не удалось загрузить разбор. Попробуй позже.",
-    "pair_strengths": "Не удалось загрузить разбор. Попробуй позже.",
-    "recommendation": "Попробуй запустить расклад ещё раз.",
-}
-
-FALLBACK_CHAT = "Мне нужно чуть больше времени. Спроси ещё раз?"
-
-TAROT_DAILY_MODEL = settings.deepseek_model
-TAROT_SPREAD_MODEL = settings.deepseek_model
-TAROT_QUESTION_MODEL = settings.deepseek_model
-
-FALLBACK_TAROT_DAILY = {
-    "card_number": 0,
-    "card_name": "Аркан не определён",
-    "key_phrase": "Сегодня — день тишины и внутреннего внимания.",
-    "interpretation": (
-        "Энергия дня не поддаётся точному определению. "
-        "Прислушайся к себе — твой внутренний компас подскажет верное направление."
-    ),
-    "matrix_link": "",
-    "advice": "Сделай паузу и задай себе вопрос: «Что для меня сейчас важнее всего?»",
-    "affirmation": "Я доверяю своему внутреннему знанию.",
-}
-
-FALLBACK_TAROT_SPREAD = {
-    "body": {
-        "card_number": 0,
-        "card_name": "Аркан не определён",
-        "energy": "Энергия тела требует внимания.",
-        "interpretation": "Прислушайся к своему телу — оно знает ответы.",
-        "practice": "Сделай несколько глубоких вдохов и почувствуй своё тело.",
-    },
-    "mind": {
-        "card_number": 0,
-        "card_name": "Аркан не определён",
-        "energy": "Энергия ума ищет ясность.",
-        "interpretation": "Твои мысли ищут порядок — дай им время сложиться в картину.",
-        "practice": "Запиши три главные мысли дня.",
-    },
-    "spirit": {
-        "card_number": 0,
-        "card_name": "Аркан не определён",
-        "energy": "Энергия духа зовёт к тишине.",
-        "interpretation": "Твой дух просит паузы — остановись на минуту и просто будь.",
-        "practice": "Побудь в тишине 5 минут.",
-    },
-    "overall": (
-        "Неделя приглашает тебя замедлиться и прислушаться к себе. "
-        "Твоё тело, ум и дух ищут гармонию — дай им время найти её."
-    ),
-}
-
-FALLBACK_TAROT_QUESTION = {
-    "past": {
-        "card_number": 0,
-        "card_name": "Аркан не определён",
-        "meaning": "Прошлое содержит ключи к твоему вопросу.",
-        "how_it_relates": "Оглянись назад — паттерн уже был в твоей жизни.",
-    },
-    "present": {
-        "card_number": 0,
-        "card_name": "Аркан не определён",
-        "meaning": "Настоящее показывает, где ты сейчас.",
-        "how_it_relates": "Ты в процессе — и это нормально.",
-    },
-    "future": {
-        "card_number": 0,
-        "card_name": "Аркан не определён",
-        "meaning": "Будущее открывается через твой выбор.",
-        "how_it_relates": "То, что ты делаешь сейчас, формирует следующий шаг.",
-    },
-    "summary": "У тебя есть всё, чтобы найти ответ внутри себя.",
-    "advice": "Сделай один маленький шаг в направлении, которое чувствуется правильным.",
-}
-
-DEFAULT_PARAMS = {
-    "temperature": 0.7,
-    "max_tokens": 4000,
-    "top_p": 0.9,
-    "frequency_penalty": 0.0,
-    "presence_penalty": 0.0,
-}
-
-FULL_REPORT_PARAMS = {
-    "temperature": 0.8,
-    "max_tokens": 32000,
-    "top_p": 0.95,
-    "frequency_penalty": 0.0,
-    "presence_penalty": 0.0,
-}
-
-CHAT_PARAMS = {
-    "temperature": 0.8,
-    "max_tokens": 1000,
-    "top_p": 0.95,
-    "frequency_penalty": 0.1,
-    "presence_penalty": 0.1,
-}
 
 
 class AIService:
@@ -503,16 +330,6 @@ class AIService:
             logger.exception("generate_full_report failed — returning FALLBACK_FULL")
             return FALLBACK_FULL
 
-    FALLBACK_KITCHEN: dict[str, dict] = {
-        key: {"positions": [], "energies": [], "logic": "Не удалось подготовить объяснение. Попробуй ещё раз."}
-        for key in [
-            "main_archetype", "strengths", "shadow_side", "relationship_dynamics",
-            "financial_scenario", "recurring_mistakes", "internal_conflicts",
-            "life_cycles", "karmic_tail_analysis", "ancestral_programs",
-            "life_purpose", "life_forecast", "psychological_blocks", "health_analysis",
-        ]
-    }
-
     @staticmethod
     async def generate_kitchen_report(
         birth_date: str, matrix_data: "MatrixData | dict"
@@ -564,7 +381,7 @@ class AIService:
             return validated.model_dump()
         except Exception as e:
             logger.error("generate_kitchen_report failed: %s", e, exc_info=True)
-            return AIService.FALLBACK_KITCHEN
+            return FALLBACK_KITCHEN
 
     @staticmethod
     async def generate_compatibility(

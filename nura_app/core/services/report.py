@@ -71,17 +71,18 @@ class ReportService:
         }
 
     @classmethod
-    def save_report_files(cls, token: str, html: str, pdf: bytes) -> dict:
+    def save_report_files(cls, token: str, html: str, pdf: bytes | None = None) -> dict:
         cls.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         html_path = cls.OUTPUT_DIR / f"{token}.html"
         pdf_path = cls.OUTPUT_DIR / f"{token}.pdf"
 
         html_path.write_text(html, encoding="utf-8")
-        pdf_path.write_bytes(pdf)
+        if pdf is not None:
+            pdf_path.write_bytes(pdf)
 
         return {
             "html": str(html_path),
-            "pdf": str(pdf_path),
+            "pdf": str(pdf_path) if pdf is not None else "",
         }
 
     @staticmethod

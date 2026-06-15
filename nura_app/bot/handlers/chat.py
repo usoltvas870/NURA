@@ -6,7 +6,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from bot.keyboards.main_menu import main_menu_keyboard, subscription_keyboard
+from bot.keyboards.main_menu import main_menu_keyboard, pwa_cta_keyboard
 from bot.states.chat_state import ChatStates
 from bot.texts.chat import (
     exit_text,
@@ -78,7 +78,7 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
 
     if not _has_chat_access(user):
         text = paywall_text()
-        await callback.message.edit_text(text, reply_markup=subscription_keyboard())
+        await callback.message.edit_text(text, reply_markup=pwa_cta_keyboard())
         return
 
     name = user.first_name or user.username or "пользователь"
@@ -158,7 +158,7 @@ async def chat_message(message: Message, state: FSMContext) -> None:
     if messages_left == 0:
         response += messages_remaining_text(0)
         await message.answer(response)
-        await message.answer(paywall_text(), reply_markup=subscription_keyboard())
+        await message.answer(paywall_text(), reply_markup=pwa_cta_keyboard())
         await state.clear()
         return
 

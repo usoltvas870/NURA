@@ -503,6 +503,11 @@
     font-size: 11px;
     letter-spacing: 0.05em;
   }
+  .why-card .k {
+    color: var(--ink-faint);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
   .why-value {
     color: var(--m-accent);
     line-height: 1.5;
@@ -2519,12 +2524,12 @@
         </button>
         <div class="why-body">
           <div class="why-card">
-            <div class="row"><div class="k">// Центральная позиция матрицы</div><div class="v">{{ archetype_number }} ({{ archetype_name }})</div></div>
-            <div class="row"><div class="k">// Аркан небесного канала</div><div class="v">{{ matrix_svg_cells[1] }} ({{ arcana_names.get('top', '') }})</div></div>
-            <div class="row"><div class="k">// Аркан земного канала</div><div class="v">{{ matrix_svg_cells[7] }} ({{ arcana_names.get('bottom', '') }})</div></div>
-            <div class="row"><div class="k">// Линия неба</div><div class="v">{{ sky_line_nums }}</div></div>
-            <div class="row"><div class="k">// Линия земли</div><div class="v">{{ earth_line_nums }}</div></div>
-            <div class="row"><div class="k">// Кармический хвост</div><div class="v">{{ karmic_tail_nums }}</div></div>
+            <div class="row"><div class="k">Центральная позиция матрицы</div><div class="v">{{ archetype_number }} ({{ archetype_name }})</div></div>
+            <div class="row"><div class="k">Аркан небесного канала</div><div class="v">{{ matrix_svg_cells[1] }} ({{ arcana_names.get('top', '') }})</div></div>
+            <div class="row"><div class="k">Аркан земного канала</div><div class="v">{{ matrix_svg_cells[7] }} ({{ arcana_names.get('bottom', '') }})</div></div>
+            <div class="row"><div class="k">Линия неба</div><div class="v">{{ sky_line_nums }}</div></div>
+            <div class="row"><div class="k">Линия земли</div><div class="v">{{ earth_line_nums }}</div></div>
+            <div class="row"><div class="k">Кармический хвост</div><div class="v">{{ karmic_tail_nums }}</div></div>
           </div>
         </div>
       </div>

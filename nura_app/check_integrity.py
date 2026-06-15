@@ -10,6 +10,7 @@ if sys.platform == "win32":
 ROOT = Path(__file__).resolve().parent
 SCHEMAS_INIT = ROOT / "core" / "schemas" / "__init__.py"
 AI_SERVICE = ROOT / "core" / "services" / "ai.py"
+FALLBACKS = ROOT / "core" / "fallbacks.py"
 MATRIX_SERVICE = ROOT / "core" / "services" / "matrix.py"
 TASKS = ROOT / "core" / "tasks.py"
 REPORT_SERVICE = ROOT / "core" / "services" / "report.py"
@@ -214,7 +215,7 @@ def main():
     print("=" * 60)
 
     schemas_src = read(SCHEMAS_INIT)
-    ai_src = read(AI_SERVICE)
+    fallbacks_src = read(FALLBACKS)
     matrix_src = read(MATRIX_SERVICE)
     tasks_src = read(TASKS)
     report_src = read(REPORT_SERVICE)
@@ -230,7 +231,7 @@ def main():
     # 1
     print("\n[1] FALLBACK_FULL keys == FullReportResult fields")
     full_fields = extract_class_fields(schemas_src, "FullReportResult")
-    fallback_keys = extract_dict_keys(ai_src, "FALLBACK_FULL")
+    fallback_keys = extract_dict_keys(fallbacks_src, "FALLBACK_FULL")
     check("FullReportResult has 15 fields", len(full_fields) == 15,
           f"Expected 15, got {len(full_fields)}: {sorted(full_fields)}")
     check("FALLBACK_FULL has 15 keys", len(fallback_keys) == 15,
@@ -245,7 +246,7 @@ def main():
 
     # 3: FALLBACK_KITCHEN
     print("\n[3] FALLBACK_KITCHEN: 14 keys (all except ai_recommendations)")
-    kitchen_keys = extract_kitchen_keys(ai_src)
+    kitchen_keys = extract_kitchen_keys(fallbacks_src)
     expected_kitchen = expected_fields - {"ai_recommendations"}
     check("FALLBACK_KITCHEN has 14 keys", len(kitchen_keys) == 14,
           f"Expected 14, got {len(kitchen_keys)}: {sorted(kitchen_keys)}")
@@ -254,7 +255,7 @@ def main():
 
     # 4: FULL_REPORT_PARAMS
     print("\n[4] FULL_REPORT_PARAMS: max_tokens = 32000")
-    check("max_tokens == 32000", has_max_tokens_32000(ai_src), "Not found")
+    check("max_tokens == 32000", has_max_tokens_32000(fallbacks_src), "Not found")
 
     # 5: MatrixService
     print("\n[5] MatrixService methods")

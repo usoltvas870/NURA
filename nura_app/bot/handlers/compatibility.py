@@ -190,7 +190,6 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
     token = result.get("token", "")
     sender_name = user.first_name or user.username or "Пользователь"
 
-    is_premium = _has_unlimited_compat(user)
     text = mini_compatibility_text(
         user_name=sender_name,
         partner_name=partner_name,
@@ -235,15 +234,20 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
         f"&text={quote(share_text)}"
     )
 
+    relation_type = result.get("relation_type", "общение")
+
     keyboard_rows = []
 
     if token and _has_unlimited_compat(user):
         report_url = f"{settings.report_base_url}/report/{token}"
-        pdf_url = f"{settings.report_base_url}/report/{token}/pdf"
-        keyboard_rows.append([
-            InlineKeyboardButton(text="📄 Открыть отчёт", url=report_url),
-            InlineKeyboardButton(text="⬇️ Скачать PDF", url=pdf_url),
-        ])
+        keyboard_rows.append(
+            [InlineKeyboardButton(text="📄 Открыть отчёт", url=report_url)],
+        )
+        if relation_type == "романтика":
+            pdf_url = f"{settings.report_base_url}/report/{token}/pdf"
+            keyboard_rows[0].append(
+                InlineKeyboardButton(text="⬇️ Скачать PDF", url=pdf_url),
+            )
 
     keyboard_rows.append(
         [InlineKeyboardButton(text="🔍 Как мы это считаем", callback_data="compat_details")],

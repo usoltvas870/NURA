@@ -25,7 +25,9 @@
     {% endwith %}
   {% endif %}
 
+  {% if chakra_data is defined and chakra_data %}
   {% include '_health_map.html' %}
+  {% endif %}
   {% if kitchen_analysis and kitchen_analysis.health_analysis %}
     {% with section_key='health_analysis', kitchen_data=kitchen_analysis.health_analysis %}
       {% include '_kitchen_toggle.html' %}
@@ -119,7 +121,9 @@
     {% endwith %}
   {% endif %}
 
+  {% if psych_blocks is defined and psych_blocks or analysis.psychological_blocks is defined %}
   {% include '_psychological_blocks.html' %}
+  {% endif %}
   {% if kitchen_analysis and kitchen_analysis.psychological_blocks %}
     {% with section_key='psychological_blocks', kitchen_data=kitchen_analysis.psychological_blocks %}
       {% include '_kitchen_toggle.html' %}

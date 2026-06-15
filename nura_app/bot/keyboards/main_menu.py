@@ -98,6 +98,15 @@ def subscription_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def pwa_cta_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🌐 Открыть NURA в браузере", url="https://nura-ai.ru/app/chat")],
+            [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+        ]
+    )
+
+
 def reports_keyboard(reports: list) -> InlineKeyboardMarkup:
     buttons = []
     for r in reports:

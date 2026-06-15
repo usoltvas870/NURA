@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from core.services.ai import AIService, FALLBACK_FULL, FALLBACK_MINI
+from core.fallbacks import FALLBACK_FULL, FALLBACK_MINI
+from core.services.ai import AIService
 
 
 def _mini_json():
@@ -108,6 +109,7 @@ class TestFullReport:
             "karmic_tail_analysis", "ancestral_programs",
             "life_purpose", "life_forecast",
             "psychological_blocks", "health_analysis",
+            "dashboard_insights",
         }
 
     async def test_fallback_on_invalid_json(self, sample_matrix):

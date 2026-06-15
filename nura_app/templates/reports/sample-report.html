@@ -1,0 +1,3465 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0A0E0C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NURA">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<title>Матрица Судьбы — Анна · 01.06.1995 · NURA AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           #0A0E0C;
+    --bg-page:      #0C1310;
+    --bg-soft:      #111613;
+    --bg-card:      #0E1A14;
+    --ink:          #F2EFE7;
+    --ink-soft:     rgba(242, 239, 231, 0.78);
+    --ink-mute:     rgba(242, 239, 231, 0.52);
+    --ink-faint:    rgba(242, 239, 231, 0.32);
+    --line:         rgba(242, 239, 231, 0.08);
+    --line-strong:  rgba(242, 239, 231, 0.16);
+
+    --m-bg:         #0E2419;
+    --m-bg-soft:    #143527;
+    --m-line:       rgba(151, 197, 161, 0.18);
+    --m-accent:     #C9A55C;
+    --m-accent-soft: rgba(201, 165, 92, 0.16);
+    --m-leaf:       #6BA37A;
+
+    --t-bg:         #0F1830;
+    --t-accent:     #D8B36A;
+    --t-violet:     #7E7AC8;
+
+    --reading-w:    720px;
+    --radius-lg:    20px;
+    --radius-md:    14px;
+    --radius-sm:    10px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--bg-page);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.6;
+  }
+  ::selection { background: rgba(201, 165, 92, 0.32); color: var(--ink); }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; }
+
+  /* ---------- Typography ---------- */
+  .serif { font-family: 'Cormorant Garamond', Georgia, serif; letter-spacing: -0.01em; }
+  h1, h2, h3, h4, h5 { font-family: 'Cormorant Garamond', Georgia, serif; margin: 0; font-weight: 500; letter-spacing: -0.02em; }
+  .eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--m-accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 18px; height: 1px; background: currentColor; opacity: 0.6;
+  }
+
+  /* ---------- Layout shell ---------- */
+  .shell {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ---------- Sidebar ---------- */
+  aside.sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 32px 24px 24px 32px;
+    border-right: 1px solid var(--line);
+    background: linear-gradient(180deg, #0B1410 0%, #0A0E0C 100%);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  aside.sidebar::-webkit-scrollbar { width: 6px; }
+  aside.sidebar::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+
+  .sb-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 22px;
+  }
+  .sb-brand .mark {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--m-accent), #B08948);
+    color: #14110A;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .sb-brand .name {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.18em;
+  }
+
+  .sb-meta {
+    margin-bottom: 26px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sb-meta .label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-faint); margin-bottom: 6px;
+  }
+  .sb-meta .who {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px; line-height: 1.1;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .sb-meta .dob {
+    font-size: 12px; color: var(--ink-mute); font-variant-numeric: tabular-nums;
+  }
+  .sb-meta .arc {
+    margin-top: 14px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    background: var(--m-accent-soft);
+    color: var(--m-accent);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+
+  .sb-nav { list-style: none; padding: 0; margin: 0; display: grid; gap: 1px; }
+  .sb-nav .sb-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-faint); margin-bottom: 10px;
+  }
+  .sb-nav a {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--ink-mute);
+    transition: all 0.18s ease;
+    border-left: 2px solid transparent;
+    margin-left: -2px;
+  }
+  .sb-nav a .num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .sb-nav a:hover { color: var(--ink-soft); background: rgba(242, 239, 231, 0.03); }
+  .sb-nav a.active {
+    color: var(--m-accent);
+    border-left-color: var(--m-accent);
+    background: var(--m-accent-soft);
+  }
+  .sb-nav a.active .num { color: var(--m-accent); }
+
+  .sb-footer {
+    margin-top: 28px; padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--ink-faint);
+    line-height: 1.5;
+  }
+  .sb-footer .progress {
+    height: 2px; border-radius: 2px;
+    background: var(--line-strong);
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .sb-footer .progress span {
+    display: block; height: 100%;
+    background: linear-gradient(90deg, var(--m-leaf), var(--m-accent));
+    transition: width 0.25s ease;
+  }
+
+  /* ---------- Mobile nav ---------- */
+  .mobile-nav { display: none; }
+
+  /* ---------- Main content ---------- */
+  main.content {
+    padding: 0 56px 120px;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  section.chapter {
+    max-width: var(--reading-w);
+    margin: 0 auto;
+    padding: 120px 0 60px;
+    scroll-margin-top: 40px;
+  }
+  section.chapter:first-of-type { padding-top: 60px; }
+
+  .ch-head { margin-bottom: 40px; }
+  .ch-head .nbr {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    color: var(--m-accent);
+    letter-spacing: 0.16em;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .ch-head h2 {
+    font-size: clamp(38px, 4vw, 52px);
+    line-height: 1.04;
+    margin-bottom: 16px;
+  }
+  .ch-head h2 em { font-style: italic; color: var(--m-leaf); }
+  .ch-head .ch-sub {
+    font-size: 16px;
+    color: var(--ink-mute);
+    max-width: 56ch;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  .prose { color: var(--ink-soft); }
+  .prose p {
+    font-size: 17px;
+    line-height: 1.75;
+    margin: 0 0 1.2em;
+    font-weight: 400;
+  }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .prose em {
+    color: var(--m-leaf);
+    font-style: italic;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05em;
+    letter-spacing: 0;
+  }
+
+  .pull {
+    margin: 36px 0;
+    padding: 4px 0 4px 24px;
+    border-left: 2px solid var(--m-accent);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 22px;
+    line-height: 1.4;
+    color: var(--ink);
+    font-weight: 400;
+  }
+
+  .disclaimer {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    font-style: italic;
+  }
+
+  /* ===========================================================
+     SECTION 1 — COVER
+     =========================================================== */
+  .cover {
+    min-height: calc(100vh - 0px);
+    padding: 80px 0 60px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    max-width: 880px;
+    position: relative;
+  }
+  .cover::before {
+    content: "";
+    position: absolute;
+    inset: -10% -20% -10% -20%;
+    background:
+      radial-gradient(ellipse 40% 50% at 75% 50%, rgba(201, 165, 92, 0.12), transparent 60%),
+      radial-gradient(ellipse 40% 45% at 15% 20%, rgba(107, 163, 122, 0.10), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .cover > * { position: relative; z-index: 1; }
+
+  .cv-eye {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 28px;
+    font-size: 11px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--m-accent);
+    font-weight: 500;
+  }
+  .cv-eye .ln { flex: 0 0 60px; height: 1px; background: currentColor; opacity: 0.5; }
+  .cv-eye .dt { font-family: 'JetBrains Mono', monospace; color: var(--ink-mute); letter-spacing: 0.16em; font-size: 11px; text-transform: none; }
+
+  .cv-title {
+    font-size: clamp(56px, 8vw, 96px);
+    line-height: 0.96;
+    letter-spacing: -0.035em;
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  .cv-title em { font-style: italic; color: var(--m-leaf); }
+  .cv-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(32px, 4.4vw, 48px);
+    color: var(--m-accent);
+    letter-spacing: -0.02em;
+    margin-bottom: 56px;
+  }
+
+  .cv-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .cv-info { display: grid; gap: 18px; }
+  .cv-info .row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 20px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .cv-info .row:last-child { border-bottom: none; }
+  .cv-info .k {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .cv-info .v {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .cv-info .v.accent { color: var(--m-accent); font-style: italic; }
+  .cv-info .v.mono { font-family: 'JetBrains Mono', monospace; font-size: 16px; letter-spacing: 0.04em; color: var(--ink-soft); }
+
+  /* 3x3 matrix viz */
+  .matrix-viz {
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 1;
+    margin-left: auto;
+    position: relative;
+  }
+  .matrix-viz svg { width: 100%; height: 100%; display: block; }
+
+  /* ===========================================================
+     SECTION 2 — DASHBOARD
+     =========================================================== */
+  .dashboard {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .dash-card {
+    background: linear-gradient(160deg, rgba(20, 53, 39, 0.6), rgba(14, 36, 25, 0.3));
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    padding: 22px 18px;
+    display: flex; flex-direction: column; gap: 10px;
+    min-height: 180px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .dash-card:hover { border-color: rgba(201, 165, 92, 0.4); transform: translateY(-2px); }
+  .dash-card .dc-k {
+    font-size: 0.85rem; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .dash-card .dc-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--m-accent-soft);
+    color: var(--m-accent);
+    display: grid; place-items: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+  .dash-card .dc-v {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    line-height: 1.15;
+    color: var(--ink);
+    margin-top: auto;
+  }
+  .dash-card .dc-v em { font-style: italic; color: var(--m-leaf); display: block; font-size: 13px; margin-top: 2px; }
+  .dash-card .dc-desc {
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  .dash-card .dc-insight {
+    font-size: 12px;
+    color: var(--ink-mute);
+    line-height: 1.5;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* ===========================================================
+     SECTION 3 — ACCORDION
+     =========================================================== */
+  .why {
+    margin-top: 36px;
+    border-top: 1px solid var(--line);
+    padding-top: 24px;
+  }
+  .why-btn {
+    background: transparent;
+    border: none;
+    color: var(--m-accent);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+  }
+  .why-btn .arrow {
+    transition: transform 0.25s ease;
+    display: inline-block;
+  }
+  .why.open .arrow { transform: rotate(90deg); }
+  .why-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, margin 0.3s ease;
+    margin-top: 0;
+  }
+  .why.open .why-body {
+    max-height: 800px;
+    margin-top: 18px;
+  }
+  .why-body .why-card {
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+  }
+  .why-code {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 12.5px;
+  }
+  .why-line {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .why-comment {
+    color: var(--ink-faint);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .why-value {
+    color: var(--m-accent);
+    line-height: 1.5;
+  }
+
+  /* ===========================================================
+     SECTION 4 — KARMIC TAIL (vertical timeline)
+     =========================================================== */
+  .timeline {
+    position: relative;
+    padding-left: 36px;
+    margin-top: 16px;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 8px; top: 12px; bottom: 12px;
+    width: 1px;
+    background: linear-gradient(180deg, var(--m-accent) 0%, var(--m-leaf) 50%, var(--m-accent) 100%);
+    opacity: 0.5;
+  }
+  .tl-item {
+    position: relative;
+    margin-bottom: 48px;
+  }
+  .tl-item:last-child { margin-bottom: 0; }
+  .tl-item::before {
+    content: "";
+    position: absolute;
+    left: -36px; top: 8px;
+    width: 17px; height: 17px;
+    border-radius: 50%;
+    background: var(--bg-page);
+    border: 2px solid var(--m-accent);
+  }
+  .tl-item.now::before { background: var(--m-accent); box-shadow: 0 0 0 4px rgba(201, 165, 92, 0.18); }
+  .tl-tag {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--m-accent); font-weight: 600;
+    margin-bottom: 6px; display: block;
+  }
+  .tl-arc {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    color: var(--ink-faint);
+    font-style: italic;
+    margin-bottom: 14px;
+  }
+  .tl-item h3 {
+    font-size: 28px;
+    margin-bottom: 12px;
+    line-height: 1.15;
+  }
+  .tl-item h3 em { font-style: italic; color: var(--m-leaf); }
+  .karmic-body {
+    margin-top: 28px;
+    padding: 28px 32px;
+    background: rgba(20, 53, 39, 0.2);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-lg);
+  }
+  .karmic-body .prose p:first-child { margin-top: 0; }
+
+  /* ===========================================================
+     SECTION 5 — TWO COLUMNS (ROD)
+     =========================================================== */
+  .rod {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-top: 12px;
+  }
+  .rod-col {
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+  }
+  .rod-col h4 {
+    font-size: 24px;
+    margin-bottom: 4px;
+    line-height: 1.1;
+  }
+  .rod-col .rod-arcs {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--m-accent);
+    letter-spacing: 0.12em;
+    margin-bottom: 22px;
+    display: block;
+  }
+  .rod-col .prose p { font-size: 15.5px; }
+  .rod-info {
+    grid-column: 1 / -1;
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+  }
+  .rod-lines {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--m-accent);
+    letter-spacing: 0.12em;
+    margin-bottom: 22px;
+    display: flex;
+    gap: 32px;
+  }
+  .rod-info .prose p { font-size: 15.5px; }
+
+  /* ===========================================================
+     SECTION 6 — DESTINY (featured)
+     =========================================================== */
+  .destiny-chapter {
+    max-width: 820px;
+  }
+  .destiny-chapter .ch-head h2 {
+    font-size: clamp(48px, 6vw, 72px);
+  }
+  .destiny-emblem {
+    display: flex; align-items: center;
+    gap: 18px;
+    margin: 16px 0 36px;
+  }
+  .destiny-emblem .line {
+    flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--m-accent), transparent);
+  }
+  .destiny-emblem .star {
+    width: 24px; height: 24px;
+    color: var(--m-accent);
+  }
+  .destiny-chapter .prose p {
+    font-size: 19px;
+    line-height: 1.75;
+  }
+  .sky-line {
+    margin: 36px 0;
+    padding: 24px 28px;
+    background: rgba(201, 165, 92, 0.06);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(201, 165, 92, 0.20);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .sky-line .sl-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--m-accent); flex: 0 0 auto;
+  }
+  .sky-line .sl-nums {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 32px;
+    color: var(--ink);
+    letter-spacing: 0.1em;
+    font-variant-numeric: tabular-nums;
+  }
+  .sky-line .sl-nums span:nth-child(2) {
+    color: var(--m-accent); margin: 0 16px;
+  }
+
+  /* ===========================================================
+     SECTION 7 — TALENTS LIST
+     =========================================================== */
+  .talents { display: grid; gap: 4px; margin-top: 8px; }
+  .talent {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 20px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .talent:last-child { border-bottom: none; }
+  .talent .t-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px;
+    font-style: italic;
+    color: var(--m-accent);
+    line-height: 1;
+  }
+  .talent h4 {
+    font-size: 22px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  .talent p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 15.5px;
+    line-height: 1.65;
+  }
+
+  /* ===========================================================
+     SECTION 9 — RELATIONSHIPS / COMPAT
+     =========================================================== */
+  .compat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 28px;
+  }
+  .compat {
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    padding: 22px 20px;
+  }
+  .compat .c-arc {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: var(--m-accent);
+    line-height: 1.15;
+    font-style: italic;
+    margin-bottom: 8px;
+  }
+  .compat .c-level {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--m-leaf); font-weight: 600;
+    margin-bottom: 12px; display: block;
+  }
+  .compat p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
+  /* ===========================================================
+     SECTION 10 — MONEY / blocks
+     =========================================================== */
+  .money-blocks {
+    display: grid;
+    gap: 14px;
+    margin-top: 28px;
+  }
+  .money-block {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 24px;
+    padding: 24px;
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    align-items: start;
+  }
+  .money-block .mb-tag {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 28px;
+    color: var(--m-accent);
+    line-height: 1;
+  }
+  .money-block h4 {
+    font-size: 20px;
+    margin-bottom: 6px;
+    color: var(--ink);
+  }
+  .money-block p {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .pros-list {
+    margin: 20px 0 28px;
+    padding: 22px 26px;
+    background: rgba(201, 165, 92, 0.06);
+    border-left: 2px solid var(--m-accent);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  }
+  .pros-list .pl-label {
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--m-accent); margin-bottom: 12px; display: block;
+  }
+  .pros-list ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+  .pros-list li {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 19px;
+    color: var(--ink);
+    line-height: 1.3;
+    padding-left: 22px;
+    position: relative;
+  }
+  .pros-list li::before {
+    content: "—";
+    position: absolute;
+    left: 0; top: 0;
+    color: var(--m-accent);
+  }
+
+  /* ===========================================================
+     SECTION 11 — PATTERNS
+     =========================================================== */
+  .pattern {
+    margin: 0 0 28px;
+    padding: 28px 30px;
+    background: rgba(20, 53, 39, 0.28);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    position: relative;
+  }
+  .pattern:last-child { margin-bottom: 0; }
+  .pattern .p-num {
+    position: absolute; top: 22px; right: 24px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 36px;
+    color: var(--m-accent);
+    opacity: 0.4;
+    line-height: 1;
+  }
+  .pattern h4 {
+    font-size: 22px;
+    margin-bottom: 10px;
+    padding-right: 44px;
+    color: var(--ink);
+  }
+  .pattern p {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+  }
+  .pattern .ex {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-style: italic;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    color: var(--ink-soft);
+  }
+  .pattern .ex::before {
+    content: "Пример. ";
+    font-style: normal;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--m-accent);
+    margin-right: 6px;
+  }
+
+  /* ===========================================================
+     SECTION 12 — CONFLICTS
+     =========================================================== */
+  .conflict {
+    margin-bottom: 28px;
+    padding: 32px;
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-lg);
+  }
+  .conflict:last-child { margin-bottom: 0; }
+  .conflict .c-head {
+    display: flex; align-items: center;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .conflict .c-bubble {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--m-accent-soft);
+    border: 1px solid rgba(201, 165, 92, 0.4);
+    display: grid; place-items: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--m-accent);
+  }
+  .conflict .c-bubble.b2 {
+    background: rgba(107, 163, 122, 0.12);
+    border-color: rgba(107, 163, 122, 0.45);
+    color: var(--m-leaf);
+  }
+  .conflict .c-vs {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--ink-faint);
+    font-size: 18px;
+  }
+  .conflict h4 {
+    font-size: 22px;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+  .conflict .c-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 18px;
+  }
+  .conflict .c-grid h5 {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--m-accent);
+    margin-bottom: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+  }
+  .conflict .c-grid p {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    line-height: 1.65;
+  }
+
+  /* ===========================================================
+     SECTION 13 — CYCLES / TIMELINE
+     =========================================================== */
+  .cycle-track {
+    position: relative;
+    margin: 30px 0 32px;
+    padding: 40px 0 30px;
+  }
+  .cycle-line {
+    position: relative;
+    height: 2px;
+    background: var(--line-strong);
+    border-radius: 2px;
+  }
+  .cycle-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 70%;
+    background: linear-gradient(90deg, var(--m-leaf), var(--m-accent));
+    border-radius: 2px;
+  }
+  .cycle-dots {
+    display: flex;
+    justify-content: space-between;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    transform: translateY(-50%);
+  }
+  .cycle-dot {
+    position: relative;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--bg-page);
+    border: 2px solid var(--m-leaf);
+  }
+  .cycle-dot.passed { background: var(--m-leaf); }
+  .cycle-dot.now {
+    width: 20px; height: 20px;
+    background: var(--m-accent);
+    border-color: var(--m-accent);
+    box-shadow: 0 0 0 5px rgba(201, 165, 92, 0.18);
+  }
+  .cycle-dot .age {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 14px);
+    transform: translateX(-50%);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .cycle-dot.now .age { color: var(--m-accent); font-weight: 500; }
+  .cycle-dot .arc {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 12px);
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .cycle-dot.now .arc { color: var(--m-accent); }
+
+  .forecast {
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .fcast {
+    padding: 22px 20px;
+    background: rgba(20, 53, 39, 0.32);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+  }
+  .fcast .yr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--m-accent);
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+  }
+  .fcast h5 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    color: var(--ink);
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .fcast p {
+    margin: 0;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+
+  /* ===========================================================
+     SECTION 14 — 7 DAYS
+     =========================================================== */
+  .week {
+    display: grid;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .day {
+    display: grid;
+    grid-template-columns: 24px 100px 1fr;
+    gap: 18px;
+    padding: 20px 22px;
+    background: rgba(20, 53, 39, 0.28);
+    border: 1px solid var(--m-line);
+    border-radius: var(--radius-md);
+    align-items: start;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .day:hover { border-color: rgba(201, 165, 92, 0.32); }
+  .day.done {
+    background: rgba(107, 163, 122, 0.08);
+    border-color: rgba(107, 163, 122, 0.3);
+  }
+  .day.done .d-task { color: var(--ink-faint); text-decoration: line-through; }
+  .day.done .d-name { color: var(--m-leaf); }
+
+  .checkbox {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    border: 1.5px solid var(--line-strong);
+    background: transparent;
+    position: relative;
+    margin-top: 1px;
+    flex: 0 0 22px;
+    transition: all 0.15s ease;
+  }
+  .day:hover .checkbox { border-color: var(--m-accent); }
+  .day.done .checkbox {
+    background: var(--m-leaf);
+    border-color: var(--m-leaf);
+  }
+  .day.done .checkbox::after {
+    content: "";
+    position: absolute;
+    left: 6px; top: 2px;
+    width: 6px; height: 11px;
+    border: solid #0A0E0C;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  .d-meta { display: flex; flex-direction: column; gap: 6px; }
+  .d-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 19px;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .d-cat {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--m-accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .d-task {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    padding-top: 3px;
+  }
+
+  /* ===========================================================
+     SECTION 15 — TAROT TEASER
+     =========================================================== */
+  .tarot-teaser {
+    margin: 40px 0 0;
+    padding: 56px 48px;
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(ellipse 60% 80% at 90% 10%, rgba(126, 122, 200, 0.20), transparent 60%),
+      radial-gradient(ellipse 70% 60% at 10% 90%, rgba(216, 179, 106, 0.10), transparent 60%),
+      linear-gradient(160deg, #0F1830 0%, #19244A 100%);
+    border: 1px solid rgba(216, 179, 106, 0.28);
+    position: relative;
+    overflow: hidden;
+  }
+  .tarot-teaser .tt-eye {
+    font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--t-accent); font-weight: 500;
+    margin-bottom: 22px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .tarot-teaser .tt-eye::before {
+    content: ""; width: 24px; height: 1px; background: currentColor;
+  }
+  .tarot-teaser .tt-grid {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+  .tt-card {
+    aspect-ratio: 0.62;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #1a2548 0%, #0f1830 100%);
+    border: 1px solid rgba(216, 179, 106, 0.4);
+    padding: 20px 14px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .tt-card::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(216, 179, 106, 0.25);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+  .tt-card .tc-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--t-accent);
+  }
+  .tt-card .tc-sym {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 56px;
+    color: var(--t-accent);
+    line-height: 1;
+    font-style: italic;
+  }
+  .tt-card .tc-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    color: var(--t-accent);
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .tt-text h3 {
+    font-size: 36px;
+    color: var(--ink);
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .tt-text h3 em { color: var(--t-accent); font-style: italic; }
+  .tt-text .tt-sub {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--t-accent);
+    font-size: 16px;
+    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+  }
+  .tt-text p {
+    margin: 0 0 22px;
+    font-size: 15.5px;
+    color: rgba(242, 239, 231, 0.82);
+    line-height: 1.65;
+  }
+  .tt-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--t-accent), #B89252);
+    color: #14110A;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+  .tt-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(216, 179, 106, 0.28); }
+  .tt-cta .price {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 16px;
+  }
+
+  /* ===========================================================
+     REFLECTION PAGES
+     =========================================================== */
+  .reflection {
+    max-width: var(--reading-w);
+    margin: 0 auto;
+    padding: 100px 0 60px;
+  }
+  .reflection h2 {
+    font-size: clamp(38px, 4vw, 52px);
+    margin-bottom: 8px;
+    line-height: 1.04;
+  }
+  .reflection h2 em { font-style: italic; color: var(--m-leaf); }
+  .reflection .r-sub {
+    color: var(--ink-mute);
+    font-size: 15px;
+    margin-bottom: 36px;
+    max-width: 48ch;
+    line-height: 1.6;
+  }
+  .lines {
+    display: grid;
+    gap: 28px;
+  }
+  .lines .line {
+    height: 24px;
+    border-bottom: 1px solid var(--line-strong);
+  }
+  .lines .line.short { width: 55%; }
+  .lines .line.mid { width: 75%; }
+
+  /* ---------- Back to top ---------- */
+  .to-top {
+    position: fixed;
+    right: 28px;
+    bottom: 28px;
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--m-accent);
+    color: #14110A;
+    display: grid; place-items: center;
+    font-size: 18px; font-weight: 700;
+    border: none;
+    z-index: 40;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 8px 24px rgba(201, 165, 92, 0.32);
+  }
+  .to-top.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .to-top:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(201, 165, 92, 0.42); }
+
+  /* ===========================================================
+     RESPONSIVE
+     =========================================================== */
+  @media (max-width: 1100px) {
+    .shell { grid-template-columns: 240px 1fr; }
+    main.content { padding: 0 40px 100px; }
+    .cv-grid { gap: 32px; }
+  }
+
+  @media (max-width: 880px) {
+    .shell { grid-template-columns: 1fr; }
+    aside.sidebar { display: none; }
+
+    .mobile-nav {
+      display: block;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(10, 14, 12, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
+    }
+    .mobile-nav-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      gap: 12px;
+    }
+    .mobile-nav .sb-brand {
+      padding: 0; margin: 0; border: none;
+    }
+    .mobile-nav .mn-current {
+      flex: 1;
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--m-accent);
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .mobile-nav .mn-toggle {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: var(--m-accent-soft);
+      border: 1px solid rgba(201, 165, 92, 0.32);
+      color: var(--m-accent);
+      display: grid; place-items: center;
+    }
+    .mobile-nav .mn-toggle svg { width: 16px; height: 16px; }
+    .mobile-nav-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.32s ease;
+      border-top: 1px solid var(--line);
+    }
+    .mobile-nav.open .mobile-nav-panel { max-height: 80vh; overflow-y: auto; }
+    .mobile-nav-panel ul {
+      list-style: none; padding: 14px 20px 22px; margin: 0;
+      display: grid; gap: 2px;
+    }
+    .mobile-nav-panel a {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--ink-mute);
+    }
+    .mobile-nav-panel a .num {
+      font-family: 'Cormorant Garamond', serif;
+      color: var(--ink-faint);
+    }
+    .mobile-nav-panel a.active {
+      color: var(--m-accent); background: var(--m-accent-soft);
+    }
+
+    main.content { padding: 0 24px 80px; }
+    section.chapter { padding: 80px 0 40px; }
+
+    .cv-grid { grid-template-columns: 1fr; gap: 28px; }
+    .matrix-viz { margin: 0 auto; }
+    .dashboard { grid-template-columns: repeat(2, 1fr); }
+    .rod { grid-template-columns: 1fr; gap: 16px; }
+    .compat-grid { grid-template-columns: 1fr; }
+    .forecast { grid-template-columns: 1fr; }
+    .tarot-teaser { padding: 36px 24px; }
+    .tarot-teaser .tt-grid { grid-template-columns: 1fr; gap: 28px; }
+    .tt-card { max-width: 180px; margin: 0 auto; }
+    .conflict .c-grid { grid-template-columns: 1fr; gap: 16px; }
+    .money-block { grid-template-columns: 1fr; gap: 8px; }
+    .day { grid-template-columns: 22px 1fr; }
+    .day .d-task { grid-column: 2 / -1; }
+    .cycle-dot .age { font-size: 14px; }
+    .cycle-dot .arc { display: none; }
+    .destiny-chapter .prose p:first-of-type::first-letter {
+      font-size: 56px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    main.content { padding: 0 18px 60px; }
+    .cv-title { font-size: 44px; }
+    .cv-name { font-size: 28px; margin-bottom: 36px; }
+    .cv-info .row { grid-template-columns: 100px 1fr; gap: 12px; }
+    .dashboard { grid-template-columns: 1fr; }
+    /* why-code is flex column, mobile-friendly by default */
+    .ch-head h2 { font-size: 32px; }
+    .destiny-chapter .ch-head h2 { font-size: 40px; }
+    .tarot-teaser { padding: 28px 20px; }
+    .tt-text h3 { font-size: 28px; }
+  }
+
+  /* Print friendly */
+  @media print {
+    @page {
+      size: A4;
+      margin: 20mm 18mm 22mm 18mm;
+    }
+    @page :first {
+      margin-top: 12mm;
+    }
+
+    /* --- Reset to light printable theme (WeasyPrint: no var() / clamp() / sticky / backdrop-filter) --- */
+    html { font-size: 13px; }
+    body {
+      background: #fff;
+      color: #1a1a1a;
+      font-family: Georgia, 'Times New Roman', serif;
+      line-height: 1.65;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Hide interactive & dark-only elements */
+    aside.sidebar,
+    .mobile-nav,
+    .to-top,
+    .why-btn,
+    .disclaimer,
+    .sb-footer .progress,
+    script {
+      display: none !important;
+    }
+
+    /* Full-width single column */
+    .shell {
+      display: block !important;
+      grid-template-columns: none;
+    }
+    main.content {
+      max-width: none;
+      padding: 0;
+      overflow: visible;
+    }
+
+    /* Section spacing */
+    section.chapter {
+      max-width: none;
+      padding: 28px 0 20px;
+      page-break-inside: avoid;
+      scroll-margin-top: 0;
+    }
+    section.chapter:first-of-type { padding-top: 0; }
+    section.chapter + section.chapter { page-break-before: always; }
+
+    /* --- Typography --- */
+    .serif, h1, h2, h3, h4, h5 {
+      font-family: Georgia, 'Times New Roman', serif;
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    .eyebrow {
+      font-family: Georgia, serif;
+      font-size: 10px;
+      color: #8B7332;
+      letter-spacing: 0.12em;
+    }
+    .eyebrow::before { width: 14px; }
+
+    .ch-head { margin-bottom: 20px; }
+    .ch-head .nbr {
+      font-family: Georgia, serif;
+      font-size: 12px;
+      color: #8B7332;
+      letter-spacing: 0.1em;
+    }
+    .ch-head h2 {
+      font-size: 26px;
+      line-height: 1.12;
+      color: #1a1a1a;
+    }
+    .ch-head h2 em { color: #3D7A4F; font-style: italic; }
+    .ch-head .ch-sub {
+      font-size: 14px;
+      color: #555;
+      max-width: none;
+    }
+
+    .prose { color: #333; }
+    .prose p {
+      font-size: 14px;
+      line-height: 1.65;
+      margin: 0 0 0.9em;
+    }
+    .prose strong { color: #1a1a1a; }
+    .prose em {
+      color: #3D7A4F;
+      font-style: italic;
+      font-family: Georgia, serif;
+      font-size: 1em;
+    }
+
+    .pull {
+      margin: 20px 0;
+      border-left: 2px solid #8B7332;
+      font-family: Georgia, serif;
+      font-style: italic;
+      font-size: 18px;
+      color: #1a1a1a;
+      padding-left: 16px;
+    }
+
+    .disclaimer {
+      display: block;
+      margin-top: 16px;
+      padding-top: 8px;
+      border-top: 1px solid #ddd;
+      font-size: 9px;
+      color: #aaa;
+      font-style: italic;
+    }
+
+    /* --- Print-only TOC --- */
+    .print-toc {
+      display: block !important;
+      page-break-after: always;
+      padding: 0 0 28px;
+    }
+    .print-toc h2 {
+      font-family: Georgia, serif;
+      font-size: 22px;
+      color: #1a1a1a;
+      margin-bottom: 18px;
+      font-weight: 600;
+    }
+    .print-toc ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      columns: 2;
+      column-gap: 24px;
+    }
+    .print-toc li {
+      margin-bottom: 10px;
+      page-break-inside: avoid;
+    }
+    .print-toc a {
+      color: #1a1a1a;
+      text-decoration: none;
+      font-size: 13px;
+      line-height: 1.4;
+      display: inline-flex;
+      gap: 10px;
+    }
+    .print-toc .toc-num {
+      font-family: Georgia, serif;
+      color: #8B7332;
+      font-size: 12px;
+      min-width: 24px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* --- COVER --- */
+    .cover {
+      min-height: 0;
+      padding: 10px 0 20px;
+      max-width: none;
+    }
+    .cover::before { display: none; }
+    .cv-eye {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: #8B7332;
+      margin-bottom: 18px;
+    }
+    .cv-eye .ln { flex: 0 0 40px; }
+    .cv-eye .dt { font-size: 10px; }
+    .cv-title {
+      font-size: 42px;
+      line-height: 1.05;
+      color: #1a1a1a;
+      margin-bottom: 10px;
+    }
+    .cv-title em { color: #3D7A4F; }
+    .cv-name {
+      font-size: 26px;
+      color: #8B7332;
+      margin-bottom: 30px;
+    }
+    .cv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+    }
+    .cv-info .row {
+      grid-template-columns: 110px 1fr;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    .cv-info .k {
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: #888;
+    }
+    .cv-info .v {
+      font-family: Georgia, serif;
+      font-size: 17px;
+      color: #1a1a1a;
+    }
+    .cv-info .v.accent { color: #8B7332; }
+    .cv-info .v.mono { font-family: 'Courier New', monospace; font-size: 13px; color: #555; }
+
+    .matrix-viz { max-width: 240px; }
+    .matrix-viz svg g[stroke*="url"] line {
+      stroke: #8B7332;
+      stroke-opacity: 0.35;
+    }
+    .matrix-viz svg rect { fill: #fafafa; stroke: #8B7332; stroke-opacity: 0.5; }
+    .matrix-viz svg text { fill: #8B7332; }
+    .matrix-viz svg circle[fill*="url"] { fill: rgba(139, 115, 50, 0.12); }
+
+    /* --- DASHBOARD --- */
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+    .dash-card {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 14px 12px;
+      min-height: 110px;
+      page-break-inside: avoid;
+    }
+    .dash-card .dc-k {
+      font-size: 11px;
+      color: #888;
+      letter-spacing: 0.1em;
+    }
+    .dash-card .dc-icon {
+      background: rgba(139, 115, 50, 0.1);
+      color: #8B7332;
+      font-size: 15px;
+    }
+    .dash-card .dc-v {
+      font-family: Georgia, serif;
+      font-size: 20px;
+      color: #1a1a1a;
+    }
+    .dash-card .dc-v em {
+      color: #3D7A4F;
+      font-size: 11px;
+    }
+    .dash-card .dc-desc {
+      font-size: 10px;
+      color: #777;
+      margin-top: 4px;
+    }
+    .dash-card .dc-insight {
+      font-size: 10px;
+      color: #777;
+      line-height: 1.5;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid #ddd;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    /* --- WHY ACCORDION (always visible in print) --- */
+    .why {
+      border-top: 1px solid #ddd;
+      padding-top: 14px;
+      margin-top: 18px;
+    }
+    .why-btn { display: none; }
+    .why-body {
+      max-height: none !important;
+      overflow: visible;
+      margin-top: 0;
+    }
+    .why-body .why-card {
+      padding: 0;
+      background: none;
+      border: none;
+    }
+    .why-code {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 10.5px;
+    }
+    .why-line {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .why-comment {
+      color: #888;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+    .why-value {
+      color: #8B7332;
+      line-height: 1.4;
+    }
+
+    /* --- KARMIC TAIL --- */
+    .timeline { padding-left: 28px; }
+    .timeline::before {
+      left: 6px;
+      background: #8B7332;
+      opacity: 0.4;
+    }
+    .tl-item { margin-bottom: 28px; page-break-inside: avoid; }
+    .tl-item::before {
+      left: -28px;
+      width: 13px;
+      height: 13px;
+      background: #fff;
+      border-color: #8B7332;
+    }
+    .tl-item.now::before {
+      background: #8B7332;
+      box-shadow: none;
+    }
+    .tl-tag { font-size: 9px; color: #8B7332; }
+    .tl-arc { font-size: 11px; color: #888; }
+    .tl-item h3 { font-size: 22px; }
+    .karmic-body {
+      margin-top: 20px;
+      padding: 16px 20px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    /* --- ROD (2-column) --- */
+    .rod {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .rod-col {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 20px;
+      page-break-inside: avoid;
+    }
+    .rod-col h4 { font-size: 20px; }
+    .rod-col .rod-arcs {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #8B7332;
+    }
+    .rod-info {
+      grid-column: 1 / -1;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 20px;
+      page-break-inside: avoid;
+    }
+    .rod-lines {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #8B7332;
+      display: flex;
+      gap: 24px;
+    }
+
+    /* --- DESTINY --- */
+    .destiny-chapter { max-width: none; }
+    .destiny-chapter .ch-head h2 { font-size: 36px; }
+    .destiny-emblem { margin: 12px 0 22px; }
+    .destiny-emblem .line {
+      background: #8B7332;
+    }
+    .destiny-emblem .star { color: #8B7332; }
+    .sky-line {
+      background: rgba(139, 115, 50, 0.06);
+      border-color: rgba(139, 115, 50, 0.25);
+      margin: 22px 0;
+      padding: 16px 20px;
+    }
+    .sky-line .sl-label { font-size: 9px; color: #8B7332; }
+    .sky-line .sl-nums {
+      font-family: Georgia, serif;
+      font-size: 24px;
+      color: #1a1a1a;
+    }
+    .sky-line .sl-nums span:nth-child(2) { color: #8B7332; }
+
+    /* --- PATTERNS --- */
+    .pattern {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 0 0 18px;
+      padding: 18px 20px;
+      page-break-inside: avoid;
+    }
+    .pattern .p-num { font-size: 28px; color: #8B7332; opacity: 0.3; }
+    .pattern h4 { font-size: 18px; padding-right: 36px; }
+    .pattern p { font-size: 13px; }
+    .pattern .ex {
+      border-top-color: #ddd;
+      font-size: 14px;
+    }
+    .pattern .ex::before { color: #8B7332; font-size: 9px; }
+
+    /* --- CONFLICTS --- */
+    .conflict {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 18px;
+      page-break-inside: avoid;
+    }
+    .conflict .c-bubble {
+      background: rgba(139, 115, 50, 0.1);
+      border-color: rgba(139, 115, 50, 0.4);
+      color: #8B7332;
+    }
+    .conflict .c-bubble.b2 {
+      background: rgba(61, 122, 79, 0.08);
+      border-color: rgba(61, 122, 79, 0.35);
+      color: #3D7A4F;
+    }
+    .conflict .c-vs {
+      color: #888;
+      font-size: 16px;
+    }
+    .conflict h4 { font-size: 18px; }
+    .conflict .c-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .conflict .c-grid h5 {
+      font-size: 10px;
+      color: #8B7332;
+      font-family: Georgia, serif;
+    }
+    .conflict .c-grid p { font-size: 13px; }
+
+    /* --- COMPAT --- */
+    .compat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .compat {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 14px;
+      page-break-inside: avoid;
+    }
+    .compat .c-arc { font-size: 16px; color: #8B7332; }
+    .compat .c-level { font-size: 9px; color: #3D7A4F; }
+    .compat p { font-size: 12px; color: #555; }
+
+    /* --- MONEY --- */
+    .money-blocks { gap: 10px; }
+    .money-block {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 18px;
+      grid-template-columns: 60px 1fr;
+      gap: 16px;
+      page-break-inside: avoid;
+    }
+    .money-block .mb-tag { font-size: 22px; color: #8B7332; }
+    .money-block h4 { font-size: 17px; }
+    .money-block p { font-size: 13px; }
+    .pros-list {
+      background: rgba(139, 115, 50, 0.06);
+      border-left-color: #8B7332;
+    }
+    .pros-list .pl-label { font-size: 9px; color: #8B7332; }
+    .pros-list li { font-size: 16px; color: #1a1a1a; }
+    .pros-list li::before { color: #8B7332; }
+
+    /* --- CYCLES --- */
+    .cycle-track { margin: 18px 0 20px; padding: 30px 0 20px; }
+    .cycle-line { background: #ddd; }
+    .cycle-fill { background: #8B7332; }
+    .cycle-dot {
+      background: #fff;
+      border-color: #3D7A4F;
+    }
+    .cycle-dot.passed { background: #3D7A4F; }
+    .cycle-dot.now { background: #8B7332; border-color: #8B7332; box-shadow: none; }
+    .cycle-dot .age { font-size: 14px; color: #1a1a1a; }
+    .cycle-dot.now .age { color: #8B7332; }
+    .cycle-dot .arc { font-size: 9px; color: #888; }
+    .forecast {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .fcast {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 14px;
+      page-break-inside: avoid;
+    }
+    .fcast .yr {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: #8B7332;
+    }
+    .fcast h5 { font-size: 16px; color: #1a1a1a; }
+    .fcast p { font-size: 12px; color: #555; }
+
+    /* --- 7 DAYS --- */
+    .week { gap: 6px; }
+    .day {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px 14px;
+      cursor: default;
+      grid-template-columns: 20px 90px 1fr;
+      page-break-inside: avoid;
+    }
+    .day .checkbox {
+      border-color: #ccc;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+    }
+    .day.done {
+      background: rgba(61, 122, 79, 0.05);
+      border-color: rgba(61, 122, 79, 0.3);
+    }
+    .day.done .checkbox { background: #3D7A4F; border-color: #3D7A4F; }
+    .d-name { font-size: 16px; color: #1a1a1a; }
+    .d-cat { font-size: 9px; color: #8B7332; }
+    .d-task { font-size: 12px; color: #555; }
+    .day.done .d-task { color: #aaa; text-decoration: line-through; }
+    .day.done .d-name { color: #3D7A4F; }
+
+    /* --- TAROT --- */
+    .tarot-teaser {
+      padding: 28px 30px;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      page-break-inside: avoid;
+    }
+    .tarot-teaser .tt-eye { font-size: 10px; color: #8B7332; }
+    .tarot-teaser .tt-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+    .tt-card {
+      background: #fafafa;
+      border-color: #ddd;
+      padding: 14px 10px;
+    }
+    .tt-card::before { border-color: #ddd; }
+    .tt-card .tc-num { font-size: 11px; color: #8B7332; }
+    .tt-card .tc-sym { font-size: 44px; color: #8B7332; }
+    .tt-card .tc-name { font-size: 11px; color: #8B7332; }
+    .tt-text h3 { font-size: 26px; color: #1a1a1a; }
+    .tt-text h3 em { color: #8B7332; }
+    .tt-text .tt-sub { font-size: 14px; color: #8B7332; }
+    .tt-text p { font-size: 13px; color: #555; }
+    .tt-cta {
+      background: #8B7332;
+      color: #fff;
+      padding: 10px 18px;
+      font-size: 12px;
+      display: inline-flex;
+    }
+    .tt-cta .price { font-size: 14px; }
+
+    /* --- REFLECTION PAGES --- */
+    .reflection {
+      max-width: none;
+      padding: 50px 0 30px;
+    }
+    .reflection h2 { font-size: 28px; }
+    .reflection .r-sub { font-size: 13px; color: #555; }
+    .lines .line { border-bottom-color: #ddd; }
+    #r2 > div {
+      border-top-color: #ddd;
+      color: #888;
+      font-size: 10px;
+    }
+    #r2 > div a { color: #8B7332; }
+
+    /* --- Keep "why" accordion bodies open --- */
+    .why.open .why-body,
+    .why .why-body {
+      max-height: none;
+      margin-top: 10px;
+      overflow: visible;
+    }
+
+    /* --- Hide SVG gradients that WeasyPrint can't render --- */
+    .matrix-viz defs { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ PRINT-ONLY TABLE OF CONTENTS ============ -->
+<nav class="print-toc" style="display:none;">
+  <h2>Содержание</h2>
+  <ol>
+    <li><a href="#s1"><span class="toc-num">01</span>Обложка</a></li>
+    <li><a href="#s2"><span class="toc-num">02</span>За 30 секунд</a></li>
+    <li><a href="#s3"><span class="toc-num">03</span>Архетип личности</a></li>
+    <li><a href="#s4"><span class="toc-num">04</span>Кармический хвост</a></li>
+    <li><a href="#s5"><span class="toc-num">05</span>Родовые программы</a></li>
+    <li><a href="#s6"><span class="toc-num">06</span>Предназначение</a></li>
+    <li><a href="#s7"><span class="toc-num">07</span>Таланты и сила</a></li>
+    <li><a href="#s8"><span class="toc-num">08</span>Теневая сторона</a></li>
+    <li><a href="#health"><span class="toc-num">✦</span>Карта здоровья</a></li>
+    <li><a href="#s9"><span class="toc-num">09</span>Отношения</a></li>
+    <li><a href="#s10"><span class="toc-num">10</span>Деньги и карьера</a></li>
+    <li><a href="#s11"><span class="toc-num">11</span>Сценарии</a></li>
+    <li><a href="#s12"><span class="toc-num">12</span>Внутренние конфликты</a></li>
+    <li><a href="#psychological-blocks"><span class="toc-num">✦</span>Психоблоки</a></li>
+    <li><a href="#s13"><span class="toc-num">13</span>Циклы и прогноз</a></li>
+    <li><a href="#s14"><span class="toc-num">14</span>Семь дней</a></li>
+    <li><a href="#s15"><span class="toc-num">15</span>Карта дня</a></li>
+    <li><a href="#r1"><span class="toc-num">&bull;</span>Мои инсайты</a></li>
+    <li><a href="#r2"><span class="toc-num">&bull;</span>Что я попробую</a></li>
+  </ol>
+</nav>
+
+<div class="shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <span class="mark">N</span>
+      <span class="name">NURA AI</span>
+    </div>
+
+    <div class="sb-meta">
+      <div class="label">Отчёт для</div>
+      <div class="who">Анна</div>
+      <div class="dob">01.06.1995 · 39 лет</div>
+      <div class="arc">X · Колесо Фортуны</div>
+    </div>
+
+    <div class="sb-label" style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;">Содержание</div>
+    <nav>
+      <ul class="sb-nav" id="sbNav">
+        <li><a href="#s1"  data-target="s1"><span class="num">01</span><span>Обложка</span></a></li>
+        <li><a href="#s2"  data-target="s2"><span class="num">02</span><span>За 30 секунд</span></a></li>
+        <li><a href="#s3"  data-target="s3"><span class="num">03</span><span>Архетип личности</span></a></li>
+        <li><a href="#s4"  data-target="s4"><span class="num">04</span><span>Кармический хвост</span></a></li>
+        <li><a href="#s5"  data-target="s5"><span class="num">05</span><span>Родовые программы</span></a></li>
+        <li><a href="#s6"  data-target="s6"><span class="num">06</span><span>Предназначение</span></a></li>
+        <li><a href="#s7"  data-target="s7"><span class="num">07</span><span>Таланты и сила</span></a></li>
+        <li><a href="#s8"  data-target="s8"><span class="num">08</span><span>Теневая сторона</span></a></li>
+        <li><a href="#health" data-target="health"><span class="num">✦</span><span>Карта здоровья</span></a></li>
+        <li><a href="#s9"  data-target="s9"><span class="num">09</span><span>Отношения</span></a></li>
+        <li><a href="#s10" data-target="s10"><span class="num">10</span><span>Деньги и карьера</span></a></li>
+        <li><a href="#s11" data-target="s11"><span class="num">11</span><span>Сценарии</span></a></li>
+        <li><a href="#s12" data-target="s12"><span class="num">12</span><span>Внутренние конфликты</span></a></li>
+        <li><a href="#psychological-blocks" data-target="psychological-blocks"><span class="num">✦</span><span>Психоблоки</span></a></li>
+        <li><a href="#s13" data-target="s13"><span class="num">13</span><span>Циклы и прогноз</span></a></li>
+        <li><a href="#s14" data-target="s14"><span class="num">14</span><span>Семь дней</span></a></li>
+        <li><a href="#s15" data-target="s15"><span class="num">15</span><span>Карта дня</span></a></li>
+        <li style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px;"><a href="#r1" data-target="r1"><span class="num">&bull;</span><span>Мои инсайты</span></a></li>
+        <li><a href="#r2" data-target="r2"><span class="num">&bull;</span><span>Что я попробую</span></a></li>
+      </ul>
+    </nav>
+
+    <div class="sb-footer">
+      <div class="progress"><span id="readProgress" style="width:0%"></span></div>
+      <div>Сгенерировано 15 июнь 2026 · NURA AI</div>
+    </div>
+  </aside>
+
+  <!-- ============ MOBILE NAV ============ -->
+  <div class="mobile-nav" id="mobileNav">
+    <div class="mobile-nav-bar">
+      <div class="sb-brand">
+        <span class="mark">N</span>
+        <span class="name" style="font-size:12px;">NURA AI</span>
+      </div>
+      <div class="mn-current" id="mnCurrent">01 · Обложка</div>
+      <button class="mn-toggle" id="mnToggle" aria-label="Меню">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+    <div class="mobile-nav-panel">
+      <ul id="mnNav"></ul>
+    </div>
+  </div>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <main class="content">
+
+    <!-- ===========================================
+         01 · COVER
+         =========================================== -->
+    <section class="chapter cover" id="s1" data-screen-label="01 Обложка">
+      <div class="cv-eye">
+        <span class="ln"></span>
+        <span>Матрица Судьбы · Полный разбор</span>
+        <span class="dt">№ NR-2026-0615-XX</span>
+      </div>
+
+      <h1 class="cv-title">Разбор для<br><em>Анна</em></h1>
+      <div class="cv-name">22 марта 1987 года</div>
+
+      <div class="cv-grid">
+        <div class="cv-info">
+          <div class="row">
+            <div class="k">Имя</div>
+            <div class="v">Анна</div>
+          </div>
+          <div class="row">
+            <div class="k">Дата рождения</div>
+            <div class="v mono">01.06.1995</div>
+          </div>
+          <div class="row">
+            <div class="k">Архетип</div>
+            <div class="v accent">X. Колесо Фортуны</div>
+          </div>
+          <div class="row">
+            <div class="k">Линия неба</div>
+            <div class="v mono">7 — 10 — 12</div>
+          </div>
+          <div class="row">
+            <div class="k">Аркан 2026</div>
+            <div class="v">XII. Повешенный</div>
+          </div>
+          <div class="row">
+            <div class="k">Сгенерировано</div>
+            <div class="v mono">15.06.2026</div>
+          </div>
+        </div>
+
+        <div class="matrix-viz" aria-hidden="true">
+          <svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="cellGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.22"/>
+                <stop offset="100%" stop-color="#C9A55C" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="line-g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#6BA37A" stop-opacity="0.25"/>
+              </linearGradient>
+            </defs>
+            <g stroke="url(#line-g)" stroke-width="1">
+              <line x1="90" y1="90"  x2="270" y2="90"/>
+              <line x1="90" y1="180" x2="270" y2="180"/>
+              <line x1="90" y1="270" x2="270" y2="270"/>
+              <line x1="90"  y1="90" x2="90"  y2="270"/>
+              <line x1="180" y1="90" x2="180" y2="270"/>
+              <line x1="270" y1="90" x2="270" y2="270"/>
+              <line x1="90"  y1="90"  x2="270" y2="270"/>
+              <line x1="270" y1="90"  x2="90"  y2="270"/>
+            </g>
+            <circle cx="180" cy="180" r="60" fill="url(#cellGlow)"/>
+            <g font-family="Cormorant Garamond, Georgia, serif" text-anchor="middle" dominant-baseline="central">
+              
+              
+              
+              
+              
+              
+              <rect x="72" y="72" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="90" y="90" fill="#C9A55C" font-size="22" font-style="italic">7</text>
+              
+              
+              
+              
+              
+              
+              
+              <rect x="162" y="72" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="180" y="90" fill="#C9A55C" font-size="22" font-style="italic">3</text>
+              
+              
+              
+              
+              
+              
+              
+              <rect x="252" y="72" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="270" y="90" fill="#C9A55C" font-size="22" font-style="italic">10</text>
+              
+              
+              
+              
+              
+              
+              
+              <rect x="72" y="162" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="90" y="180" fill="#C9A55C" font-size="22" font-style="italic">22</text>
+              
+              
+              
+              
+              
+              
+              
+              <rect x="154" y="154" width="52" height="52" rx="4" fill="#143527" stroke="#E8C078" stroke-opacity="0.95" stroke-width="1.5"/>
+              <text x="180" y="180" fill="#F5D78A" font-size="34" font-weight="500">10</text>
+              
+              
+              
+              
+              
+              
+              
+              <rect x="252" y="162" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="270" y="180" fill="#C9A55C" font-size="22" font-style="italic">7</text>
+              
+              
+              
+              
+              
+              
+              
+              <rect x="72" y="252" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="90" y="270" fill="#C9A55C" font-size="22" font-style="italic">5</text>
+              
+              
+              
+              
+              
+              
+              
+              <rect x="162" y="252" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="180" y="270" fill="#C9A55C" font-size="22" font-style="italic">5</text>
+              
+              
+              
+              
+              
+              
+              
+              <rect x="252" y="252" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="270" y="270" fill="#C9A55C" font-size="22" font-style="italic">17</text>
+              
+              
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      <div class="disclaimer" style="margin-top:80px;">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         02 · DASHBOARD
+         =========================================== -->
+    <section class="chapter" id="s2" data-screen-label="02 За 30 секунд">
+      <div class="ch-head">
+        <span class="nbr">02 — За 30 секунд</span>
+        <h2>Главное о тебе <em>на одном развороте</em></h2>
+        <p class="ch-sub">Пять ключей к твоей матрице — читай, если торопишься</p>
+      </div>
+
+      <div class="dashboard">
+        <div class="dash-card">
+          <div class="dc-icon" style="font-style:italic;">X</div>
+          <div class="dc-k">Архетип</div>
+          <div class="dc-v">Колесо Фортуны<em>центр матрицы</em></div>
+          <div class="dc-desc"></div>
+          
+          <div class="dc-insight">Ты — человек цикла. Твоя жизнь состоит из подъёмов и спадов, и твоя сила — в умении адаптироваться к переменам, а не в попытках их остановить.</div>
+          
+        </div>
+        <div class="dash-card">
+          <div class="dc-icon">&triangle;</div>
+          <div class="dc-k">Главный талант</div>
+          <div class="dc-v">Смерть<em>зона таланта</em></div>
+          <div class="dc-desc">Твоя природная сила</div>
+          
+          <div class="dc-insight">Твой талант — завершать то, что другие бросают. Ты умеешь видеть точку, где нужно поставить точку, и не боишься «убивать» проекты, которые исчерпали себя.</div>
+          
+        </div>
+        <div class="dash-card">
+          <div class="dc-icon">&loz;</div>
+          <div class="dc-k">Главный блок</div>
+          <div class="dc-v">Иерофант<em>зона комфорта</em></div>
+          <div class="dc-desc">Что требует осознанной работы</div>
+          
+          <div class="dc-insight">Твоя зона комфорта — Иерофант (5) — превращается в блок, когда ты начинаешь жить по чужим правилам. Ты теряешь себя, когда ищешь одобрения авторитетов вместо того, чтобы доверять себе.</div>
+          
+        </div>
+        <div class="dash-card">
+          <div class="dc-icon">&#10022;</div>
+          <div class="dc-k">Предназначение</div>
+          <div class="dc-v">Звезда<em>зона портрета</em></div>
+          <div class="dc-desc">Направление твоего пути</div>
+          
+          <div class="dc-insight">Твоё направление — создавать системы, которые помогают другим проходить через кризисы. Ты можешь быть проводником в точках перемен, где нужна ясность и структура.</div>
+          
+        </div>
+        <div class="dash-card">
+          <div class="dc-icon" style="font-style:italic;">XII</div>
+          <div class="dc-k">Аркан 2026</div>
+          <div class="dc-v">Повешенный<em>год структуры</em></div>
+          <div class="dc-desc">Энергия текущего года</div>
+          
+          <div class="dc-insight">В этом году не жди быстрых результатов. Сфокусируйся на завершении старых дел и анализе. Каждое действие должно быть точным, а не быстрым.</div>
+          
+        </div>
+      </div>
+    </section>
+
+    <!-- ===========================================
+         03 · ARCHETYPE
+         =========================================== -->
+    <section class="chapter" id="s3" data-screen-label="03 Архетип личности">
+      <div class="ch-head">
+        <span class="nbr">03 — Архетип личности</span>
+        <h2>Колесо Фортуны <em>в центре</em> карты</h2>
+        <p class="ch-sub">Главный аркан матрицы. Объясняет, почему ты двигаешься так, как двигаешься — и почему это работает.</p>
+      </div>
+
+      <div class="prose">
+        Твой главный архетип — 10-й аркан, Колесо Фортуны, который стоит в центре матрицы (позиция E). Это архетип цикличности, принятия перемен и доверия к течению жизни. Для тебя суть этого архетипа в одной фразе: «Я не управляю всем, но я выбираю, как реагировать на то, что происходит». Ты не из тех, кто держится за стабильность любой ценой — напротив, ты интуитивно чувствуешь, что всё имеет свой ритм: взлёты сменяются падениями, а затишье — бурей. Твоя жизненная стратегия — это гибкость и адаптивность. Ты принимаешь решения не через жёсткое планирование, а через ощущение момента: «сейчас — время действовать, сейчас — время ждать». Это не хаос, а тонкое чутьё на правильный timing. Например, в работе ты можешь долго наблюдать, а потом резко совершить рывок, когда чувствуешь, что «звезды сошлись». В отношениях ты не давишь, но и не убегаешь — ты позволяешь событиям развиваться, доверяя процессу. В кризисных ситуациях твой главный защитный механизм — отстранение. Когда случается что-то неожиданное, ты можешь внешне казаться спокойным, даже равнодушным, но внутри ты переживаешь бурю. Ты говоришь себе: «это пройдёт», и это правда работает — но иногда ты рискуешь обесценить свои чувства, спрятав их за фасадом философского принятия. Снаружи это выглядит как холодность или фатализм, хотя на деле ты просто учишься не цепляться за то, что уже уходит. В работе твой архетип проявляется в способности видеть циклы. Например, ты можешь работать в проектной деятельности, где каждый проект — это мини-цикл: запуск, рост, пик, завершение. Ты хорош в антикризисном управлении или в сферах, где нужно «перезагружать» процессы. Конкретная ситуация: ты приходишь в компанию, где хаос, и вместо того чтобы паниковать, ты спокойно говоришь: «давайте подождём неделю, посмотрим, как развернётся ситуация». И часто оказываешься прав, потому что чувствуешь ритм. В отношениях твой архетип даёт тебе способность принимать партнёра с его циклами. Ты не требуешь постоянной яркости, понимая, что бывают периоды спада. Но есть и тень: ты можешь слишком легко отпускать людей, думая «это судьба», хотя на самом деле стоило бы побороться. Пример: ты расстаёшься с партнёром, говоря себе «значит, не судьба», но через год понимаешь, что это был просто кризисный период, который можно было пережить вместе. В деньгах твой архетип проявляется как цикличность доходов. Ты можешь переживать периоды, когда деньги приходят легко и быстро, а потом — затишье. Это не случайность: ты подсознательно создаёшь такие сценарии, чтобы подтвердить свою веру в «повороты колеса». Задача — научиться сглаживать эти циклы, создавая финансовую подушку, а не драматизировать каждый спад. Как главный архетип окрашивает другие зоны? Зона талантов — 13-й аркан Смерть. Это не про физическую смерть, а про трансформацию. Твой талант — умение завершать этапы и начинать новые. Ты не боишься «убивать» проекты, отношения, привычки, когда они исчерпали себя. Это идёт из центра: Колесо Фортуны даёт тебе понимание, что конец одного цикла — начало другого. Зона комфорта — 5-й аркан Иерофант. Твой комфорт — в структуре и традициях. Это звучит парадоксально для архетипа перемен, но именно так: тебе нужно иметь «якорь» — ритуалы, правила, наставников, чтобы безопасно отпускать себя в поток. Портретная зона — 17-й аркан Звезда. Ты видишься другим как человек с надеждой и вдохновением. Ты не просто плывёшь по течению — ты указываешь направление, даже когда сам не знаешь конечной точки. Люди тянутся к тебе за этим спокойствием и верой в лучшее.
+      </div>
+
+      
+      <div class="why" id="why-arch">
+        <button class="why-btn" type="button" data-toggle="why-arch">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю — технические данные расчёта</span>
+        </button>
+        <div class="why-body">
+          <div class="why-card">
+            <div class="row"><div class="k">// Центральная позиция матрицы</div><div class="v">10 (Колесо Фортуны)</div></div>
+            <div class="row"><div class="k">// Аркан небесного канала</div><div class="v">3 (Императрица)</div></div>
+            <div class="row"><div class="k">// Аркан земного канала</div><div class="v">5 (Иерофант)</div></div>
+            <div class="row"><div class="k">// Линия неба</div><div class="v">7 — 10 — 12</div></div>
+            <div class="row"><div class="k">// Линия земли</div><div class="v">10 — 10 — 9</div></div>
+            <div class="row"><div class="k">// Кармический хвост</div><div class="v">5 — 10 — 3</div></div>
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         04 · KARMIC TAIL
+         =========================================== -->
+    <section class="chapter" id="s4" data-screen-label="04 Кармический хвост">
+      <div class="ch-head">
+        <span class="nbr">04 — Кармический хвост</span>
+        <h2>Что ты <em>привезла с собой</em></h2>
+        <p class="ch-sub">Не про прошлые жизни и не про вину предков — про устойчивый паттерн, который запустился задолго до твоего решения и теперь требует осознанной работы.</p>
+      </div>
+
+      <div class="timeline">
+        <div class="tl-item">
+          <span class="tl-tag">Причина &middot; прошлое</span>
+          <div class="tl-arc">Аркан 5 — низ матрицы &middot; Иерофант в тени</div>
+          <h3>Корень <em>кармического паттерна</em></h3>
+        </div>
+
+        <div class="tl-item now">
+          <span class="tl-tag">Следствие &middot; сейчас</span>
+          <div class="tl-arc">Аркан 10 — центр матрицы &middot; Колесо Фортуны</div>
+          <h3>Как это <em>проявляется сегодня</em></h3>
+        </div>
+
+        <div class="tl-item">
+          <span class="tl-tag">Урок &middot; трансформация</span>
+          <div class="tl-arc">Аркан 3 — верх матрицы &middot; Императрица</div>
+          <h3>Путь <em>выхода из цикла</em></h3>
+        </div>
+      </div>
+
+      <div class="karmic-body">
+        <div class="prose">
+          <p>Кармический хвост — это три аркана, которые показывают твой ключевой цикл, который повторяется, пока ты не выучишь урок. В твоём случае: низ (причина) — 5-й аркан Иерофант, центр (следствие) — 10-й аркан Колесо Фортуны, верх (урок) — 3-й аркан Императрица. Это история о том, как ты ищешь внешнюю опору (5), сталкиваешься с непредсказуемостью жизни (10) и учишься доверять своей внутренней плодородности и интуиции (3). Давай разберём каждый узел. Причина (низ, 5-й аркан Иерофант): твой прошлый опыт или базовая установка — «я должен следовать правилам, чтобы быть в безопасности». Ты вырос в среде, где ценились традиции, структура, авторитеты. Возможно, в семье говорили: «делай как положено», «не высовывайся», «слушай старших». Это сформировало стратегию: искать наставника, методику, систему, которая даст гарантии. Конкретный пример: ты долго работал в корпорации, потому что «так принято», даже когда внутренне чувствовал, что пора уходить. Или ты вступаешь в отношения, потому что «пора», а не потому что действительно хочешь. Следствие (центр, 10-й аркан Колесо Фортуны): эта стратегия приводит к тому, что жизнь постоянно «переворачивает» твои планы. Ты пытаешься всё контролировать через правила, но реальность оказывается непредсказуемой. Пример: ты тщательно спланировал карьеру, но компания закрылась, или ты вложился в «надёжный» проект, а он прогорел. Или в отношениях: ты сделал всё «как надо», но партнёр ушёл. В результате ты чувствуешь себя жертвой обстоятельств: «я всё делал правильно, почему так?». Это и есть работа хвоста: ты ищешь стабильность там, где её не может быть, и страдаешь от иллюзии контроля. Урок (верх, 3-й аркан Императрица): тебе нужно научиться доверять себе, своей интуиции и способности «рождать» новые реальности. Императрица — это не про правила, а про естественный рост, плодородие, заботу. Урок в том, чтобы перестать искать гарантии вовне и начать создавать свою жизнь из внутреннего ощущения «правильности». Это не означает хаос — это означает, что ты выбираешь путь не потому, что «так надо», а потому что «так хочется» и «так чувствуется». Пример: вместо того чтобы следовать карьерному плану, ты выбираешь проект, который зажигает тебя, даже если он рискованный. Вместо того чтобы строить отношения по шаблону, ты позволяешь им расти естественно. Путь трансформации: сегодня — запиши 3 ситуации, где ты действовал «по правилам» вопреки внутреннему чувству. На этой неделе — сделай один выбор, основываясь только на «хочу», а не на «надо». В этом месяце — начни проект, у которого нет чёткого плана, только направление. Позволь себе быть Императрицей: твори, не спрашивая разрешения.</p>
+        </div>
+      </div>
+
+      
+      <div class="why" id="why-s4">
+        <button class="why-btn" type="button" data-toggle="why-s4">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">кармический хвост: низ (G), центр (E), верх (F)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Иерофант (5), Колесо Фортуны (10), Императрица (3)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">Кармический хвост рассказывает историю о том, как ты ищешь ответы вовне (5 аркан — причина), попадаешь в циклы удачи и неудач (10 аркан — следствие), и в итоге должен научиться доверять своей внутренней мудрости и изобилию (3 аркан — урок). Конкретный пример: ты можешь следовать советам наставника (5), но каждый раз, когда всё идёт по плану, случается неожиданный поворот (10), который разрушает твои ожидания. Урок — перестать искать гарантии и начать творить свою реальность из состояния 'я уже имею всё необходимое' (3). Путь трансформации: сегодня — запиши 3 ситуации, где ты действовал по чужому сценарию; на этой неделе — сделай один выбор, основываясь только на своём желании; в этом месяце — начни проект, который приносит радость, без оглядки на мнение других.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         05 · RODOVYE
+         =========================================== -->
+    <section class="chapter" id="s5" data-screen-label="05 Родовые программы">
+      <div class="ch-head">
+        <span class="nbr">05 — Родовые программы</span>
+        <h2>Что унаследовано <em>по линиям</em></h2>
+        <p class="ch-sub">Слабые места и сильные опоры, переданные тебе с двух сторон. Унаследовать — не значит обязательно повторять.</p>
+      </div>
+
+      <div class="rod">
+        <div class="rod-info">
+          <div class="rod-lines">
+            <span>Линия отца — арканы 10 — 10 — 9</span>
+            <span>Линия матери — арканы 7 — 10 — 12</span>
+          </div>
+          <div class="prose">
+            Родовые программы — это сценарии, которые ты унаследовал от семьи. Они записаны в линии земли: аркан G (линия отца) и аркан I (линия матери). По линии отца у тебя стоит 10-й аркан Колесо Фортуны. Это значит, что по мужской линии передаётся установка: «жизнь — это череда взлётов и падений, и нужно быть готовым ко всему». В твоей семье, вероятно, были истории о внезапных успехах и крахах. Отец или дед могли быть людьми, которые то богатели, то теряли всё. Тебе передали не только ресурс адаптивности, но и страх нестабильности. Конкретные фразы из детства: «деньги — это ненадёжно», «не привыкай к хорошему», «всё может измениться в любой момент». Как это влияет сейчас? Ты можешь саботировать свой успех, когда чувствуешь, что «слишком хорошо», потому что подсознательно ждёшь падения. Или, наоборот, ты создаёшь кризисы, чтобы подтвердить семейный сценарий. Пример: ты получаешь повышение, но через месяц совершаешь ошибку, которая ставит карьеру под угрозу. Или ты начинаешь отношения, а потом неосознанно делаешь что-то, что их разрушает. По линии матери у тебя 9-й аркан Отшельник. Это программа «одиночество как безопасность» или «поиск истины в уединении». Возможно, мать или бабушка были женщинами, которые много времени проводили в размышлениях, были замкнуты или жертвовали отношениями ради внутреннего покоя. Фразы: «лучше быть одной, чем с кем попало», «никому нельзя доверять», «правда внутри тебя». Как это влияет? Ты можешь избегать близости, уходить в себя в сложных ситуациях, предпочитать одиночество компании. Пример: когда в отношениях возникает конфликт, ты не решаешь его, а уходишь в «думальню», оставляя партнёра в неведении. Или ты выбираешь работу, где можно работать одному, даже если коллективная работа принесла бы больше денег. Как освободиться от ограничивающих программ? По линии отца: практика «принятия стабильности». Каждый день в течение недели создавай маленький ритуал, который символизирует устойчивость: например, каждое утро пей чай из одной и той же чашки, или откладывай 100 рублей в копилку. Это переучит мозг доверять постоянству. По линии матери: практика «выхода в контакт». Раз в неделю делай что-то, что требует открытости: позвони старому другу, пригласи коллегу на кофе, скажи комплимент незнакомцу. Сильные стороны рода: от отца ты взял способность к адаптации и чутьё на перемены. От матери — глубину и мудрость. Примени их сегодня: используй адаптивность, чтобы быстро реагировать на изменения на работе, а мудрость — чтобы не принимать поспешных решений. Например, если в проекте кризис, не паникуй (отцовский сценарий «всё рухнет»), а используй отшельническую паузу, чтобы обдумать стратегию.
+          </div>
+        </div>
+      </div>
+
+      
+      <div class="why" id="why-s5">
+        <button class="why-btn" type="button" data-toggle="why-s5">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">линия отца (G), линия матери (I)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Колесо Фортуны (10), Отшельник (9)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">По линии отца (10 аркан) передаётся программа цикличности и нестабильности: возможно, отец часто менял работу, уходил из семьи или был 'человеком настроения'. Ты можешь повторять этот сценарий в карьере и отношениях. По линии матери (9 аркан) — программа одиночества и самодостаточности: мать могла быть эмоционально холодной или слишком занятой собой, что сформировало у тебя убеждение 'я должен справляться сам'. Эти программы влияют на твои выборы: ты можешь избегать близости (9) и одновременно бояться стабильности (10). Освободиться — значит осознанно выбирать: например, в отношениях давать себе право на зависимость, а в работе — строить долгосрочные планы, несмотря на страх перемен.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         06 · DESTINY
+         =========================================== -->
+    <section class="chapter destiny-chapter" id="s6" data-screen-label="06 Предназначение">
+      <div class="ch-head">
+        <span class="nbr">06 — Предназначение</span>
+        <h2>Твой путь <em>по матрице</em></h2>
+        <div class="destiny-emblem">
+          <span class="line"></span>
+          <svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/>
+          </svg>
+          <span class="line"></span>
+        </div>
+      </div>
+
+      <div class="prose">
+        Твоё предназначение — это не одна единственная «миссия», а вектор, который объединяет твои таланты, кармический дар и денежный канал. Линия неба (F → E → H) состоит из трёх арканов: кармический дар — 7-й аркан Колесница (F), центр — 10-й аркан Колесо Фортуны (E), денежный канал — 12-й аркан Повешенный (H). Это формула: «Управляй потоком, принимая парадоксы». Давай разберём четыре уровня предназначения. Личное: твоя задача — научиться быть лидером, который не контролирует, а направляет. Колесница даёт волю и амбиции, Колесо Фортуны — гибкость, Повешенный — умение видеть ситуацию с разных сторон. Ты должен стать тем, кто ведёт людей через перемены, не цепляясь за результат. Пример: ты можешь быть руководителем команды, которая занимается реструктуризацией бизнеса. Ты задаёшь направление, но не диктуешь каждый шаг, доверяя процессу. Социальное: твоя роль в обществе — быть проводником в кризисных ситуациях. Ты нужен там, где хаос и неопределённость. Это могут быть сферы: антикризисное управление, стартапы на этапе «бури», организационные изменения, психология кризиса. Конкретная роль: «капитан корабля в шторме». Люди идут за тобой, потому что ты сохраняешь спокойствие, когда всё рушится. Духовное: твой внутренний рост — через принятие неопределённости. Повешенный в денежном канале говорит о том, что деньги придут не через борьбу, а через «отпускание». Ты должен перестать «дёргать ниточки» и позволить потоку нести тебя. Это сложно для Колесницы, но именно в этом парадоксе — твоя сила. Материальное: твой доход будет связан с проектами, которые имеют цикличную природу. Это могут быть: консалтинг по циклам бизнеса, инвестиции в стартапы на разных стадиях, работа в сфере возобновляемых ресурсов (сельское хозяйство, энергия, переработка). Или творческие проекты, где ты выступаешь как продюсер, запускающий и закрывающий циклы. Конкретные сферы реализации: 1) Антикризисный консультант для малого и среднего бизнеса — ты помогаешь компаниям пройти через смену собственника, реорганизацию, выход из кризиса. 2) Продюсер культурных или образовательных проектов — ты запускаешь курсы, фестивали, которые живут несколько лет, а затем закрываются, уступая место новым. 3) Коуч по жизненным циклам — ты работаешь с людьми, которые переживают переходные периоды: развод, смена профессии, переезд. Как главный архетип ведёт тебя к предназначению? Через испытания неопределённостью. Ты будешь сталкиваться с ситуациями, где планы рушатся, чтобы ты учился отпускать контроль. Каждый раз, когда ты чувствуешь, что «земля уходит из-под ног», знай: это Колесо Фортуны тренирует тебя быть гибким. Пример дня, когда ты живёшь предназначением: 7:00 — ты просыпаешься и не проверяешь телефон, а 10 минут медитируешь на ощущение «потока». 8:00 — за завтраком ты записываешь 3 интуитивных идеи, не анализируя их. 10:00 — ты проводишь встречу с командой, где вместо жёсткого плана ты задаёшь вопросы: «Что мы чувствуем? Куда нас ведёт ситуация?». 13:00 — ты обедаешь в одиночестве, обдумывая один парадокс: «Как я могу достичь цели, не стремясь к ней?». 15:00 — ты работаешь над проектом, но если чувствуешь сопротивление — переключаешься, доверяя, что придёт нужный момент. 18:00 — ты идёшь на прогулку, наблюдая за природными циклами: закат, смена погоды. 21:00 — ты подводишь итоги дня, записывая, где ты действовал из контроля, а где — из доверия. Что мешает прямо сейчас? Страх потери контроля (10-й аркан в тени) — убеждение «если я отпущу, всё рухнет». И блок из кармического хвоста: «я должен знать точно, что будет завтра». Практический шаг сегодня: выбери одну сферу жизни (работа, отношения, финансы) и сознательно не планируй её на завтра. Позволь событиям разворачиваться спонтанно. Как монетизировать предназначение? Через формат «подписка» или «абонемент»: твои клиенты платят тебе не за результат, а за процесс — за то, что ты ведёшь их через перемены. Или через гонорары за «кризисные вмешательства»: разовые консультации для тех, кто попал в штопор.
+      </div>
+
+      
+      <div class="why" id="why-s6">
+        <button class="why-btn" type="button" data-toggle="why-s6">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">линия неба: F → E → H</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Колесница (7), Колесо Фортуны (10), Повешенный (12)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">Твоё предназначение — быть проводником перемен. Колесница (7) даёт тебе волю и направление, Колесо Фортуны (10) — чувство времени и циклов, Повешенный (12) — способность видеть ситуацию с новой перспективы и ждать. Вместе они формируют миссию: помогать другим проходить через трансформации, используя стратегию, терпение и интуицию. Конкретные сферы: кризис-консультирование, управление изменениями в организациях, духовное наставничество (без эзотерики — как психология переходов). Один день из жизни по предназначению: ты просыпаешься, проверяешь почту — клиент в кризисе, ты проводишь сессию, помогая ему увидеть выход; потом работаешь над своим проектом, который запустится в нужный момент; вечером — время для себя, чтобы восстановить энергию. Что мешает: страх, что твой путь 'неправильный' (Иерофант) и убеждение, что нужно страдать, чтобы достичь цели (Повешенный в тени). Шаг сегодня: напиши список из 5 ситуаций, где ты помог кому-то изменить жизнь, и увидь в этом паттерн.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         07 · TALENTS
+         =========================================== -->
+    <section class="chapter" id="s7" data-screen-label="07 Таланты и сила">
+      <div class="ch-head">
+        <span class="nbr">07 — Таланты и сильные стороны</span>
+        <h2>Что ты <em>правда умеешь</em></h2>
+        <p class="ch-sub">Не «лидерские качества» и не «коммуникабельность». Конкретные навыки, на которых стоит строить дело и репутацию.</p>
+      </div>
+
+      <div class="prose">
+        Твои сильные стороны — это не случайный набор качеств, а конкретные энергии, зашифрованные в матрице. Первая и главная сила — это аркан 13 (Смерть) в зоне талантов. Это не про потери, а про способность к трансформации. Ты умеешь завершать то, что мертво, и начинать новое без сожаления. В реальной жизни это выглядит так: ты можешь уйти с работы, которая тебя больше не развивает, без драмы и оглядываний назад. Или закончить отношения, которые превратились в привычку, с чётким пониманием, что это необходимо для роста. Пример: ты работал в проекте полгода, видел, что он зашёл в тупик, и вместо того чтобы тянуть резину, ты инициировал его закрытие, предложив новый, более перспективный. Коллеги удивлялись твоей решимости, а ты просто чувствовал, что «пора». Эта сила дана тебе именно потому, что твой центр — Колесо Фортуны: ты знаешь, что за каждым концом следует новый виток. Как монетизировать эту силу? Ты можешь работать кризис-менеджером, реструктуризатором бизнеса, коучем по завершению проектов. Или в сфере, где нужно «перезапускать» — например, запускать стартапы с нуля, зная, что через 2-3 года ты передашь их другим. Вторая сила — аркан 5 (Иерофант) в зоне комфорта. Твоя опора — в структуре, знаниях и традициях. Ты не из тех, кто действует наобум: тебе нужна система, наставник, проверенный метод. Это даёт тебе устойчивость в хаосе. Пример: когда ты начинаешь новый проект, ты сначала ищешь эксперта, который уже прошёл этот путь, или изучаешь готовую методологию. Ты не изобретаешь велосипед, а адаптируешь лучшее. В работе это проявляется как способность создавать регламенты и обучать других. Ты можешь быть отличным методологом, бизнес-тренером или руководителем, который выстраивает процессы. В отношениях эта сила даёт тебе потребность в ясных договорённостях: ты чувствуешь себя спокойно, когда знаешь правила игры. Монетизация: консалтинг, обучение, написание инструкций и руководств, создание образовательных программ. Третья сила — аркан 17 (Звезда) в портретной зоне. То, как тебя видят другие — это вдохновение и надежда. Ты умеешь показывать людям свет в конце тоннеля, даже когда сам сомневаешься. Пример: в команде, где все паникуют из-за кризиса, ты спокойно говоришь: «у нас есть план Б, и я знаю, как мы выйдем из этого». Ты не врёшь, ты просто видишь возможности там, где другие видят тупик. Эта сила притягивает к тебе людей, которые ищут опору. Монетизация: работа в мотивационной сфере, коучинг, публичные выступления, написание вдохновляющих текстов. Ты можешь быть тем, кто «зажигает» команду перед большим проектом. Четвёртая сила — аркан 7 (Колесница) в кармическом даре (F). Это воля и способность управлять. Ты умеешь брать ответственность и вести за собой, даже когда путь неясен. Пример: в сложной ситуации ты не ждёшь указаний, а берёшь управление на себя, распределяешь роли и двигаешься вперёд. В работе это делает тебя естественным лидером в кризисных ситуациях. Монетизация: управленческие должности, проект-менеджмент, роль «капитана» в стартапе. Как применить эти силы прямо сейчас? Сегодня: заверши одно дело, которое висит мёртвым грузом — удали, закрой, передай. На этой неделе: найди наставника или ментора в той сфере, где ты хочешь расти. В этом месяце: выступи с идеей перед группой — покажи людям своё видение, вдохнови их.
+      </div>
+
+      
+      <div class="why" id="why-s7">
+        <button class="why-btn" type="button" data-toggle="why-s7">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">зона талантов (верхний угол), линия неба (F → E → H)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Смерть (13), Колесница (7), Колесо Фортуны (10), Повешенный (12)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">Твой главный талант — способность к трансформации и обновлению (13 аркан). Ты умеешь разрушать старое, чтобы построить новое, и не боишься потерь. Линия неба (7-10-12) добавляет стратегическое мышление: ты видишь, когда нужно форсировать события (Колесница), когда отпустить контроль (Повешенный), и как использовать циклы (Колесо Фортуны). В работе это делает тебя отличным кризис-менеджером или реформатором. В общении ты вдохновляешь других на перемены, но можешь казаться резким. Монетизировать это можно через консалтинг по изменениям, управление проектами в переходные периоды или coaching по личной трансформации.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         08 · SHADOW
+         =========================================== -->
+    <section class="chapter" id="s8" data-screen-label="08 Теневая сторона">
+      <div class="ch-head">
+        <span class="nbr">08 — Теневая сторона</span>
+        <h2>Цена <em>твоей силы</em></h2>
+        <p class="ch-sub">Это не недостатки — это оборотная сторона твоих сильных качеств. Их нельзя «убрать», но можно научиться видеть и не давать им рулить.</p>
+      </div>
+
+      <div class="prose">
+        Теневые стороны — это те же арканы, но в их непроработанном, «спящем» состоянии. Первая тень — аркан 13 (Смерть) в зоне талантов. В тени эта энергия превращается в страх перед переменами и склонность к разрушению без создания нового. Вместо того чтобы мягко завершать этапы, ты можешь рубить с плеча, оставляя за собой руины. Конкретный сценарий: ты чувствуешь, что проект «не твой», и вместо того чтобы передать его или доработать, ты просто уходишь, оставляя коллег в недоумении. Или в отношениях: ты можешь резко оборвать связь, сказав «всё кончено», даже не попытавшись поговорить. Эта тень формирует слепое пятно: ты не видишь, что можно трансформировать, не уничтожая. Ты путаешь «завершение» с «уничтожением». Способ интеграции: прежде чем принять решение о завершении, задай себе вопрос: «Что именно я хочу закончить — отношения, проект или только мою роль в нём? Можно ли изменить форму, не убивая суть?» Практика: в течение недели, когда возникает желание «всё бросить», сделай паузу на 24 часа и запиши 3 альтернативных варианта действий. Вторая тень — аркан 5 (Иерофант) в зоне комфорта. В тени это догматизм и зависимость от авторитетов. Ты можешь слишком полагаться на чужие правила, теряя собственную гибкость. Пример: ты следуешь методике, которая уже устарела, потому что «так учил наставник», и не замечаешь, что рынок изменился. Или в отношениях: ты требуешь от партнёра следования «правилам», забывая о живых чувствах. Эта тень связана с кармическим хвостом: 5-й аркан в причине (низ хвоста) говорит о том, что ты склонен искать внешнюю опору, вместо того чтобы доверять себе. Слепое пятно: ты не видишь, что правила созданы для людей, а не люди для правил. Интеграция: раз в неделю делай что-то, что идёт вразрез с «общепринятым» — например, нарушь свой ритуал или попробуй сделать задачу способом, который никто не одобряет. Третья тень — аркан 17 (Звезда) в портретной зоне. В тени это иллюзии и побег в мечты. Ты можешь так увлекаться «светлым будущим», что перестаёшь замечать реальность. Пример: ты рассказываешь команде о грандиозных планах, но не замечаешь, что текущие задачи проваливаются. Или в отношениях: ты идеализируешь партнёра, не видя его реальных недостатков, а потом разочаровываешься. Эта тень формирует слепое пятно: ты не хочешь видеть «грязь» настоящего момента. Интеграция: каждый день записывай 3 конкретных факта о текущей ситуации, которые тебе не нравятся. Не пытайся их исправить — просто признай их существование. Четвёртая тень — аркан 7 (Колесница) в кармическом даре. В тени это гиперконтроль и неспособность делегировать. Ты можешь брать на себя слишком много, думая, что без тебя всё рухнет. Пример: ты делаешь работу за подчинённых, потому что «так быстрее», а потом выгораешь. Связь с родовыми программами: по линии отца (аркан 10) ты мог видеть, как мужчина в семье «тянул всё на себе», и теперь повторяешь этот сценарий. Интеграция: каждую неделю делегируй одну задачу полностью, без контроля. Если результат будет хуже — это нормально, ты учишься доверять.
+      </div>
+
+      
+      <div class="why" id="why-s8">
+        <button class="why-btn" type="button" data-toggle="why-s8">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">зона комфорта (нижний угол G)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Иерофант (5)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">Твоя тень — это Иерофант в зоне комфорта. Ты можешь застревать в догмах, традициях и чужих правилах, даже когда они уже не работают. Это проявляется как страх выйти за рамки системы, потребность в одобрении авторитетов или склонность к перфекционизму в рамках установленных норм. Например, ты можешь годами работать на нелюбимой работе, потому что 'так принято', или оставаться в отношениях, которые исчерпали себя, из-за чувства долга. Интегрировать тень — значит осознанно выбирать, какие правила тебе служат, а какие ограничивают, и разрешить себе их нарушать. Связь с кармическим хвостом: Иерофант как причина (низ) заставляет тебя искать внешние ответы, вместо того чтобы доверять себе.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+      
+      <section class="report-section section-health" id="health">
+  <div class="section-header">
+    <div class="section-accent-bar health-accent"></div>
+    <h2>Карта здоровья</h2>
+  </div>
+  <p class="section-subtitle">7 чакр — энергетические центры организма</p>
+
+  
+
+  
+
+  <div class="chakra-list">
+    
+      
+      
+        
+        
+      
+
+      <div
+        class="chakra-row status-medium"
+        style="--chakra-color: #8E44AD; --fill: 60%"
+      >
+        <div class="chakra-indicator">
+          <div class="chakra-indicator-fill"></div>
+        </div>
+        <div class="chakra-icon-wrap">
+          <span class="chakra-icon">☯</span>
+        </div>
+        <div class="chakra-info">
+          <div class="chakra-header">
+            <h4>Сахасрара</h4>
+            <span class="chakra-sanskrit">सहस्रार</span>
+            <span class="chakra-loc">Макушка</span>
+          </div>
+          <div class="chakra-positions">
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Небо</span>
+              <span class="chakra-pos-val">17 — Звезда</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Земля</span>
+              <span class="chakra-pos-val">12 — Повешенный</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Ключ</span>
+              <span class="chakra-pos-val">11 — Справедливость</span>
+            </span>
+          </div>
+          <div class="chakra-organs">
+            <span class="chakra-organs-label">Органы:</span> мозг, нервная система
+          </div>
+          <p class="chakra-analysis">Рассмотрим твоё здоровье через призму 7 центров, используя арканы матрицы. Сахасрара (теменная): небо — Звезда (17), земля — Повешенный (12), ключ — Справедливость (11). Состояние: недостаток энергии. Ты можешь чувствовать оторванность от своих ценностей, потерю смысла. Органы: нервная система, кора головного мозга. Причина дисбаланса: Повешенный (12) в земле заставляет тебя «зависать» в прошлом, не видеть будущего. Психосоматика: хроническая усталость, апатия, головные боли напряжения. Практика: каждый вечер записывай одну благодарность за прошедший день — это вернёт связь с «Звездой». Аджна (третий глаз): небо — Смерть (13), земля — Колесо Фортуны (10), ключ — Иерофант (5). Состояние: избыток. Ты слишком много анализируешь, пытаешься контролировать будущее. Органы: глаза, гипофиз, лобные пазухи. Причина: Смерть (13) в небе даёт страх перемен, ты «прокручиваешь» сценарии, чтобы избежать неожиданностей. Психосоматика: ухудшение зрения, синуситы, бессонница от «шума в голове». Практика: практикуй «стоп-кран» — 5 раз в день говори себе «стоп» и переводи фокус на дыхание на 1 минуту. Вишудха (горловая): небо — Колесница (7), земля — Отшельник (9), ключ — Башня (16). Состояние: недостаток. Ты можешь подавлять своё мнение, бояться конфликтов. Органы: горло, щитовидная железа, голосовые связки. Причина: Отшельник (9) в земле заставляет тебя замыкаться, а Колесница (7) в небе — «проглатывать» слова, чтобы не потерять контроль. Психосоматика: частые ангины, ком в горле, проблемы с щитовидкой. Практика: каждый день пой в душе или читай вслух стихи — это освободит голос. Анахата (сердечная): небо — Иерофант (5), земля — Колесо Фортуны (10), ключ — Дьявол (15). Состояние: избыток контроля. Ты можешь «душить» любовью или, наоборот, бояться открыться. Органы: сердце, лёгкие, грудной отдел позвоночника. Причина: Дьявол (15) в ключе — страх зависимости, ты не даёшь себе расслабиться в близости. Психосоматика: тахикардия, ощущение сдавленности в груди, остеохондроз грудного отдела. Практика: практикуй объятия — обнимай близких не менее 20 секунд, это снимет блок в сердце. Манипура (солнечное сплетение): небо — Шут (22), земля — Колесница (7), ключ — Справедливость (11). Состояние: недостаток. Ты можешь сомневаться в своей силе, брать на себя слишком много или, наоборот, отказываться от ответственности. Органы: желудок, печень, поджелудочная железа. Причина: Шут (22) в небе — нежелание взрослеть, Колесница (7) в земле — перфекционизм. Психосоматика: гастрит, проблемы с весом, синдром раздражённого кишечника. Практика: каждый день говори себе «я имею право на ошибку» и делай одно дело неидеально. Свадхистхана (сакральная): небо — Императрица (3), земля — Смерть (13), ключ — Башня (16). Состояние: избыток творческой энергии, но блок на её проявление. Органы: половая система, почки, мочевой пузырь. Причина: Смерть (13) в земле — страх перемен, ты боишься отпустить старые сценарии. Психосоматика: циститы, нарушения цикла, творческие кризисы. Практика: начни любой творческий проект без цели — рисуй, лепи, танцуй. Не показывай результат никому. Муладхара (корневая): небо — Иерофант (5), земля — Иерофант (5), ключ — Колесо Фортуны (10). Состояние: недостаток. Ты можешь чувствовать нестабильность, тревогу за будущее. Органы: позвоночник, ноги, кишечник, иммунная система. Причина: два Иерофанта (5) — гиперконтроль, ты пытаешься всё предусмотреть, но Колесо Фортуны (10) в ключе напоминает, что жизнь непредсказуема. Психосоматика: боли в пояснице, частые простуды, проблемы со стулом. Практика: каждый день делай 10 приседаний, чтобы «заземлиться», и планируй только 50% своего времени — оставляй пространство для спонтанности.</p>
+          <p class="chakra-practice"></p>
+        </div>
+      </div>
+    
+      
+      
+        
+        
+      
+
+      <div
+        class="chakra-row status-high"
+        style="--chakra-color: #7B68C8; --fill: 100%"
+      >
+        <div class="chakra-indicator">
+          <div class="chakra-indicator-fill"></div>
+        </div>
+        <div class="chakra-icon-wrap">
+          <span class="chakra-icon">👁</span>
+        </div>
+        <div class="chakra-info">
+          <div class="chakra-header">
+            <h4>Аджна</h4>
+            <span class="chakra-sanskrit">आज्ञा</span>
+            <span class="chakra-loc">Третий глаз</span>
+          </div>
+          <div class="chakra-positions">
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Небо</span>
+              <span class="chakra-pos-val">13 — Смерть</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Земля</span>
+              <span class="chakra-pos-val">10 — Колесо Фортуны</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Ключ</span>
+              <span class="chakra-pos-val">5 — Иерофант</span>
+            </span>
+          </div>
+          <div class="chakra-organs">
+            <span class="chakra-organs-label">Органы:</span> глаза, гипофиз, интуиция
+          </div>
+          <p class="chakra-analysis">Рассмотрим твоё здоровье через призму 7 центров, используя арканы матрицы. Сахасрара (теменная): небо — Звезда (17), земля — Повешенный (12), ключ — Справедливость (11). Состояние: недостаток энергии. Ты можешь чувствовать оторванность от своих ценностей, потерю смысла. Органы: нервная система, кора головного мозга. Причина дисбаланса: Повешенный (12) в земле заставляет тебя «зависать» в прошлом, не видеть будущего. Психосоматика: хроническая усталость, апатия, головные боли напряжения. Практика: каждый вечер записывай одну благодарность за прошедший день — это вернёт связь с «Звездой». Аджна (третий глаз): небо — Смерть (13), земля — Колесо Фортуны (10), ключ — Иерофант (5). Состояние: избыток. Ты слишком много анализируешь, пытаешься контролировать будущее. Органы: глаза, гипофиз, лобные пазухи. Причина: Смерть (13) в небе даёт страх перемен, ты «прокручиваешь» сценарии, чтобы избежать неожиданностей. Психосоматика: ухудшение зрения, синуситы, бессонница от «шума в голове». Практика: практикуй «стоп-кран» — 5 раз в день говори себе «стоп» и переводи фокус на дыхание на 1 минуту. Вишудха (горловая): небо — Колесница (7), земля — Отшельник (9), ключ — Башня (16). Состояние: недостаток. Ты можешь подавлять своё мнение, бояться конфликтов. Органы: горло, щитовидная железа, голосовые связки. Причина: Отшельник (9) в земле заставляет тебя замыкаться, а Колесница (7) в небе — «проглатывать» слова, чтобы не потерять контроль. Психосоматика: частые ангины, ком в горле, проблемы с щитовидкой. Практика: каждый день пой в душе или читай вслух стихи — это освободит голос. Анахата (сердечная): небо — Иерофант (5), земля — Колесо Фортуны (10), ключ — Дьявол (15). Состояние: избыток контроля. Ты можешь «душить» любовью или, наоборот, бояться открыться. Органы: сердце, лёгкие, грудной отдел позвоночника. Причина: Дьявол (15) в ключе — страх зависимости, ты не даёшь себе расслабиться в близости. Психосоматика: тахикардия, ощущение сдавленности в груди, остеохондроз грудного отдела. Практика: практикуй объятия — обнимай близких не менее 20 секунд, это снимет блок в сердце. Манипура (солнечное сплетение): небо — Шут (22), земля — Колесница (7), ключ — Справедливость (11). Состояние: недостаток. Ты можешь сомневаться в своей силе, брать на себя слишком много или, наоборот, отказываться от ответственности. Органы: желудок, печень, поджелудочная железа. Причина: Шут (22) в небе — нежелание взрослеть, Колесница (7) в земле — перфекционизм. Психосоматика: гастрит, проблемы с весом, синдром раздражённого кишечника. Практика: каждый день говори себе «я имею право на ошибку» и делай одно дело неидеально. Свадхистхана (сакральная): небо — Императрица (3), земля — Смерть (13), ключ — Башня (16). Состояние: избыток творческой энергии, но блок на её проявление. Органы: половая система, почки, мочевой пузырь. Причина: Смерть (13) в земле — страх перемен, ты боишься отпустить старые сценарии. Психосоматика: циститы, нарушения цикла, творческие кризисы. Практика: начни любой творческий проект без цели — рисуй, лепи, танцуй. Не показывай результат никому. Муладхара (корневая): небо — Иерофант (5), земля — Иерофант (5), ключ — Колесо Фортуны (10). Состояние: недостаток. Ты можешь чувствовать нестабильность, тревогу за будущее. Органы: позвоночник, ноги, кишечник, иммунная система. Причина: два Иерофанта (5) — гиперконтроль, ты пытаешься всё предусмотреть, но Колесо Фортуны (10) в ключе напоминает, что жизнь непредсказуема. Психосоматика: боли в пояснице, частые простуды, проблемы со стулом. Практика: каждый день делай 10 приседаний, чтобы «заземлиться», и планируй только 50% своего времени — оставляй пространство для спонтанности.</p>
+          <p class="chakra-practice"></p>
+        </div>
+      </div>
+    
+      
+      
+        
+        
+      
+
+      <div
+        class="chakra-row status-low"
+        style="--chakra-color: #4A90D9; --fill: 25%"
+      >
+        <div class="chakra-indicator">
+          <div class="chakra-indicator-fill"></div>
+        </div>
+        <div class="chakra-icon-wrap">
+          <span class="chakra-icon"></span>
+        </div>
+        <div class="chakra-info">
+          <div class="chakra-header">
+            <h4>Вишудха</h4>
+            <span class="chakra-sanskrit">विशुद्ध</span>
+            <span class="chakra-loc">Горло</span>
+          </div>
+          <div class="chakra-positions">
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Небо</span>
+              <span class="chakra-pos-val">7 — Колесница</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Земля</span>
+              <span class="chakra-pos-val">9 — Отшельник</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Ключ</span>
+              <span class="chakra-pos-val">16 — Башня</span>
+            </span>
+          </div>
+          <div class="chakra-organs">
+            <span class="chakra-organs-label">Органы:</span> горло, щитовидная железа, голосовые связки
+          </div>
+          <p class="chakra-analysis">Рассмотрим твоё здоровье через призму 7 центров, используя арканы матрицы. Сахасрара (теменная): небо — Звезда (17), земля — Повешенный (12), ключ — Справедливость (11). Состояние: недостаток энергии. Ты можешь чувствовать оторванность от своих ценностей, потерю смысла. Органы: нервная система, кора головного мозга. Причина дисбаланса: Повешенный (12) в земле заставляет тебя «зависать» в прошлом, не видеть будущего. Психосоматика: хроническая усталость, апатия, головные боли напряжения. Практика: каждый вечер записывай одну благодарность за прошедший день — это вернёт связь с «Звездой». Аджна (третий глаз): небо — Смерть (13), земля — Колесо Фортуны (10), ключ — Иерофант (5). Состояние: избыток. Ты слишком много анализируешь, пытаешься контролировать будущее. Органы: глаза, гипофиз, лобные пазухи. Причина: Смерть (13) в небе даёт страх перемен, ты «прокручиваешь» сценарии, чтобы избежать неожиданностей. Психосоматика: ухудшение зрения, синуситы, бессонница от «шума в голове». Практика: практикуй «стоп-кран» — 5 раз в день говори себе «стоп» и переводи фокус на дыхание на 1 минуту. Вишудха (горловая): небо — Колесница (7), земля — Отшельник (9), ключ — Башня (16). Состояние: недостаток. Ты можешь подавлять своё мнение, бояться конфликтов. Органы: горло, щитовидная железа, голосовые связки. Причина: Отшельник (9) в земле заставляет тебя замыкаться, а Колесница (7) в небе — «проглатывать» слова, чтобы не потерять контроль. Психосоматика: частые ангины, ком в горле, проблемы с щитовидкой. Практика: каждый день пой в душе или читай вслух стихи — это освободит голос. Анахата (сердечная): небо — Иерофант (5), земля — Колесо Фортуны (10), ключ — Дьявол (15). Состояние: избыток контроля. Ты можешь «душить» любовью или, наоборот, бояться открыться. Органы: сердце, лёгкие, грудной отдел позвоночника. Причина: Дьявол (15) в ключе — страх зависимости, ты не даёшь себе расслабиться в близости. Психосоматика: тахикардия, ощущение сдавленности в груди, остеохондроз грудного отдела. Практика: практикуй объятия — обнимай близких не менее 20 секунд, это снимет блок в сердце. Манипура (солнечное сплетение): небо — Шут (22), земля — Колесница (7), ключ — Справедливость (11). Состояние: недостаток. Ты можешь сомневаться в своей силе, брать на себя слишком много или, наоборот, отказываться от ответственности. Органы: желудок, печень, поджелудочная железа. Причина: Шут (22) в небе — нежелание взрослеть, Колесница (7) в земле — перфекционизм. Психосоматика: гастрит, проблемы с весом, синдром раздражённого кишечника. Практика: каждый день говори себе «я имею право на ошибку» и делай одно дело неидеально. Свадхистхана (сакральная): небо — Императрица (3), земля — Смерть (13), ключ — Башня (16). Состояние: избыток творческой энергии, но блок на её проявление. Органы: половая система, почки, мочевой пузырь. Причина: Смерть (13) в земле — страх перемен, ты боишься отпустить старые сценарии. Психосоматика: циститы, нарушения цикла, творческие кризисы. Практика: начни любой творческий проект без цели — рисуй, лепи, танцуй. Не показывай результат никому. Муладхара (корневая): небо — Иерофант (5), земля — Иерофант (5), ключ — Колесо Фортуны (10). Состояние: недостаток. Ты можешь чувствовать нестабильность, тревогу за будущее. Органы: позвоночник, ноги, кишечник, иммунная система. Причина: два Иерофанта (5) — гиперконтроль, ты пытаешься всё предусмотреть, но Колесо Фортуны (10) в ключе напоминает, что жизнь непредсказуема. Психосоматика: боли в пояснице, частые простуды, проблемы со стулом. Практика: каждый день делай 10 приседаний, чтобы «заземлиться», и планируй только 50% своего времени — оставляй пространство для спонтанности.</p>
+          <p class="chakra-practice"></p>
+        </div>
+      </div>
+    
+      
+      
+        
+        
+      
+
+      <div
+        class="chakra-row status-low"
+        style="--chakra-color: #2ECC71; --fill: 25%"
+      >
+        <div class="chakra-indicator">
+          <div class="chakra-indicator-fill"></div>
+        </div>
+        <div class="chakra-icon-wrap">
+          <span class="chakra-icon"></span>
+        </div>
+        <div class="chakra-info">
+          <div class="chakra-header">
+            <h4>Анахата</h4>
+            <span class="chakra-sanskrit">अनाहत</span>
+            <span class="chakra-loc">Сердце</span>
+          </div>
+          <div class="chakra-positions">
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Небо</span>
+              <span class="chakra-pos-val">5 — Иерофант</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Земля</span>
+              <span class="chakra-pos-val">10 — Колесо Фортуны</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Ключ</span>
+              <span class="chakra-pos-val">15 — Дьявол</span>
+            </span>
+          </div>
+          <div class="chakra-organs">
+            <span class="chakra-organs-label">Органы:</span> сердце, лёгкие, вилочковая железа
+          </div>
+          <p class="chakra-analysis">Рассмотрим твоё здоровье через призму 7 центров, используя арканы матрицы. Сахасрара (теменная): небо — Звезда (17), земля — Повешенный (12), ключ — Справедливость (11). Состояние: недостаток энергии. Ты можешь чувствовать оторванность от своих ценностей, потерю смысла. Органы: нервная система, кора головного мозга. Причина дисбаланса: Повешенный (12) в земле заставляет тебя «зависать» в прошлом, не видеть будущего. Психосоматика: хроническая усталость, апатия, головные боли напряжения. Практика: каждый вечер записывай одну благодарность за прошедший день — это вернёт связь с «Звездой». Аджна (третий глаз): небо — Смерть (13), земля — Колесо Фортуны (10), ключ — Иерофант (5). Состояние: избыток. Ты слишком много анализируешь, пытаешься контролировать будущее. Органы: глаза, гипофиз, лобные пазухи. Причина: Смерть (13) в небе даёт страх перемен, ты «прокручиваешь» сценарии, чтобы избежать неожиданностей. Психосоматика: ухудшение зрения, синуситы, бессонница от «шума в голове». Практика: практикуй «стоп-кран» — 5 раз в день говори себе «стоп» и переводи фокус на дыхание на 1 минуту. Вишудха (горловая): небо — Колесница (7), земля — Отшельник (9), ключ — Башня (16). Состояние: недостаток. Ты можешь подавлять своё мнение, бояться конфликтов. Органы: горло, щитовидная железа, голосовые связки. Причина: Отшельник (9) в земле заставляет тебя замыкаться, а Колесница (7) в небе — «проглатывать» слова, чтобы не потерять контроль. Психосоматика: частые ангины, ком в горле, проблемы с щитовидкой. Практика: каждый день пой в душе или читай вслух стихи — это освободит голос. Анахата (сердечная): небо — Иерофант (5), земля — Колесо Фортуны (10), ключ — Дьявол (15). Состояние: избыток контроля. Ты можешь «душить» любовью или, наоборот, бояться открыться. Органы: сердце, лёгкие, грудной отдел позвоночника. Причина: Дьявол (15) в ключе — страх зависимости, ты не даёшь себе расслабиться в близости. Психосоматика: тахикардия, ощущение сдавленности в груди, остеохондроз грудного отдела. Практика: практикуй объятия — обнимай близких не менее 20 секунд, это снимет блок в сердце. Манипура (солнечное сплетение): небо — Шут (22), земля — Колесница (7), ключ — Справедливость (11). Состояние: недостаток. Ты можешь сомневаться в своей силе, брать на себя слишком много или, наоборот, отказываться от ответственности. Органы: желудок, печень, поджелудочная железа. Причина: Шут (22) в небе — нежелание взрослеть, Колесница (7) в земле — перфекционизм. Психосоматика: гастрит, проблемы с весом, синдром раздражённого кишечника. Практика: каждый день говори себе «я имею право на ошибку» и делай одно дело неидеально. Свадхистхана (сакральная): небо — Императрица (3), земля — Смерть (13), ключ — Башня (16). Состояние: избыток творческой энергии, но блок на её проявление. Органы: половая система, почки, мочевой пузырь. Причина: Смерть (13) в земле — страх перемен, ты боишься отпустить старые сценарии. Психосоматика: циститы, нарушения цикла, творческие кризисы. Практика: начни любой творческий проект без цели — рисуй, лепи, танцуй. Не показывай результат никому. Муладхара (корневая): небо — Иерофант (5), земля — Иерофант (5), ключ — Колесо Фортуны (10). Состояние: недостаток. Ты можешь чувствовать нестабильность, тревогу за будущее. Органы: позвоночник, ноги, кишечник, иммунная система. Причина: два Иерофанта (5) — гиперконтроль, ты пытаешься всё предусмотреть, но Колесо Фортуны (10) в ключе напоминает, что жизнь непредсказуема. Психосоматика: боли в пояснице, частые простуды, проблемы со стулом. Практика: каждый день делай 10 приседаний, чтобы «заземлиться», и планируй только 50% своего времени — оставляй пространство для спонтанности.</p>
+          <p class="chakra-practice"></p>
+        </div>
+      </div>
+    
+      
+      
+        
+        
+      
+
+      <div
+        class="chakra-row status-medium"
+        style="--chakra-color: #F1C40F; --fill: 60%"
+      >
+        <div class="chakra-indicator">
+          <div class="chakra-indicator-fill"></div>
+        </div>
+        <div class="chakra-icon-wrap">
+          <span class="chakra-icon"></span>
+        </div>
+        <div class="chakra-info">
+          <div class="chakra-header">
+            <h4>Манипура</h4>
+            <span class="chakra-sanskrit">मणिपूर</span>
+            <span class="chakra-loc">Солнечное сплетение</span>
+          </div>
+          <div class="chakra-positions">
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Небо</span>
+              <span class="chakra-pos-val">22 — Шут</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Земля</span>
+              <span class="chakra-pos-val">7 — Колесница</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Ключ</span>
+              <span class="chakra-pos-val">11 — Справедливость</span>
+            </span>
+          </div>
+          <div class="chakra-organs">
+            <span class="chakra-organs-label">Органы:</span> желудок, печень, поджелудочная железа
+          </div>
+          <p class="chakra-analysis">Рассмотрим твоё здоровье через призму 7 центров, используя арканы матрицы. Сахасрара (теменная): небо — Звезда (17), земля — Повешенный (12), ключ — Справедливость (11). Состояние: недостаток энергии. Ты можешь чувствовать оторванность от своих ценностей, потерю смысла. Органы: нервная система, кора головного мозга. Причина дисбаланса: Повешенный (12) в земле заставляет тебя «зависать» в прошлом, не видеть будущего. Психосоматика: хроническая усталость, апатия, головные боли напряжения. Практика: каждый вечер записывай одну благодарность за прошедший день — это вернёт связь с «Звездой». Аджна (третий глаз): небо — Смерть (13), земля — Колесо Фортуны (10), ключ — Иерофант (5). Состояние: избыток. Ты слишком много анализируешь, пытаешься контролировать будущее. Органы: глаза, гипофиз, лобные пазухи. Причина: Смерть (13) в небе даёт страх перемен, ты «прокручиваешь» сценарии, чтобы избежать неожиданностей. Психосоматика: ухудшение зрения, синуситы, бессонница от «шума в голове». Практика: практикуй «стоп-кран» — 5 раз в день говори себе «стоп» и переводи фокус на дыхание на 1 минуту. Вишудха (горловая): небо — Колесница (7), земля — Отшельник (9), ключ — Башня (16). Состояние: недостаток. Ты можешь подавлять своё мнение, бояться конфликтов. Органы: горло, щитовидная железа, голосовые связки. Причина: Отшельник (9) в земле заставляет тебя замыкаться, а Колесница (7) в небе — «проглатывать» слова, чтобы не потерять контроль. Психосоматика: частые ангины, ком в горле, проблемы с щитовидкой. Практика: каждый день пой в душе или читай вслух стихи — это освободит голос. Анахата (сердечная): небо — Иерофант (5), земля — Колесо Фортуны (10), ключ — Дьявол (15). Состояние: избыток контроля. Ты можешь «душить» любовью или, наоборот, бояться открыться. Органы: сердце, лёгкие, грудной отдел позвоночника. Причина: Дьявол (15) в ключе — страх зависимости, ты не даёшь себе расслабиться в близости. Психосоматика: тахикардия, ощущение сдавленности в груди, остеохондроз грудного отдела. Практика: практикуй объятия — обнимай близких не менее 20 секунд, это снимет блок в сердце. Манипура (солнечное сплетение): небо — Шут (22), земля — Колесница (7), ключ — Справедливость (11). Состояние: недостаток. Ты можешь сомневаться в своей силе, брать на себя слишком много или, наоборот, отказываться от ответственности. Органы: желудок, печень, поджелудочная железа. Причина: Шут (22) в небе — нежелание взрослеть, Колесница (7) в земле — перфекционизм. Психосоматика: гастрит, проблемы с весом, синдром раздражённого кишечника. Практика: каждый день говори себе «я имею право на ошибку» и делай одно дело неидеально. Свадхистхана (сакральная): небо — Императрица (3), земля — Смерть (13), ключ — Башня (16). Состояние: избыток творческой энергии, но блок на её проявление. Органы: половая система, почки, мочевой пузырь. Причина: Смерть (13) в земле — страх перемен, ты боишься отпустить старые сценарии. Психосоматика: циститы, нарушения цикла, творческие кризисы. Практика: начни любой творческий проект без цели — рисуй, лепи, танцуй. Не показывай результат никому. Муладхара (корневая): небо — Иерофант (5), земля — Иерофант (5), ключ — Колесо Фортуны (10). Состояние: недостаток. Ты можешь чувствовать нестабильность, тревогу за будущее. Органы: позвоночник, ноги, кишечник, иммунная система. Причина: два Иерофанта (5) — гиперконтроль, ты пытаешься всё предусмотреть, но Колесо Фортуны (10) в ключе напоминает, что жизнь непредсказуема. Психосоматика: боли в пояснице, частые простуды, проблемы со стулом. Практика: каждый день делай 10 приседаний, чтобы «заземлиться», и планируй только 50% своего времени — оставляй пространство для спонтанности.</p>
+          <p class="chakra-practice"></p>
+        </div>
+      </div>
+    
+      
+      
+        
+        
+      
+
+      <div
+        class="chakra-row status-low"
+        style="--chakra-color: #E67E22; --fill: 25%"
+      >
+        <div class="chakra-indicator">
+          <div class="chakra-indicator-fill"></div>
+        </div>
+        <div class="chakra-icon-wrap">
+          <span class="chakra-icon"></span>
+        </div>
+        <div class="chakra-info">
+          <div class="chakra-header">
+            <h4>Свадхистана</h4>
+            <span class="chakra-sanskrit">स्वाधिष्ठान</span>
+            <span class="chakra-loc">Низ живота</span>
+          </div>
+          <div class="chakra-positions">
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Небо</span>
+              <span class="chakra-pos-val">3 — Императрица</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Земля</span>
+              <span class="chakra-pos-val">13 — Смерть</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Ключ</span>
+              <span class="chakra-pos-val">16 — Башня</span>
+            </span>
+          </div>
+          <div class="chakra-organs">
+            <span class="chakra-organs-label">Органы:</span> репродуктивная система, почки
+          </div>
+          <p class="chakra-analysis">Рассмотрим твоё здоровье через призму 7 центров, используя арканы матрицы. Сахасрара (теменная): небо — Звезда (17), земля — Повешенный (12), ключ — Справедливость (11). Состояние: недостаток энергии. Ты можешь чувствовать оторванность от своих ценностей, потерю смысла. Органы: нервная система, кора головного мозга. Причина дисбаланса: Повешенный (12) в земле заставляет тебя «зависать» в прошлом, не видеть будущего. Психосоматика: хроническая усталость, апатия, головные боли напряжения. Практика: каждый вечер записывай одну благодарность за прошедший день — это вернёт связь с «Звездой». Аджна (третий глаз): небо — Смерть (13), земля — Колесо Фортуны (10), ключ — Иерофант (5). Состояние: избыток. Ты слишком много анализируешь, пытаешься контролировать будущее. Органы: глаза, гипофиз, лобные пазухи. Причина: Смерть (13) в небе даёт страх перемен, ты «прокручиваешь» сценарии, чтобы избежать неожиданностей. Психосоматика: ухудшение зрения, синуситы, бессонница от «шума в голове». Практика: практикуй «стоп-кран» — 5 раз в день говори себе «стоп» и переводи фокус на дыхание на 1 минуту. Вишудха (горловая): небо — Колесница (7), земля — Отшельник (9), ключ — Башня (16). Состояние: недостаток. Ты можешь подавлять своё мнение, бояться конфликтов. Органы: горло, щитовидная железа, голосовые связки. Причина: Отшельник (9) в земле заставляет тебя замыкаться, а Колесница (7) в небе — «проглатывать» слова, чтобы не потерять контроль. Психосоматика: частые ангины, ком в горле, проблемы с щитовидкой. Практика: каждый день пой в душе или читай вслух стихи — это освободит голос. Анахата (сердечная): небо — Иерофант (5), земля — Колесо Фортуны (10), ключ — Дьявол (15). Состояние: избыток контроля. Ты можешь «душить» любовью или, наоборот, бояться открыться. Органы: сердце, лёгкие, грудной отдел позвоночника. Причина: Дьявол (15) в ключе — страх зависимости, ты не даёшь себе расслабиться в близости. Психосоматика: тахикардия, ощущение сдавленности в груди, остеохондроз грудного отдела. Практика: практикуй объятия — обнимай близких не менее 20 секунд, это снимет блок в сердце. Манипура (солнечное сплетение): небо — Шут (22), земля — Колесница (7), ключ — Справедливость (11). Состояние: недостаток. Ты можешь сомневаться в своей силе, брать на себя слишком много или, наоборот, отказываться от ответственности. Органы: желудок, печень, поджелудочная железа. Причина: Шут (22) в небе — нежелание взрослеть, Колесница (7) в земле — перфекционизм. Психосоматика: гастрит, проблемы с весом, синдром раздражённого кишечника. Практика: каждый день говори себе «я имею право на ошибку» и делай одно дело неидеально. Свадхистхана (сакральная): небо — Императрица (3), земля — Смерть (13), ключ — Башня (16). Состояние: избыток творческой энергии, но блок на её проявление. Органы: половая система, почки, мочевой пузырь. Причина: Смерть (13) в земле — страх перемен, ты боишься отпустить старые сценарии. Психосоматика: циститы, нарушения цикла, творческие кризисы. Практика: начни любой творческий проект без цели — рисуй, лепи, танцуй. Не показывай результат никому. Муладхара (корневая): небо — Иерофант (5), земля — Иерофант (5), ключ — Колесо Фортуны (10). Состояние: недостаток. Ты можешь чувствовать нестабильность, тревогу за будущее. Органы: позвоночник, ноги, кишечник, иммунная система. Причина: два Иерофанта (5) — гиперконтроль, ты пытаешься всё предусмотреть, но Колесо Фортуны (10) в ключе напоминает, что жизнь непредсказуема. Психосоматика: боли в пояснице, частые простуды, проблемы со стулом. Практика: каждый день делай 10 приседаний, чтобы «заземлиться», и планируй только 50% своего времени — оставляй пространство для спонтанности.</p>
+          <p class="chakra-practice"></p>
+        </div>
+      </div>
+    
+      
+      
+        
+        
+      
+
+      <div
+        class="chakra-row status-medium"
+        style="--chakra-color: #E74C3C; --fill: 60%"
+      >
+        <div class="chakra-indicator">
+          <div class="chakra-indicator-fill"></div>
+        </div>
+        <div class="chakra-icon-wrap">
+          <span class="chakra-icon"></span>
+        </div>
+        <div class="chakra-info">
+          <div class="chakra-header">
+            <h4>Муладхара</h4>
+            <span class="chakra-sanskrit">मूलाधार</span>
+            <span class="chakra-loc">Корень</span>
+          </div>
+          <div class="chakra-positions">
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Небо</span>
+              <span class="chakra-pos-val">5 — Иерофант</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Земля</span>
+              <span class="chakra-pos-val">5 — Иерофант</span>
+            </span>
+            <span class="chakra-pos-item">
+              <span class="chakra-pos-label">Ключ</span>
+              <span class="chakra-pos-val">10 — Колесо Фортуны</span>
+            </span>
+          </div>
+          <div class="chakra-organs">
+            <span class="chakra-organs-label">Органы:</span> позвоночник, кости, ноги, иммунитет
+          </div>
+          <p class="chakra-analysis">Рассмотрим твоё здоровье через призму 7 центров, используя арканы матрицы. Сахасрара (теменная): небо — Звезда (17), земля — Повешенный (12), ключ — Справедливость (11). Состояние: недостаток энергии. Ты можешь чувствовать оторванность от своих ценностей, потерю смысла. Органы: нервная система, кора головного мозга. Причина дисбаланса: Повешенный (12) в земле заставляет тебя «зависать» в прошлом, не видеть будущего. Психосоматика: хроническая усталость, апатия, головные боли напряжения. Практика: каждый вечер записывай одну благодарность за прошедший день — это вернёт связь с «Звездой». Аджна (третий глаз): небо — Смерть (13), земля — Колесо Фортуны (10), ключ — Иерофант (5). Состояние: избыток. Ты слишком много анализируешь, пытаешься контролировать будущее. Органы: глаза, гипофиз, лобные пазухи. Причина: Смерть (13) в небе даёт страх перемен, ты «прокручиваешь» сценарии, чтобы избежать неожиданностей. Психосоматика: ухудшение зрения, синуситы, бессонница от «шума в голове». Практика: практикуй «стоп-кран» — 5 раз в день говори себе «стоп» и переводи фокус на дыхание на 1 минуту. Вишудха (горловая): небо — Колесница (7), земля — Отшельник (9), ключ — Башня (16). Состояние: недостаток. Ты можешь подавлять своё мнение, бояться конфликтов. Органы: горло, щитовидная железа, голосовые связки. Причина: Отшельник (9) в земле заставляет тебя замыкаться, а Колесница (7) в небе — «проглатывать» слова, чтобы не потерять контроль. Психосоматика: частые ангины, ком в горле, проблемы с щитовидкой. Практика: каждый день пой в душе или читай вслух стихи — это освободит голос. Анахата (сердечная): небо — Иерофант (5), земля — Колесо Фортуны (10), ключ — Дьявол (15). Состояние: избыток контроля. Ты можешь «душить» любовью или, наоборот, бояться открыться. Органы: сердце, лёгкие, грудной отдел позвоночника. Причина: Дьявол (15) в ключе — страх зависимости, ты не даёшь себе расслабиться в близости. Психосоматика: тахикардия, ощущение сдавленности в груди, остеохондроз грудного отдела. Практика: практикуй объятия — обнимай близких не менее 20 секунд, это снимет блок в сердце. Манипура (солнечное сплетение): небо — Шут (22), земля — Колесница (7), ключ — Справедливость (11). Состояние: недостаток. Ты можешь сомневаться в своей силе, брать на себя слишком много или, наоборот, отказываться от ответственности. Органы: желудок, печень, поджелудочная железа. Причина: Шут (22) в небе — нежелание взрослеть, Колесница (7) в земле — перфекционизм. Психосоматика: гастрит, проблемы с весом, синдром раздражённого кишечника. Практика: каждый день говори себе «я имею право на ошибку» и делай одно дело неидеально. Свадхистхана (сакральная): небо — Императрица (3), земля — Смерть (13), ключ — Башня (16). Состояние: избыток творческой энергии, но блок на её проявление. Органы: половая система, почки, мочевой пузырь. Причина: Смерть (13) в земле — страх перемен, ты боишься отпустить старые сценарии. Психосоматика: циститы, нарушения цикла, творческие кризисы. Практика: начни любой творческий проект без цели — рисуй, лепи, танцуй. Не показывай результат никому. Муладхара (корневая): небо — Иерофант (5), земля — Иерофант (5), ключ — Колесо Фортуны (10). Состояние: недостаток. Ты можешь чувствовать нестабильность, тревогу за будущее. Органы: позвоночник, ноги, кишечник, иммунная система. Причина: два Иерофанта (5) — гиперконтроль, ты пытаешься всё предусмотреть, но Колесо Фортуны (10) в ключе напоминает, что жизнь непредсказуема. Психосоматика: боли в пояснице, частые простуды, проблемы со стулом. Практика: каждый день делай 10 приседаний, чтобы «заземлиться», и планируй только 50% своего времени — оставляй пространство для спонтанности.</p>
+          <p class="chakra-practice"></p>
+        </div>
+      </div>
+    
+  </div>
+
+  
+  <div class="chakra-organism-block">
+    <div class="chakra-row organism-row">
+      <div class="chakra-icon-wrap">
+        <span class="chakra-icon">◈</span>
+      </div>
+      <div class="chakra-info">
+        <div class="chakra-header">
+          <h4>Организм</h4>
+          <span class="chakra-loc">Общий ресурс</span>
+        </div>
+        <div class="chakra-positions">
+          <span class="chakra-pos-item">
+            <span class="chakra-pos-label">Небо</span>
+            <span class="chakra-pos-val">9</span>
+          </span>
+          <span class="chakra-pos-item">
+            <span class="chakra-pos-label">Земля</span>
+            <span class="chakra-pos-val">12</span>
+          </span>
+          <span class="chakra-pos-item">
+            <span class="chakra-pos-label">Ключ</span>
+            <span class="chakra-pos-val">21</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  
+  <div class="chakra-global-analysis">
+    <h4>Разбор энергетики здоровья</h4>
+    <p>Рассмотрим твоё здоровье через призму 7 центров, используя арканы матрицы. Сахасрара (теменная): небо — Звезда (17), земля — Повешенный (12), ключ — Справедливость (11). Состояние: недостаток энергии. Ты можешь чувствовать оторванность от своих ценностей, потерю смысла. Органы: нервная система, кора головного мозга. Причина дисбаланса: Повешенный (12) в земле заставляет тебя «зависать» в прошлом, не видеть будущего. Психосоматика: хроническая усталость, апатия, головные боли напряжения. Практика: каждый вечер записывай одну благодарность за прошедший день — это вернёт связь с «Звездой». Аджна (третий глаз): небо — Смерть (13), земля — Колесо Фортуны (10), ключ — Иерофант (5). Состояние: избыток. Ты слишком много анализируешь, пытаешься контролировать будущее. Органы: глаза, гипофиз, лобные пазухи. Причина: Смерть (13) в небе даёт страх перемен, ты «прокручиваешь» сценарии, чтобы избежать неожиданностей. Психосоматика: ухудшение зрения, синуситы, бессонница от «шума в голове». Практика: практикуй «стоп-кран» — 5 раз в день говори себе «стоп» и переводи фокус на дыхание на 1 минуту. Вишудха (горловая): небо — Колесница (7), земля — Отшельник (9), ключ — Башня (16). Состояние: недостаток. Ты можешь подавлять своё мнение, бояться конфликтов. Органы: горло, щитовидная железа, голосовые связки. Причина: Отшельник (9) в земле заставляет тебя замыкаться, а Колесница (7) в небе — «проглатывать» слова, чтобы не потерять контроль. Психосоматика: частые ангины, ком в горле, проблемы с щитовидкой. Практика: каждый день пой в душе или читай вслух стихи — это освободит голос. Анахата (сердечная): небо — Иерофант (5), земля — Колесо Фортуны (10), ключ — Дьявол (15). Состояние: избыток контроля. Ты можешь «душить» любовью или, наоборот, бояться открыться. Органы: сердце, лёгкие, грудной отдел позвоночника. Причина: Дьявол (15) в ключе — страх зависимости, ты не даёшь себе расслабиться в близости. Психосоматика: тахикардия, ощущение сдавленности в груди, остеохондроз грудного отдела. Практика: практикуй объятия — обнимай близких не менее 20 секунд, это снимет блок в сердце. Манипура (солнечное сплетение): небо — Шут (22), земля — Колесница (7), ключ — Справедливость (11). Состояние: недостаток. Ты можешь сомневаться в своей силе, брать на себя слишком много или, наоборот, отказываться от ответственности. Органы: желудок, печень, поджелудочная железа. Причина: Шут (22) в небе — нежелание взрослеть, Колесница (7) в земле — перфекционизм. Психосоматика: гастрит, проблемы с весом, синдром раздражённого кишечника. Практика: каждый день говори себе «я имею право на ошибку» и делай одно дело неидеально. Свадхистхана (сакральная): небо — Императрица (3), земля — Смерть (13), ключ — Башня (16). Состояние: избыток творческой энергии, но блок на её проявление. Органы: половая система, почки, мочевой пузырь. Причина: Смерть (13) в земле — страх перемен, ты боишься отпустить старые сценарии. Психосоматика: циститы, нарушения цикла, творческие кризисы. Практика: начни любой творческий проект без цели — рисуй, лепи, танцуй. Не показывай результат никому. Муладхара (корневая): небо — Иерофант (5), земля — Иерофант (5), ключ — Колесо Фортуны (10). Состояние: недостаток. Ты можешь чувствовать нестабильность, тревогу за будущее. Органы: позвоночник, ноги, кишечник, иммунная система. Причина: два Иерофанта (5) — гиперконтроль, ты пытаешься всё предусмотреть, но Колесо Фортуны (10) в ключе напоминает, что жизнь непредсказуема. Психосоматика: боли в пояснице, частые простуды, проблемы со стулом. Практика: каждый день делай 10 приседаний, чтобы «заземлиться», и планируй только 50% своего времени — оставляй пространство для спонтанности.</p>
+  </div>
+  
+
+  <div class="chakra-global-practice">
+    <h4>Общая практика</h4>
+    <p>Выбери чакру с наименьшим показателем (красный уровень) и удели ей 5 минут в день: визуализируй её цвет, дыши в эту зону, повторяй аффирмацию «Я в балансе».</p>
+  </div>
+</section>
+      
+
+    <!-- ===========================================
+         09 · RELATIONSHIPS
+         =========================================== -->
+    <section class="chapter" id="s9" data-screen-label="09 Отношения">
+      <div class="ch-head">
+        <span class="nbr">09 — Отношения</span>
+        <h2>Динамика <em>твоих отношений</em></h2>
+        <p class="ch-sub">Тип партнёра, сценарий входа и выхода, и — самое полезное — с кем у вас будет ресурсный контакт, а с кем сложный.</p>
+      </div>
+
+      <div class="prose">
+        Твой главный архетип — Колесо Фортуны (10) в центре матрицы — делает тебя человеком, который притягивает партнёров, как магнит притягивает металл. Ты не ищешь отношения — они находят тебя, часто в моменты, когда ты меньше всего этого ждёшь. Точка отношений у тебя — Справедливость (11), и это ключ к пониманию того, кого ты притягиваешь. Твой партнёр — это человек, который воплощает для тебя баланс, честность и ясность. Это может быть кто-то с сильным чувством справедливости, возможно, юрист, психолог, переговорщик или просто человек, который не терпит лжи. Ты тянется к тем, кто способен на прямые, взрослые разговоры, кто не играет в игры, кто готов брать ответственность за свои слова. Но есть нюанс: Справедливость — это аркан, который требует от тебя самой быть в равновесии. Если ты сама не в балансе, ты будешь притягивать партнёров, которые будут тебя «уравновешивать» через конфликты, споры или холодность. Твой левый угол — Шут (22), и это паттерн входа в отношения. Ты входишь в них легко, с открытым сердцем, с верой в лучшее. Ты не носишь масок, ты искренна и готова к приключениям. На старте ты чувствуешь эйфорию, лёгкость, тебе кажется, что это судьба. Ты не проверяешь партнёра на прочность, ты просто прыгаешь в омут с головой. Но правый угол — Колесница (7) — это паттерн выхода. Когда отношения перестают быть лёгкими, когда появляются обязательства, рутина или конфликты, ты включаешь режим «воина». Ты не уходишь тихо — ты уходишь решительно, с ощущением, что нужно двигаться дальше, что это препятствие, которое нужно преодолеть. Ты можешь резко оборвать связь, даже не дав шанса на восстановление, потому что для тебя отношения — это путь, а не точка. После расставания остаётся чувство, что ты прошла урок, но часто остаётся и горечь: «почему я снова не смогла удержать?». Твой главный архетип, Колесо Фортуны, в близости ведёт себя циклично. Ты то сближаешься до полного слияния, то отдаляешься, чтобы «подышать». Ты ищешь в партнёре не столько стабильность, сколько динамику, развитие, интерес. Ты боишься скуки, застоя, предсказуемости. Ты избегаешь отношений, которые требуют от тебя жертвовать своей свободой или перестать меняться. Ты можешь быть идеальным партнёром для того, кто понимает твою потребность в циклах и не пытается тебя «приручить». С кем ты совместима? С Императрицей (3) — она даст тебе тепло, заботу и принятие, которые ты не всегда умеешь дать себе сама. С Иерофантом (5) — он даст структуру и опору, когда твоё Колесо начинает слишком быстро вращаться. Но с Отшельником (9) будет сложно — он захочет уединения, когда ты захочешь движения, и наоборот. Пример из жизни: ты можешь встретить партнёра в путешествии или на курсе, где вы оба учитесь чему-то новому. Всё начинается легко и весело, но через год, когда он захочет стабильности, а ты — нового проекта, начнутся трения. Ты можешь уйти, решив, что «это не моё», хотя на самом деле это был просто цикл спада, который нужно было пережить. Конкретный шаг сегодня: напиши список из 5 качеств, которые ты хочешь видеть в партнёре, но не требуй их от себя прямо сейчас. Например, если ты хочешь честности, спроси себя: «А насколько я честна с собой в этом вопросе?» Это сбалансирует твою Справедливость.
+      </div>
+
+      
+      <div class="why" id="why-s9">
+        <button class="why-btn" type="button" data-toggle="why-s9">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">точка отношений (левый угол → центр → правый угол)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Шут (22), Колесо Фортуны (10), Колесница (7)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">В отношениях ты начинаешь как Шут (22) — с лёгкостью, открытостью и ожиданием чуда. Ты притягиваешь партнёров, которые кажутся необычными, спонтанными или свободными. Центр (Колесо Фортуны) делает отношения цикличными: периоды близости сменяются дистанцией. Правый угол (Колесница) — это твой паттерн выхода: когда становится слишком тесно или предсказуемо, ты резко уходишь, часто без объяснений, чтобы сохранить свою автономию. Ты совместим с архетипами, которые уважают твою потребность в свободе (Шут, Звезда) и не давят обязательствами. Напряжение возникает с архетипами, требующими стабильности (Императрица, Иерофант). Пример: ты можешь влюбиться в творческого, непредсказуемого человека, но через год почувствовать, что отношения стали рутиной, и уйти в новый проект или путешествие. Один шаг сейчас: честно скажи партнёру, что тебе нужно личное пространство, и договорись о ритуалах, которые сохранят новизну.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         10 · MONEY
+         =========================================== -->
+    <section class="chapter" id="s10" data-screen-label="10 Деньги и карьера">
+      <div class="ch-head">
+        <span class="nbr">10 — Деньги и карьера</span>
+        <h2>Где тебе <em>естественно</em> зарабатывать</h2>
+        <p class="ch-sub">Конкретные роли, в которых твой архетип реализуется без насилия над собой, и денежные блоки, которые важно проработать.</p>
+      </div>
+
+      
+      <div class="sky-line" style="margin-bottom:24px;">
+        <span class="sl-label">Линия денег</span>
+        <div class="sl-nums">3 — 10 — 5</div>
+      </div>
+      
+
+      <div class="prose">
+        Твой денежный канал — Повешенный (12) — это не про пассивный доход в классическом смысле, а про доход, который приходит через переосмысление, ожидание, стратегическое бездействие. Ты не из тех, кто зарабатывает на быстрых сделках или агрессивных продажах. Твой доход растёт, когда ты замедляешься, смотришь на ситуацию под другим углом и принимаешь решение, которое кажется неочевидным. Линия денег у тебя: Императрица (3) → Колесо Фортуны (10) → Иерофант (5). Это говорит о том, что твой финансовый поток идёт через создание ценности (Императрица), управление циклами (Колесо Фортуны) и структурирование (Иерофант). Тебе подходят профессии, где ты можешь быть «садовником», а не «строителем»: ты растишь проекты, а не строишь их с нуля под ключ. Конкретные ниши: 1) Операционный директор в креативном агентстве или стартапе — ты будешь управлять процессами, настраивать циклы, оптимизировать ресурсы. 2) Финансовый консультант или планировщик для творческих людей — ты помогаешь другим структурировать их хаотичный доход. 3) Создатель онлайн-курсов или образовательных программ — ты берёшь знания (Иерофант) и превращаешь их в системный продукт (Колесо Фортуны), который приносит доход циклично. Твоя финансовая стратегия — это гибрид найма и бизнеса. Тебе нужна структура (найм или долгосрочные контракты), но внутри этой структуры — пространство для творчества. Чистый бизнес «с нуля» может быть для тебя слишком нестабильным, а чистый найм — слишком скучным. Идеальный вариант: работать в компании на позиции, где ты можешь влиять на процессы, или вести несколько проектов параллельно. Денежное мышление у тебя сформировано под влиянием Иерофанта (5) в низу линии денег. Ты веришь, что деньги должны приходить «правильным» путём: через образование, статус, признание. Ты можешь считать, что «лёгкие деньги» — это подозрительно, что нужно зарабатывать трудом. Это установка, которая ограничивает твой поток. Три конкретных денежных блока: 1) «Я не умею просить деньги» (позиция: Повешенный (12) в денежном канале). Ты можешь занижать цену на свои услуги, стесняться говорить о деньгах, откладывать выставление счетов. Пример: ты сделала проект, клиент в восторге, но ты неделю тянешь с отправкой счёта, потому что «неудобно». 2) «Деньги — это ответственность, а я хочу лёгкости» (конфликт Шута (22) и Иерофанта (5)). Ты хочешь зарабатывать играючи, но внутри есть убеждение, что серьёзные деньги требуют серьёзного лица. Это заставляет тебя либо избегать больших сумм, либо тратить их на удовольствия, чтобы «снять напряжение». 3) «Я не достойна большого дохода, пока не стану экспертом» (Колесо Фортуны (10) и Иерофант (5)). Ты можешь годами учиться, проходить курсы, но так и не начать монетизировать знания, потому что «нужно ещё подучиться». Как монетизировать главный талант? Твой талант — Смерть (13) в зоне талантов — это умение завершать, трансформировать, «убивать» старое, чтобы освободить место для нового. Это можно монетизировать через: антикризисное управление (приходить в умирающие проекты и возрождать их), реструктуризацию бизнеса, проведение трансформационных тренингов или коучинг по выходу из кризиса. Канал: твои деньги придут через сарафанное радио и рекомендации (Колесо Фортуны) — люди будут рекомендовать тебя как «того человека, который решил проблему, с которой никто не мог справиться». Финансовый шаг на этой неделе: пересмотри свои текущие доходы и расходы и найди одну статью, которую можно «перевернуть». Например, если ты платишь за подписку, которой не пользуешься — отмени её. Если ты не выставила счёт за старую работу — сделай это сегодня. Повешенный требует переворота, начни с малого.
+      </div>
+
+      
+      <div class="why" id="why-s10">
+        <button class="why-btn" type="button" data-toggle="why-s10">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">линия денег: верх (F) → центр (E) → низ (G)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Императрица (3), Колесо Фортуны (10), Иерофант (5)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">Твой денежный сценарий — это сочетание изобилия (Императрица), цикличности (Колесо Фортуны) и структуры (Иерофант). Доход приходит через творчество, заботу о других или создание красоты (3 аркан), но он нестабилен — периоды больших заработков сменяются затишьем (10 аркан). Иерофант внизу линии указывает на установку, что деньги должны зарабатываться 'честным трудом' в рамках системы, что может блокировать пассивный доход или нестандартные источники. Три блока: 1) 'Я не могу просить больше, это не скромно' (Иерофант); 2) 'Деньги приходят и уходят, я не могу их удержать' (Колесо Фортуны); 3) 'Мой доход зависит от внешних обстоятельств, а не от моих действий' (Императрица в тени). Конкретные ниши: event-менеджер для премиум-клиентов, флорист-декоратор, консультант по стилю жизни. Монетизировать талант (13 аркан) можно через coaching по изменениям или управление проектами в сфере редизайна и реструктуризации. Финансовый шаг на неделе: создай отдельный счёт для 'циклических' доходов и откладывай 10% с каждого крупного поступления.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         11 · PATTERNS
+         =========================================== -->
+    <section class="chapter" id="s11" data-screen-label="11 Сценарии">
+      <div class="ch-head">
+        <span class="nbr">11 — Повторяющиеся сценарии</span>
+        <h2>Что ты <em>проигрываешь</em> снова и снова</h2>
+        <p class="ch-sub">Устойчивые сюжеты, которые повторяются в жизни. Если узнаёшь себя — это не приговор, это точка для работы.</p>
+      </div>
+
+      <div class="prose">
+        Твои повторяющиеся ошибки — это не случайность, а сценарий, записанный в кармическом хвосте: Иерофант (5) → Колесо Фортуны (10) → Императрица (3). Каждый раз ты проходишь один и тот же круг, пока не выучишь урок. Первый сценарий: «Я ищу одобрения авторитетов и теряю себя». Аркан Иерофант (5) в низу хвоста заставляет тебя искать внешнюю структуру, наставника, систему, которая скажет тебе, как «правильно». Ты можешь годами следовать за гуру, начальником, партнёром, который кажется тебе мудрее. Пример: ты устраиваешься в компанию к харизматичному лидеру, полностью доверяешь его видению, но через год понимаешь, что работаешь не в свою силу, а реализуешь его мечты. Ты уходишь, но в следующей компании история повторяется. Причина — страх самостоятельности и желание снять с себя ответственность за выбор. Второй сценарий: «Я жду, что колесо повернётся само, и упускаю момент». Аркан Колесо Фортуны (10) в центре хвоста — это твоя вера в то, что «всё наладится само собой». Ты можешь терпеть неудовлетворительные отношения, работу, финансовую ситуацию, надеясь, что скоро грядут перемены. Пример: ты остаёшься в проекте, который давно тебя не развивает, потому что «вот-вот дадут премию» или «скоро будет реорганизация». Ты не действуешь, ты ждёшь. И когда перемены наконец приходят, они часто оказываются не теми, на которые ты надеялась. Причина — пассивность и нежелание брать штурвал в свои руки. Третий сценарий: «Я подавляю свою женскую силу и творчество, потому что это «несерьёзно»». Аркан Императрица (3) вверху хвоста — это твой урок. Ты должна научиться проявлять свою мягкость, интуицию, заботу о себе, но вместо этого ты выбираешь «мужские» стратегии: контроль, жёсткость, рациональность. Пример: ты хочешь начать творческий проект, но убеждаешь себя, что «сначала нужно достроить карьеру», «это не принесёт денег», «я недостаточно талантлива». Ты откладываешь своё истинное желание на потом. Причина — страх быть уязвимой и осуждённой. Связь с родовыми программами: по линии отца (Колесо Фортуны (10)) ты унаследовала веру в то, что жизнь — это лотерея, и нужно просто ждать удачи. По линии матери (Отшельник (9)) — установку, что нужно быть самодостаточной и никому не доверять. Эти две программы заставляют тебя одновременно ждать помощи и отказываться от неё. Чтобы разорвать цикл, сделай конкретный шаг: выбери одну сферу жизни (работа, отношения, хобби), где ты сейчас «ждешь», и запиши три действия, которые ты можешь сделать уже сегодня, чтобы изменить ситуацию. Например, если ты ждёшь повышения — запишись на курс, который повысит твою квалификацию. Не жди, что колесо повернётся само — начни его вращать.
+      </div>
+
+      
+      <div class="why" id="why-s11">
+        <button class="why-btn" type="button" data-toggle="why-s11">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">центр (E), зона комфорта (G), кармический хвост (низ G)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Колесо Фортуны (10), Иерофант (5)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">Повторяющаяся ошибка — это попытка контролировать неконтролируемое. Колесо Фортуны в центре даёт тебе опыт, что жизнь циклична, но ты снова и снова пытаешься найти стабильность через внешние структуры (Иерофант). Например, ты можешь брать кредит, чтобы 'зафиксировать' доход, или вступать в брак, чтобы 'закрепить' отношения, хотя внутренне знаешь, что это временно. Другая ошибка — игнорировать знаки перемен и цепляться за то, что уже исчерпало себя, из-за страха перед неизвестностью. Выход — научиться доверять циклам и не искать постоянства там, где его нет по определению.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         12 · CONFLICTS
+         =========================================== -->
+    <section class="chapter" id="s12" data-screen-label="12 Внутренние конфликты">
+      <div class="ch-head">
+        <span class="nbr">12 — Внутренние конфликты</span>
+        <h2>Двойники <em>в диалоге</em></h2>
+        <p class="ch-sub">Пары арканов в твоей карте, которые тянут в противоположные стороны. Цель — не победа одного из них, а налаженный диалог.</p>
+      </div>
+
+      <div class="prose">
+        Твоя матрица — это поле битвы двух мощных энергий, которые постоянно тянут тебя в разные стороны. Первый конфликт: Колесо Фортуны (10) в центре vs. Иерофант (5) в низу. Колесо хочет перемен, спонтанности, риска. Иерофант хочет стабильности, правил, предсказуемости. Этот конфликт проявляется в том, что ты одновременно хочешь бросить всё и уехать в путешествие, но и боишься потерять наработанный статус. Ты можешь начать новый проект с энтузиазмом, а через месяц забросить его, потому что он требует слишком много рутины. Или наоборот: ты остаёшься на скучной работе, потому что «там стабильно», но каждое утро просыпаешься с мыслью «как бы всё изменить». Пример: ты решаешь сменить профессию, проходишь курсы, но когда доходит до поиска первой работы в новой сфере, ты саботируешь этот процесс, находя тысячу причин, почему «ещё рано». Одна сторона (Колесо) хочет прыгнуть, другая (Иерофант) — убедиться, что под ногами сетка. Как использовать обе энергии? Позволь Колесу выбирать направление, а Иерофанту — создавать структуру для движения. Например, раз в квартал устраивай «революцию» — меняй что-то в работе или жизни, но планируй эти изменения заранее. Второй конфликт: Шут (22) в левом углу vs. Колесница (7) в правом. Шут хочет лёгкости, игры, отсутствия обязательств. Колесница хочет контроля, победы, результата. В отношениях это выглядит так: ты легко знакомишься, флиртуешь, но как только отношения становятся серьёзными, ты включаешь «режим победителя» и начинаешь контролировать партнёра или, наоборот, резко уходишь, потому что «игра перестала быть весёлой». В работе: ты можешь генерировать гениальные идеи (Шут), но когда нужно их реализовать, ты впадаешь в перфекционизм и жёсткие сроки (Колесница), что приводит к выгоранию. Пример: ты начинаешь вести блог, первые посты лёгкие и искренние, но через месяц ты уже загоняешь себя в график, переживаешь из-за алгоритмов и теряешь удовольствие. Как подружить их? Используй Шута для старта (первая идея, первое действие), а Колесницу — для финиша (доведение до результата). Между ними — процесс, который не нужно контролировать. Третий скрытый конфликт: Повешенный (12) в денежном канале vs. Императрица (3) наверху линии денег. Повешенный говорит «жди, смотри, не действуй», Императрица — «создавай, расти, проявляйся». Ты можешь одновременно хотеть зарабатывать на творчестве, но бояться сделать первый шаг, потому что «нужно подождать подходящего момента». Этот конфликт — главная причина финансового застоя. Решение: выдели конкретное время для «ожидания» (например, 15 минут в день на размышления) и конкретное время для «действия» (например, 1 час на создание продукта). Не смешивай эти состояния.
+      </div>
+
+      
+      <div class="why" id="why-s12">
+        <button class="why-btn" type="button" data-toggle="why-s12">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">центр (E), зона талантов (верхний угол), зона комфорта (G)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Колесо Фортуны (10), Смерть (13), Иерофант (5)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">Главный внутренний конфликт — между желанием перемен (13 аркан) и потребностью в стабильности (5 аркан). Ты чувствуешь, что пора что-то менять, но Иерофант шепчет: 'А вдруг это неправильно? А что скажут люди?'. Второй конфликт — между принятием цикличности (10 аркан) и стремлением всё контролировать (5 аркан). Например, ты можешь знать, что проект исчерпал себя, но продолжать его тянуть, потому что 'так надо'. Обе стороны хотят защитить тебя: Смерть — от застоя, Иерофант — от хаоса. Использовать их как союзников — значит планировать перемены (5 аркан) и внедрять их постепенно (13 аркан), а не ждать, что всё рухнет само.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+      
+      <section class="report-section section-psychology" id="psychological-blocks">
+  <div class="section-header">
+    <div class="section-accent-bar" style="background: var(--deep-purple);"></div>
+    <h2>Почему это происходит</h2>
+  </div>
+  <p class="section-subtitle">Психологические паттерны, которые управляют твоими решениями</p>
+
+  
+  <div class="psych-grid">
+    
+    <div class="psych-card">
+      <div class="psych-card-header">
+        
+        <span class="psych-arcana-num">3</span>
+        <span class="psych-arcana-name">Императрица</span>
+        
+      </div>
+      <div class="psych-card-body">
+        
+        <div class="psych-belief">
+          <span class="psych-label">Убеждение</span>
+          <p>, которое ограничивает твою свободу. Первый блок — из 5-го аркана Иерофант, который стоит в зоне комфорта, в кармическом хвосте (причина) и в линии денег. Убеждение: «Я должен следовать правилам и авторитетам, чтобы быть в безопасности». Конкретная формулировка: «Если я сделаю не так, как принято, меня накажут или отвергнут». Как это проявляется</p>
+        </div>
+        
+        
+        <div class="psych-manifestation">
+          <span class="psych-label">Как проявляется</span>
+          <p>? Пример 1: На работе ты терпишь неудобные условия, потому что «начальник сказал», хотя внутренне знаешь, что есть лучшее решение. Пример 2: В отношениях ты не говоришь о своих истинных желаниях, боясь, что партнёр осудит. Пример 3: Ты откладываешь важное решение, потому что ждёшь совета от «эксперта», хотя уже знаешь ответ.</p>
+        </div>
+        
+        
+        <div class="psych-strategy">
+          <span class="psych-label">Стратегия изменения</span>
+          <p>п</p>
+        </div>
+        
+      </div>
+    </div>
+    
+  </div>
+  
+</section>
+      
+
+    <!-- ===========================================
+         13 · CYCLES
+         =========================================== -->
+    <section class="chapter" id="s13" data-screen-label="13 Циклы и прогноз">
+      <div class="ch-head">
+        <span class="nbr">13 — Жизненные циклы и прогноз</span>
+        <h2>Где ты <em>сейчас</em> и куда идёт линия</h2>
+        <p class="ch-sub">Ключевые семилетние развороты в твоей карте и прогноз на ближайшие годы.</p>
+      </div>
+
+      
+
+      <div class="prose">
+        Прогноз строится не на предсказаниях, а на энергиях арканов, которые будут влиять на твою жизнь в ближайшие годы. Это не судьба, а вероятностный сценарий — ты можешь его изменить своим выбором. Текущий год (2026) проходит под знаком Повешенного (12). Это год «перевёрнутой перспективы». В карьере: не жди быстрых результатов. Проекты могут тормозиться, контракты — задерживаться. Это не время для агрессивных действий, а время для анализа и переосмысления. Задай себе вопрос: «Что я делаю не так? Где я жертвую собой ради результата?» В отношениях: год может принести паузу или кризис, который заставит тебя пересмотреть свои ценности. Если ты в паре, возможен период отчуждения, который на самом деле нужен, чтобы вы оба поняли, чего хотите. Если одна — это год для глубокой внутренней работы, а не для активного поиска. В здоровье: обрати внимание на сон и режим. Повешенный может давать бессонницу или чувство «подвешенности». Практикуй йогу или растяжку, чтобы снять напряжение с позвоночника. В деньгах: не делай крупных инвестиций. Доход будет, но медленно. Сфокусируйся на оптимизации расходов и поиске скрытых ресурсов. Следующий год (2027) — Император (4). Энергия структуры и порядка. Карьера: время строить, а не мечтать. Если в 2026 ты поняла, что хочешь изменить, в 2027 начинай реализацию. Открывай бизнес, занимай руководящую позицию, строй планы на 5 лет. Отношения: Император требует ответственности. Если ты готова к серьёзным отношениям, этот год даст тебе партнёра, который будет опорой. Если нет — ты можешь почувствовать давление и желание убежать. Деньги: отличный год для накопления, покупки недвижимости, крупных вложений. Доход будет стабильным, если ты готова работать в рамках системы. Через 2 года (2028) — Иерофант (5). Год обучения и наставничества. Карьера: время получить образование, найти ментора, войти в профессиональное сообщество. Ты можешь стать экспертом в своей нише. Отношения: возможна встреча с партнёром, который будет старше или мудрее. Или кризис, связанный с разными ценностями. Здоровье: обрати внимание на горло и щитовидную железу. Ближайшие 5-10 лет: ключевые возраста — 42 года (Влюблённые) — выбор пути, 49 лет (Смерть) — глубокая трансформация, возможно, смена профессии или переезд, 56 лет (Справедливость) — время подводить итоги и получать плоды своих трудов. Главный совет: не бойся спадов. Колесо Фортуны — твой архетип, и ты знаешь, что после каждого спада следует подъём. Используй 2026 год для внутренней работы, 2027 — для строительства, 2028 — для получения знаний. И помни: ты не жертва обстоятельств, ты — штурман своего корабля.
+      </div>
+
+      
+      <div class="why" id="why-s13">
+        <button class="why-btn" type="button" data-toggle="why-s13">
+          <span class="arrow">&#9656;</span>
+          <span>Почему я так думаю</span>
+        </button>
+        <div class="why-body">
+          <div class="why-code">
+            
+            <div class="why-line">
+              <span class="why-comment">// Позиции матрицы</span>
+              <span class="why-value">центр (E), текущий год (2026), следующий год (2027)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Арканы</span>
+              <span class="why-value">Колесо Фортуны (10), Повешенный (12), Император (4)</span>
+            </div>
+            
+            
+            <div class="why-line">
+              <span class="why-comment">// Логика расчёта</span>
+              <span class="why-value">2026 год под арканом Повешенный (12) — время паузы, пересмотра и отпускания. Не форсируй события, наблюдай, анализируй. В карьере возможен простой или смена направления, в отношениях — период неопределённости. Деньги могут 'зависнуть', но это не кризис, а перезагрузка. 2027 год (Император, 4) — время строить структуру. После года размышлений ты сможешь заложить фундамент для нового этапа: открыть бизнес, заключить важный контракт, создать семью. Здоровье: в 2026 обрати внимание на опорно-двигательный аппарат и сон. На 3 года вперёд: 2028 (Иерофант, 5) — год обучения и наставничества, ты можешь стать экспертом или учителем. Ключевые возраста: 49 лет (Смерть) — глубокая личная трансформация, 56 лет (Справедливость) — подведение итогов и баланс.</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         14 · 7 DAYS
+         =========================================== -->
+    <section class="chapter" id="s14" data-screen-label="14 Семь дней">
+      <div class="ch-head">
+        <span class="nbr">14 — Рекомендации на 7 дней</span>
+        <h2>Начни <em>с этой недели</em></h2>
+        <p class="ch-sub">Семь конкретных коротких заданий. Каждое — на 10–20 минут. Это не «работа над собой» в патетическом смысле, это эксперимент. Отметь сделанное.</p>
+      </div>
+
+      <div class="week" id="week">
+        
+        
+        
+        <div class="day" data-day="1">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">&#x1F4AA; Тело</span>
+            <span class="d-name">Понедельник</span>
+          </div>
+          <div class="d-task">Тело: Встань на 10 минут в позу «березки» или сделай стойку на плечах. Аркан Повешенный (12) в твоём денежном канале даёт напряжение в плечах и шее. Перевернутое положение тела снимет блоки и даст приток крови к голове, что улучшит ясность мышления. Делай это каждое утро, чтобы «перевернуть» своё восприятие дня.</div>
+        </div>
+        
+        <div class="day" data-day="2">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">&#x1F9E0; Ум</span>
+            <span class="d-name">Вторник</span>
+          </div>
+          <div class="d-task">Ум: Напиши список из 10 правил, по которым ты живёшь (например, «я должна быть лучшей», «нельзя просить помощи»). Аркан Иерофант (5) в кармическом хвосте создаёт жёсткие внутренние рамки. Выбери одно правило и на этой неделе намеренно его наруши. Попроси помощи у коллеги или позволь себе сделать работу «на троечку». Это ослабит власть внутреннего критика.</div>
+        </div>
+        
+        <div class="day" data-day="3">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">&#x1F9E0; Ум</span>
+            <span class="d-name">Среда</span>
+          </div>
+          <div class="d-task">Дух: Сядь на 15 минут и нарисуй «карту своих циклов». Аркан Колесо Фортуны (10) в центре — твоя главная энергия. Раздели лист на 4 части: взлёты, падения, плато, кризисы. Запиши, в какие годы жизни ты проходила каждый этап. Это даст тебе ощущение, что ты не теряешь контроль, а просто находишься в определённой фазе.</div>
+        </div>
+        
+        <div class="day" data-day="4">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">&#x1F9E0; Ум</span>
+            <span class="d-name">Четверг</span>
+          </div>
+          <div class="d-task">Деньги: Найди один старый проект или идею, которую ты забросила (аркан Смерть (13) в талантах — умение завершать). Доведи её до логического конца: удали файл, продай материалы, отправь клиенту финальный отчёт. Завершение высвободит энергию для нового денежного потока.</div>
+        </div>
+        
+        <div class="day" data-day="5">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">&#x1F9E0; Ум</span>
+            <span class="d-name">Пятница</span>
+          </div>
+          <div class="d-task">Отношения: Сегодня скажи одному близкому человеку комплимент, который ты обычно держишь в себе. Аркан Шут (22) в левом углу — твоя лёгкость в контактах, но ты можешь бояться быть искренней. Просто скажи: «Мне нравится, как ты сегодня выглядишь» или «Я ценю твою поддержку». Это запустит цикл открытости.</div>
+        </div>
+        
+        <div class="day" data-day="6">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">&#x1F31F; Дух</span>
+            <span class="d-name">Суббота</span>
+          </div>
+          <div class="d-task">Рефлексия: Вечером запиши 3 ситуации за день, где ты действовала из привычного сценария (например, промолчала, когда хотела возразить). Аркан Колесница (7) в правом углу — твой паттерн «бежать вперёд». Остановись и спроси себя: «Что я чувствовала в тот момент? Что я хотела сделать на самом деле?» Это научит тебя выбирать осознанно.</div>
+        </div>
+        
+        <div class="day" data-day="7">
+          <div class="checkbox"></div>
+          <div class="d-meta">
+            <span class="d-cat">&#x1F9E0; Ум</span>
+            <span class="d-name">Воскресенье</span>
+          </div>
+          <div class="d-task">Действие: Выбери одну сферу жизни (работа, отношения, хобби) и сделай одно маленькое действие, которое ты откладывала. Например, запишись на пробное занятие по танцам или отправь резюме в компанию мечты. Аркан Императрица (3) в верхней части матрицы требует проявления. Не жди идеального момента — начни с малого.</div>
+        </div>
+        
+        
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         15 · TAROT TEASER
+         =========================================== -->
+    <section class="chapter" id="s15" data-screen-label="15 Карта дня">
+      <div class="ch-head">
+        <span class="nbr">15 — Карта дня</span>
+        <h2>Продолжение <em>каждое утро</em></h2>
+        <p class="ch-sub">Матрица — это карта местности. Карта дня — компас, который помогает идти по ней на коротком отрезке.</p>
+      </div>
+
+      <div class="tarot-teaser">
+        <div class="tt-eye">Пример карты на сегодня</div>
+        <div class="tt-grid">
+          <div class="tt-card">
+            <div class="tc-num">?</div>
+            <div class="tc-sym" style="font-family:'Cormorant Garamond',serif; font-size:64px; font-style:italic; color:var(--t-accent); line-height:1; opacity:0.9;">20</div>
+            <div class="tc-name">Аркан 20</div>
+          </div>
+          <div class="tt-text">
+            <h3>. <em>Аркан 20</em></h3>
+            <div class="tt-sub">Твоя карта дня</div>
+            <p>Каждое утро — новый аркан, новый фокус, новая энергия. Персонализированная карта дня, рассчитанная специально под твою матрицу.</p>
+            <a class="tt-cta" href="https://t.me/Nura_ai_bot" target="_blank" rel="noopener">
+              Получать карту дня каждое утро
+              <span class="price">&middot; 390 &#8381;/мес</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </section>
+
+    <!-- ===========================================
+         REFLECTION PAGES
+         =========================================== -->
+    <section class="reflection" id="r1" data-screen-label="R1 Мои инсайты">
+      <span class="nbr" style="font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--m-accent);letter-spacing:0.16em;margin-bottom:14px;display:block;">&bull; Страница рефлексии</span>
+      <h2>Мои <em>инсайты</em></h2>
+      <p class="r-sub">Что нового ты увидела о себе, читая этот разбор. Не нужно «правильных» формулировок — пиши своими словами, как думается.</p>
+      <div class="lines">
+        <div class="line"></div><div class="line"></div><div class="line mid"></div>
+        <div class="line"></div><div class="line"></div><div class="line short"></div>
+        <div class="line"></div><div class="line"></div><div class="line mid"></div>
+        <div class="line"></div><div class="line short"></div><div class="line"></div>
+      </div>
+    </section>
+
+    <section class="reflection" id="r2" data-screen-label="R2 Что я попробую">
+      <span class="nbr" style="font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--m-accent);letter-spacing:0.16em;margin-bottom:14px;display:block;">&bull; Страница рефлексии</span>
+      <h2>Что я попробую <em>на этой неделе</em></h2>
+      <p class="r-sub">Один-два конкретных шага. Не «начну жить иначе», а «во вторник напишу N. сообщение». Чем мельче и конкретнее, тем выше шанс, что произойдёт.</p>
+      <div class="lines">
+        <div class="line"></div><div class="line mid"></div><div class="line"></div>
+        <div class="line short"></div><div class="line"></div><div class="line"></div>
+        <div class="line mid"></div><div class="line"></div><div class="line"></div>
+        <div class="line short"></div>
+      </div>
+
+      <div style="margin-top:80px;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--ink-faint);">
+        <span>NURA AI &middot; Матрица Судьбы &middot; отчёт для Анна</span>
+        <a href="https://t.me/Nura_ai_bot" target="_blank" rel="noopener" style="color:var(--m-accent);">@Nura_ai_bot</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<button class="to-top" id="toTop" aria-label="Наверх">&uarr;</button>
+
+<script>
+(function(){
+  const sbLinks = document.querySelectorAll('#sbNav a');
+  const mnList = document.getElementById('mnNav');
+  sbLinks.forEach(a => {
+    const li = document.createElement('li');
+    li.innerHTML = '<a href="' + a.getAttribute('href') + '" data-target="' + a.dataset.target + '"><span class="num">' + a.querySelector('.num').textContent + '</span><span>' + a.querySelectorAll('span')[1].textContent + '</span></a>';
+    mnList.appendChild(li);
+  });
+
+  const mnEl = document.getElementById('mobileNav');
+  document.getElementById('mnToggle').addEventListener('click', () => mnEl.classList.toggle('open'));
+  mnList.addEventListener('click', e => { if (e.target.closest('a')) mnEl.classList.remove('open'); });
+
+  const sections = Array.from(document.querySelectorAll('section[id]'));
+  const allLinks = document.querySelectorAll('[data-target]');
+  const mnCurrent = document.getElementById('mnCurrent');
+  const progressBar = document.getElementById('readProgress');
+
+  function onScroll() {
+    const scrollY = window.scrollY + window.innerHeight * 0.30;
+    let current = sections[0];
+    for (const s of sections) {
+      if (s.offsetTop <= scrollY) current = s;
+    }
+    if (current) {
+      const id = current.id;
+      allLinks.forEach(a => a.classList.toggle('active', a.dataset.target === id));
+      const active = document.querySelector('#sbNav a[data-target=\"' + id + '\"]');
+      if (active) {
+        const num = active.querySelector('.num').textContent;
+        const name = active.querySelectorAll('span')[1].textContent;
+        mnCurrent.textContent = num + ' · ' + name;
+      }
+    }
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = Math.max(0, Math.min(100, (window.scrollY / max) * 100));
+    progressBar.style.width = pct + '%';
+    const toTop = document.getElementById('toTop');
+    toTop.classList.toggle('visible', window.scrollY > 500);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  document.getElementById('toTop').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  document.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.toggle);
+      if (target) target.classList.toggle('open');
+    });
+  });
+
+  const week = document.getElementById('week');
+  week.querySelectorAll('.day').forEach(d => {
+    d.addEventListener('click', () => d.classList.toggle('done'));
+  });
+})();
+</script>
+
+</body>
+</html>

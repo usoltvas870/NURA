@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
+from core.fallbacks import FALLBACK_CHAT
 from core.services.ai import (
     AIService,
     CHAT_SYSTEM_PROMPT_TEMPLATE,
-    FALLBACK_CHAT,
 )
 
 
