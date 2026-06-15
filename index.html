@@ -26,9 +26,9 @@
 
     :root {
       /* Базовая палитра */
-      --bg:        #12100E;
-      --bg-soft:   #1C1814;
-      --bg-card:   #242018;
+      --bg:        var(--nura-obsidian);
+      --bg-soft:   var(--nura-cave);
+      --bg-card:   var(--nura-surface);
       --ink:       #F2EFE7;
       --ink-soft:  rgba(242, 239, 231, 0.72);
       --ink-mute:  rgba(242, 239, 231, 0.50);
@@ -39,9 +39,9 @@
       --m-bg:       #0E2419;
       --m-bg-soft:  #143527;
       --m-line:     rgba(151, 197, 161, 0.18);
-      --m-accent:   #C9A55C;        /* тёплое золото */
+      --m-accent:   var(--nura-gold);        /* тёплое золото */
       --m-accent-soft: rgba(201, 165, 92, 0.16);
-      --m-leaf:     #6BA37A;
+      --m-leaf:     var(--nura-leaf);
 
       /* Таро: ночь и серебро-золото */
       --t-bg:       #0F1830;
@@ -1542,6 +1542,7 @@
     }
 
   </style>
+  <link rel="stylesheet" href="/static/nura-ds.css">
 </head>
 <body>
 
@@ -1622,12 +1623,12 @@
         <div class="product-split">
           <a class="ps-card m" href="#matrix">
             <svg class="ps-art" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-              <rect x="42" y="2" width="16" height="16" transform="rotate(45 50 10)" stroke="#C9A55C" stroke-width="1" opacity="0.7"/>
-              <rect x="2" y="42" width="16" height="16" transform="rotate(45 10 50)" stroke="#C9A55C" stroke-width="1" opacity="0.7"/>
-              <rect x="82" y="42" width="16" height="16" transform="rotate(45 90 50)" stroke="#C9A55C" stroke-width="1" opacity="0.7"/>
-              <rect x="42" y="82" width="16" height="16" transform="rotate(45 50 90)" stroke="#C9A55C" stroke-width="1" opacity="0.7"/>
-              <rect x="34" y="34" width="32" height="32" transform="rotate(45 50 50)" stroke="#6BA37A" stroke-width="1.2"/>
-              <circle cx="50" cy="50" r="3" fill="#C9A55C"/>
+              <rect x="42" y="2" width="16" height="16" transform="rotate(45 50 10)" stroke="var(--nura-gold)" stroke-width="1" opacity="0.7"/>
+              <rect x="2" y="42" width="16" height="16" transform="rotate(45 10 50)" stroke="var(--nura-gold)" stroke-width="1" opacity="0.7"/>
+              <rect x="82" y="42" width="16" height="16" transform="rotate(45 90 50)" stroke="var(--nura-gold)" stroke-width="1" opacity="0.7"/>
+              <rect x="42" y="82" width="16" height="16" transform="rotate(45 50 90)" stroke="var(--nura-gold)" stroke-width="1" opacity="0.7"/>
+              <rect x="34" y="34" width="32" height="32" transform="rotate(45 50 50)" stroke="var(--nura-leaf)" stroke-width="1.2"/>
+              <circle cx="50" cy="50" r="3" fill="var(--nura-gold)"/>
             </svg>
             <div>
               <div class="ps-head"><span class="ps-tag">Глубокий разбор</span></div>

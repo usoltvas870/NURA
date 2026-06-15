@@ -166,39 +166,38 @@ Zero conversational filler. Save tokens.
 
 ## MCP-инструменты
 
-| MCP сервер | Для чего |
-|---|---|
-| Playwright | Скриншоты, PDF-генерация, браузерная отладка |
-| Figma | Доступ к дизайн-макетам (требуется `FIGMA_ACCESS_TOKEN`) |
+MCP-серверы настраиваются в `~/.hermes/config.yaml` секция `mcp_servers` и подключаются автоматически при старте.
 
-MCP-серверы подключаются автоматически из `.opencode/config.json`.
+| MCP сервер | Для чего | Требует API ключ |
+|---|---|---|
+| Sequential Thinking | Структурированные рассуждения для сложных архитектурных решений | нет |
+| Context7 | Live docs lookup (Python/React/FastAPI) | нет |
+| Playwright | Скриншоты, E2E-тесты, браузерная отладка | нет |
+| Figma | Доступ к дизайн-макетам | `FIGMA_ACCESS_TOKEN` |
+| GitHub | PR/issues/CI из чата | `GITHUB_PERSONAL_ACCESS_TOKEN` |
 
-## Subagent Delegation
+## Subagent Delegation (Hermes)
 
-В `.opencode/agents/` есть специализированные сабагенты. Используй их через Task tool для сложных подзадач вместо того, чтобы делать всё самому.
+Используй `delegate_task(goal=..., context=...)` для сложных подзадач:
+- параллельные независимые работы (через `tasks=[{goal, ...}]`)
+- исследования, ресёрч, ревью
+- задачи, которые не влезают в контекст
 
-## Slash-команды
+## Slash-команды (Hermes)
 
-| Команда | Что делает | Агент |
-|---------|-----------|-------|
-| `/plan` | Декомпозиция задачи на шаги | planner |
-| `/tdd` | TDD-цикл (тест → код → рефактор) | build |
-| `/security` | Security-аудит по чеклисту | security-reviewer |
-| `/build-fix` | Исправление ошибки ruff/pytest/alembic | build-resolver |
-| `/code-review` | Code review по приоритетам | code-reviewer |
-| `/db-review` | Аудит SQL запросов (N+1, индексы) | database-reviewer |
+Доступны встроенные команды Hermes: `/plan`, `/model`, `/compact`, `/compress`, `/retry`, `/undo`, `/yolo`, `/help` и другие. Полный список: `/help` в сессии.
 
-## Skills (загружены в контекст)
+## Skills (Hermes — загружаются при старте или через `/skill name`)
 
 | Skill | Назначение |
 |-------|-----------|
-| `fastapi-patterns` | Архитектура NURA: routes→services→repositories→models, DI, Pydantic v2, async SQLAlchemy |
-| `security-review` | 10 категорий security-аудита: secrets, SQLi, XSS, auth, AI prompt injection |
-| `tdd-workflow` | Red-Green-Refactor для pytest-asyncio |
-| `error-handling` | Domain exceptions, error handling в API и bot слоях |
-| `context-budget` | Оптимизация токенов — не тащи лишнее, используй правильную модель |
-
-Все скиллы в `.opencode/skills/`. Команды в `.opencode/commands/`.
+| `research-first` | Исследование перед написанием кода — поиск готовых решений на PyPI/npm/GitHub |
+| `test-driven-development` | Red-Green-Refactor для pytest-asyncio |
+| `security-and-hardening` | Безопасность FastAPI/PWA: OWASP, SSRF, Rate Limiting, инъекции |
+| `systematic-debugging` | 4-фазный поиск root cause |
+| `plan` | Планирование и декомпозиция |
+| `nura-dev` | Специфика разработки NURA |
+| `workflow-architect` | Проектирование workflow деревьев |
 
 ## VPS Access
 
