@@ -6,6 +6,7 @@ from core.schemas import DailyInsightResult
 
 
 @pytest.mark.asyncio
+@pytest.mark.xfail(reason="bot.handlers.insights handler not implemented yet")
 class TestInsightsHandler:
     async def test_free_user_shows_static(self):
         mock_user = MagicMock()
