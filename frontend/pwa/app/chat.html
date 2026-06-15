@@ -3,534 +3,341 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#12100E">
-  <title>Чат — NURA</title>
-  <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>NURA · Чат</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
-
     :root {
-      /* Дизайн-система (лендинг) */
-      --bg:        #12100E;
-      --bg-soft:   #1C1814;
-      --bg-card:   #242018;
-      --ink:       #F2EFE7;
-      --ink-soft:  rgba(242, 239, 231, 0.72);
-      --ink-mute:  rgba(242, 239, 231, 0.50);
-      --line:      rgba(242, 239, 231, 0.10);
-      --line-strong: rgba(242, 239, 231, 0.18);
+      --bg:#12100E; --bg-soft:#1C1814; --bg-card:#242018;
+      --ink:#F2EFE7; --ink-soft:rgba(242,239,231,.72);
+      --ink-mute:rgba(242,239,231,.5); --ink-faint:#5A564F;
+      --line:rgba(242,239,231,.10); --line-strong:rgba(242,239,231,.18);
+      --m-accent:#C9A55C; --m-accent-soft:rgba(201,165,92,.16);
+      --m-leaf:#6BA37A; --m-leaf-soft:rgba(107,163,122,.12);
+      --t-accent:#D8B36A; --t-accent-soft:rgba(216,179,106,.16);
+      --t-violet:#7E7AC8;
+      --danger:#C45C5C;
+      --r-sm:6px; --r-md:12px; --r-lg:18px;
+      --bg-alpha:rgba(18,16,14,.97);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;-webkit-tap-highlight-color:transparent}
+    body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+      overflow:hidden;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+    a{text-decoration:none;color:inherit}
+    button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 
-      /* Матрица: изумрудный мир */
-      --m-bg:       #0E2419;
-      --m-bg-soft:  #143527;
-      --m-line:     rgba(151, 197, 161, 0.18);
-      --m-accent:   #C9A55C;
-      --m-accent-soft: rgba(201, 165, 92, 0.16);
-      --m-leaf:     #6BA37A;
+    /* Header */
+    .header{
+      flex-shrink:0;height:58px;
+      background:rgba(18,16,14,.97);backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
+      display:flex;align-items:center;gap:12px;padding:0 16px;
+      padding-top:env(safe-area-inset-top,0px)
+    }
+    .nura-avatar{
+      width:38px;height:38px;border-radius:50%;flex-shrink:0;
+      background:rgba(201,165,92,.12);border:1px solid rgba(201,165,92,.28);
+      display:grid;place-items:center;
+      font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--m-accent)
+    }
+    .nura-info{flex:1;min-width:0}
+    .nura-name{font-family:'Cormorant Garamond',serif;font-weight:300;
+      font-size:17px;letter-spacing:.08em;color:var(--ink);line-height:1.2}
+    .nura-status{display:flex;align-items:center;gap:5px;margin-top:1px}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:var(--m-leaf);
+      box-shadow:0 0 6px rgba(107,163,122,.6)}
+    .status-text{font-size:11px;color:var(--m-leaf);font-weight:300}
+    .icon-btn{width:34px;height:34px;border-radius:50%;
+      background:var(--bg-card);border:1px solid var(--line);
+      display:grid;place-items:center;font-size:15px;color:var(--ink-soft)}
 
-      /* Таро: ночь и серебро-золото */
-      --t-bg:       #0F1830;
-      --t-bg-soft:  #19244A;
-      --t-line:     rgba(180, 195, 230, 0.18);
-      --t-accent:   #D8B36A;
-      --t-accent-soft: rgba(216, 179, 106, 0.16);
-      --t-violet:   #7E7AC8;
+    /* Messages area */
+    .messages-area{
+      flex:1;overflow-y:auto;overflow-x:hidden;
+      padding:16px 12px;display:flex;flex-direction:column;gap:10px;
+      scroll-behavior:smooth
+    }
+    .messages-area::-webkit-scrollbar{width:0}
 
-      --radius-lg: 24px;
-      --radius-md: 18px;
-      --radius-sm: 12px;
+    /* Empty state */
+    .empty-state{
+      display:flex;flex-direction:column;align-items:center;
+      justify-content:center;gap:20px;height:100%;padding:24px;text-align:center
+    }
+    .empty-icon{font-family:'Cormorant Garamond',serif;font-size:48px;
+      color:var(--m-accent);opacity:.35}
+    .empty-text{font-family:'Cormorant Garamond',serif;font-weight:300;
+      font-size:20px;color:var(--ink-soft)}
+    .hints-row{display:flex;gap:8px;overflow-x:auto;width:100%;
+      scrollbar-width:none;padding:2px 0}
+    .hints-row::-webkit-scrollbar{display:none}
+    .hint-chip{flex-shrink:0;padding:9px 14px;
+      background:var(--bg-card);border:1px solid var(--line);
+      border-radius:999px;font-size:12.5px;color:var(--ink-soft);
+      white-space:nowrap;cursor:pointer;transition:border-color .2s}
+    .hint-chip:hover{border-color:rgba(201,165,92,.28);color:var(--ink)}
 
-      /* Алиасы обратной совместимости PWA */
-      --border:     var(--m-line);
-      --green:      var(--m-leaf);
-      --green-dim:  var(--m-line);
-      --ink-dim:    var(--ink-soft);
-      --card-bg:    var(--bg-card);
-      --m-accent-dim: var(--m-accent-soft);
-      --bg2:        var(--bg-soft);
-      --radius:     var(--radius-md);
+    /* Message bubble */
+    .msg{max-width:78%;display:flex;flex-direction:column;gap:3px}
+    .msg.nura{align-self:flex-start}
+    .msg.user{align-self:flex-end}
+    .bubble{
+      padding:11px 14px;font-size:14px;line-height:1.58;font-weight:300;
+      word-break:break-word
+    }
+    .msg.nura .bubble{
+      background:rgba(107,163,122,.08);border:1px solid rgba(107,163,122,.16);
+      border-radius:16px 16px 16px 4px;color:var(--ink)
+    }
+    .msg.user .bubble{
+      background:rgba(201,165,92,.1);border:1px solid rgba(201,165,92,.2);
+      border-radius:16px 16px 4px 16px;color:var(--ink)
+    }
+    .msg-time{font-size:10px;color:var(--ink-faint);font-weight:300;padding:0 4px}
+    .msg.user .msg-time{text-align:right}
 
-      /* PWA-специфичные */
-      --safe-top:    env(safe-area-inset-top, 0px);
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --input-height: 56px;
+    /* Typing indicator */
+    .typing-bubble{
+      align-self:flex-start;
+      background:rgba(107,163,122,.08);border:1px solid rgba(107,163,122,.16);
+      border-radius:16px 16px 16px 4px;
+      padding:12px 16px;display:flex;gap:5px;align-items:center
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html, body {
-      background: var(--bg); color: var(--ink);
-      font-family: 'DM Sans', system-ui, sans-serif;
-      height: 100%; overscroll-behavior: none;
+    .dot{width:6px;height:6px;border-radius:50%;background:var(--m-leaf);opacity:.5;
+      animation:bounce 1.2s infinite}
+    .dot:nth-child(2){animation-delay:.18s}
+    .dot:nth-child(3){animation-delay:.36s}
+    @keyframes bounce{
+      0%,60%,100%{transform:translateY(0);opacity:.4}
+      30%{transform:translateY(-5px);opacity:.9}
     }
-    #app {
-      display: flex; flex-direction: column; height: 100dvh;
-      padding-top: calc(var(--safe-top) + 57px);
-      padding-bottom: calc(56px + var(--safe-bottom));
+
+    /* Input area */
+    .input-area{
+      flex-shrink:0;
+      padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 66px);
+      border-top:1px solid var(--line);background:var(--bg);
     }
-    .app-header {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-      padding: calc(var(--safe-top) + 12px) 16px 12px;
-      background: var(--bg); border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 12px;
+    .input-row{
+      display:flex;align-items:flex-end;gap:8px;
+      background:var(--bg-card);border:1px solid var(--line);
+      border-radius:var(--r-lg);padding:10px 10px 10px 14px;
+      transition:border-color .2s
     }
-    .app-header-logo { font-size: 18px; font-weight: 700; letter-spacing: .15em; color: var(--m-accent); flex: 1; }
-    .header-actions { display: flex; gap: 8px; }
-    .header-btn {
-      background: none; border: 1px solid var(--border);
-      border-radius: 20px; padding: 6px 12px;
-      font-size: 12px; color: var(--ink-dim); cursor: pointer;
-      transition: border-color .2s; white-space: nowrap;
+    .input-row:focus-within{border-color:rgba(201,165,92,.30)}
+    .chat-input{
+      flex:1;background:none;border:none;outline:none;resize:none;
+      color:var(--ink);font-family:'DM Sans',sans-serif;
+      font-size:14.5px;font-weight:300;line-height:1.5;
+      max-height:120px;overflow-y:auto;
+      scrollbar-width:none;min-height:24px
     }
-    .header-btn:active { border-color: var(--green); color: var(--green); }
-    .messages-area {
-      flex: 1; overflow-y: auto; padding: 16px 16px 8px;
-      display: flex; flex-direction: column; gap: 12px;
-      -webkit-overflow-scrolling: touch;
+    .chat-input::placeholder{color:var(--ink-faint)}
+    .chat-input::-webkit-scrollbar{display:none}
+    .send-btn{
+      width:38px;height:38px;border-radius:var(--r-md);flex-shrink:0;
+      background:rgba(201,165,92,.15);border:1px solid rgba(201,165,92,.30);
+      display:grid;place-items:center;color:var(--m-accent);
+      font-size:16px;transition:background .2s;align-self:flex-end
     }
-    .messages-area::-webkit-scrollbar { display: none; }
-    .msg { display: flex; gap: 8px; max-width: 100%; animation: fadeIn .2s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    .msg-user { flex-direction: row-reverse; }
-    .msg-avatar {
-      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center; font-size: 15px;
+    .send-btn:hover{background:rgba(201,165,92,.25)}
+    .send-btn:disabled{opacity:.4;pointer-events:none}
+
+    /* Tabbar */
+    .tabbar{
+      position:fixed;bottom:0;left:0;right:0;z-index:50;
+      height:calc(56px + env(safe-area-inset-bottom,0px));
+      padding-bottom:env(safe-area-inset-bottom,0px);
+      background:var(--bg-alpha);backdrop-filter:blur(20px);
+      -webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);
+      display:flex;align-items:flex-start
     }
-    .msg-avatar-nura { background: var(--m-accent-dim); border: 1px solid rgba(201,165,92,0.3); }
-    .msg-avatar-user { background: var(--green-dim); border: 1px solid rgba(151,197,161,0.2); }
-    .msg-bubble {
-      max-width: calc(100% - 44px);
-      padding: 10px 14px; border-radius: 16px;
-      font-size: 14px; line-height: 1.6;
-    }
-    .msg-bubble-nura {
-      background: var(--card-bg); border: 1px solid var(--border);
-      color: var(--ink); border-top-left-radius: 4px;
-    }
-    .msg-bubble-user {
-      background: rgba(201,165,92,0.12); border: 1px solid rgba(201,165,92,0.2);
-      color: var(--ink); border-top-right-radius: 4px;
-    }
-    .typing-dots { display: flex; gap: 4px; padding: 4px 2px; align-items: center; }
-    .typing-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--ink-dim); animation: typingPulse 1.2s infinite;
-    }
-    .typing-dot:nth-child(2) { animation-delay: .2s; }
-    .typing-dot:nth-child(3) { animation-delay: .4s; }
-    @keyframes typingPulse {
-      0%,80%,100% { opacity: .25; transform: scale(.8); }
-      40% { opacity: 1; transform: scale(1); }
-    }
-    .limit-bar {
-      margin: 0 16px 8px;
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 12px; padding: 10px 14px;
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    }
-    .limit-text { font-size: 12px; color: var(--ink-dim); }
-    .limit-text strong { color: var(--m-accent); }
-    .limit-upgrade {
-      font-size: 11px; font-weight: 600; color: var(--m-accent);
-      background: var(--m-accent-dim); border-radius: 20px;
-      padding: 4px 10px; white-space: nowrap; text-decoration: none;
-    }
-    .paywall-block {
-      margin: 0 16px 8px;
-      background: linear-gradient(135deg, rgba(201,165,92,0.1) 0%, rgba(201,165,92,0.05) 100%);
-      border: 1px solid rgba(201,165,92,0.25);
-      border-radius: var(--radius); padding: 20px;
-      text-align: center;
-    }
-    .paywall-icon { font-size: 32px; margin-bottom: 8px; }
-    .paywall-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
-    .paywall-sub { font-size: 13px; color: var(--ink-dim); margin-bottom: 16px; line-height: 1.5; }
-    .paywall-btn {
-      display: block; background: var(--m-accent); color: #0A0E0C;
-      border: none; border-radius: 12px; padding: 13px;
-      font-size: 14px; font-weight: 700; cursor: pointer;
-      text-decoration: none; transition: opacity .15s;
-    }
-    .paywall-btn:active { opacity: .85; }
-    .input-area {
-      position: fixed; left: 0; right: 0;
-      bottom: calc(56px + var(--safe-bottom));
-      background: var(--bg); border-top: 1px solid var(--border);
-      padding: 10px 12px 10px;
-      display: flex; align-items: flex-end; gap: 8px;
-    }
-    .chat-input {
-      flex: 1; background: var(--card-bg);
-      border: 1px solid var(--border); border-radius: 20px;
-      padding: 10px 16px; font-size: 15px; color: var(--ink);
-      resize: none; outline: none; max-height: 100px;
-      line-height: 1.4; font-family: inherit;
-      transition: border-color .2s;
-    }
-    .chat-input:focus { border-color: rgba(151,197,161,0.3); }
-    .chat-input::placeholder { color: var(--ink-dim); }
-    .send-btn {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: var(--m-accent); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; flex-shrink: 0;
-      transition: opacity .15s, transform .1s;
-    }
-    .send-btn:disabled { opacity: .4; cursor: not-allowed; }
-    .send-btn:not(:disabled):active { transform: scale(.92); }
-    .welcome-block {
-      background: linear-gradient(135deg, #0E1F11 0%, #0A1810 100%);
-      border: 1px solid rgba(151,197,161,0.15);
-      border-radius: var(--radius); padding: 20px;
-      text-align: center;
-    }
-    .welcome-icon { font-size: 36px; margin-bottom: 10px; }
-    .welcome-title { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
-    .welcome-text { font-size: 13px; color: var(--ink-dim); line-height: 1.6; margin-bottom: 14px; }
-    .welcome-hints { display: flex; flex-direction: column; gap: 8px; }
-    .hint-btn {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 12px; padding: 10px 14px;
-      font-size: 13px; color: var(--ink-dim); cursor: pointer;
-      text-align: left; transition: border-color .2s;
-    }
-    .hint-btn:active { border-color: var(--green); color: var(--ink); }
-    .app-tabbar {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      height: calc(56px + var(--safe-bottom)); padding-bottom: var(--safe-bottom);
-      background: #0E1A11; border-top: 1px solid var(--border);
-      display: flex; align-items: flex-start; padding-top: 8px; z-index: 100;
-    }
-    .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; padding: 2px 0; }
-    .tab-item:active { opacity: .6; }
-    .tab-icon { font-size: 20px; line-height: 1; }
-    .tab-label { font-size: 10px; letter-spacing: .03em; color: var(--ink-dim); }
-    .tab-item.active .tab-label { color: var(--m-accent); }
-    .tab-item.active .tab-icon { filter: drop-shadow(0 0 4px rgba(201,165,92,.6)); }
-    .loader-screen {
-      position: fixed; inset: 0; background: var(--bg);
-      display: flex; align-items: center; justify-content: center;
-      flex-direction: column; gap: 16px; z-index: 300; transition: opacity .4s;
-    }
-    .loader-logo { font-size: 28px; font-weight: 700; letter-spacing: .2em; color: var(--m-accent); }
-    .loader-dots { display: flex; gap: 6px; }
-    .loader-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--m-accent); animation: pulse 1.2s infinite; }
-    .loader-dot:nth-child(2) { animation-delay: .2s; }
-    .loader-dot:nth-child(3) { animation-delay: .4s; }
-    @keyframes pulse { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+    .tab-item{flex:1;height:56px;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;gap:3px;
+      color:var(--ink-faint);font-size:11px;font-weight:400;
+      letter-spacing:.02em;text-decoration:none;transition:color .2s}
+    .tab-item.active{color:var(--m-accent)}
+    .tab-icon{font-size:17px;line-height:1}
   </style>
-  <script src="/metrika.js" defer></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/service-worker.js', {scope: '/'})
-          .catch(function(e) { console.warn('SW:', e); });
-      });
-    }
-  </script>
 </head>
 <body>
-  <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
 
-<div class="loader-screen" id="loaderScreen">
-  <div class="loader-logo">NURA</div>
-  <div class="loader-dots">
-    <div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div>
-  </div>
-</div>
-
-<div id="app" style="display:none">
-  <header class="app-header">
-    <span class="app-header-logo">NURA · Чат</span>
-    <div class="header-actions">
-      <button class="header-btn" onclick="clearHistory()">Очистить</button>
+<header class="header">
+  <div class="nura-avatar">✦</div>
+  <div class="nura-info">
+    <div class="nura-name">NURA</div>
+    <div class="nura-status">
+      <span class="status-dot"></span>
+      <span class="status-text" id="status-text">онлайн</span>
     </div>
-  </header>
+  </div>
+  <button class="icon-btn" aria-label="Ещё">···</button>
+</header>
 
-  <div class="messages-area" id="messagesArea"></div>
-  <div id="statusBar"></div>
+<div class="messages-area" id="messages">
 
-  <div class="input-area" id="inputArea">
-    <textarea class="chat-input" id="chatInput"
-      placeholder="Спроси NURA о своей матрице…"
-      rows="1"
-      onkeydown="handleKeydown(event)"
-      oninput="autoResize(this)"></textarea>
-    <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>➤</button>
+  <!-- Empty state — hidden when messages exist -->
+  <div class="empty-state" id="empty-state">
+    <div class="empty-icon">✦</div>
+    <div class="empty-text">Спроси у NURA<br>о своей матрице</div>
+    <div class="hints-row" id="hint-chips">
+      <span class="hint-chip" onclick="sendHint(this)">Карта дня</span>
+      <span class="hint-chip" onclick="sendHint(this)">Разбор матрицы</span>
+      <span class="hint-chip" onclick="sendHint(this)">Совет на неделю</span>
+      <span class="hint-chip" onclick="sendHint(this)">Финансовый прогноз</span>
+      <span class="hint-chip" onclick="sendHint(this)">Отношения</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="input-area">
+  <div class="input-row">
+    <textarea class="chat-input" id="chat-input" placeholder="Написать NURA…" rows="1"></textarea>
+    <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>↑</button>
   </div>
 </div>
 
-<nav class="app-tabbar">
-  <a href="/app" class="tab-item"><span class="tab-icon">◈</span><span class="tab-label">Матрица</span></a>
-  <a href="/app/tarot" class="tab-item"><span class="tab-icon">🌒</span><span class="tab-label">Таро</span></a>
-  <a href="/app/chat" class="tab-item active"><span class="tab-icon">💬</span><span class="tab-label">Чат</span></a>
-  <a href="/app/profile" class="tab-item"><span class="tab-icon">👤</span><span class="tab-label">Профиль</span></a>
+<nav class="tabbar">
+  <a class="tab-item" href="index.html">
+    <span class="tab-icon">✦</span><span>Матрица</span>
+  </a>
+  <a class="tab-item" href="tarot.html">
+    <span class="tab-icon">🌒</span><span>Таро</span>
+  </a>
+  <a class="tab-item active" href="chat.html">
+    <span class="tab-icon">💬</span><span>Чат</span>
+  </a>
+  <a class="tab-item" href="profile.html">
+    <span class="tab-icon">👤</span><span>Профиль</span>
+  </a>
 </nav>
 
 <script>
-let sessionId = localStorage.getItem('nura_session_id');
-let chatHistory = [];
-let messagesLeft = -1;
-let isLoading = false;
-let isPaywalled = false;
-let userData = null;
+  var BASE = 'https://nura-ai.ru/api/v1';
+  var session_id = localStorage.getItem('nura_session_id');
+  var msgs = document.getElementById('messages');
+  var inputEl = document.getElementById('chat-input');
+  var sendBtn = document.getElementById('send-btn');
+  var emptyState = document.getElementById('empty-state');
+  var chatLog = JSON.parse(localStorage.getItem('nura_chat_log') || '[]');
+  var isTyping = false;
 
-const urlParams = new URLSearchParams(window.location.search);
-const urlSession = urlParams.get('session_id');
-if (urlSession) { localStorage.setItem('nura_session_id', urlSession); sessionId = urlSession; window.history.replaceState({}, '', '/app/chat'); }
+  // Auto-resize textarea
+  inputEl.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    sendBtn.disabled = !this.value.trim();
+  });
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
 
-function loadHistory() {
-  try {
-    const saved = localStorage.getItem('nura_chat_history');
-    if (saved) chatHistory = JSON.parse(saved);
-  } catch(e) { chatHistory = []; }
-}
+  // Restore history
+  chatLog.forEach(function(m) { addBubble(m.role, m.text, m.time, false); });
+  if (chatLog.length) emptyState.style.display = 'none';
+  scrollBottom();
 
-function saveHistory() {
-  try {
-    const trimmed = chatHistory.slice(-20);
-    localStorage.setItem('nura_chat_history', JSON.stringify(trimmed));
-  } catch(e) {}
-}
-
-function escHtml(s) {
-  return String(s||'').replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-function formatText(text) {
-  return escHtml(text)
-    .replace(/\n/g, '<br>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>');
-}
-
-function scrollToBottom(smooth) {
-  const area = document.getElementById('messagesArea');
-  area.scrollTo({ top: area.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
-}
-
-function appendMessage(role, content) {
-  const area = document.getElementById('messagesArea');
-  const div = document.createElement('div');
-  div.className = 'msg msg-' + role;
-  const isNura = role === 'nura';
-  div.innerHTML =
-    '<div class="msg-avatar msg-avatar-' + role + '">' + (isNura ? '◈' : '👤') + '</div>' +
-    '<div class="msg-bubble msg-bubble-' + role + '">' + formatText(content) + '</div>';
-  area.appendChild(div);
-  scrollToBottom(true);
-  return div;
-}
-
-function showTyping() {
-  const area = document.getElementById('messagesArea');
-  const div = document.createElement('div');
-  div.id = 'typingIndicator';
-  div.className = 'msg msg-nura';
-  div.innerHTML =
-    '<div class="msg-avatar msg-avatar-nura">◈</div>' +
-    '<div class="msg-bubble msg-bubble-nura">' +
-    '<div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>' +
-    '</div>';
-  area.appendChild(div);
-  scrollToBottom(true);
-}
-
-function removeTyping() {
-  const t = document.getElementById('typingIndicator');
-  if (t) t.remove();
-}
-
-function updateStatusBar() {
-  const bar = document.getElementById('statusBar');
-  if (isPaywalled) {
-    bar.innerHTML =
-      '<div class="paywall-block">' +
-      '<div class="paywall-icon">💎</div>' +
-      '<div class="paywall-title">Лимит бесплатных сообщений</div>' +
-      '<div class="paywall-sub">Ты использовал 5 бесплатных сообщений.<br>Чат без ограничений — по подписке Таро.</div>' +
-      '<a href="/app/profile?tab=subscription" class="paywall-btn">Подключить за 390 ₽/мес</a>' +
-      '</div>';
-    document.getElementById('inputArea').style.display = 'none';
-    return;
-  }
-  if (messagesLeft >= 0 && messagesLeft <= 3) {
-    bar.innerHTML =
-      '<div class="limit-bar">' +
-      '<span class="limit-text">Осталось <strong>' + messagesLeft + '</strong> бесплатных сообщений</span>' +
-      '<a href="/app/profile?tab=subscription" class="limit-upgrade">390 ₽/мес</a>' +
-      '</div>';
-  } else {
-    bar.innerHTML = '';
-  }
-}
-
-async function sendMessage() {
-  const input = document.getElementById('chatInput');
-  const text = input.value.trim();
-  if (!text || isLoading || isPaywalled) return;
-
-  if (!sessionId) {
-    appendMessage('nura', 'Войди в аккаунт чтобы общаться с NURA.');
-    return;
+  // Handle query param spread
+  var params = new URLSearchParams(location.search);
+  if (params.get('spread')) {
+    var spreadNames = { ppt: 'Прошлое · Настоящее · Будущее', week: 'Расклад недели' };
+    var s = spreadNames[params.get('spread')];
+    if (s) setTimeout(function() { addUserMsg('Сделай расклад: ' + s); }, 400);
   }
 
-  appendMessage('user', text);
-  input.value = '';
-  input.style.height = '';
-  document.getElementById('sendBtn').disabled = true;
-  isLoading = true;
-  showTyping();
+  function sendHint(el) { inputEl.value = el.textContent; sendMessage(); }
 
-  chatHistory.push({ role: 'user', content: text });
+  function sendMessage() {
+    var text = inputEl.value.trim();
+    if (!text) return;
+    inputEl.value = ''; inputEl.style.height = 'auto'; sendBtn.disabled = true;
+    addUserMsg(text);
+    showTyping();
 
-  try {
-    const res = await fetch('/api/v1/web/chat', {
+    fetch(BASE + '/chat/message', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: sessionId,
-        message: text,
-        history: chatHistory.slice(-20, -1),
-      }),
+      headers: { 'Content-Type': 'application/json', 'X-Session-Id': session_id || '' },
+      body: JSON.stringify({ message: text, session_id: session_id })
+    })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) {
+      hideTyping();
+      if (d && d.reply) addNuraMsg(d.reply);
+      else addNuraMsg('Что-то пошло не так. Попробуй ещё раз.');
+    })
+    .catch(function() {
+      hideTyping();
+      addNuraMsg('Нет соединения. Проверь сеть и повтори.');
     });
+  }
 
-    removeTyping();
+  function addUserMsg(text) {
+    emptyState.style.display = 'none';
+    var t = now();
+    addBubble('user', text, t, true);
+    saveMsg('user', text, t);
+  }
 
-    if (res.status === 402) {
-      isPaywalled = true;
-      chatHistory.pop();
-      updateStatusBar();
-      appendMessage('nura', 'Ты использовал все бесплатные сообщения. Подключи подписку чтобы продолжить.');
-      return;
+  function addNuraMsg(text) {
+    var t = now();
+    addBubble('nura', text, t, true);
+    saveMsg('nura', text, t);
+  }
+
+  function addBubble(role, text, time, animate) {
+    var wrap = document.createElement('div');
+    wrap.className = 'msg ' + role;
+    if (animate) { wrap.style.opacity = '0'; wrap.style.transform = 'translateY(6px)'; }
+    wrap.innerHTML = '<div class="bubble">' + escHtml(text) + '</div>'
+      + '<span class="msg-time">' + time + '</span>';
+    msgs.appendChild(wrap);
+    if (animate) {
+      requestAnimationFrame(function() {
+        wrap.style.transition = 'opacity .25s, transform .25s';
+        wrap.style.opacity = '1'; wrap.style.transform = 'translateY(0)';
+      });
     }
-
-    if (res.status === 404) {
-      appendMessage('nura', 'Сессия истекла. Обнови страницу.');
-      return;
-    }
-
-    if (!res.ok) {
-      appendMessage('nura', 'Что-то пошло не так. Попробуй ещё раз.');
-      chatHistory.pop();
-      return;
-    }
-
-    const data = await res.json();
-    chatHistory.push({ role: 'assistant', content: data.reply });
-    messagesLeft = data.messages_left;
-    saveHistory();
-    appendMessage('nura', data.reply);
-    updateStatusBar();
-
-  } catch(e) {
-    removeTyping();
-    appendMessage('nura', 'Нет соединения. Проверь интернет и попробуй снова.');
-    chatHistory.pop();
-  } finally {
-    isLoading = false;
-    updateSendBtn();
+    scrollBottom();
   }
-}
 
-function handleKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
+  var typingEl = null;
+  function showTyping() {
+    isTyping = true;
+    document.getElementById('status-text').textContent = 'печатает…';
+    typingEl = document.createElement('div');
+    typingEl.className = 'typing-bubble';
+    typingEl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    msgs.appendChild(typingEl);
+    scrollBottom();
   }
-}
-
-function autoResize(el) {
-  el.style.height = '';
-  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-  updateSendBtn();
-}
-
-function updateSendBtn() {
-  const input = document.getElementById('chatInput');
-  const btn = document.getElementById('sendBtn');
-  btn.disabled = !input.value.trim() || isLoading || isPaywalled;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('chatInput').addEventListener('input', updateSendBtn);
-});
-
-function clearHistory() {
-  if (!confirm('Очистить историю чата?')) return;
-  chatHistory = [];
-  localStorage.removeItem('nura_chat_history');
-  const area = document.getElementById('messagesArea');
-  area.innerHTML = '';
-  renderWelcome();
-}
-
-function renderWelcome() {
-  const area = document.getElementById('messagesArea');
-  const name = userData ? (userData.name || 'пользователь') : 'пользователь';
-  const archetype = userData && userData.archetype ? userData.archetype : null;
-  const greeting = archetype
-    ? name + ', твой архетип — ' + archetype + '.\nЯ знаю твою матрицу и готова говорить с тобой на её языке.'
-    : name + ', я — NURA.\nЗадай мне вопрос о себе, своих паттернах или Матрице Судьбы.';
-
-  const welcomeDiv = document.createElement('div');
-  welcomeDiv.className = 'welcome-block';
-  welcomeDiv.innerHTML =
-    '<div class="welcome-icon">◈</div>' +
-    '<div class="welcome-title">Чат с NURA</div>' +
-    '<div class="welcome-text">' + escHtml(greeting) + '</div>' +
-    '<div class="welcome-hints">' +
-    '<button class="hint-btn" onclick="useHint(this)">Какие сильные стороны в моей матрице?</button>' +
-    '<button class="hint-btn" onclick="useHint(this)">Что повторяется в моих отношениях?</button>' +
-    '<button class="hint-btn" onclick="useHint(this)">Что мешает мне зарабатывать больше?</button>' +
-    '</div>';
-  area.appendChild(welcomeDiv);
-}
-
-function useHint(btn) {
-  const input = document.getElementById('chatInput');
-  input.value = btn.textContent;
-  input.focus();
-  autoResize(input);
-  updateSendBtn();
-  const hints = document.querySelector('.welcome-hints');
-  if (hints) hints.style.display = 'none';
-}
-
-function renderHistory() {
-  const area = document.getElementById('messagesArea');
-  area.innerHTML = '';
-  if (chatHistory.length === 0) {
-    renderWelcome();
-    return;
+  function hideTyping() {
+    isTyping = false;
+    document.getElementById('status-text').textContent = 'онлайн';
+    if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+    typingEl = null;
   }
-  for (const msg of chatHistory.slice(-20)) {
-    const role = msg.role === 'user' ? 'user' : 'nura';
-    appendMessage(role, msg.content);
-  }
-}
 
-async function boot() {
-  loadHistory();
-  if (sessionId) {
-    try {
-      const res = await fetch('/api/v1/web/me?session_id=' + sessionId);
-      if (res.ok) userData = await res.json();
-    } catch(e) {}
+  function scrollBottom() {
+    setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 60);
   }
-  renderHistory();
-  updateStatusBar();
-  const loader = document.getElementById('loaderScreen');
-  const appEl = document.getElementById('app');
-  appEl.style.display = '';
-  loader.style.opacity = '0';
-  setTimeout(function() { loader.style.display = 'none'; }, 400);
-}
 
-boot();
+  function saveMsg(role, text, time) {
+    chatLog.push({ role: role, text: text, time: time });
+    if (chatLog.length > 80) chatLog = chatLog.slice(-80);
+    try { localStorage.setItem('nura_chat_log', JSON.stringify(chatLog)); } catch(e) {}
+  }
+
+  function now() {
+    var d = new Date();
+    return d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/\n/g,'<br>');
+  }
 </script>
 </body>
 </html>
