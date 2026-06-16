@@ -442,6 +442,17 @@
         }
       }
 
+      // Auto-insert dots in date input
+      var dateInput = document.getElementById('birth_date');
+      dateInput.addEventListener('input', function() {
+        var raw = this.value.replace(/\D/g, '').slice(0, 8);
+        var parts = [];
+        if (raw.length > 0) parts.push(raw.slice(0, 2));
+        if (raw.length > 2) parts.push(raw.slice(2, 4));
+        if (raw.length > 4) parts.push(raw.slice(4, 8));
+        this.value = parts.join('.');
+      });
+
       form.addEventListener('submit', function(e) {
         e.preventDefault();
         errorMsg.classList.remove('visible');
