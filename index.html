@@ -56,27 +56,29 @@
       --radius-sm: 12px;
     }
 
+    /* ============================================================
+       LIGHT THEME — index.html overrides
+       Вставить вместо существующего блока [data-theme="light"]
+       ============================================================ */
+
     [data-theme="light"] {
-      --bg:                  #F7F3ED;
-      --bg-soft:             #EFEAE2;
-      --bg-card:             #F0EBE2;
-      --ink:                 #1C1814;
-      --ink-soft:            rgba(28,24,20,0.70);
-      --ink-mute:            rgba(28,24,20,0.48);
-      --line:                rgba(28,24,20,0.10);
-      --line-strong:         rgba(28,24,20,0.18);
-      --m-accent:            #9B7A2F;
-      --m-accent-soft:       rgba(155,122,47,0.14);
-      --m-leaf:              #4A7A5A;
-      --m-bg:                #EAF0EB;
-      --m-bg-soft:           #DEE8E0;
-      --m-line:              rgba(74,122,90,0.20);
-      --t-accent:            #A67C3D;
-      --t-accent-soft:       rgba(166,124,61,0.14);
-      --t-bg:                #EAE7DE;
-      --t-bg-soft:           #DFDBD1;
-      --t-line:              rgba(126,122,200,0.16);
-      --t-violet:            #6A6798;
+      --bg:         #F7F3ED;
+      --bg-soft:    #EFEAE2;
+      --ink:        #1C1814;
+      --ink-soft:   rgba(28, 24, 20, 0.68);
+      --ink-mute:   rgba(28, 24, 20, 0.48);
+      --line:       rgba(28, 24, 20, 0.12);
+      --line-strong:rgba(28, 24, 20, 0.20);
+      --m-accent:   var(--nura-light-matrix-accent);    /* #9B7A2F */
+      --m-leaf:     #3A6B4A;
+      --t-accent:   var(--nura-light-tarot-accent);     /* #A67C3D */
+      --t-violet:   #4A4878;
+      --m-bg:       var(--nura-light-matrix-section-bg);/* #EEF4F0 */
+      --t-bg:       var(--nura-light-tarot-section-bg); /* #F4F1EA */
+      --m-line:     var(--nura-light-matrix-card-border);
+      --t-line:     var(--nura-light-tarot-card-border);
+      --m-accent-soft: rgba(155, 122, 47, 0.14);
+      --t-accent-soft: rgba(166, 124, 61, 0.14);
     }
 
     [data-theme="light"] body {
@@ -84,45 +86,53 @@
       color: var(--ink);
     }
 
+    /* ── NAV ─────────────────────────────────────────────── */
     [data-theme="light"] .nb-diamond,
     [data-theme="light"] .nb-divider,
     [data-theme="light"] .nb-name {
-      color: var(--m-accent);
+      color: var(--nura-light-matrix-accent);
     }
-
     [data-theme="light"] .nav {
-      background: rgba(247,243,237,0.85);
-      border-bottom: 1px solid var(--line);
+      background: rgba(247, 243, 237, 0.92);
+      border-bottom: 1px solid var(--nura-light-line);
     }
+    [data-theme="light"] .nav-products {
+      background: rgba(28, 24, 20, 0.05);
+      border: 1px solid var(--nura-light-line);
+    }
+    [data-theme="light"] .nav-products a { color: var(--nura-light-ink-soft); }
+    [data-theme="light"] .nav-burger { border-color: rgba(28, 24, 20, 0.20); }
+    [data-theme="light"] .nav-burger span { background: var(--ink); }
 
+    /* ── HERO ────────────────────────────────────────────── */
+    /* ВАЖНО: фон #F7F3ED нужен для mix-blend-mode: multiply */
+    [data-theme="light"] .hero { background: #F7F3ED; }
     [data-theme="light"] .hero::before {
-      background:
-        linear-gradient(
-          to right,
-          rgba(247,243,237,0.97) 0%,
-          rgba(247,243,237,0.90) 38%,
-          rgba(247,243,237,0.45) 58%,
-          rgba(247,243,237,0.05) 100%
-        );
+      background: linear-gradient(
+        to right,
+        rgba(247, 243, 237, 0.97) 0%,
+        rgba(247, 243, 237, 0.90) 38%,
+        rgba(247, 243, 237, 0.45) 58%,
+        rgba(247, 243, 237, 0.05) 100%
+      );
+    }
+    [data-theme="light"] .hero-bg-image {
+      opacity: 0.78;
+      mix-blend-mode: multiply;
     }
 
-    [data-theme="light"] .btn,
-    [data-theme="light"] .nav-products a {
-      color: var(--ink-soft);
-    }
-    [data-theme="light"] .btn:hover {
-      color: var(--ink);
-    }
+    /* ── КНОПКИ ──────────────────────────────────────────── */
+    [data-theme="light"] .btn { color: var(--nura-light-ink-soft); }
+    [data-theme="light"] .btn:hover { color: var(--ink); }
 
     [data-theme="light"] .btn-free {
-      background: #1C1814;
-      color: #F7F3ED;
-      box-shadow: 0 14px 36px rgba(28,24,20,0.10);
+      background: var(--nura-light-btn-free-bg);
+      color: var(--nura-light-btn-free-text);
+      box-shadow: 0 14px 36px rgba(28, 24, 20, 0.10);
     }
     [data-theme="light"] .btn-free:hover {
-      box-shadow: 0 18px 44px rgba(28,24,20,0.18);
+      box-shadow: 0 18px 44px rgba(28, 24, 20, 0.18);
     }
-
     [data-theme="light"] .btn-m {
       background: linear-gradient(135deg, #9B7A2F, #7A5C1E);
       color: #F7F3ED;
@@ -131,139 +141,174 @@
       background: linear-gradient(135deg, #A67C3D, #8A5E2A);
       color: #F7F3ED;
     }
-
     [data-theme="light"] .btn-ghost-m {
-      border: 1px solid rgba(155,122,47,0.4);
-      color: var(--m-accent);
+      border: 1px solid rgba(155, 122, 47, 0.4);
+      color: var(--nura-light-matrix-accent);
     }
     [data-theme="light"] .btn-ghost-t {
-      border: 1px solid rgba(166,124,61,0.4);
-      color: var(--t-accent);
+      border: 1px solid rgba(166, 124, 61, 0.4);
+      color: var(--nura-light-tarot-accent);
     }
 
-    [data-theme="light"] .nav-products {
-      background: rgba(28,24,20,0.05);
-      border: 1px solid var(--line);
-    }
-
+    /* ── PRODUCT CARDS (ps-card) ─────────────────────────── */
     [data-theme="light"] .ps-card.m {
       background:
-        radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74,122,90,0.14), transparent 60%),
-        linear-gradient(160deg, var(--m-bg) 0%, var(--m-bg-soft) 100%);
+        radial-gradient(ellipse 80% 60% at 20% 0%, rgba(74, 122, 90, 0.14), transparent 60%),
+        linear-gradient(160deg, var(--nura-light-matrix-section-bg) 0%, #EEF4F0 100%);
+      border-color: var(--nura-light-matrix-card-border);
     }
-    [data-theme="light"] .ps-card.m:hover { box-shadow: 0 24px 60px rgba(74,122,90,0.18); }
+    [data-theme="light"] .ps-card.m:hover {
+      box-shadow: 0 24px 60px rgba(74, 122, 90, 0.18);
+    }
     [data-theme="light"] .ps-card.t {
       background:
-        radial-gradient(ellipse 80% 60% at 80% 0%, rgba(106,103,152,0.12), transparent 60%),
-        linear-gradient(160deg, var(--t-bg) 0%, var(--t-bg-soft) 100%);
+        radial-gradient(ellipse 80% 60% at 80% 0%, rgba(106, 103, 152, 0.12), transparent 60%),
+        linear-gradient(160deg, var(--nura-light-tarot-section-bg) 0%, #F4F1EA 100%);
+      border-color: var(--nura-light-tarot-card-border);
     }
-    [data-theme="light"] .ps-card.t:hover { box-shadow: 0 24px 60px rgba(106,103,152,0.18); }
+    [data-theme="light"] .ps-card.t:hover {
+      box-shadow: 0 24px 60px rgba(106, 103, 152, 0.18);
+    }
 
-    [data-theme="light"] .problem { background: var(--bg); }
-
+    /* ── PRODUCT SECTIONS (matrix / tarot) ───────────────── */
     [data-theme="light"] .product-section.matrix {
-      background:
-        radial-gradient(ellipse 50% 40% at 15% 10%, rgba(74,122,90,0.10), transparent 60%),
-        radial-gradient(ellipse 50% 50% at 90% 90%, rgba(155,122,47,0.06), transparent 60%),
-        var(--m-bg);
+      background: var(--nura-light-matrix-section-grad, #EEF4F0);
     }
     [data-theme="light"] .product-section.tarot {
-      background:
-        radial-gradient(ellipse 50% 40% at 85% 10%, rgba(106,103,152,0.10), transparent 60%),
-        radial-gradient(ellipse 50% 50% at 10% 90%, rgba(166,124,61,0.08), transparent 60%),
-        var(--t-bg);
+      background: var(--nura-light-tarot-section-grad, #F4F1EA);
     }
 
-    [data-theme="light"] .matrix .inside-card { background: rgba(234,240,235,0.5); }
-    [data-theme="light"] .tarot .inside-card { background: rgba(234,231,222,0.5); }
+    /* ── INSIDE CARDS ────────────────────────────────────── */
+    [data-theme="light"] .matrix .inside-card {
+      background: var(--nura-light-matrix-card-bg);
+      border-color: var(--nura-light-matrix-card-border);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    [data-theme="light"] .matrix .inside-card:hover {
+      border-color: rgba(155, 122, 47, 0.45);
+    }
+    [data-theme="light"] .tarot .inside-card {
+      background: var(--nura-light-tarot-card-bg);
+      border-color: var(--nura-light-tarot-card-border);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+    [data-theme="light"] .tarot .inside-card:hover {
+      border-color: rgba(106, 103, 152, 0.40);
+    }
+    [data-theme="light"] .inside-card h4 { color: var(--nura-light-ink); }
+    [data-theme="light"] .inside-card p  { color: var(--nura-light-ink-soft); }
 
+    /* ── GLYPH BADGES ────────────────────────────────────── */
+    [data-theme="light"] .matrix .ic-glyph {
+      background: var(--nura-light-matrix-glyph-bg);
+      color: var(--nura-light-matrix-glyph-color);
+    }
+    [data-theme="light"] .tarot .ic-glyph {
+      background: var(--nura-light-tarot-glyph-bg);
+      color: var(--nura-light-tarot-glyph-color);
+    }
+
+    /* ── STEPS ───────────────────────────────────────────── */
+    [data-theme="light"] .matrix .step-num { color: var(--nura-light-matrix-accent); opacity: 1; }
+    [data-theme="light"] .tarot .step-num  { color: var(--nura-light-tarot-accent);  opacity: 1; }
+    [data-theme="light"] .step h4 { color: var(--nura-light-ink); }
+    [data-theme="light"] .step p  { color: var(--nura-light-ink-soft); }
+
+    /* ── OFFER BOX ───────────────────────────────────────── */
+    [data-theme="light"] .matrix .offer {
+      background: linear-gradient(160deg, #D2EAD8, #E4F0E7);
+      border-color: var(--nura-light-matrix-offer-border);
+    }
+    [data-theme="light"] .tarot .offer {
+      background: linear-gradient(160deg, #EDE5D0, #F4EFE4);
+      border-color: var(--nura-light-tarot-offer-border);
+    }
+    [data-theme="light"] .offer h3       { color: var(--nura-light-ink); }
+    [data-theme="light"] .offer .offer-blurb { color: var(--nura-light-ink-soft); }
+    [data-theme="light"] .offer-features li  { color: var(--nura-light-ink-soft); }
+
+    [data-theme="light"] .matrix .offer-features li::before {
+      background: var(--nura-light-matrix-glyph-bg);
+      color: var(--nura-light-matrix-glyph-color);
+    }
+    [data-theme="light"] .tarot .offer-features li::before {
+      background: var(--nura-light-tarot-glyph-bg);
+      color: var(--nura-light-tarot-glyph-color);
+    }
+
+    /* ── OFFER-BUY (price block) ─────────────────────────── */
+    [data-theme="light"] .matrix .offer-buy,
+    [data-theme="light"] .tarot .offer-buy {
+      background: var(--nura-light-offer-buy-bg);
+      border-color: var(--nura-light-offer-buy-border);
+    }
+    [data-theme="light"] .matrix .ob-price { color: var(--nura-light-matrix-accent); }
+    [data-theme="light"] .tarot .ob-price  { color: var(--nura-light-tarot-accent); }
+    [data-theme="light"] .ob-price small   { color: var(--nura-light-price-sub); }
+    [data-theme="light"] .ob-meta          { color: var(--nura-light-ink-muted); }
+
+    /* ── REPORT SAMPLE ───────────────────────────────────── */
     [data-theme="light"] .report-sample {
       background:
-        radial-gradient(ellipse 45% 50% at 80% 20%, rgba(74,122,90,0.08), transparent 60%),
-        radial-gradient(ellipse 40% 50% at 10% 90%, rgba(155,122,47,0.06), transparent 60%),
-        var(--m-bg);
+        radial-gradient(ellipse 45% 50% at 80% 20%, rgba(74, 122, 90, 0.08), transparent 60%),
+        radial-gradient(ellipse 40% 50% at 10% 90%, rgba(155, 122, 47, 0.06), transparent 60%),
+        var(--nura-light-matrix-section-bg);
     }
     [data-theme="light"] .report-page {
-      background: linear-gradient(160deg, #DEE8E0 0%, #EAF0EB 100%);
+      background: linear-gradient(160deg, #D2E0D6 0%, #E4EDE7 100%);
+      border-color: rgba(74, 122, 90, 0.20);
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.10);
     }
+    [data-theme="light"] .report-page .rp-section-tag { color: var(--nura-light-matrix-glyph-color); }
 
+    /* ── PROBLEM BLOCK ───────────────────────────────────── */
+    [data-theme="light"] .problem { background: var(--bg); }
+    [data-theme="light"] .problem h4 { color: var(--nura-light-ink); }
+    [data-theme="light"] .problem p  { color: var(--nura-light-ink-soft); }
+
+    /* ── REVIEWS ─────────────────────────────────────────── */
     [data-theme="light"] .review {
-      background: rgba(28,24,20,0.03);
+      background: rgba(28, 24, 20, 0.03);
+      border-color: var(--nura-light-line);
     }
 
+    /* ── FAQ ─────────────────────────────────────────────── */
     [data-theme="light"] .faq-tabs {
-      background: rgba(28,24,20,0.05);
-      border: 1px solid var(--line);
+      background: rgba(28, 24, 20, 0.05);
+      border: 1px solid var(--nura-light-line);
     }
     [data-theme="light"] .faq-tab.active {
       background: #1C1814;
       color: #F7F3ED;
     }
-
     [data-theme="light"] .faq-item {
-      background: rgba(28,24,20,0.025);
+      background: rgba(28, 24, 20, 0.025);
     }
 
-    [data-theme="light"] .nav-burger {
-      border-color: rgba(28,24,20,0.20);
-    }
-    [data-theme="light"] .nav-burger span {
-      background: var(--ink);
-    }
+    /* ── COMBO ───────────────────────────────────────────── */
+    [data-theme="light"] .combo-visual .cv-x { background: var(--bg-soft); }
 
-    [data-theme="light"] .combo-visual .cv-x {
-      background: var(--bg-soft);
-    }
-
-    [data-theme="light"] footer {
-      border-top: 1px solid var(--line);
-    }
-
-    /* Theme toggle */
-    .theme-toggle {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      background: transparent;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--ink-mute);
-      font-family: 'DM Sans', system-ui, sans-serif;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-    .theme-toggle:hover {
-      border-color: var(--m-accent);
-    }
-    .tt-icon {
-      font-size: 14px;
-      line-height: 1;
-    }
-    .tt-label {
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
+    /* ── THEME TOGGLE ────────────────────────────────────── */
     [data-theme="light"] .theme-toggle {
-      border-color: rgba(155,122,47,0.25);
-      color: var(--ink-mute);
+      border-color: rgba(155, 122, 47, 0.25);
+      color: var(--nura-light-ink-muted);
     }
-    [data-theme="light"] .theme-toggle:hover {
-      color: var(--m-accent);
-    }
+    [data-theme="light"] .theme-toggle:hover { color: var(--nura-light-matrix-accent); }
 
+    /* ── FOOTER ──────────────────────────────────────────── */
+    [data-theme="light"] footer { border-top: 1px solid var(--nura-light-line); }
+
+    /* ── MOBILE HERO OVERRIDE ────────────────────────────── */
     @media (max-width: 980px) {
       [data-theme="light"] .hero::before {
         background: linear-gradient(
           to top,
-          rgba(247,243,237,0.97) 0%,
-          rgba(247,243,237,0.88) 40%,
-          rgba(247,243,237,0.40) 70%,
-          rgba(247,243,237,0.10) 100%
+          rgba(247, 243, 237, 0.97) 0%,
+          rgba(247, 243, 237, 0.88) 40%,
+          rgba(247, 243, 237, 0.40) 70%,
+          rgba(247, 243, 237, 0.10) 100%
         );
       }
     }

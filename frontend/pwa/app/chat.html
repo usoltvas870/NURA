@@ -38,6 +38,69 @@
       --bg-alpha:rgba(247,243,237,.92);
     }
     [data-theme="light"] body { background:var(--bg); color:var(--ink); }
+
+    /* ── LIGHT THEME — PWA ──────────────────────────────────── */
+    [data-theme="light"] .header {
+      background: rgba(247, 243, 237, 0.92);
+      border-bottom: 1px solid rgba(28, 24, 20, 0.10);
+    }
+    [data-theme="light"] .header .nura-name,
+    [data-theme="light"] .header .logo,
+    [data-theme="light"] .header .header-title { color: #1C1814; }
+    [data-theme="light"] .header .nura-avatar  { color: #9B7A2F; }
+
+    [data-theme="light"] .tabbar {
+      background: rgba(247, 243, 237, 0.92);
+      border-top: 1px solid rgba(28, 24, 20, 0.10);
+    }
+    [data-theme="light"] .tab-item { color: rgba(28, 24, 20, 0.45); }
+    [data-theme="light"] .tab-item.active { color: #A67C3D; }
+    [data-theme="light"] .tabbar .tab-item.active .ti { color: #A67C3D; }
+    [data-theme="light"] .tabbar .tab-item:not(.active) .ti {
+      color: rgba(28, 24, 20, 0.40);
+      opacity: 1;
+    }
+
+    [data-theme="light"] .messages-area { background: #F7F3ED; }
+    [data-theme="light"] .bubble.user {
+      background: #9B7A2F;
+      color: #F7F3ED;
+    }
+    [data-theme="light"] .bubble.nura {
+      background: #FFFFFF;
+      border: 1px solid rgba(28, 24, 20, 0.10);
+      color: #1C1814;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+    }
+    [data-theme="light"] .empty-icon  { color: #9B7A2F; }
+    [data-theme="light"] .empty-text  { color: rgba(28, 24, 20, 0.55); }
+    [data-theme="light"] .hint-chip {
+      background: #FFFFFF;
+      border: 1px solid rgba(28, 24, 20, 0.12);
+      color: #1C1814;
+    }
+    [data-theme="light"] .hint-chip:hover {
+      border-color: rgba(155, 122, 47, 0.35);
+      color: #9B7A2F;
+    }
+    [data-theme="light"] .input-area {
+      background: rgba(247, 243, 237, 0.95);
+      border-top: 1px solid rgba(28, 24, 20, 0.10);
+    }
+    [data-theme="light"] .chat-input {
+      background: #FFFFFF;
+      border: 1px solid rgba(28, 24, 20, 0.15);
+      color: #1C1814;
+    }
+    [data-theme="light"] .chat-input::placeholder { color: rgba(28, 24, 20, 0.38); }
+    [data-theme="light"] .send-btn {
+      background: #9B7A2F;
+      color: #F7F3ED;
+    }
+    [data-theme="light"] .send-btn:disabled {
+      background: rgba(28, 24, 20, 0.10);
+      color: rgba(28, 24, 20, 0.35);
+    }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;-webkit-tap-highlight-color:transparent}
     body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);

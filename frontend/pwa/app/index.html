@@ -38,6 +38,67 @@
       --bg-alpha:rgba(247,243,237,.92);
     }
     [data-theme="light"] body { background:var(--bg); color:var(--ink); }
+
+    /* ── LIGHT THEME — PWA ──────────────────────────────────── */
+    [data-theme="light"] .header {
+      background: rgba(247, 243, 237, 0.92);
+      border-bottom: 1px solid rgba(28, 24, 20, 0.10);
+    }
+    [data-theme="light"] .header .nura-name,
+    [data-theme="light"] .header .logo,
+    [data-theme="light"] .header .header-title { color: #1C1814; }
+    [data-theme="light"] .header .nura-avatar  { color: #9B7A2F; }
+
+    [data-theme="light"] .tabbar {
+      background: rgba(247, 243, 237, 0.92);
+      border-top: 1px solid rgba(28, 24, 20, 0.10);
+    }
+    [data-theme="light"] .tab-item { color: rgba(28, 24, 20, 0.45); }
+    [data-theme="light"] .tab-item.active { color: #A67C3D; }
+    [data-theme="light"] .tabbar .tab-item.active .ti { color: #A67C3D; }
+    [data-theme="light"] .tabbar .tab-item:not(.active) .ti {
+      color: rgba(28, 24, 20, 0.40);
+      opacity: 1;
+    }
+
+    [data-theme="light"] .greeting-hi { color: #1C1814; }
+    [data-theme="light"] .badge {
+      background: rgba(74, 122, 90, 0.18);
+      color: #3A6848;
+      border-color: rgba(74, 122, 90, 0.25);
+    }
+    [data-theme="light"] .matrix-card {
+      background: #E2ECE6;
+      border-color: rgba(74, 122, 90, 0.25);
+    }
+    [data-theme="light"] .matrix-card .card-eyebrow { color: rgba(28, 24, 20, 0.50); }
+    [data-theme="light"] .matrix-card .arcane-num   { color: #9B7A2F; }
+    [data-theme="light"] .matrix-card .arcane-name  { color: #9B7A2F; }
+    [data-theme="light"] .matrix-card .matrix-desc  { color: rgba(28, 24, 20, 0.68); }
+    [data-theme="light"] .matrix-card .btn-card {
+      background: rgba(155, 122, 47, 0.12);
+      color: #9B7A2F;
+      border-color: rgba(155, 122, 47, 0.25);
+    }
+    [data-theme="light"] .day-card {
+      background: #FFFFFF;
+      border-color: rgba(28, 24, 20, 0.10);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    }
+    [data-theme="light"] .day-symbol { color: #A67C3D; }
+    [data-theme="light"] .day-name   { color: #1C1814; }
+    [data-theme="light"] .day-phrase { color: rgba(28, 24, 20, 0.62); }
+    [data-theme="light"] .quick-btn {
+      background: #FFFFFF;
+      border-color: rgba(28, 24, 20, 0.12);
+      color: #1C1814;
+    }
+    [data-theme="light"] .quick-btn:hover {
+      border-color: rgba(155, 122, 47, 0.35);
+      color: #9B7A2F;
+    }
+    [data-theme="light"] .sec-title { color: #1C1814; }
+    [data-theme="light"] .sec-link  { color: #9B7A2F; }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html{-webkit-tap-highlight-color:transparent}
     body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);
