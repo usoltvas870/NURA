@@ -215,8 +215,12 @@
       letter-spacing:.02em;text-decoration:none;transition:color .2s}
     .tab-item.active{color:var(--m-accent)}
     .tab-icon{font-size:17px;line-height:1}
+.tabbar .ti{font-size:22px;line-height:1;display:block;margin-bottom:4px}
+.tabbar .tab-item.active .ti{color:var(--m-accent)}
+.tabbar .tab-item:not(.active) .ti{color:var(--ink-faint);opacity:0.7}
   </style>
   <link rel="stylesheet" href="/static/nura-ds.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
 </head>
 <body>
 
@@ -426,16 +430,16 @@
 
 <nav class="tabbar">
   <a class="tab-item" href="index.html">
-    <span class="tab-icon">✦</span><span>Матрица</span>
+    <i class="ti ti-layout-grid"></i><span>Матрица</span>
   </a>
   <a class="tab-item" href="tarot.html">
-    <span class="tab-icon">🌒</span><span>Таро</span>
+    <i class="ti ti-cards"></i><span>Таро</span>
   </a>
   <a class="tab-item" href="chat.html">
-    <span class="tab-icon">💬</span><span>Чат</span>
+    <i class="ti ti-message-circle"></i><span>Чат</span>
   </a>
   <a class="tab-item active" href="profile.html">
-    <span class="tab-icon">👤</span><span>Профиль</span>
+    <i class="ti ti-user-circle"></i><span>Профиль</span>
   </a>
 </nav>
 
