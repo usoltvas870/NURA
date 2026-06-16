@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **11.06.2026 — Сессия 39** — DeepSeek V4 Flash
+> Последнее обновление: **16.06.2026 — Сессия 40** — DeepSeek V4 Flash
 
 ---
 
@@ -296,6 +296,12 @@ docker compose restart bot celery-worker
 ---
 
 ## 📅 История сессий (хронология)
+
+- **16.06.2026 — Сессия 40** — DeepSeek V4 Flash
+  - Светлая тема: токены из Claude Design применены в nura-ds.css (34 токена)
+  - Лендинг: [data-theme="light"] переписан, захардкоженные rgba → CSS-переменные
+  - PWA: hero-card тёмная, spread-cards белые, matrix-card sage, day-card белая
+  - Статус светлой темы: ✅ Готово (было 🟡)
 
 - **24.05.2026 — Сессия 7** — DeepSeek V4 Pro
   - Стратегический бенчмарк: парсинг 8 конкурентов + 956 отзывов → `docs/benchmark-competitors.md`
