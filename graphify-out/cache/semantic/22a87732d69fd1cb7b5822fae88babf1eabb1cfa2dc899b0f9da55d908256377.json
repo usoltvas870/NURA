@@ -1,0 +1,1 @@
+{"nodes": [{"id": "nura_app_core_prompts_cot_instruction_file", "label": "Chain of Thought Instruction", "file_type": "document", "source_file": "nura_app/core/prompts/cot_instruction.txt", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}

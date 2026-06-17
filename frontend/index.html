@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NURA — Матрица Судьбы и Таро</title>
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function(m,e,t,r,i,k,a){
+        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+        m[i].l=1*new Date();
+        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+    })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=109200181', 'ym');
+    ym(109200181, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  :root {
+    --bg:          #FAF9F5;
+    --bg-alt:      #F3F1EB;
+    --surface:     #FFFFFF;
+    --border:      rgba(44, 42, 41, 0.07);
+    --border-m:    rgba(44, 42, 41, 0.15);
+
+    --accent-gold:   #C2A476;
+    --accent-terra:  #B87355;
+    --accent-sage:   #7C8B7A;
+
+    --text-main:   #2C2A29;
+    --text-muted:  #6E6A66;
+    --text-soft:   #9C9893;
+
+    --font-serif:  'Playfair Display', Georgia, serif;
+    --font-sans:   'Manrope', system-ui, sans-serif;
+
+    --r-sm:  6px;
+    --r-md:  12px;
+    --r-lg:  20px;
+    --r-xl:  32px;
+
+    --transition: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 48px;
+    display: table;
+    width: 100%;
+    border-bottom: 1px solid transparent;
+    transition: background 0.4s var(--transition), border-color 0.4s var(--transition), padding 0.4s var(--transition);
+  }
+  nav.scrolled {
+    background: rgba(250, 249, 245, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-color: var(--border);
+    padding: 14px 48px;
+  }
+  .nav-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .nav-logo {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 0.18em;
+    text-decoration: none;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .nav-logo-icon {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--accent-terra);
+    transform: rotate(45deg);
+    position: relative;
+  }
+  .nav-logo-icon::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    background: var(--accent-gold);
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    transition: color 0.25s ease;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0; width: 0; height: 1px;
+    background: var(--accent-terra);
+    transition: width 0.25s var(--transition);
+  }
+  .nav-links a:hover { color: var(--text-main); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-cta {
+    background: var(--text-main);
+    color: var(--bg) !important;
+    padding: 10px 22px;
+    border-radius: var(--r-sm);
+    font-weight: 600 !important;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 14px rgba(44, 42, 41, 0.08);
+    transition: background 0.25s ease, transform 0.25s ease !important;
+  }
+  .nav-cta::after { display: none !important; }
+  .nav-cta:hover { background: var(--accent-terra) !important; transform: translateY(-1px); }
+
+  #nura-particles {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .section {
+    padding: 96px 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .section-alt { background-color: var(--bg-alt); }
+  .container { max-width: 1040px; margin: 0 auto; }
+  .container-narrow { max-width: 680px; margin: 0 auto; }
+  .text-center { text-align: center; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent-terra);
+    margin-bottom: 16px;
+    display: inline-block;
+  }
+  .section-title {
+    font-family: var(--font-serif);
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 400;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    color: var(--text-main);
+    margin-bottom: 16px;
+  }
+  .section-title em { font-style: italic; color: var(--accent-gold); }
+  .section-sub {
+    font-size: 17px;
+    color: var(--text-muted);
+    max-width: 520px;
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  .hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 140px 64px 100px;
+    position: relative;
+    overflow: hidden;
+    gap: 48px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .hero-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    position: relative;
+    z-index: 2;
+  }
+  .hero-right {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  .hero-image { width: 100%; max-width: 480px; height: auto; display: block; }
+  .hero-image-glow {
+    position: absolute;
+    inset: -60px;
+    background: radial-gradient(ellipse at 50% 45%, rgba(194, 164, 118, 0.35) 0%, rgba(194, 164, 118, 0.12) 50%, transparent 72%);
+    pointer-events: none;
+    filter: blur(40px);
+    z-index: -1;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-terra);
+    background: rgba(184, 115, 85, 0.08);
+    border: 0.5px solid rgba(184, 115, 85, 0.2);
+    padding: 6px 16px;
+    border-radius: 40px;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent-terra);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.7); }
+  }
+  .hero-title {
+    font-family: var(--font-serif);
+    font-size: clamp(34px, 4.5vw, 62px);
+    font-weight: 400;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .hero-title em { font-style: italic; color: var(--accent-terra); }
+  .hero-sub {
+    font-size: clamp(15px, 1.6vw, 18px);
+    color: var(--text-muted);
+    max-width: 480px;
+    margin: 0 0 40px;
+    line-height: 1.6;
+    font-weight: 300;
+  }
+  .hero-sub strong { color: var(--text-main); font-weight: 500; }
+  .hero-cta-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    position: relative;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--text-main);
+    color: var(--bg);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 32px;
+    border-radius: var(--r-sm);
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s var(--transition);
+    letter-spacing: 0.02em;
+    box-shadow: 0 10px 30px rgba(44, 42, 41, 0.1);
+  }
+  .btn-primary:hover { background: var(--accent-terra); transform: translateY(-2px); box-shadow: 0 14px 35px rgba(184, 115, 85, 0.2); }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 14px 24px;
+    border-radius: var(--r-sm);
+    text-decoration: none;
+    border: 1px solid var(--border-m);
+    cursor: pointer;
+    transition: all 0.3s var(--transition);
+  }
+  .btn-ghost:hover { color: var(--text-main); border-color: var(--text-main); transform: translateY(-2px); }
+  .hero-note {
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--text-soft);
+    letter-spacing: 0.02em;
+  }
+  .hero-note span { color: var(--text-muted); }
+
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 52px;
+  }
+  .pain-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px 36px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.4s var(--transition), box-shadow 0.4s var(--transition), border-color 0.4s var(--transition);
+  }
+  .pain-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent-gold);
+    box-shadow: 0 16px 40px rgba(194, 164, 118, 0.06);
+  }
+  .pain-icon {
+    display: flex;
+    margin-bottom: 20px;
+    width: 40px;
+    height: 40px;
+    background: rgba(194, 164, 118, 0.08);
+    border: 0.5px solid rgba(194, 164, 118, 0.18);
+    align-items: center;
+    justify-content: center;
+  }
+  .pain-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+  .pain-body {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+
+  .bridge {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 72px 24px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+  .bridge-text {
+    font-family: var(--font-serif);
+    font-size: clamp(20px, 3vw, 30px);
+    font-style: italic;
+    color: var(--text-muted);
+    max-width: 680px;
+    margin: 0 auto;
+    line-height: 1.55;
+  }
+  .bridge-text strong { font-style: normal; color: var(--text-main); }
+  .bridge-text em { font-style: italic; color: var(--accent-terra); }
+
+  .preview-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+    gap: 24px;
+  }
+  .preview-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .preview-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 36px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .preview-card:hover {
+    border-color: var(--accent-gold);
+    box-shadow: 0 10px 30px rgba(44, 42, 41, 0.03);
+  }
+  .preview-card-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent-sage);
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+  .preview-card-title {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 14px;
+    line-height: 1.2;
+  }
+  .preview-card-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .preview-card-body strong { color: var(--text-main); font-weight: 500; }
+  .preview-card-foot {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .product-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-soft);
+    padding: 12px 20px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .tab-btn.active { color: var(--accent-terra); border-bottom-color: var(--accent-terra); }
+  .tab-btn:hover:not(.active) { color: var(--text-muted); }
+  .product-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .product-price-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 36px;
+    position: sticky;
+    top: 100px;
+    box-shadow: 0 24px 60px rgba(44, 42, 41, 0.03);
+  }
+  .price-tag { display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px; }
+  .price-main {
+    font-family: var(--font-serif);
+    font-size: 48px;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1;
+  }
+  .price-period { font-size: 14px; color: var(--text-muted); }
+  .price-sub {
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-bottom: 28px;
+  }
+  .feature-list { list-style: none; margin-bottom: 28px; }
+  .feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-muted);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.45;
+  }
+  .feature-list li:last-child { border-bottom: none; }
+  .feature-list li::before {
+    content: '✓';
+    color: var(--accent-sage);
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+  .product-sections { display: flex; flex-direction: column; gap: 8px; margin-top: 36px; }
+  .ps-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 18px 22px;
+    cursor: pointer;
+    transition: all 0.3s var(--transition);
+  }
+  .ps-item:hover { border-color: var(--border-m); }
+  .ps-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .ps-icon { font-size: 16px; flex-shrink: 0; color: var(--accent-gold); }
+  .ps-title { font-size: 14px; font-weight: 600; color: var(--text-main); flex: 1; }
+  .ps-arrow {
+    font-size: 12px;
+    color: var(--text-soft);
+    transition: transform 0.3s;
+  }
+  .ps-item.open .ps-arrow { transform: rotate(180deg); color: var(--accent-terra); }
+  .ps-item.open { border-color: var(--accent-gold); }
+  .ps-body {
+    display: none;
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.65;
+    padding-top: 12px;
+  }
+  .ps-item.open .ps-body { display: block; }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    margin-top: 64px;
+    position: relative;
+  }
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 12%;
+    right: 12%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-m), var(--border-m), transparent);
+  }
+  .step { text-align: center; padding: 0 20px; }
+  .step-num {
+    width: 48px;
+    height: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border-m);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--text-main);
+    position: relative;
+    z-index: 1;
+  }
+  .step-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-main);
+  }
+  .step-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .testi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 52px;
+  }
+  .testi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    transition: all 0.3s ease;
+  }
+  .testi-card:hover { border-color: var(--accent-gold); }
+  .testi-stars { color: var(--accent-gold); font-size: 14px; letter-spacing: 2px; }
+  .testi-text {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    flex: 1;
+  }
+  .testi-text em { font-style: italic; color: var(--text-main); }
+  .testi-author {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .testi-avatar {
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+  .testi-name { font-size: 13px; font-weight: 600; color: var(--text-main); }
+  .testi-meta { font-size: 12px; color: var(--text-soft); }
+  .testi-tag {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    background: var(--bg-alt);
+    color: var(--text-muted);
+  }
+
+  .faq-list { margin-top: 48px; display: flex; flex-direction: column; gap: 8px; }
+  .faq-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .faq-item:hover { border-color: var(--border-m); }
+  .faq-q {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 500;
+    text-align: left;
+    padding: 20px 24px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    line-height: 1.4;
+  }
+  .faq-q-icon {
+    width: 20px; height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--text-soft);
+    flex-shrink: 0;
+    transition: transform 0.3s, color 0.3s;
+  }
+  .faq-item.open .faq-q-icon { transform: rotate(45deg); color: var(--accent-terra); }
+  .faq-a {
+    display: none;
+    padding: 0 24px 20px;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .faq-item.open .faq-a { display: block; }
+
+  .final-cta {
+    padding: 120px 24px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .final-cta-x { }
+  .final-cta::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 700px; height: 400px;
+    background: radial-gradient(ellipse, rgba(194, 164, 118, 0.12) 0%, rgba(184, 115, 85, 0.08) 50%, transparent 70%);
+    filter: blur(60px);
+    pointer-events: none;
+  }
+  .final-cta-title {
+    font-family: var(--font-serif);
+    font-size: clamp(30px, 5vw, 54px);
+    font-weight: 400;
+    line-height: 1.1;
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+    position: relative;
+  }
+  .final-cta-title em { font-style: italic; color: var(--accent-gold); }
+  .final-cta-sub {
+    font-size: 17px;
+    color: var(--text-muted);
+    max-width: 480px;
+    margin: 0 auto 44px;
+    line-height: 1.6;
+    position: relative;
+  }
+  .final-cta-actions {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  .price-pill {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-top: 18px;
+    justify-content: center;
+  }
+  .price-pill span { display: flex; align-items: center; gap: 5px; color: var(--text-muted); }
+  .price-pill .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-soft); }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 36px 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    background: var(--surface);
+    position: relative;
+    z-index: 1;
+  }
+  .foot-logo { font-family: var(--font-serif); font-size: 18px; color: var(--text-main); letter-spacing: 0.08em; text-decoration: none; }
+  .foot-links { display: flex; gap: 24px; list-style: none; }
+  .foot-links a {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .foot-links a:hover { color: var(--text-main); }
+  .foot-copy { font-size: 12px; color: var(--text-soft); }
+
+  .fade-in {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .fade-in.visible { opacity: 1; transform: none; }
+
+  .section-title,
+  .section-sub,
+  .bridge-text {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .section-title.visible,
+  .section-sub.visible,
+  .bridge-text.visible { opacity: 1; transform: none; }
+
+  .step-num { transition: background 0.3s, border-color 0.3s, box-shadow 0.3s; }
+  .step.visible .step-num {
+    background: rgba(194, 164, 118, 0.12);
+    border-color: rgba(194, 164, 118, 0.4);
+  }
+
+  @media (max-width: 1024px) {
+    nav { padding: 20px 24px; }
+    nav.scrolled { padding: 12px 24px; }
+    .hero { grid-template-columns: 1fr; padding: 120px 24px 80px; text-align: center; gap: 0; }
+    .hero-left { align-items: center; text-align: center; }
+    .hero-right { display: none; }
+    .hero-sub { margin: 0 auto 36px; }
+    .hero-cta-group { justify-content: center; }
+    .pain-grid { grid-template-columns: 1fr; }
+    .preview-cards { grid-template-columns: 1fr; }
+    .product-layout { grid-template-columns: 1fr; }
+    .product-price-block { position: static; }
+    .steps { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+    .steps::before { display: none; }
+    .testi-grid { grid-template-columns: 1fr; }
+    footer { flex-direction: column; text-align: center; }
+    .foot-links { flex-wrap: wrap; justify-content: center; }
+  }
+
+  @media (max-width: 768px) {
+    .section { padding: 80px 16px; }
+    .nav-links { display: none; }
+    .pain-grid { grid-template-columns: 1fr; gap: 12px; }
+    .preview-cards { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: repeat(2, 1fr); gap: 32px 16px; }
+    .testi-grid { grid-template-columns: 1fr; }
+    footer { flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="nav-container">
+    <a href="#" class="nav-logo"><span class="nav-logo-icon"></span>NURA</a>
+    <ul class="nav-links">
+      <li><a href="#matrix">Матрица</a></li>
+      <li><a href="#tarot">Таро</a></li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="https://nura-ai.ru/mini.html" class="nav-cta">Попробовать бесплатно</a></li>
+    </ul>
+  </div>
+</nav>
+
+<canvas id="nura-particles"></canvas>
+
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">AI · Самопознание</div>
+    <h1 class="hero-title">
+      Почему одни сценарии<br>
+      <em>повторяются снова</em> —<br>и как их остановить
+    </h1>
+    <p class="hero-sub">
+      NURA анализирует твою дату рождения и показывает, <strong>где именно застряли деньги, отношения и энергия</strong> — и что конкретно с этим делать.
+    </p>
+    <div class="hero-cta-group">
+      <a href="https://nura-ai.ru/mini.html" class="btn-primary">✨ Начать бесплатно</a>
+      <a href="#preview" class="btn-ghost">Пример отчёта →</a>
+    </div>
+    <p class="hero-note">Только дата рождения · <span>без регистрации</span> · 2 минуты</p>
+  </div>
+  <div class="hero-right">
+    <div class="hero-image-glow"></div>
+    <img src="Nura%20-4x.webp" alt="NURA — персонализированный анализ личности" class="hero-image" />
+  </div>
+</section>
+
+<section class="section" id="pain">
+  <div class="container">
+    <span class="section-label">Узнаёшь себя?</span>
+    <h2 class="section-title">Это не характер.<br>Это <em>алгоритм</em>, который можно переписать.</h2>
+    <p class="section-sub">У всего, что повторяется в твоей жизни, есть внутренняя логика. NURA помогает её увидеть.</p>
+
+    <div class="pain-grid">
+      <div class="pain-card fade-in">
+        <span class="pain-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="9" cy="11" r="5" stroke="#C2A476" stroke-width="1.2"/>
+            <circle cx="19" cy="11" r="5" stroke="#C2A476" stroke-width="1.2"/>
+            <path d="M4 24c0-3.314 2.686-6 6-6h8c3.314 0 6 2.686 6 6" stroke="#C2A476" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M14 8v6M11 11h6" stroke="#C2A476" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+          </svg>
+        </span>
+        <h3 class="pain-title">Ты снова в тех же отношениях</h3>
+        <p class="pain-body">Другой человек — та же роль, тот же сценарий, тот же момент, когда всё разваливается. Ты уже понимаешь, что дело не в них. Но где именно в тебе живёт эта программа — непонятно.</p>
+      </div>
+      <div class="pain-card fade-in">
+        <span class="pain-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="18" width="4" height="6" rx="1" stroke="#C2A476" stroke-width="1.2"/>
+            <rect x="12" y="12" width="4" height="12" rx="1" stroke="#C2A476" stroke-width="1.2"/>
+            <rect x="20" y="7" width="4" height="17" rx="1" stroke="#C2A476" stroke-width="1.2"/>
+            <path d="M6 14l6-5 6 3 6-7" stroke="#C2A476" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="24" cy="5" r="1.5" fill="#C2A476" opacity="0.5"/>
+          </svg>
+        </span>
+        <h3 class="pain-title">Больше усилий — та же цифра</h3>
+        <p class="pain-body">Ты делаешь больше, чем год назад. Встаёшь раньше, берёшь больше. А результат топчется на месте. Это не лень и не отсутствие таланта — у тебя просто не та стратегия для твоей природы.</p>
+      </div>
+      <div class="pain-card fade-in">
+        <span class="pain-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="14" cy="14" r="9" stroke="#C2A476" stroke-width="1.2"/>
+            <circle cx="14" cy="14" r="3" stroke="#C2A476" stroke-width="1.2"/>
+            <path d="M14 5v3M14 20v3M5 14h3M20 14h3" stroke="#C2A476" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+            <path d="M14 14l4-4" stroke="#C2A476" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <h3 class="pain-title">Потенциал есть — вектора нет</h3>
+        <p class="pain-body">Внутри отчётливое «я могу больше». Но куда именно идти — не ясно. Пробуешь разное, устаёшь не от работы, а от того, что непонятно, правильное ли это вообще направление.</p>
+      </div>
+      <div class="pain-card fade-in">
+        <span class="pain-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M14 4C8.477 4 4 8.477 4 14s4.477 10 10 10 10-4.477 10-10S19.523 4 14 4z" stroke="#C2A476" stroke-width="1.2"/>
+            <path d="M14 9v6" stroke="#C2A476" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="14" cy="18.5" r="1" fill="#C2A476"/>
+            <path d="M9 4.5L6 2M19 4.5l3-2.5" stroke="#C2A476" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+          </svg>
+        </span>
+        <h3 class="pain-title">Тревога — не эмоция, а фон</h3>
+        <p class="pain-body">Принимаешь решения — и тут же сомневаешься. Не из-за трусости — из-за отсутствия внутренней точки опоры. Хочется наконец знать про себя достаточно, чтобы не спрашивать всех вокруг.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge">
+  <p class="bridge-text">
+    У каждого из этих сценариев есть <strong>структура</strong>.
+    Матрица Судьбы переводит дату рождения в числовой код личности —
+    и показывает, где именно <em>зашит этот алгоритм</em>.
+    Не чтобы смириться — чтобы переписать.
+  </p>
+</div>
+
+<section class="section" id="preview">
+  <div class="container">
+    <div class="preview-head">
+      <div>
+        <span class="section-label">Из реального отчёта</span>
+        <h2 class="section-title">Не общие фразы.<br><em>Конкретно про тебя.</em></h2>
+      </div>
+      <a href="https://nura-ai.ru/sample-report.html" class="btn-ghost">Полный образец →</a>
+    </div>
+
+    <div class="preview-cards">
+      <div class="preview-card fade-in">
+        <span class="preview-card-tag">Архетип личности · с. 04</span>
+        <h3 class="preview-card-title">Жрица в центре матрицы</h3>
+        <p class="preview-card-body">
+          Твой главный инструмент — внутреннее знание, а не внешняя экспертиза. Ты улавливаешь контекст быстрее, чем можешь его объяснить словами — и <strong>часто обесцениваешь именно это качество</strong>, считая «настоящим» только то, что можно доказать.
+        </p>
+        <div class="preview-card-foot">
+          <span>NURA · Матрица Судьбы</span>
+          <span>стр. 04 из 38</span>
+        </div>
+      </div>
+      <div class="preview-card fade-in">
+        <span class="preview-card-tag">Деньги и карьера · с. 11</span>
+        <h3 class="preview-card-title">Финансовый потолок</h3>
+        <p class="preview-card-body">
+          Ты предлагаешь рынку количество, когда твоя природная стратегия — <strong>качество и высокий чек</strong>. Следующий шаг — поднять цену вдвое и сократить число клиентов. Это не риск, это возврат к естественной схеме твоей матрицы.
+        </p>
+        <div class="preview-card-foot">
+          <span>NURA · Матрица Судьбы</span>
+          <span>стр. 11 из 38</span>
+        </div>
+      </div>
+      <div class="preview-card fade-in">
+        <span class="preview-card-tag">Отношения · с. 19</span>
+        <h3 class="preview-card-title">Сценарий пары</h3>
+        <p class="preview-card-body">
+          Ты выбираешь партнёров, которым «нужно помочь раскрыться». Через 1–2 года это превращается в усталость. Точка пересборки — заметить, что в начале отношений ты ищешь <strong>не равного, а проект</strong>.
+        </p>
+        <div class="preview-card-foot">
+          <span>NURA · Матрица Судьбы</span>
+          <span>стр. 19 из 38</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt" id="matrix">
+  <div class="container">
+    <span class="section-label">Два продукта · один бот</span>
+    <h2 class="section-title">Выбери свой<br><em>формат</em></h2>
+    <p class="section-sub">Матрица — один раз и навсегда. Таро — ежедневная практика. Можно начать с любого.</p>
+
+    <div class="product-tabs" style="margin-top: 40px;">
+      <button class="tab-btn active" onclick="switchTab('matrix', this)">✦ Матрица Судьбы — 890 ₽</button>
+      <button class="tab-btn" onclick="switchTab('tarot', this)" id="tarot-tab">🃏 Таро-ритуалы — 390 ₽/мес</button>
+    </div>
+
+    <div id="tab-matrix" class="product-layout">
+      <div class="product-info">
+        <h3 class="section-title" style="font-size: 28px; margin-bottom: 14px;">Личный цифровой<br>чертёж по дате рождения</h3>
+        <p style="font-size: 15px; color: var(--text-muted); line-height: 1.65; margin-bottom: 32px;">
+          22 архетипа Старших Арканов, разложенных на пересечениях твоей матрицы. Алгоритм + AI-интерпретация — не сухой текст из методичек, а живой разбор именно про тебя.
+        </p>
+
+        <div class="product-sections">
+          <div class="ps-item open">
+            <div class="ps-item-head" onclick="this.parentElement.classList.toggle('open')">
+              <span class="ps-icon">₽</span>
+              <span class="ps-title">Деньги и реализация</span>
+              <span class="ps-arrow">▾</span>
+            </div>
+            <div class="ps-body">Точки притока, финансовые блоки, твоя естественная стратегия дохода. Где ты теряешь и где твои «золотые жилы». Конкретные профессии под твой склад характера.</div>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item-head" onclick="this.parentElement.classList.toggle('open')">
+              <span class="ps-icon">∞</span>
+              <span class="ps-title">Отношения и пара</span>
+              <span class="ps-arrow">▾</span>
+            </div>
+            <div class="ps-body">Подсознательный тип партнёра, повторяющийся сценарий и анализ совместимости по двум матрицам. Раздел для пар — вторая дата рождения.</div>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item-head" onclick="this.parentElement.classList.toggle('open')">
+              <span class="ps-icon">✦</span>
+              <span class="ps-title">Предназначение</span>
+              <span class="ps-arrow">▾</span>
+            </div>
+            <div class="ps-body">Главная задача 0–40 лет и социальная миссия после 40. Кармический хвост и таланты рода. Не абстрактно — с конкретными сферами применения.</div>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item-head" onclick="this.parentElement.classList.toggle('open')">
+              <span class="ps-icon">◐</span>
+              <span class="ps-title">Энергия и здоровье</span>
+              <span class="ps-arrow">▾</span>
+            </div>
+            <div class="ps-body">Точки выгорания, ресурсные триггеры на 15 минут, психосоматические зоны риска. Откуда берётся хроническая усталость — и где твоя настоящая зарядка.</div>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item-head" onclick="this.parentElement.classList.toggle('open')">
+              <span class="ps-icon">◈</span>
+              <span class="ps-title">+ 13 секций</span>
+              <span class="ps-arrow">▾</span>
+            </div>
+            <div class="ps-body">Тени, родовые программы, точка комфорта, социальная адаптация, таланты, психологические блоки, прогноз на 2026–2028 и 7 практик на неделю.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-price-block">
+        <div class="price-tag">
+          <span class="price-main">890 ₽</span>
+        </div>
+        <p class="price-sub">Разовая оплата · доступ навсегда · PDF + HTML</p>
+        <ul class="feature-list">
+          <li>17 структурированных секций</li>
+          <li>30–50 страниц глубокого разбора</li>
+          <li>HTML в боте + PDF для скачивания</li>
+          <li>Совместимость с партнёром</li>
+          <li>AI-чат по твоей матрице, безлимит</li>
+          <li>Прогноз на 2026–2028 по трём сферам</li>
+        </ul>
+        <a href="https://nura-ai.ru/mini.html" class="btn-primary" style="width: 100%; justify-content: center; margin-bottom: 12px;">Купить Матрицу — 890 ₽</a>
+        <a href="https://nura-ai.ru/mini.html" class="btn-ghost" style="width: 100%; justify-content: center; font-size: 13px;">← Сначала попробовать бесплатно</a>
+        <p style="text-align: center; font-size: 11px; color: var(--text-soft); margin-top: 14px;">🔒 Только дата рождения. Без спама.</p>
+      </div>
+    </div>
+
+    <div id="tab-tarot" class="product-layout" style="display: none;">
+      <div class="product-info">
+        <h3 class="section-title" style="font-size: 28px; margin-bottom: 14px;">Ежедневная аналитика,<br>привязанная к твоей матрице</h3>
+        <p style="font-size: 15px; color: var(--text-muted); line-height: 1.65; margin-bottom: 32px;">
+          Не случайные карты из общего генератора. Каждый расклад — анализ арканов в контексте твоих 22 позиций. Аналитика, а не предсказание.
+        </p>
+
+        <div class="product-sections">
+          <div class="ps-item open">
+            <div class="ps-item-head" onclick="this.parentElement.classList.toggle('open')">
+              <span class="ps-icon">☀</span>
+              <span class="ps-title">Утро · Карта дня</span>
+              <span class="ps-arrow">▾</span>
+            </div>
+            <div class="ps-body">Каждое утро — аркан, рассчитанный через твою матрицу. Что усилить сегодня, чего избегать, в каком режиме лучше действовать.</div>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item-head" onclick="this.parentElement.classList.toggle('open')">
+              <span class="ps-icon">🌙</span>
+              <span class="ps-title">Понедельник · Расклад недели</span>
+              <span class="ps-arrow">▾</span>
+            </div>
+            <div class="ps-body">Три аркана на тело / ум / дух. Картина предстоящих 7 дней по трём осям состояния.</div>
+          </div>
+          <div class="ps-item">
+            <div class="ps-item-head" onclick="this.parentElement.classList.toggle('open')">
+              <span class="ps-icon">🃏</span>
+              <span class="ps-title">В любой момент · По вопросу</span>
+              <span class="ps-arrow">▾</span>
+            </div>
+            <div class="ps-body">Прошлое / Настоящее / Будущее по конкретной ситуации. Отношения, карьера, выбор — без ограничений на количество запросов.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-price-block">
+        <div class="price-tag">
+          <span class="price-main">390 ₽</span>
+          <span class="price-period">/ месяц</span>
+        </div>
+        <p class="price-sub">Подписка · отмена в один клик</p>
+        <ul class="feature-list">
+          <li>Карта дня каждое утро в Telegram</li>
+          <li>Расклад недели по сферам тело / ум / дух</li>
+          <li>AI-расклад по любому вопросу — безлимит</li>
+          <li>Углубляется, если есть Матрица</li>
+          <li>30+ персональных раскладов в месяц</li>
+        </ul>
+        <a href="https://nura-ai.ru/app/tarot" class="btn-primary" style="width: 100%; justify-content: center; margin-bottom: 12px;">Подключить Таро — 390 ₽/мес</a>
+        <p style="text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 8px;">Первая карта дня — бесплатно</p>
+        <p style="text-align: center; font-size: 11px; color: var(--text-soft); margin-top: 10px;">🔒 Только дата рождения. Без спама.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <div class="container">
+    <span class="section-label">Как это работает</span>
+    <h2 class="section-title">Четыре шага до<br><em>своего разбора</em></h2>
+
+    <div class="steps">
+      <div class="step fade-in">
+        <div class="step-num">1</div>
+        <h3 class="step-title">Открой бота</h3>
+        <p class="step-body">Telegram-бот. Никакой регистрации, никакого email — просто кнопка «Старт».</p>
+      </div>
+      <div class="step fade-in">
+        <div class="step-num">2</div>
+        <h3 class="step-title">Введи дату рождения</h3>
+        <p class="step-body">Только дата. Без имени и телефона. Алгоритм рассчитывает твои 22 позиции.</p>
+      </div>
+      <div class="step fade-in">
+        <div class="step-num">3</div>
+        <h3 class="step-title">Получи мини-разбор</h3>
+        <p class="step-body">Бесплатный фрагмент отчёта за 2 минуты. Сравни с собой — реши, нужен ли полный.</p>
+      </div>
+      <div class="step fade-in">
+        <div class="step-num">4</div>
+        <h3 class="step-title">Читай, применяй</h3>
+        <p class="step-body">Полный отчёт — 30–50 страниц. HTML в боте, PDF навсегда. AI-чат по любому вопросу из разбора.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt" id="reviews">
+  <div class="container">
+    <span class="section-label">Отзывы</span>
+    <h2 class="section-title">Слова тех,<br>кто <em>уже прочитал</em></h2>
+
+    <div class="testi-grid">
+      <div class="testi-card fade-in">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">
+          Три года не могла поднять ценник — было ощущение, что это «жадность». В разделе про деньги прочитала: <em>«ты предлагаешь рынку количество, когда твоя стратегия — высокий чек».</em> На следующей неделе подняла цены вдвое. Три клиента согласились сразу.
+        </p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background: #C2A476;">А</div>
+          <div>
+            <div class="testi-name">Анна</div>
+            <div class="testi-meta">Коуч, Москва</div>
+          </div>
+          <span class="testi-tag">Матрица</span>
+        </div>
+      </div>
+      <div class="testi-card fade-in">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">
+          Карта дня заменила утреннее залипание в соцсетях. <em>Одна минута — и есть понимание, в каком режиме провести день.</em> Звучит просто, но это реально меняет то, как начинается утро.
+        </p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background: #B87355;">М</div>
+          <div>
+            <div class="testi-name">Мария</div>
+            <div class="testi-meta">Дизайнер, Санкт-Петербург</div>
+          </div>
+          <span class="testi-tag">Таро</span>
+        </div>
+      </div>
+      <div class="testi-card fade-in">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">
+          По нескольким ситуациям, в которых был тупик — появился ясный план. <em>Ценнее всего конкретные рекомендации, а не «будь собой» и общие фразы.</em> Раздел про психологические блоки — точно в точку.
+        </p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background: #7C8B7A;">Е</div>
+          <div>
+            <div class="testi-name">Екатерина</div>
+            <div class="testi-meta">Предприниматель, Казань</div>
+          </div>
+          <span class="testi-tag">Матрица</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="faq">
+  <div class="container-narrow">
+    <span class="section-label">Частые вопросы</span>
+    <h2 class="section-title" style="margin-bottom: 0;">Вопросы,<br>которые <em>возникают</em> чаще всего</h2>
+
+    <div class="faq-list">
+      <div class="faq-item open">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Это вообще работает или просто гороскоп?
+          <span class="faq-q-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Матрица Судьбы — это символическая система, которая переводит дату рождения в числовую структуру личности. Она перекликается с юнгианскими архетипами: не предсказывает будущее, а помогает увидеть повторяющиеся паттерны поведения. Это инструмент рефлексии, а не магия. Проверь на бесплатном фрагменте — либо попадает в точку, либо нет.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Почему 890 ₽, а не бесплатно — как в других ботах?
+          <span class="faq-q-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Потому что бесплатные боты дают 3–5 общих предложений из методички. NURA генерирует 30–50 страниц персонализированного текста через AI с учётом всех 22 позиций твоей матрицы. Это занимает реальные вычислительные ресурсы. Бесплатный мини-разбор доступен без регистрации — убедись сам, прежде чем платить.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Вдруг там будет что-то неприятное про меня?
+          <span class="faq-q-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Отчёт написан без осуждения и без «приговоров». Он показывает структуру: почему ты принимаешь определённые решения, откуда берутся блоки, где твои точки роста. Даже сложные темы — тени, родовые программы — поданы как рабочий материал, а не диагноз.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Я не верю в эзотерику. NURA не для меня?
+          <span class="faq-q-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Если тебя раздражает слово «судьба» — замени его на «структура личности». Матрица — числовой алгоритм, AI — языковая модель, которая интерпретирует результат. Ни гаданий, ни «энергий», ни предсказаний. Инструмент самопознания в другой системе координат. Попробуй бесплатный фрагмент — решишь сам.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Что нужно для старта?
+          <span class="faq-q-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Только дата рождения. Никакого ФИО, телефона или email. Открываешь Telegram-бот, вводишь дату — и получаешь бесплатный мини-разбор за 2 минуты.
+        </div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Можно купить оба продукта?
+          <span class="faq-q-icon">+</span>
+        </button>
+        <div class="faq-a">
+          Да, и они усиливают друг друга. Матрица — один раз навсегда. Таро-подписку можно подключать и отменять в любой момент. Если у тебя есть Матрица, расклады Таро становятся глубже: AI использует все 22 позиции твоих арканов.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <h2 class="final-cta-title">
+    Твой сценарий —<br>не <em>приговор</em>.<br>Это карта.
+  </h2>
+  <p class="final-cta-sub">
+    Начни с бесплатного мини-разбора. 2 минуты — и ты уже будешь знать о себе больше, чем за годы самоанализа.
+  </p>
+  <div class="final-cta-actions">
+    <a href="https://nura-ai.ru/mini.html" class="btn-primary">✨ Начать бесплатно</a>
+  </div>
+  <div class="price-pill">
+    <span>Матрица — 890 ₽ разово</span>
+    <span class="dot"></span>
+    <span>Таро — 390 ₽/мес</span>
+    <span class="dot"></span>
+    <span>🔒 Только дата рождения</span>
+  </div>
+</section>
+
+<footer>
+  <a href="#" class="foot-logo"><span class="nav-logo-icon" style="display: inline-block; vertical-align: middle; margin-right: 8px;"></span>NURA</a>
+  <ul class="foot-links">
+    <li><a href="https://t.me/ai_nura_bot">Telegram-бот</a></li>
+    <li><a href="https://t.me/nura_ai_channel">Канал</a></li>
+    <li><a href="#">Политика конфиденциальности</a></li>
+    <li><a href="#">Контакты</a></li>
+  </ul>
+  <p class="foot-copy">© 2026 NURA AI</p>
+</footer>
+
+<script>
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  function switchTab(tab, btn) {
+    document.getElementById('tab-matrix').style.display = tab === 'matrix' ? 'grid' : 'none';
+    document.getElementById('tab-tarot').style.display  = tab === 'tarot'  ? 'grid' : 'none';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  const titleObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); titleObserver.unobserve(e.target); }
+    });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.section-title, .section-sub, .bridge-text, .step').forEach((el, i) => {
+    el.style.transitionDelay = (i % 4 * 0.1) + 's';
+    titleObserver.observe(el);
+  });
+
+  (function() {
+    const canvas = document.getElementById('nura-particles');
+    const ctx = canvas.getContext('2d');
+    const mouse = { x: null, y: null, radius: 160 };
+
+    const COLORS = [
+      { r: 194, g: 164, b: 118 },
+      { r: 184, g: 115, b:  85 },
+      { r: 124, g: 139, b: 122 },
+      { r: 44,  g: 42,  b:  41 },
+    ];
+
+    function getCount() {
+      const w = window.innerWidth;
+      if (w < 768)  return 45;
+      if (w < 1200) return 80;
+      return 110;
+    }
+
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    class Particle {
+      constructor() { this.reset(true); }
+      reset(init) {
+        this.x  = Math.random() * canvas.width;
+        this.y  = init ? Math.random() * canvas.height : -4;
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.vy = (Math.random() - 0.5) * 0.4;
+        this.r  = Math.random() * 1.6 + 0.6;
+        this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        this.alpha = Math.random() * 0.5 + 0.3;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x > canvas.width)  this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height)  this.vy *= -1;
+        if (mouse.x !== null) {
+          const dx = this.x - mouse.x;
+          const dy = this.y - mouse.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < mouse.radius) {
+            const force = (mouse.radius - dist) / mouse.radius;
+            const ang   = Math.atan2(dy, dx);
+            this.vx += Math.cos(ang) * force * 0.45;
+            this.vy += Math.sin(ang) * force * 0.45;
+          }
+        }
+        const spd = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+        if (spd > 1.8) { this.vx = this.vx/spd*1.8; this.vy = this.vy/spd*1.8; }
+        this.vx *= 0.992;
+        this.vy *= 0.992;
+      }
+      draw() {
+        const { r: cr, g: cg, b: cb } = this.color;
+        const grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r * 4);
+        grd.addColorStop(0, `rgba(${cr},${cg},${cb},${this.alpha * 0.7})`);
+        grd.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r * 4, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${this.alpha})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    let particles = [];
+    function build() { particles = Array.from({ length: getCount() }, () => new Particle()); }
+
+    function drawConnections() {
+      const maxDist = 130;
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i+1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const d  = Math.sqrt(dx*dx + dy*dy);
+          if (d < maxDist) {
+            const op = (1 - d/maxDist) * 0.18;
+            ctx.strokeStyle = `rgba(194, 164, 118,${op})`;
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    function loop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      drawConnections();
+      requestAnimationFrame(loop);
+    }
+
+    resize();
+    build();
+    loop();
+
+    window.addEventListener('resize', () => { resize(); build(); });
+    window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+    window.addEventListener('mouseout',  () => { mouse.x = null; mouse.y = null; });
+    window.addEventListener('touchmove', e => {
+      mouse.x = e.touches[0].clientX;
+      mouse.y = e.touches[0].clientY;
+    }, { passive: true });
+    window.addEventListener('touchend', () => { mouse.x = null; mouse.y = null; });
+  })();
+</script>
+</body>
+</html>
