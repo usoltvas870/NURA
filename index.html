@@ -171,25 +171,13 @@
     max-width: 480px;
     height: auto;
     display: block;
-    border-radius: 0;
-    /* Fade: bottom strongly, sides subtly — dissolves into dark bg */
-    mask-image:
-      linear-gradient(to bottom,  black 40%, transparent 96%),
-      linear-gradient(to right,   transparent 0%, black 12%, black 88%, transparent 100%),
-      linear-gradient(to top,     black 80%, transparent 100%);
-    mask-composite: intersect;
-    -webkit-mask-image:
-      linear-gradient(to bottom,  black 40%, transparent 96%),
-      linear-gradient(to right,   transparent 0%, black 12%, black 88%, transparent 100%);
-    -webkit-mask-composite: source-in;
-    mix-blend-mode: lighten;
   }
   .hero-image-glow {
     position: absolute;
     inset: -60px;
-    background: radial-gradient(ellipse at 50% 45%, rgba(201,169,110,0.22) 0%, rgba(201,169,110,0.06) 50%, transparent 72%);
+    background: radial-gradient(ellipse at 50% 45%, rgba(201,169,110,0.35) 0%, rgba(201,169,110,0.12) 50%, transparent 72%);
     pointer-events: none;
-    filter: blur(32px);
+    filter: blur(40px);
     z-index: -1;
   }
     .hero-eyebrow {
