@@ -253,7 +253,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
     </a>
     <ul class="nav-links">
       <li><a href="#matrix">Матрица</a></li>
-      <li><a href="#tarot">Таро</a></li>
+      <li><a href="#tarot" onclick="document.getElementById('tarot').click()">Таро</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ul>
     <div class="nav-right">
@@ -280,6 +280,9 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
         <div class="hero-meta">
           Только дата рождения <span class="dot"></span> без регистрации <span class="dot"></span> 2 минуты <span class="dot"></span> 1200+ разборов на этой неделе<!-- TODO: заменить на реальную цифру из аналитики -->
         </div>
+        <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--ink-mute);">
+          Уже пользуешься? <a href="/app/" style="color:var(--gold);font-weight:500;text-decoration:none;">Открыть приложение →</a>
+        </p>
       </div>
     </div>
     <div class="hero-visual">
@@ -370,7 +373,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
         <span class="label-eyebrow">Из реального отчёта</span>
         <h2 class="title-h2" style="margin-bottom:0">Не общие фразы. <em>Конкретно про тебя.</em></h2>
       </div>
-      <a href="https://nura-ai.ru/sample-report.html" class="btn btn-outline">Полный образец →</a>
+      <a href="https://t.me/ai_nura_bot" class="btn btn-outline">Полный образец →</a>
     </div>
 
     <div class="preview-grid">
@@ -415,7 +418,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 
     <div class="product-tabs section-gap-sm">
       <button class="tab-btn active" onclick="switchTab('matrix', this)">✦ Матрица Судьбы — 890 ₽</button>
-      <button class="tab-btn" onclick="switchTab('tarot', this)">🃏 Таро-ритуалы — 390 ₽/мес</button>
+      <button class="tab-btn" id="tarot" onclick="switchTab('tarot', this)">🃏 Таро-ритуалы — 390 ₽/мес</button>
     </div>
 
     <!-- MATRIX TAB -->
@@ -455,7 +458,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           <li>17 структурированных секций</li>
           <li>30–50 страниц глубокого разбора</li>
           <li>HTML в боте + PDF для скачивания</li>
-          <li>Совместимость с партнёром</li>
+          <li>Совместимость с партнёром — 1 расклад навсегда</li>
           <li>AI-чат по твоей матрице, безлимит</li>
           <li>Прогноз на 2026–2028 по трём сферам</li>
         </ul>
@@ -496,6 +499,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           <li>AI-расклад по любому вопросу — безлимит</li>
           <li>Углубляется, если есть Матрица</li>
           <li>30+ персональных раскладов в месяц</li>
+          <li>Безлимитная совместимость с партнёром</li>
         </ul>
         <a href="https://nura-ai.ru/app/tarot" class="btn btn-primary btn-full">Подключить Таро — 390 ₽/мес</a>
         <p class="checkout-note" style="color:var(--text-m);font-size:12px;margin-top:8px">Первая карта дня — бесплатно</p>
@@ -677,10 +681,11 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       NURA
     </a>
     <ul class="foot-links">
+      <li><a href="/app/">Приложение</a></li>
       <li><a href="https://t.me/ai_nura_bot">Telegram-бот</a></li>
       <li><a href="https://t.me/nura_ai_channel">Канал</a></li>
-      <li><a href="#">Политика конфиденциальности</a></li>
-      <li><a href="#">Контакты</a></li>
+      <li><a href="https://t.me/nura_support">Политика конфиденциальности</a></li>
+      <li><a href="https://t.me/nura_support">Контакты</a></li>
     </ul>
     <p class="foot-copy">© 2026 NURA AI</p>
   </div>

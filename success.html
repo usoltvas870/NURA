@@ -97,6 +97,43 @@
       color: var(--m-accent);
     }
 
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink-soft);
+      font-size: 13px;
+      font-weight: 400;
+      text-decoration: none;
+      margin-bottom: 24px;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--ink); }
+
+    .nav-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+    .nav-footer a {
+      display: block;
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 13px;
+      font-weight: 400;
+      text-decoration: none;
+      padding: 8px 0;
+      transition: color 0.2s;
+    }
+    .nav-footer a:hover { color: var(--ink); }
+    .nav-footer a.tg-link {
+      color: var(--m-accent);
+      font-weight: 500;
+    }
+
     h1 {
       margin: 0 0 12px;
       font-family: 'Cormorant Garamond', Georgia, serif;
@@ -243,6 +280,7 @@
   <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
   <div class="wrapper">
     <div class="card">
+      <a href="/" class="back-link">← На главную</a>
       <div class="check-icon">✦</div>
       <script>
   window.addEventListener('DOMContentLoaded', function() {
@@ -267,6 +305,12 @@
         <span class="btn-text">Проверить ещё раз</span>
         <span class="btn-spinner"></span>
       </button>
+
+      <div class="nav-footer">
+        <a href="/app/" class="tg-link">Открыть NURA — карта дня и чат</a>
+        <a href="https://t.me/ai_nura_bot" class="tg-link">Открыть в Telegram</a>
+        <a href="/">← Вернуться на лендинг</a>
+      </div>
     </div>
   </div>
 

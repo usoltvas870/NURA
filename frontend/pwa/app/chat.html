@@ -258,7 +258,7 @@
       <span class="status-text" id="status-text">онлайн</span>
     </div>
   </div>
-  <button class="icon-btn" aria-label="Ещё">···</button>
+  <button class="icon-btn" aria-label="Очистить чат" onclick="clearChat()" title="Очистить историю">···</button>
   <button class="icon-btn" id="themeToggle" aria-label="Тема" title="Светлая / тёмная тема" style="font-size:14px">◑</button>
 </header>
 
@@ -332,6 +332,15 @@
     var spreadNames = { ppt: 'Прошлое · Настоящее · Будущее', week: 'Расклад недели' };
     var s = spreadNames[params.get('spread')];
     if (s) setTimeout(function() { addUserMsg('Сделай расклад: ' + s); }, 400);
+  }
+
+  function clearChat() {
+    if (!confirm('Очистить историю чата?')) return;
+    localStorage.removeItem('nura_chat_log');
+    document.getElementById('messages').innerHTML = '';
+    var emptyState = document.getElementById('empty-state');
+    if (emptyState) document.getElementById('messages').appendChild(emptyState);
+    window.nuraTrack && window.nuraTrack('chat_cleared');
   }
 
   function sendHint(el) { inputEl.value = el.textContent; sendMessage(); }

@@ -268,7 +268,7 @@
         Совет: начни с самого важного — пока ясность не рассеялась. Избегай откладывания
         решений на вечер.
       </p>
-      <button class="btn-ghost">↗ Поделиться</button>
+      <button class="btn-ghost" onclick="shareDayCard()">↗ Поделиться</button>
     </div>
 
     <!-- Spreads -->
@@ -278,44 +278,46 @@
       </div>
       <div class="spreads-grid">
 
-        <div class="spread-card" onclick="location.href='chat.html?spread=ppt'">
-          <span class="spread-icon">⟁</span>
-          <div class="spread-name">Прошлое · Настоящее · Будущее</div>
-          <div class="spread-desc">3 арканa по оси времени для конкретной ситуации</div>
-        </div>
-
-        <div class="spread-card" onclick="location.href='chat.html?spread=week'">
-          <span class="spread-icon">◈</span>
+        <div class="spread-card locked" onclick="openPaywall()">
+          <div class="lock-overlay">🔒</div>
+          <span class="spread-icon">✦</span>
           <div class="spread-name">Расклад недели</div>
           <div class="spread-desc">Тело · Ум · Дух на предстоящие 7 дней</div>
         </div>
 
         <div class="spread-card locked" onclick="openPaywall()">
           <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">✧</span>
-          <div class="spread-name">Отношения</div>
-          <div class="spread-desc">Партнёр · ты · динамика между вами</div>
+          <span class="spread-icon">⟁</span>
+          <div class="spread-name">По вопросу</div>
+          <div class="spread-desc">3 аркана по оси времени для любой ситуации</div>
         </div>
 
         <div class="spread-card locked" onclick="openPaywall()">
           <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">⌬</span>
-          <div class="spread-name">Деньги и карьера</div>
-          <div class="spread-desc">Финансовый поток и скрытые блоки</div>
+          <span class="spread-icon">✶</span>
+          <div class="spread-name">Сферы жизни</div>
+          <div class="spread-desc">Деньги · Отношения · Предназначение</div>
         </div>
 
         <div class="spread-card locked" onclick="openPaywall()">
           <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">∞</span>
-          <div class="spread-name">Годовой прогноз</div>
-          <div class="spread-desc">12 арканов — по одному на каждый месяц</div>
+          <span class="spread-icon">☯</span>
+          <div class="spread-name">Двойники</div>
+          <div class="spread-desc">Совместимость с партнёром по матрице</div>
         </div>
 
         <div class="spread-card locked" onclick="openPaywall()">
           <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">☽</span>
-          <div class="spread-name">Лунный расклад</div>
-          <div class="spread-desc">По фазе луны и твоей матрице</div>
+          <span class="spread-icon">🌅</span>
+          <div class="spread-name">Портал месяца</div>
+          <div class="spread-desc">Чему научит · что отпустить · что усилить</div>
+        </div>
+
+        <div class="spread-card locked" onclick="openPaywall()">
+          <div class="lock-overlay">🔒</div>
+          <span class="spread-icon">👁</span>
+          <div class="spread-name">Да / Нет</div>
+          <div class="spread-desc">Один аркан — прямой ответ на вопрос</div>
         </div>
 
       </div>
@@ -331,7 +333,7 @@
   <div class="sheet-tag">Подписка · Таро-ритуалы</div>
   <div class="sheet-title">Разблокировать<br>все расклады</div>
   <p class="sheet-desc">30+ персональных раскладов в месяц, основанных на твоей Матрице Судьбы. Включает расклады по отношениям, деньгам и годовой прогноз.</p>
-  <button class="btn-cta" onclick="location.href='../index.html#tarot'">
+  <button class="btn-cta" onclick="location.href='https://t.me/ai_nura_bot'">
     Подключить · 390 ₽/мес
   </button>
   <button class="btn-cancel" onclick="closePaywall()">Не сейчас</button>
@@ -380,6 +382,20 @@
   function closePaywall() {
     document.getElementById('pw-backdrop').classList.remove('open');
     document.getElementById('pw-sheet').classList.remove('open');
+  }
+
+  function shareDayCard() {
+    var name = document.getElementById('hero-name').textContent || '';
+    var phrase = document.getElementById('hero-phrase').textContent || '';
+    var text = name + '\n' + phrase + '\n\nУзнай свою карту дня в NURA:';
+    var url = 'https://nura-ai.ru/app/tarot';
+
+    if (navigator.share) {
+      navigator.share({ title: 'Моя карта дня — NURA', text: text, url: url }).catch(function(){});
+    } else {
+      var shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text);
+      window.open(shareUrl, '_blank');
+    }
   }
 </script>
 

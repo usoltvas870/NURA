@@ -353,7 +353,7 @@
           <li>AI-расклад по любому вопросу</li>
           <li>Углублённый анализ через Матрицу</li>
         </ul>
-        <button class="btn-manage">Управлять подпиской</button>
+        <button class="btn-manage" onclick="location.href='https://t.me/ai_nura_bot'">Управлять подпиской</button>
       </div>
 
       <div class="sub-card" style="border-color:rgba(201,165,92,.18)">
@@ -365,7 +365,7 @@
           <li>Обновлённый разбор Матрицы каждый квартал</li>
           <li>Приоритетные ответы NURA</li>
         </ul>
-        <button class="btn-manage" style="border-color:rgba(201,165,92,.40);color:var(--m-accent)">
+        <button class="btn-manage" style="border-color:rgba(201,165,92,.40);color:var(--m-accent)" onclick="location.href='https://t.me/ai_nura_bot'">
           Перейти на комбо →
         </button>
       </div>
@@ -443,17 +443,17 @@
           <span class="settings-arrow">›</span>
         </div>
 
-        <div class="settings-item">
-          <span class="settings-icon">🔔</span>
-          <span class="settings-label">Telegram-уведомления</span>
-          <span class="settings-value">подключён</span>
+        <div class="settings-item" onclick="linkTelegram()" id="tg-link-item">
+          <span class="settings-icon">🔗</span>
+          <span class="settings-label">Подключить Telegram</span>
+          <span class="settings-value" id="tg-link-status">не подключён</span>
           <span class="settings-arrow">›</span>
         </div>
 
-        <div class="settings-item">
+        <div class="settings-item" onclick="toggleLanguage()">
           <span class="settings-icon">🌐</span>
           <span class="settings-label">Язык</span>
-          <span class="settings-value">Русский</span>
+          <span class="settings-value" id="lang-label">Русский</span>
           <span class="settings-arrow">›</span>
         </div>
 
@@ -464,13 +464,13 @@
           <span class="settings-arrow">›</span>
         </div>
 
-        <div class="settings-item">
+        <div class="settings-item" onclick="location.href='https://t.me/nura_support'">
           <span class="settings-icon">📄</span>
           <span class="settings-label">Политика конфиденциальности</span>
           <span class="settings-arrow">›</span>
         </div>
 
-        <div class="settings-item">
+        <div class="settings-item" onclick="location.href='https://t.me/nura_support'">
           <span class="settings-icon">✉</span>
           <span class="settings-label">Обратная связь</span>
           <span class="settings-arrow">›</span>
@@ -531,6 +531,12 @@
         }
         if (d.birthdate) document.getElementById('profile-dob').textContent = 'дата рождения · ' + d.birthdate;
         if (d.archetype) document.getElementById('profile-archetype').textContent = '✦ ' + d.archetype;
+        var tgStatusEl = document.getElementById('tg-link-status');
+        var tgItemEl = document.getElementById('tg-link-item');
+        if (d.telegram_linked) {
+          if (tgStatusEl) tgStatusEl.textContent = 'подключён';
+          if (tgItemEl) tgItemEl.style.opacity = '0.6';
+        }
       })
       .catch(function() {});
   }
@@ -564,7 +570,38 @@
     }
   }
 
-  function editProfile() { location.href = BASE.replace('/api/v1','') + '/profile/edit'; }
+  function editProfile() { location.href = 'https://t.me/ai_nura_bot'; }
+
+  function toggleLanguage() {
+    var current = localStorage.getItem('nura-lang') || 'ru';
+    var next = current === 'ru' ? 'en' : 'ru';
+    localStorage.setItem('nura-lang', next);
+    var label = document.getElementById('lang-label');
+    if (label) label.textContent = next === 'ru' ? 'Русский' : 'English';
+  }
+
+  async function linkTelegram() {
+    if (!session_id) return;
+    var statusEl = document.getElementById('tg-link-status');
+    if (statusEl) statusEl.textContent = '...';
+    try {
+      var res = await fetch(BASE + '/web/generate-link-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: session_id })
+      });
+      if (res.ok) {
+        var data = await res.json();
+        window.open(data.tg_url, '_blank');
+        if (statusEl) statusEl.textContent = 'открой Telegram';
+        setTimeout(function() { if (statusEl) statusEl.textContent = 'ожидание...'; }, 10000);
+      } else {
+        if (statusEl) statusEl.textContent = 'не подключён';
+      }
+    } catch(e) {
+      if (statusEl) statusEl.textContent = 'не подключён';
+    }
+  }
 
   function logout() {
     if (!confirm('Выйти из аккаунта?')) return;
