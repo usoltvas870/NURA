@@ -18,92 +18,86 @@
 }
 
 /* ============================================================
-   LIGHT THEME TOKENS
-   Botanical journal aesthetic — warm cream, dark ink, deep gold
+   LIGHT THEME TOKENS — Light Contrast Design System
+   Warm cream bg, white cards, terra/gold/sage accents
    All interactive elements verified WCAG AA (4.5:1 min)
    ============================================================ */
 
 [data-theme="light"] {
 
   /* ── LIGHT SURFACES ──────────────────────────────────── */
-  --nura-light-canvas:    #F7F3ED;   /* main page bg — warm cream     */
-  --nura-light-surface:   #EFEAE2;   /* cards, elevated surfaces       */
-  --nura-light-ridge:     #E8E2D8;   /* inputs, dividers, deep tint    */
+  --nura-light-canvas:    #EFEEE9;   /* main page bg — warm cream     */
+  --nura-light-surface:   #FFFFFF;   /* cards, elevated surfaces       */
+  --nura-light-ridge:     #E8E7E2;   /* inputs, dividers, deep tint    */
   --nura-light-white:     #FFFFFF;   /* pure white card option         */
   --nura-light-sage-mist: #EFF2E8;   /* sage-tinted band               */
   --nura-light-lichen:    #E0E5D5;   /* section banding                */
 
   /* ── LIGHT TEXT ──────────────────────────────────────── */
-  --nura-light-ink:       #1C1814;   /* primary — near-black warm      */
-  --nura-light-ink-soft:  #3D3530;   /* secondary body text            */
-  --nura-light-ink-muted: #6B5A52;   /* tertiary / meta                */
-  --nura-light-ink-faint: #9A8A82;   /* placeholders / disabled        */
+  --nura-light-ink:       #1A1A1A;   /* primary — near-black warm      */
+  --nura-light-ink-soft:  #5A5752;   /* secondary body text            */
+  --nura-light-ink-muted: #8A877E;   /* tertiary / meta                */
+  --nura-light-ink-faint: #A09D96;   /* placeholders / disabled        */
 
-  /* ── LIGHT ACCENTS (darkened for WCAG AA on cream) ───── */
-  /* #7A5C1E on #F7F3ED → contrast ≈ 6.1:1 ✓ AA            */
-  --nura-light-gold:       #7A5C1E;
-  --nura-light-gold-hover: #5E4616;
-  /* #3A6B4A on #F7F3ED → contrast ≈ 5.8:1 ✓ AA            */
-  --nura-light-leaf:       #3A6B4A;
-  /* #8B4A1A on #F7F3ED → contrast ≈ 5.2:1 ✓ AA            */
-  --nura-light-ember:      #8B4A1A;
+  /* ── LIGHT ACCENTS ──────────────────────────────────── */
+  --nura-light-gold:       #C2A476;
+  --nura-light-gold-hover: #A8895E;
+  --nura-light-leaf:       #6B8068;
+  --nura-light-ember:      #B8743F;
 
   /* ── LIGHT BORDERS ──────────────────────────────────── */
-  --nura-light-line:        rgba(28, 24, 20, 0.12);
-  --nura-light-line-strong: rgba(28, 24, 20, 0.20);
-  --nura-light-line-gold:   rgba(122, 92, 30, 0.25);
-  --nura-light-line-leaf:   rgba(58, 107, 74, 0.20);
+  --nura-light-line:        rgba(26,26,26,0.08);
+  --nura-light-line-strong: rgba(26,26,26,0.15);
+  --nura-light-line-gold:   rgba(194,164,118,0.25);
+  --nura-light-line-leaf:   rgba(107,128,104,0.20);
 
   /* ── LIGHT FILLS ─────────────────────────────────────── */
-  --nura-light-gold-fill:  rgba(122, 92, 30, 0.08);
-  --nura-light-gold-dim:   rgba(122, 92, 30, 0.14);
-  --nura-light-leaf-fill:  rgba(58, 107, 74, 0.08);
-  --nura-light-ember-fill: rgba(139, 74, 26, 0.08);
+  --nura-light-gold-fill:  rgba(194,164,118,0.08);
+  --nura-light-gold-dim:   rgba(194,164,118,0.14);
+  --nura-light-leaf-fill:  rgba(107,128,104,0.08);
+  --nura-light-ember-fill: rgba(184,116,63,0.08);
 
   /* ── LIGHT SHADOWS ───────────────────────────────────── */
-  --nura-light-shadow:    0 4px 20px rgba(28, 24, 20, 0.08);
-  --nura-light-shadow-md: 0 8px 40px rgba(28, 24, 20, 0.10);
-  --nura-light-shadow-lg: 0 16px 60px rgba(28, 24, 20, 0.12);
-  --nura-light-glow:      0 0 20px rgba(122, 92, 30, 0.10);
-  --nura-light-ring-gold: 0 0 0 1px rgba(122, 92, 30, 0.40);
+  --nura-light-shadow:    0 4px 16px rgba(44,42,30,0.08), 0 1px 3px rgba(44,42,30,0.06);
+  --nura-light-shadow-md: 0 10px 28px rgba(44,42,30,0.12), 0 2px 6px rgba(44,42,30,0.08);
+  --nura-light-shadow-lg: 0 16px 60px rgba(44,42,30,0.12);
+  --nura-light-glow:      0 0 20px rgba(194,164,118,0.10);
+  --nura-light-ring-gold: 0 0 0 1px rgba(194,164,118,0.40);
 
-  /* ── MATRIX WORLD (sage green + gold) ────────────────── */
-  /* #1C1814 on #E2ECE6 ≈ 10.8:1 ✓                         */
-  --nura-light-matrix-section-bg:   #EEF4F0;
-  --nura-light-matrix-card-bg:      #E2ECE6;
-  --nura-light-matrix-card-border:  rgba(74, 122, 90, 0.25);
-  --nura-light-matrix-offer-border: rgba(74, 122, 90, 0.35);
-  --nura-light-matrix-glyph-bg:     rgba(74, 122, 90, 0.18);
-  --nura-light-matrix-glyph-color:  #3A6848;
-  --nura-light-matrix-accent:       #9B7A2F;
-  --nura-light-matrix-accent-hover: #7A5C1E;
+  /* ── MATRIX WORLD (terra + sage) ────────────────────── */
+  --nura-light-matrix-section-bg:   #EFEEE9;
+  --nura-light-matrix-card-bg:      #FFFFFF;
+  --nura-light-matrix-card-border:  rgba(107,128,104,0.15);
+  --nura-light-matrix-offer-border: rgba(107,128,104,0.25);
+  --nura-light-matrix-glyph-bg:     rgba(107,128,104,0.12);
+  --nura-light-matrix-glyph-color:  #6B8068;
+  --nura-light-matrix-accent:       #B8743F;
+  --nura-light-matrix-accent-hover: #9C5F30;
 
-  /* ── TAROT WORLD (sand + violet) ─────────────────────── */
-  /* #1C1814 on #EBE6DC ≈ 10.2:1 ✓                         */
-  --nura-light-tarot-section-bg:   #F4F1EA;
-  --nura-light-tarot-card-bg:      #EBE6DC;
-  --nura-light-tarot-card-border:  rgba(106, 103, 152, 0.20);
-  --nura-light-tarot-offer-border: rgba(106, 103, 152, 0.25);
-  --nura-light-tarot-glyph-bg:     rgba(106, 103, 152, 0.15);
-  --nura-light-tarot-glyph-color:  #4A4878;
-  --nura-light-tarot-accent:       #A67C3D;
-  --nura-light-tarot-accent-hover: #8A5E2A;
+  /* ── TAROT WORLD (terra + gold) ─────────────────────── */
+  --nura-light-tarot-section-bg:   #EFEEE9;
+  --nura-light-tarot-card-bg:      #FFFFFF;
+  --nura-light-tarot-card-border:  rgba(194,164,118,0.15);
+  --nura-light-tarot-offer-border: rgba(194,164,118,0.25);
+  --nura-light-tarot-glyph-bg:     rgba(194,164,118,0.12);
+  --nura-light-tarot-glyph-color:  #B8743F;
+  --nura-light-tarot-accent:       #B8743F;
+  --nura-light-tarot-accent-hover: #9C5F30;
 
   /* ── OFFER / BUY BOX ─────────────────────────────────── */
-  --nura-light-offer-buy-bg:     rgba(255, 255, 255, 0.75);
-  --nura-light-offer-buy-border: rgba(0, 0, 0, 0.10);
-  --nura-light-price-text:       #1C1814;
-  --nura-light-price-sub:        rgba(28, 24, 20, 0.50);
+  --nura-light-offer-buy-bg:     rgba(255,255,255,0.85);
+  --nura-light-offer-buy-border: rgba(26,26,26,0.08);
+  --nura-light-price-text:       #1A1A1A;
+  --nura-light-price-sub:        rgba(26,26,26,0.50);
 
   /* ── BUTTONS ─────────────────────────────────────────── */
-  --nura-light-btn-free-bg:   #1C1814;
-  --nura-light-btn-free-text: #F7F3ED;
+  --nura-light-btn-free-bg:   #B8743F;
+  --nura-light-btn-free-text: #FFFFFF;
 
   /* ── PWA COMPONENTS ──────────────────────────────────── */
-  /* hero-card stays dark — intentional contrast block      */
-  --nura-light-pwa-hero-bg:         #1C1814;
+  --nura-light-pwa-hero-bg:         #1A1A1A;
   --nura-light-pwa-hero-text:       #F2EFE7;
   --nura-light-spread-card-bg:      #FFFFFF;
-  --nura-light-spread-card-border:  rgba(28, 24, 20, 0.12);
-  --nura-light-spread-card-shadow:  0 2px 12px rgba(0, 0, 0, 0.07);
+  --nura-light-spread-card-border:  rgba(26,26,26,0.08);
+  --nura-light-spread-card-shadow:  0 4px 16px rgba(44,42,30,0.08), 0 1px 3px rgba(44,42,30,0.06);
 }

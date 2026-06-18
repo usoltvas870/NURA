@@ -69,16 +69,6 @@
     "ast_hash": "1206c1d5073380d4104790421c6aeae5",
     "semantic_hash": "1206c1d5073380d4104790421c6aeae5"
   },
-  "_read_screen.py": {
-    "mtime": 1781505771.2635064,
-    "ast_hash": "8cbf9a67580a92a8be2028c33d931fcf",
-    "semantic_hash": "8cbf9a67580a92a8be2028c33d931fcf"
-  },
-  "check_integrity.py": {
-    "mtime": 1778932434.2612853,
-    "ast_hash": "d01cd64e4d2dba61944032d00fc921d8",
-    "semantic_hash": "d01cd64e4d2dba61944032d00fc921d8"
-  },
   "deploy.sh": {
     "mtime": 1781541716.73834,
     "ast_hash": "e6ab2dec8a25d030236ca33085595d31",
@@ -93,11 +83,6 @@
     "mtime": 1781084776.2718399,
     "ast_hash": "bf16ede231f2d92b4e3ca5566388e83b",
     "semantic_hash": "bf16ede231f2d92b4e3ca5566388e83b"
-  },
-  "integrity_check.py": {
-    "mtime": 1781173095.0473387,
-    "ast_hash": "51d2c159a4b51faf49584e82ff82ac03",
-    "semantic_hash": "51d2c159a4b51faf49584e82ff82ac03"
   },
   "nura-trend-radar/analyze_sources.py": {
     "mtime": 1779609357.972556,
@@ -168,11 +153,6 @@
     "mtime": 1779371336.2838216,
     "ast_hash": "45d4347a5df4cc2d6ea16d549425eb12",
     "semantic_hash": "45d4347a5df4cc2d6ea16d549425eb12"
-  },
-  "nura.py": {
-    "mtime": 1779521922.1979723,
-    "ast_hash": "2bc7f44911c5ee910eefdc5edbca7f9b",
-    "semantic_hash": "2bc7f44911c5ee910eefdc5edbca7f9b"
   },
   "nura_app/.opencode/config.json": {
     "mtime": 1777621382.0,
@@ -759,14 +739,574 @@
     "ast_hash": "dad29f24aa904d7ebaccd0981d2722f3",
     "semantic_hash": "dad29f24aa904d7ebaccd0981d2722f3"
   },
-  "\u043c\u0430\u0442\u0440\u0438\u0446\u0430 \u0441\u0443\u0434\u044c\u0431\u044b/script.js": {
-    "mtime": 1778940402.5563798,
-    "ast_hash": "0391011541a6b4e8bd7f5038a4555aa5",
-    "semantic_hash": "0391011541a6b4e8bd7f5038a4555aa5"
+  ".github/agents/nura.agent.md": {
+    "mtime": 1781176914.6709487,
+    "ast_hash": "0968eab3039af2c2ec66af4368b96478",
+    "semantic_hash": ""
   },
-  "\u043c\u0430\u0442\u0440\u0438\u0446\u0430 \u0441\u0443\u0434\u044c\u0431\u044b/window_data.js": {
-    "mtime": 1778941486.1291726,
-    "ast_hash": "9e09e0407c0e824c29c79bd7581d630f",
-    "semantic_hash": "9e09e0407c0e824c29c79bd7581d630f"
+  ".github/agents/planner.agent.md": {
+    "mtime": 1781176914.7835236,
+    "ast_hash": "87ebe6de206260dcaff169d7b53114e0",
+    "semantic_hash": ""
+  },
+  ".github/agents/reviewer.agent.md": {
+    "mtime": 1781176914.9078107,
+    "ast_hash": "b21680c7f6a859b8b1c7ba5755ccaa5a",
+    "semantic_hash": ""
+  },
+  ".github/agents/security.agent.md": {
+    "mtime": 1781176915.027913,
+    "ast_hash": "07e335a046282a68b4d832659fd49cb6",
+    "semantic_hash": ""
+  },
+  ".github/instructions/docs.instructions.md": {
+    "mtime": 1781176914.302248,
+    "ast_hash": "9104f086661e02012cee27cc570d7358",
+    "semantic_hash": ""
+  },
+  ".github/instructions/frontend.instructions.md": {
+    "mtime": 1781176914.1791086,
+    "ast_hash": "6792e614fb640e33969e07b66110adf8",
+    "semantic_hash": ""
+  },
+  ".github/instructions/infrastructure.instructions.md": {
+    "mtime": 1781176914.4591618,
+    "ast_hash": "4e07c4057a3dd7a274158c7825cb1817",
+    "semantic_hash": ""
+  },
+  ".github/instructions/python.instructions.md": {
+    "mtime": 1781176913.946401,
+    "ast_hash": "d5f56b9f21b73d7215707e0d069c4fce",
+    "semantic_hash": ""
+  },
+  ".github/instructions/tests.instructions.md": {
+    "mtime": 1781176914.0708754,
+    "ast_hash": "ae563b5be8ae9a3386dc6f73f50cca2d",
+    "semantic_hash": ""
+  },
+  ".github/workflows/ci-cd.yml": {
+    "mtime": 1781517014.6716,
+    "ast_hash": "bbd20c8015a9b089c83275c4332eac8e",
+    "semantic_hash": ""
+  },
+  ".github/workflows/deploy.yml": {
+    "mtime": 1778772121.3784945,
+    "ast_hash": "ef2f1238c5ec9402f1f4b5c09b1abfc1",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1781668878.272968,
+    "ast_hash": "1b5175d26d752055d808d3f77d0b1fad",
+    "semantic_hash": ""
+  },
+  "docs/NURA FORMS SYSTEM.txt": {
+    "mtime": 1778942718.0889833,
+    "ast_hash": "927841816b517f9d205aebc1a05164b0",
+    "semantic_hash": ""
+  },
+  "docs/README.md": {
+    "mtime": 1780996853.7712238,
+    "ast_hash": "fbe996b13f70870a274e65aa532816e6",
+    "semantic_hash": ""
+  },
+  "docs/agent-prompts.md": {
+    "mtime": 1778773909.8927999,
+    "ast_hash": "b5f372c5fad4daac32b3159e5f7f70ae",
+    "semantic_hash": ""
+  },
+  "docs/benchmark-competitors.md": {
+    "mtime": 1781173031.4874997,
+    "ast_hash": "1c018c5ce5c8aea187e20cfb549d2b5f",
+    "semantic_hash": ""
+  },
+  "docs/bot-spec-pwa-patch.md": {
+    "mtime": 1780991838.903878,
+    "ast_hash": "ce56c3776516c6f84ea6c5465e02bdc5",
+    "semantic_hash": ""
+  },
+  "docs/bot-spec.md": {
+    "mtime": 1779982891.1509895,
+    "ast_hash": "a9f19f02706d2586c3c9ad6607285d4d",
+    "semantic_hash": ""
+  },
+  "docs/bot-ux-map-pwa-patch.md": {
+    "mtime": 1780996218.2030282,
+    "ast_hash": "f1dbe6193142aa468fffdde2e282793d",
+    "semantic_hash": ""
+  },
+  "docs/bot-ux-map.md": {
+    "mtime": 1779982970.204634,
+    "ast_hash": "b176d5b025292b5e7074a240ce347044",
+    "semantic_hash": ""
+  },
+  "docs/design-system-recommendation.md": {
+    "mtime": 1781541547.3916197,
+    "ast_hash": "1b2ece40c07cbd4ccbc0bbb425b485f6",
+    "semantic_hash": ""
+  },
+  "docs/dev-prompts.md": {
+    "mtime": 1781173067.4126303,
+    "ast_hash": "cba6a03bdefbb97cd7bf6bfbc315ef15",
+    "semantic_hash": ""
+  },
+  "docs/engineering/review-video-assembler-v2.md": {
+    "mtime": 1779033752.290364,
+    "ast_hash": "a6ad61782e6243605c7536ed1960c798",
+    "semantic_hash": ""
+  },
+  "docs/engineering/video-assembler.md": {
+    "mtime": 1779119235.360927,
+    "ast_hash": "244509b8f2d854b37a9c824972b0fe69",
+    "semantic_hash": ""
+  },
+  "docs/launch-checklist.md": {
+    "mtime": 1781508635.4323454,
+    "ast_hash": "869b467763babf6fa8a0cbf481d91cb8",
+    "semantic_hash": ""
+  },
+  "docs/matrix-algo.md": {
+    "mtime": 1778778668.4076853,
+    "ast_hash": "ffdf30d70fdaea3fd2c236ae8b8709d4",
+    "semantic_hash": ""
+  },
+  "docs/platform-strategy.md": {
+    "mtime": 1780990223.5706208,
+    "ast_hash": "7c69ab0181ea3e4f015207646db29b30",
+    "semantic_hash": ""
+  },
+  "docs/pricing.md": {
+    "mtime": 1779849270.6755862,
+    "ast_hash": "b910a25f0fd2de5441137ef5ce16778a",
+    "semantic_hash": ""
+  },
+  "docs/prompt-spec.md": {
+    "mtime": 1778774416.7442405,
+    "ast_hash": "27f8318c1eb383e0ed1c428a72185457",
+    "semantic_hash": ""
+  },
+  "docs/pwa-spec.md": {
+    "mtime": 1781241052.362746,
+    "ast_hash": "033efebd1c3923dfe3db844b78570929",
+    "semantic_hash": ""
+  },
+  "docs/report-spec.md": {
+    "mtime": 1781241064.1069345,
+    "ast_hash": "4ee16a4bb98147d9a7b2704d53556fe4",
+    "semantic_hash": ""
+  },
+  "docs/tarot-integration-plan-pwa-patch.md": {
+    "mtime": 1780996465.3770752,
+    "ast_hash": "46f1e26244efea23a07ff98535a4a42e",
+    "semantic_hash": ""
+  },
+  "docs/tarot-integration-plan.md": {
+    "mtime": 1779846444.520382,
+    "ast_hash": "ed26874c7abb71f66f2950f4740b0532",
+    "semantic_hash": ""
+  },
+  "docs/tarot-integration-sessions.md": {
+    "mtime": 1781173097.5682685,
+    "ast_hash": "7e108d0567878d3fe971bab9a73719b5",
+    "semantic_hash": ""
+  },
+  "docs/tone-of-voice.md": {
+    "mtime": 1779777501.0787323,
+    "ast_hash": "21dc76b5205147a22bac703379fece8b",
+    "semantic_hash": ""
+  },
+  "docs/two-layer-architecture.md": {
+    "mtime": 1781173073.7622344,
+    "ast_hash": "7032805ea5fc2342d4b26ab9d043e4d6",
+    "semantic_hash": ""
+  },
+  "docs/\u0438\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u043d\u0438\u0435 \u0440\u044b\u043d\u043a\u0430.md": {
+    "mtime": 1778773893.49374,
+    "ast_hash": "9884f30f2c222887843c452757f6e047",
+    "semantic_hash": ""
+  },
+  "frontend/index.html": {
+    "mtime": 1781796845.3140929,
+    "ast_hash": "4256cd39962d4a39af66ed0d5d4791f6",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/chat.html": {
+    "mtime": 1781691911.79932,
+    "ast_hash": "5d363b5d1b2663fdd78b076bd0c654c6",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/index.html": {
+    "mtime": 1781691911.8003292,
+    "ast_hash": "487f0d90682408e8b686a10d94b1c7c7",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/profile.html": {
+    "mtime": 1781691911.8013287,
+    "ast_hash": "69307283fb31fed1fb2f37fca0e89434",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/tarot.html": {
+    "mtime": 1781691911.8023314,
+    "ast_hash": "d6fb5fec9b0cbcd2a06bf507555f649e",
+    "semantic_hash": ""
+  },
+  "index.html": {
+    "mtime": 1781796844.8471212,
+    "ast_hash": "4256cd39962d4a39af66ed0d5d4791f6",
+    "semantic_hash": ""
+  },
+  "mini.html": {
+    "mtime": 1781620114.619379,
+    "ast_hash": "de39c9c368d44075cee5ab56cad8a77d",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/brief_parser.txt": {
+    "mtime": 1779727370.410148,
+    "ast_hash": "5d402c6ccd5b507521e52f8a3fa71dd2",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/carousel_parser.txt": {
+    "mtime": 1779462316.2062578,
+    "ast_hash": "53d8d5d82fdf5577d5a9cca2ee25fa99",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/compatibility_full.txt": {
+    "mtime": 1779988635.1510868,
+    "ast_hash": "87834c66c7a19a660d4807acf690a419",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/compatibility_mini.txt": {
+    "mtime": 1778812551.8190253,
+    "ast_hash": "b69ea2defed689b0715e163b12696384",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/cot_instruction.txt": {
+    "mtime": 1781096150.4541132,
+    "ast_hash": "83d2d4e2f0fc628738e8b03a4fbe30e6",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/daily_insight.txt": {
+    "mtime": 1778856186.829167,
+    "ast_hash": "39f8398610b3e2a0284daf6e6571e770",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/full_report.txt": {
+    "mtime": 1781107011.6515095,
+    "ast_hash": "158d3ad3a66beef21b274731543cfc4f",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/full_report_part_a.txt": {
+    "mtime": 1781096194.6863453,
+    "ast_hash": "8b1cd26f666ebad280f5c63a23fa8da7",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/full_report_part_b.txt": {
+    "mtime": 1781106994.7710814,
+    "ast_hash": "355307e0d7dff17e05afabf40a3f7744",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/kitchen_report.txt": {
+    "mtime": 1781106275.3305352,
+    "ast_hash": "e8002b193b1a90839281b0385aec11e5",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/mini_analysis.txt": {
+    "mtime": 1778812544.972053,
+    "ast_hash": "0e1f48333ae0012ce382c71241e7e885",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/tarot_blocks.txt": {
+    "mtime": 1779988635.1510868,
+    "ast_hash": "78bbab9c8f1ca83df1f075a2763031fa",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/tarot_daily_card.txt": {
+    "mtime": 1780018716.5326078,
+    "ast_hash": "59292263f66916357a9e18a79235906d",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/tarot_daily_card_handler.txt": {
+    "mtime": 1779855130.8399057,
+    "ast_hash": "3b612133d233e5327efb9c695aaff9b6",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/tarot_doubles.txt": {
+    "mtime": 1779988635.1510868,
+    "ast_hash": "548788299e2eccd995f60ca9b2bf755b",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/tarot_portal.txt": {
+    "mtime": 1779988635.1510868,
+    "ast_hash": "11d7d37f808d2348417004208a19161c",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/tarot_question.txt": {
+    "mtime": 1779988635.1537414,
+    "ast_hash": "75b06075d0989de82387dcebd391beee",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/tarot_spheres.txt": {
+    "mtime": 1779988635.1537414,
+    "ast_hash": "4182bb2078e0d427b86fb23471b22d2c",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/tarot_weekly_spread.txt": {
+    "mtime": 1779714501.4454288,
+    "ast_hash": "3363a7e4e88e0fb45a01589977230f51",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/tarot_yes_no.txt": {
+    "mtime": 1779988635.1537414,
+    "ast_hash": "5ff955344852776ada0c3185117a2982",
+    "semantic_hash": ""
+  },
+  "nura_app/core/prompts/video_scenario.txt": {
+    "mtime": 1779605346.4368126,
+    "ast_hash": "2e970156db12aa46007b7f304ca4b03a",
+    "semantic_hash": ""
+  },
+  "nura_app/docker-compose.yml": {
+    "mtime": 1781515142.7940695,
+    "ast_hash": "514c1a97da99f58cba2ca6a78569ce7c",
+    "semantic_hash": ""
+  },
+  "nura_app/requirements.txt": {
+    "mtime": 1781022755.7409198,
+    "ast_hash": "6f61cc46734600d0450fdbbba5addc3b",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/_slide_base.html": {
+    "mtime": 1781016824.8892522,
+    "ast_hash": "dd286547cac9974c5ea14f592b0a6841",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/_slide_logo.html": {
+    "mtime": 1779461808.3486671,
+    "ast_hash": "f28ea4ac837942c7717ba169d93ccfb6",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/_slide_styles.html": {
+    "mtime": 1781691911.8043163,
+    "ast_hash": "b035f4f90c849dc2b502dc0b8ade8360",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/slide_cover.html": {
+    "mtime": 1779461816.4462166,
+    "ast_hash": "c1005333988be51cf8cc1e390ceca19c",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/slide_cta.html": {
+    "mtime": 1779463757.3516128,
+    "ast_hash": "c1c126042899578d401448aad6aa3501",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/slide_list.html": {
+    "mtime": 1779463777.8179939,
+    "ast_hash": "83d5f5152347ddc60568b854e7ddfff9",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/slide_quote.html": {
+    "mtime": 1779463762.6988804,
+    "ast_hash": "7d99ca4db55eb457e0e42a5049c8909e",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/slide_text_image.html": {
+    "mtime": 1779461835.578325,
+    "ast_hash": "68909032e6df980af3b2ba1af1926c63",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/profile.html": {
+    "mtime": 1781691911.8053658,
+    "ast_hash": "4fa51617dc2a3a1bd1f8fa5bf568f994",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_base.html": {
+    "mtime": 1781084776.275061,
+    "ast_hash": "e1d5202f8111ee7684d2995fc27c6c03",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_cover.html": {
+    "mtime": 1778811509.4581456,
+    "ast_hash": "d861a61da69a646d4978525c8b45c987",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_dashboard.html": {
+    "mtime": 1779775306.8527842,
+    "ast_hash": "acbf17363d20681eedc96910ea29de15",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_footer.html": {
+    "mtime": 1778778949.351095,
+    "ast_hash": "d39de72ebc827b5609198ff251654a22",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_health_map.html": {
+    "mtime": 1779779563.9030027,
+    "ast_hash": "a88c5e6fe4e438efc862e68cf07970a8",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_kitchen_toggle.html": {
+    "mtime": 1779724361.9695866,
+    "ast_hash": "0cecb58245ee30100ea28a6109b06bfa",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_line_visual.html": {
+    "mtime": 1778930391.4276433,
+    "ast_hash": "22048a84b2eecec708a0c8cb0dcb1b6b",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_matrix_3x3.html": {
+    "mtime": 1778929604.0978026,
+    "ast_hash": "9b8ed53a3411479afe5c4dea4d72edf4",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_matrix_full.html": {
+    "mtime": 1778935764.3956745,
+    "ast_hash": "4f322054ad5f8eed0de8dbaf7b757934",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_nav_sidebar.html": {
+    "mtime": 1779637837.0931077,
+    "ast_hash": "ffb08835ccf9a23d0514aaec926aeba8",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_practices.html": {
+    "mtime": 1779637026.7505336,
+    "ast_hash": "6cb062032be44432a8648d2fcc827e5d",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_psychological_blocks.html": {
+    "mtime": 1779636677.324518,
+    "ast_hash": "43eab89f5c0e02a9b2f9cb18d09bc3a2",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_recommendation_day.html": {
+    "mtime": 1779637248.155504,
+    "ast_hash": "a5e5da51fa22de2af4995f43e148a062",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_reflection.html": {
+    "mtime": 1779636907.0793307,
+    "ast_hash": "b232a365a81093bd1c5d0d84dbc44077",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_section_ancestral.html": {
+    "mtime": 1778928823.2088318,
+    "ast_hash": "b6420e7f71d5da45947936f71a98d891",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_section_card.html": {
+    "mtime": 1778778946.2087853,
+    "ast_hash": "ae680ac02efacc250b43a4ff8456e66a",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_section_forecast.html": {
+    "mtime": 1778935857.7324834,
+    "ast_hash": "e66adb61aeff6def4ecae04f65ac155d",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_section_karmic_tail.html": {
+    "mtime": 1778928822.446871,
+    "ast_hash": "1d1cded6c2a362569044b212cd30275c",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_section_purposes.html": {
+    "mtime": 1778935832.6957154,
+    "ast_hash": "b2eec4496ba876bf08e86b80f27d4384",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_styles.html": {
+    "mtime": 1781691911.8068335,
+    "ast_hash": "8dca60e71360ff3b9e20b0457d8920fd",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_tarot_card.html": {
+    "mtime": 1779641015.3392932,
+    "ast_hash": "c2d0d8a95a36910a3448c91e55461977",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/_toc.html": {
+    "mtime": 1779637843.541844,
+    "ast_hash": "52a35ecffdfa0382bd8862de087049da",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/compatibility_report.html": {
+    "mtime": 1780021097.2870378,
+    "ast_hash": "fa8b8aa104f0b7ff3ba4a8543e6616d5",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/full_report.html": {
+    "mtime": 1781514181.584128,
+    "ast_hash": "6773c600004a6519f9795ccb5980669f",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/full_report_v2.html": {
+    "mtime": 1781514108.3695223,
+    "ast_hash": "7dce0db598bb96b891f27b0899b79ce3",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/mini_report.html": {
+    "mtime": 1779605328.2035022,
+    "ast_hash": "0f4c97f0a3d8fa76be85393fdd8e531c",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/reports/sample-report.html": {
+    "mtime": 1781518385.4186876,
+    "ast_hash": "e022dc94766cb9bad1d60140641e2b60",
+    "semantic_hash": ""
+  },
+  "success.html": {
+    "mtime": 1781084776.2763088,
+    "ast_hash": "b5c103516b9d2e4024a81c91a55e10b4",
+    "semantic_hash": ""
+  },
+  "docs/\u041a\u0430\u0440\u0442\u0430 \u0432\u0435\u0447\u043d\u043e\u0437\u0435\u043b\u0451\u043d\u043e\u0433\u043e \u0441\u043f\u0440\u043e\u0441\u0430 \u0434\u043b\u044f Nura_ \u041a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u044f Viral Screening Radar \u0432 \u043d\u0438\u0448\u0435 \u0441\u0430\u043c\u043e\u043f\u043e\u0437\u043d\u0430\u043d\u0438\u044f \u043d\u0430 TikTok.pdf": {
+    "mtime": 1779376384.4190786,
+    "ast_hash": "b3a8de6c8b4a56666826f7cce113cfff",
+    "semantic_hash": ""
+  },
+  "docs/\u0430\u043d\u0430\u043b\u0438\u0437 \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u044b, \u0433\u043b\u0443\u0431\u0438\u043d\u044b \u0438 \u0446\u0435\u043d\u043d\u043e\u0441\u0442\u043d\u043e\u0433\u043e \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u044f \u043f\u043b\u0430\u0442\u043d\u044b\u0445 \u043e\u0442\u0447\u0451\u0442\u043e\u0432 \u043f\u043e \u00ab\u041c\u0430\u0442\u0440\u0438\u0446\u0435 \u0441\u0443\u0434\u044c\u0431\u044b\u00bb \u043d\u0430 \u0440\u044b\u043d\u043a\u0435 \u0420\u043e\u0441\u0441\u0438\u0438 \u0438 \u0421\u041d\u0413.pdf": {
+    "mtime": 1778869484.8324907,
+    "ast_hash": "81b5e48e863c463609f61969e706ff3c",
+    "semantic_hash": ""
+  },
+  "favicon.png": {
+    "mtime": 1781236653.385208,
+    "ast_hash": "0e936f9721b50570682382f850bb4f39",
+    "semantic_hash": ""
+  },
+  "nura-hero.webp": {
+    "mtime": 1781794278.6076884,
+    "ast_hash": "b48c88e20af08cb2e9fbcb265c2bdb1e",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/output/random_test_slide_01.png": {
+    "mtime": 1779463796.1598628,
+    "ast_hash": "31e7722eb430cf0a870d632e8601c20e",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/output/random_test_slide_02.png": {
+    "mtime": 1779463798.2161376,
+    "ast_hash": "1d2b7a19d7b2a693a9255bdbcdd690f1",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/output/random_test_slide_03.png": {
+    "mtime": 1779463800.181989,
+    "ast_hash": "c927521c081ed96f50a0a891e8dd739c",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/output/random_test_slide_04.png": {
+    "mtime": 1779463802.269178,
+    "ast_hash": "bf195b8700fa4a989de982f8d062ac5f",
+    "semantic_hash": ""
+  },
+  "nura_app/templates/carousel/output/random_test_slide_05.png": {
+    "mtime": 1779463804.265633,
+    "ast_hash": "a81e7af61e84d5e65f94b848345539e4",
+    "semantic_hash": ""
+  },
+  "frontend/nura-hero.webp": {
+    "mtime": 1781794278.6076884,
+    "ast_hash": "b48c88e20af08cb2e9fbcb265c2bdb1e",
+    "semantic_hash": ""
   }
 }
