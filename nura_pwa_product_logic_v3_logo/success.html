@@ -1,0 +1,121 @@
+<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+  (function(){
+    var t = localStorage.getItem('nura-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<title>NURA · Оплата прошла</title><style>
+:root {
+  --bg:#EFEEE9; --bg-soft:#F7F4EE; --bg-card:#FFFFFF; --bg-card-soft:#FBFAF6;
+  --gold:#C2A476; --terra:#B8743F; --terra-d:#9C5F30; --sage:#6B8068; --violet:#7B6FE8;
+  --text:#1A1A1A; --text-m:#5A5752; --text-s:#8A877E;
+  --line:rgba(44,42,30,.10); --line-strong:rgba(44,42,30,.16);
+  --shadow-card:0 4px 16px rgba(44,42,30,.08),0 1px 3px rgba(44,42,30,.06);
+  --shadow-soft:0 10px 28px rgba(44,42,30,.10),0 2px 6px rgba(44,42,30,.06);
+  --font-serif:'Playfair Display',Georgia,serif; --font-sans:'Manrope',system-ui,sans-serif;
+  --r-sm:10px; --r-md:16px; --r-lg:22px; --r-xl:28px;
+  --tabbar-bg:rgba(239,238,233,.92); --header-bg:rgba(239,238,233,.92);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+[data-theme="dark"]{
+  --bg:#12100E; --bg-soft:#1A1713; --bg-card:#1E1A16; --bg-card-soft:#181511;
+  --gold:#C9A55C; --terra:#C9874A; --terra-d:#B8743F; --sage:#7A9275; --violet:#8D84E8;
+  --text:#F2EFE7; --text-m:rgba(242,239,231,.72); --text-s:rgba(242,239,231,.48);
+  --line:rgba(242,239,231,.10); --line-strong:rgba(242,239,231,.18);
+  --shadow-card:0 4px 18px rgba(0,0,0,.22),0 1px 3px rgba(0,0,0,.18);
+  --shadow-soft:0 16px 38px rgba(0,0,0,.30);
+  --tabbar-bg:rgba(18,16,14,.92); --header-bg:rgba(18,16,14,.92);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{
+  min-height:100dvh;
+  background:radial-gradient(circle at 12% 0%,rgba(194,164,118,.20),transparent 28%),
+             radial-gradient(circle at 88% 8%,rgba(184,116,63,.12),transparent 26%),var(--bg);
+  color:var(--text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  padding-bottom:calc(72px + env(safe-area-inset-bottom,0px));
+}
+a{color:inherit;text-decoration:none} button,input,textarea,select{font-family:inherit}
+button{border:0;background:none;color:inherit;cursor:pointer}
+.app-shell{width:min(100%,520px);margin:0 auto;min-height:100dvh;position:relative}
+.header{
+  position:sticky;top:0;z-index:40;height:calc(58px + env(safe-area-inset-top,0px));
+  padding:env(safe-area-inset-top,0px) 16px 0;background:var(--header-bg);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.header-title{position:absolute;left:50%;transform:translateX(-50%);font-family:var(--font-serif);font-size:20px;letter-spacing:.04em;font-weight:400}
+.logo{display:inline-flex;align-items:center;gap:10px;letter-spacing:.18em;font-weight:700;font-size:14px;color:var(--text)}
+.logo-diamond{width:14px;height:14px;border:1.5px solid var(--terra);transform:rotate(45deg);border-radius:3px;position:relative;flex:0 0 auto}
+.logo-diamond::after{content:"";position:absolute;inset:3px;background:var(--gold);border-radius:1px}
+.header-actions{display:flex;gap:8px;align-items:center}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:var(--bg-card);border:1px solid var(--line);box-shadow:var(--shadow-card);display:grid;place-items:center;color:var(--text-m)}
+.page{padding:20px 16px 28px;display:grid;gap:18px}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--terra)}
+.title{font-family:var(--font-serif);font-size:clamp(32px,8vw,44px);line-height:1.08;font-weight:400;letter-spacing:-.02em}
+.title em{color:var(--terra);font-style:italic}
+.lead{color:var(--text-m);font-size:14.5px;line-height:1.6}
+.card{background:var(--bg-card);border:1px solid rgba(255,255,255,.64);border-radius:var(--r-lg);box-shadow:var(--shadow-card);overflow:hidden;position:relative}
+[data-theme="dark"] .card{border-color:var(--line)}
+.card-pad{padding:20px}
+.section-block{display:grid;gap:10px}
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px}
+.section-title{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--text-s)}
+.section-link{font-size:12px;color:var(--terra);font-weight:800}
+.btn{min-height:46px;border-radius:var(--r-sm);display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;font-size:13.5px;font-weight:800;line-height:1.2;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s var(--ease)}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,116,63,.26)}
+.btn-primary:hover{background:var(--terra-d)}
+.btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
+.btn-full{width:100%}
+.input,.textarea,select.input{width:100%;border:1px solid var(--line-strong);background:var(--bg-card);color:var(--text);border-radius:var(--r-md);outline:none;font-size:15px;transition:border-color .2s,box-shadow .2s}
+.input{height:52px;padding:0 16px}.textarea{min-height:46px;max-height:130px;padding:12px 14px;resize:none;line-height:1.5}
+.input:focus,.textarea:focus{border-color:rgba(184,116,63,.42);box-shadow:0 0 0 3px rgba(184,116,63,.10)}
+.input::placeholder,.textarea::placeholder{color:var(--text-s)}
+.meta-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-s);font-weight:800}
+.small{font-size:12px;color:var(--text-s);line-height:1.5}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;height:calc(64px + env(safe-area-inset-bottom,0px));padding:6px 10px env(safe-area-inset-bottom,0px);background:var(--tabbar-bg);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-top:1px solid var(--line)}
+.tabbar-inner{width:min(100%,520px);height:58px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.tab-item{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:16px;gap:3px;color:var(--text-s);font-size:10.5px;font-weight:700;transition:background .2s,color .2s}
+.tab-item .ti{font-size:22px;line-height:1}.tab-item.active{background:rgba(184,116,63,.10);color:var(--terra)}
+@media(min-width:760px){
+  body{padding-top:24px;padding-bottom:96px}
+  .app-shell{border-radius:32px;overflow:hidden;min-height:auto;box-shadow:0 28px 80px rgba(44,42,30,.16);border:1px solid rgba(255,255,255,.66)}
+  [data-theme="dark"] .app-shell{border-color:var(--line)}
+  .header{position:relative}
+  .tabbar{left:50%;right:auto;transform:translateX(-50%);width:min(100%,520px);border-radius:28px 28px 0 0;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+}
+@media(max-width:380px){.page{padding-left:12px;padding-right:12px}.title{font-size:32px}}
+
+body{display:flex;align-items:center;justify-content:center;padding-bottom:0}.wrap{width:min(100%,460px);padding:28px 16px;text-align:center}.success-card{padding:38px 24px;background:radial-gradient(circle at 50% 0%,rgba(194,164,118,.22),transparent 36%),var(--bg-card)}.success-icon{width:68px;height:68px;border-radius:50%;display:inline-grid;place-items:center;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.18);color:var(--terra);font-size:30px;margin-bottom:18px}.progress{display:grid;gap:10px;margin:26px 0;text-align:left}.step{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:center;padding:12px;background:var(--bg-card-soft);border:1px solid var(--line);border-radius:var(--r-md);color:var(--text-m);font-size:13px}.step-dot{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(194,164,118,.16);color:var(--terra);font-weight:800}.step.active{color:var(--text);border-color:rgba(184,116,63,.22)}.step.active .step-dot{background:var(--terra);color:white}.spinner{width:44px;height:44px;border:3px solid rgba(184,116,63,.16);border-top-color:var(--terra);border-radius:50%;animation:spin 1s linear infinite;margin:20px auto 0}@keyframes spin{to{transform:rotate(360deg)}}
+
+/* NURA text logo from approved reference */
+.nura-text-logo{display:inline-flex;align-items:center;gap:10px;color:var(--terra);white-space:nowrap}
+.nura-text-logo .nura-star{font-size:18px;line-height:1;color:var(--terra);transform:translateY(-1px)}
+.nura-text-logo .nura-sep{width:1px;height:18px;background:rgba(184,116,63,.32)}
+.nura-text-logo .nura-word{font-family:var(--font-serif);font-weight:600;font-size:19px;letter-spacing:.16em;line-height:1;color:var(--terra)}
+[data-theme="dark"] .nura-text-logo .nura-sep{background:rgba(201,165,92,.34)}
+
+</style></head><body><div class="wrap"><section class="card success-card"><a href="/" class="small">← На главную</a><div style="margin-top:22px" class="success-icon">✦</div><h1 class="title">Оплата прошла</h1><p class="lead" id="status-text" style="margin-top:12px">NURA готовит твой персональный отчёт. Обычно это занимает 1–2 минуты.</p><div class="spinner" id="spinner"></div><div class="progress"><div class="step active" id="s1"><div class="step-dot">1</div><div>Рассчитываем позиции Матрицы</div></div><div class="step" id="s2"><div class="step-dot">2</div><div>Собираем архетипы и программы</div></div><div class="step" id="s3"><div class="step-dot">3</div><div>Формируем личные выводы по запросу</div></div><div class="step" id="s4"><div class="step-dot">4</div><div>Сохраняем HTML-отчёт в профиль</div></div></div><p class="small">Не закрывай страницу. Если отчёт не откроется автоматически, он всё равно появится в профиле.</p><button class="btn btn-primary btn-full" style="margin-top:18px" onclick="location.href='profile.html#reports'">Открыть профиль</button></section></div><script>
+var steps=['s1','s2','s3','s4'],i=0;setInterval(function(){if(i<steps.length-1){i++;document.getElementById(steps[i]).classList.add('active');}},1700);
+var token=new URLSearchParams(location.search).get('token');if(token&&token!=='demo')setTimeout(function(){location.href='/report/'+token;},5000);
+</script>
+<script>
+(function(){
+  var btn=document.getElementById('themeToggle'); if(!btn) return;
+  var root=document.documentElement;
+  btn.addEventListener('click',function(){
+    var current=root.getAttribute('data-theme')||'light';
+    var next=current==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next); localStorage.setItem('nura-theme',next);
+  });
+})();
+</script>
+</body></html>

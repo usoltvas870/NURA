@@ -1,554 +1,124 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>NURA · Профиль</title>
-  <script>
-    (function(){
-      var t = localStorage.getItem('nura-theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', t);
-    })();
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg:var(--nura-obsidian); --bg-soft:var(--nura-cave); --bg-card:var(--nura-surface);
-      --ink:#F2EFE7; --ink-soft:rgba(242,239,231,.72);
-      --ink-mute:rgba(242,239,231,.5); --ink-faint:var(--nura-faint);
-      --line:rgba(242,239,231,.10); --line-strong:rgba(242,239,231,.18);
-      --m-accent:var(--nura-gold); --m-accent-soft:rgba(201,165,92,.16);
-      --m-leaf:var(--nura-leaf); --m-leaf-soft:rgba(107,163,122,.12);
-      --t-accent:#D8B36A; --t-accent-soft:rgba(216,179,106,.16);
-      --t-violet:#7E7AC8;
-      --danger:#C45C5C;
-      --r-sm:6px; --r-md:12px; --r-lg:18px;
-      --bg-alpha:rgba(18,16,14,.97);
-    }
-    [data-theme="light"] {
-      --bg:#F7F3ED; --bg-soft:#EFEAE2; --bg-card:#F0EBE2;
-      --ink:#1C1814; --ink-soft:rgba(28,24,20,.70);
-      --ink-mute:rgba(28,24,20,.48); --ink-faint:#8A7F75;
-      --line:rgba(28,24,20,.10); --line-strong:rgba(28,24,20,.18);
-      --m-accent:#9B7A2F; --m-accent-soft:rgba(155,122,47,.14);
-      --m-leaf:#4A7A5A; --m-leaf-soft:rgba(74,122,90,.10);
-      --t-accent:#A67C3D; --t-accent-soft:rgba(166,124,61,.14);
-      --t-violet:#6A6798; --danger:#C45C5C;
-      --bg-alpha:rgba(247,243,237,.92);
-    }
-    [data-theme="light"] body { background:var(--bg); color:var(--ink); }
-
-    /* ── LIGHT THEME — PWA ──────────────────────────────────── */
-    [data-theme="light"] .header {
-      background: rgba(247, 243, 237, 0.92);
-      border-bottom: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .header .nura-name,
-    [data-theme="light"] .header .logo,
-    [data-theme="light"] .header .header-title { color: #1C1814; }
-    [data-theme="light"] .header .nura-avatar  { color: #9B7A2F; }
-
-    [data-theme="light"] .tabbar {
-      background: rgba(247, 243, 237, 0.92);
-      border-top: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .tab-item { color: rgba(28, 24, 20, 0.45); }
-    [data-theme="light"] .tab-item.active { color: #A67C3D; }
-    [data-theme="light"] .tabbar .tab-item.active .ti { color: #A67C3D; }
-    [data-theme="light"] .tabbar .tab-item:not(.active) .ti {
-      color: rgba(28, 24, 20, 0.40);
-      opacity: 1;
-    }
-
-    [data-theme="light"] .profile-hero {
-      background: linear-gradient(160deg, #E2ECE6, #EEF4F0);
-      border-bottom: 1px solid rgba(74, 122, 90, 0.20);
-    }
-    [data-theme="light"] .profile-name     { color: #1C1814; }
-    [data-theme="light"] .profile-dob      { color: rgba(28, 24, 20, 0.55); }
-    [data-theme="light"] .profile-archetype{ color: #9B7A2F; }
-    [data-theme="light"] .avatar-circle {
-      background: rgba(74, 122, 90, 0.18);
-      color: #3A6848;
-      border-color: rgba(74, 122, 90, 0.30);
-    }
-    [data-theme="light"] .profile-tabs { border-bottom: 1px solid rgba(28, 24, 20, 0.10); }
-    [data-theme="light"] .profile-tab  { color: rgba(28, 24, 20, 0.48); }
-    [data-theme="light"] .profile-tab.active {
-      color: #9B7A2F;
-      border-bottom-color: #9B7A2F;
-    }
-    [data-theme="light"] .list-item {
-      background: #FFFFFF;
-      border-color: rgba(28, 24, 20, 0.08);
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-    }
-    [data-theme="light"] .list-item .li-title { color: #1C1814; }
-    [data-theme="light"] .list-item .li-sub   { color: rgba(28, 24, 20, 0.55); }
-    [data-theme="light"] .list-item .li-arrow { color: rgba(28, 24, 20, 0.30); }
-    [data-theme="light"] .sub-card {
-      background: linear-gradient(160deg, #EDE5D0, #F4EFE4);
-      border-color: rgba(106, 103, 152, 0.22);
-    }
-    [data-theme="light"] .sub-price { color: #A67C3D; }
-    [data-theme="light"] .toggle-row { color: #1C1814; }
-    [data-theme="light"] .toggle-sub { color: rgba(28, 24, 20, 0.55); }
-    [data-theme="light"] .settings-row {
-      color: #1C1814;
-      border-bottom-color: rgba(28, 24, 20, 0.07);
-    }
-    [data-theme="light"] .settings-row.danger { color: #C45C5C; }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{-webkit-tap-highlight-color:transparent}
-    body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);
-      min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-    a{text-decoration:none;color:inherit}
-    button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-
-    .scroll-area{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px) + 24px)}
-    .page{padding:16px;display:flex;flex-direction:column;gap:20px}
-
-    /* Header */
-    .header{
-      position:sticky;top:0;z-index:40;height:52px;
-      background:var(--bg-alpha);backdrop-filter:blur(14px);
-      -webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
-      display:flex;align-items:center;justify-content:space-between;padding:0 16px;
-      position:relative
-    }
-    .logo{display:flex;align-items:center;gap:8px;
-      font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:18px;letter-spacing:.18em;color:var(--m-accent)}
-    .logo-sep{width:1px;height:13px;background:rgba(201,165,92,.28)}
-    .header-title{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:18px;letter-spacing:.12em;color:var(--ink);
-      position:absolute;left:50%;transform:translateX(-50%)}
-
-    /* Profile hero */
-    .profile-hero{
-      display:flex;align-items:center;gap:16px;
-      padding:20px 16px 16px
-    }
-    .avatar{
-      width:58px;height:58px;border-radius:50%;flex-shrink:0;
-      background:rgba(201,165,92,.1);border:1px solid rgba(201,165,92,.25);
-      display:grid;place-items:center;
-      font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:22px;color:var(--m-accent);letter-spacing:.06em
-    }
-    .profile-info{}
-    .profile-name{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:24px;color:var(--ink);margin-bottom:3px}
-    .profile-sub{font-size:12px;color:var(--ink-soft);font-weight:300}
-    .profile-badge{display:inline-flex;align-items:center;gap:5px;
-      margin-top:6px;padding:3px 9px;border-radius:var(--r-sm);
-      background:rgba(201,165,92,.08);border:1px solid rgba(201,165,92,.2);
-      font-size:10.5px;font-weight:500;letter-spacing:.1em;
-      text-transform:uppercase;color:var(--m-accent);white-space:nowrap}
-
-    /* Tabs nav */
-    .tabs-nav{
-      display:flex;border-bottom:1px solid var(--line);
-      overflow-x:auto;scrollbar-width:none;flex-shrink:0;
-      padding:0 16px;gap:0
-    }
-    .tabs-nav::-webkit-scrollbar{display:none}
-    .tab-btn{
-      flex-shrink:0;padding:0 14px;height:42px;
-      font-size:13px;font-weight:400;color:var(--ink-faint);
-      border-bottom:2px solid transparent;white-space:nowrap;
-      transition:color .2s,border-color .2s;margin-bottom:-1px
-    }
-    .tab-btn.active{color:var(--m-accent);border-bottom-color:var(--m-accent)}
-
-    /* Tab content */
-    .tab-panel{display:none}
-    .tab-panel.active{display:flex;flex-direction:column;gap:10px}
-
-    /* Report cards */
-    .report-card{
-      background:var(--bg-card);border:1px solid var(--line);
-      border-radius:var(--r-lg);padding:16px 16px 14px;
-      display:flex;flex-direction:column;gap:10px
-    }
-    .report-top{margin-bottom:4px}
-    .report-title{font-size:14px;font-weight:400;color:var(--ink);line-height:1.3}
-    .report-date{font-family:'JetBrains Mono',monospace;font-size:10.5px;
-      color:var(--ink-faint);font-weight:300}
-    .report-meta{font-size:12px;color:var(--ink-soft);font-weight:300}
-    .btn-outline{
-      align-self:flex-start;padding:8px 16px;border-radius:var(--r-md);
-      background:transparent;border:1px solid var(--line);
-      color:var(--ink-soft);font-size:12.5px;font-weight:400;
-      transition:border-color .2s,color .2s
-    }
-    .btn-outline:hover{border-color:rgba(201,165,92,.30);color:var(--m-accent)}
-
-    /* Subscription card */
-    .sub-card{
-      background:var(--bg-card);border:1px solid var(--line);
-      border-radius:var(--r-lg);padding:18px 16px
-    }
-    .sub-tag{font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-      color:var(--ink-faint);margin-bottom:8px}
-    .sub-plan{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:26px;color:var(--ink);margin-bottom:4px}
-    .sub-price{font-family:'JetBrains Mono',monospace;font-size:13px;
-      color:var(--m-accent);font-weight:300;margin-bottom:14px}
-    .sub-features{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
-    .sub-features li{display:flex;align-items:center;gap:8px;
-      font-size:13px;color:var(--ink-soft);font-weight:300}
-    .sub-features li::before{content:'';width:4px;height:4px;border-radius:50%;
-      flex-shrink:0;background:var(--m-leaf)}
-    .btn-manage{
-      display:flex;align-items:center;justify-content:center;
-      width:100%;height:44px;border-radius:var(--r-md);
-      background:transparent;border:1px solid rgba(201,165,92,.28);
-      color:var(--m-accent);font-size:13.5px;font-weight:400;
-      transition:background .2s
-    }
-    .btn-manage:hover{background:rgba(201,165,92,.08)}
-
-    /* Notification toggles */
-    .notif-list{display:flex;flex-direction:column;gap:1px}
-    .notif-item{
-      background:var(--bg-card);padding:14px 16px;
-      display:flex;align-items:center;gap:12px;
-      border-bottom:1px solid var(--line)
-    }
-    .notif-item:first-child{border-radius:var(--r-lg) var(--r-lg) 0 0}
-    .notif-item:last-child{border-radius:0 0 var(--r-lg) var(--r-lg);border-bottom:none}
-    .notif-info{flex:1}
-    .notif-name{font-size:13.5px;color:var(--ink);margin-bottom:2px}
-    .notif-desc{font-size:11.5px;color:var(--ink-faint);font-weight:300}
-    /* Toggle */
-    .toggle{position:relative;width:42px;height:24px;flex-shrink:0}
-    .toggle input{opacity:0;width:0;height:0;position:absolute}
-    .toggle-track{
-      position:absolute;inset:0;border-radius:12px;
-      background:var(--bg-soft);border:1px solid var(--line);
-      transition:background .22s,border-color .22s;cursor:pointer
-    }
-    .toggle-thumb{
-      position:absolute;top:3px;left:3px;
-      width:16px;height:16px;border-radius:50%;
-      background:var(--ink-faint);transition:transform .22s,background .22s
-    }
-    .toggle input:checked ~ .toggle-track{
-      background:rgba(107,163,122,.25);border-color:rgba(107,163,122,.45)
-    }
-    .toggle input:checked ~ .toggle-track .toggle-thumb{
-      transform:translateX(18px);background:var(--m-leaf)
-    }
-
-    /* Settings list */
-    .settings-list{display:flex;flex-direction:column;gap:1px}
-    .settings-item{
-      background:var(--bg-card);padding:14px 16px;
-      display:flex;align-items:center;gap:12px;cursor:pointer;
-      border-bottom:1px solid var(--line);transition:opacity .2s
-    }
-    .settings-item:first-child{border-radius:var(--r-lg) var(--r-lg) 0 0}
-    .settings-item:last-child{border-radius:0 0 var(--r-lg) var(--r-lg);border-bottom:none}
-    .settings-item:hover{opacity:.75}
-    .settings-icon{font-size:16px;width:24px;text-align:center;color:var(--ink-soft)}
-    .settings-label{flex:1;font-size:13.5px;color:var(--ink)}
-    .settings-arrow{color:var(--ink-faint);font-size:16px}
-    .settings-value{font-size:12.5px;color:var(--ink-faint);font-weight:300}
-
-    /* Danger item */
-    .settings-item.danger .settings-label{color:var(--danger)}
-    .settings-item.danger .settings-icon{color:var(--danger);opacity:.7}
-
-    /* Tabbar */
-    .tabbar{
-      position:fixed;bottom:0;left:0;right:0;z-index:50;
-      height:calc(56px + env(safe-area-inset-bottom,0px));
-      padding-bottom:env(safe-area-inset-bottom,0px);
-      background:var(--bg-alpha);backdrop-filter:blur(20px);
-      -webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);
-      display:flex;align-items:flex-start
-    }
-    .tab-item{flex:1;height:56px;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;gap:3px;
-      color:var(--ink-faint);font-size:11px;font-weight:400;
-      letter-spacing:.02em;text-decoration:none;transition:color .2s}
-    .tab-item.active{color:var(--m-accent)}
-    .tab-icon{font-size:17px;line-height:1}
-.tabbar .ti{font-size:22px;line-height:1;display:block;margin-bottom:4px}
-.tabbar .tab-item.active .ti{color:var(--m-accent)}
-.tabbar .tab-item:not(.active) .ti{color:var(--ink-faint);opacity:0.7}
-  </style>
-  <link rel="stylesheet" href="/static/nura-ds.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-</head>
-<body>
-
-<header class="header" style="position:sticky">
-  <div class="logo" style="visibility:hidden">✦<span class="logo-sep"></span>N</div>
-  <span class="header-title">Профиль</span>
-  <div style="width:34px"></div>
-</header>
-
-<!-- Profile hero -->
-<div class="profile-hero">
-  <div class="avatar" id="avatar-initials">АА</div>
-  <div class="profile-info">
-    <div class="profile-name" id="profile-name">Алина</div>
-    <div class="profile-sub" id="profile-dob">дата рождения · 12.03.1993</div>
-    <span class="profile-badge" id="profile-archetype">✦ Верховная Жрица</span>
-  </div>
-</div>
-
-<!-- Tabs nav -->
-<div class="tabs-nav" id="tabs-nav">
-  <button class="tab-btn active" data-tab="reports">Отчёты</button>
-  <button class="tab-btn" data-tab="subscription">Подписка</button>
-  <button class="tab-btn" data-tab="notifications">Уведомления</button>
-  <button class="tab-btn" data-tab="settings">Настройки</button>
-</div>
-
-<main class="scroll-area">
-  <div class="page" style="gap:12px">
-
-    <!-- Reports -->
-    <div class="tab-panel active" id="tab-reports">
-
-      <div class="report-card">
-        <div class="report-top">
-          <div class="report-title">Матрица Судьбы — полный разбор</div>
-        </div>
-        <div class="report-meta"><span class="report-date">14.06.2026</span> · 38 страниц · 17 секций · PDF</div>
-        <button class="btn-outline" onclick="openReport('matrix-full')">Открыть →</button>
-      </div>
-
-      <div class="report-card">
-        <div class="report-top">
-          <div class="report-title">Прогноз 2026 — годовой анализ</div>
-        </div>
-        <div class="report-meta"><span class="report-date">02.01.2026</span> · 22 страницы · 12 циклов · PDF</div>
-        <button class="btn-outline" onclick="openReport('forecast-2026')">Открыть →</button>
-      </div>
-
-      <div class="report-card" style="opacity:.5">
-        <div class="report-top">
-          <div class="report-title">Мини-разбор — бесплатный</div>
-        </div>
-        <div class="report-meta"><span class="report-date">28.05.2026</span> · 4 страницы · вводный</div>
-        <button class="btn-outline">Открыть →</button>
-      </div>
-
-    </div>
-
-    <!-- Subscription -->
-    <div class="tab-panel" id="tab-subscription">
-      <div class="sub-card">
-        <div class="sub-tag">Активная подписка</div>
-        <div class="sub-plan">Таро-ритуалы</div>
-        <div class="sub-price">390 ₽ / месяц · следующее списание 15.07.2026</div>
-        <ul class="sub-features">
-          <li>Карта дня каждое утро</li>
-          <li>Расклад недели по сферам тело / ум / дух</li>
-          <li>AI-расклад по любому вопросу</li>
-          <li>Углублённый анализ через Матрицу</li>
-        </ul>
-        <button class="btn-manage" onclick="location.href='https://t.me/ai_nura_bot'">Управлять подпиской</button>
-      </div>
-
-      <div class="sub-card" style="border-color:rgba(201,165,92,.18)">
-        <div class="sub-tag">Апгрейд</div>
-        <div class="sub-plan">Матрица + Таро</div>
-        <div class="sub-price">690 ₽ / месяц — экономия 90 ₽</div>
-        <ul class="sub-features">
-          <li>Всё из Таро-ритуалов</li>
-          <li>Обновлённый разбор Матрицы каждый квартал</li>
-          <li>Приоритетные ответы NURA</li>
-        </ul>
-        <button class="btn-manage" style="border-color:rgba(201,165,92,.40);color:var(--m-accent)" onclick="location.href='https://t.me/ai_nura_bot'">
-          Перейти на комбо →
-        </button>
-      </div>
-    </div>
-
-    <!-- Notifications -->
-    <div class="tab-panel" id="tab-notifications">
-      <div class="notif-list">
-
-        <label class="notif-item">
-          <div class="notif-info">
-            <div class="notif-name">Карта дня</div>
-            <div class="notif-desc">Утром в 8:00 по вашему времени</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" checked onchange="saveNotif('daily_card', this.checked)">
-            <div class="toggle-track"><div class="toggle-thumb"></div></div>
-          </label>
-        </label>
-
-        <label class="notif-item">
-          <div class="notif-info">
-            <div class="notif-name">Расклад недели</div>
-            <div class="notif-desc">В понедельник утром</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" checked onchange="saveNotif('weekly_spread', this.checked)">
-            <div class="toggle-track"><div class="toggle-thumb"></div></div>
-          </label>
-        </label>
-
-        <label class="notif-item">
-          <div class="notif-info">
-            <div class="notif-name">Лунные события</div>
-            <div class="notif-desc">Новолуние и полнолуние</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" onchange="saveNotif('moon', this.checked)">
-            <div class="toggle-track"><div class="toggle-thumb"></div></div>
-          </label>
-        </label>
-
-        <label class="notif-item">
-          <div class="notif-info">
-            <div class="notif-name">Напоминания о практиках</div>
-            <div class="notif-desc">7 дней программы из отчёта</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" checked onchange="saveNotif('practices', this.checked)">
-            <div class="toggle-track"><div class="toggle-thumb"></div></div>
-          </label>
-        </label>
-
-        <label class="notif-item">
-          <div class="notif-info">
-            <div class="notif-name">Новости NURA</div>
-            <div class="notif-desc">Обновления и новые функции</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" onchange="saveNotif('news', this.checked)">
-            <div class="toggle-track"><div class="toggle-thumb"></div></div>
-          </label>
-        </label>
-
-      </div>
-    </div>
-
-    <!-- Settings -->
-    <div class="tab-panel" id="tab-settings">
-      <div class="settings-list">
-
-        <div class="settings-item" onclick="editProfile()">
-          <span class="settings-icon">✎</span>
-          <span class="settings-label">Редактировать профиль</span>
-          <span class="settings-arrow">›</span>
-        </div>
-
-        <div class="settings-item" onclick="linkTelegram()" id="tg-link-item">
-          <span class="settings-icon">🔗</span>
-          <span class="settings-label">Подключить Telegram</span>
-          <span class="settings-value" id="tg-link-status">не подключён</span>
-          <span class="settings-arrow">›</span>
-        </div>
-
-        <div class="settings-item" onclick="toggleLanguage()">
-          <span class="settings-icon">🌐</span>
-          <span class="settings-label">Язык</span>
-          <span class="settings-value" id="lang-label">Русский</span>
-          <span class="settings-arrow">›</span>
-        </div>
-
-        <div class="settings-item" id="themeToggle">
-          <span class="settings-icon">◑</span>
-          <span class="settings-label">Тема</span>
-          <span class="settings-value" id="theme-label">Тёмная</span>
-          <span class="settings-arrow">›</span>
-        </div>
-
-        <div class="settings-item" onclick="location.href='https://t.me/nura_support'">
-          <span class="settings-icon">📄</span>
-          <span class="settings-label">Политика конфиденциальности</span>
-          <span class="settings-arrow">›</span>
-        </div>
-
-        <div class="settings-item" onclick="location.href='https://t.me/nura_support'">
-          <span class="settings-icon">✉</span>
-          <span class="settings-label">Обратная связь</span>
-          <span class="settings-arrow">›</span>
-        </div>
-
-      </div>
-
-      <div class="settings-list" style="margin-top:8px">
-        <div class="settings-item danger" onclick="logout()">
-          <span class="settings-icon">↩</span>
-          <span class="settings-label">Выйти из аккаунта</span>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</main>
-
-<nav class="tabbar">
-  <a class="tab-item" href="index.html">
-    <i class="ti ti-layout-grid"></i><span>Матрица</span>
-  </a>
-  <a class="tab-item" href="tarot.html">
-    <i class="ti ti-cards"></i><span>Таро</span>
-  </a>
-  <a class="tab-item" href="chat.html">
-    <i class="ti ti-message-circle"></i><span>Чат</span>
-  </a>
-  <a class="tab-item active" href="profile.html">
-    <i class="ti ti-user-circle"></i><span>Профиль</span>
-  </a>
-</nav>
-
+<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-  var BASE = 'https://nura-ai.ru/api/v1';
-  var session_id = localStorage.getItem('nura_session_id');
+  (function(){
+    var t = localStorage.getItem('nura-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<link rel="stylesheet" href="nura-pwa.css"/>
+<title>NURA · Профиль</title><style>
+.profile-hero{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:center;padding:20px;background:linear-gradient(135deg,rgba(184,116,63,.09),rgba(194,164,118,.10)),var(--bg-card)}
+.avatar{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:rgba(184,116,63,.09);border:1px solid rgba(184,116,63,.18);color:var(--terra);font-weight:800;font-size:20px}
+.profile-name{font-family:var(--font-serif);font-size:30px;line-height:1.1}
+.badge{display:inline-flex;margin-top:6px;padding:5px 10px;border-radius:999px;background:rgba(184,116,63,.09);border:1px solid rgba(184,116,63,.16);color:var(--terra);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tab-btn{flex:0 0 auto;padding:10px 13px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card);color:var(--text-m);font-size:12px;font-weight:800;cursor:pointer}
+.tab-btn.active{background:var(--terra);color:white;border-color:var(--terra)}
+.panel{display:none;gap:10px}.panel.active{display:grid}
+.list-card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:16px}
+.list-title{font-size:14px;font-weight:800;margin-bottom:4px}
+.list-sub{font-size:12px;color:var(--text-m);line-height:1.4}
+.price{font-family:var(--font-serif);font-size:30px;color:var(--terra);line-height:1}
+.toggle-row{display:grid;grid-template-columns:1fr 44px;gap:12px;align-items:center;padding:15px 16px;border-bottom:1px solid var(--line)}
+.toggle-row:last-child{border-bottom:0}
+.switch{position:relative;width:44px;height:26px}.switch input{opacity:0;width:0;height:0}
+.track{position:absolute;inset:0;border-radius:99px;background:var(--line-strong)}
+.thumb{position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:var(--bg-card);box-shadow:var(--shadow-card);transition:.2s}
+.switch input:checked+.track{background:rgba(107,128,104,.42)}
+.switch input:checked+.track .thumb{transform:translateX(18px);background:var(--sage)}
+.btn{min-height:46px;border-radius:var(--r-sm);display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;font-size:13.5px;font-weight:800;line-height:1.2;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s var(--ease)}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,116,63,.26)}
+.btn-primary:hover{background:var(--terra-d)}
+.btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
+.btn-full{width:100%}
+</style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="icon-btn" aria-label="Назад"><i class="ti ti-chevron-left"></i></a><span class="header-title">Профиль</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page"><section class="card profile-hero"><div class="avatar" id="avatar-initials">А</div><div><div class="profile-name" id="profile-name">Алина</div><div class="small" id="profile-dob">дата рождения</div><span class="badge" id="profile-archetype">✦ Загрузка…</span></div></section><div class="tabs"><button class="tab-btn active" data-tab="reports">Отчёты</button><button class="tab-btn" data-tab="subscription">Подписка</button><button class="tab-btn" data-tab="notifications">Уведомления</button><button class="tab-btn" data-tab="settings">Настройки</button></div>
+<section class="panel active" id="tab-reports">
+<article class="card list-card"><div><div class="list-title">Матрица Судьбы · полный разбор</div><div class="list-sub">Разовая покупка · доступ навсегда</div></div><button class="btn btn-soft" onclick="openReport('matrix-full')">Открыть</button></article>
+<article class="card list-card"><div><div class="list-title">Мини-разбор</div><div class="list-sub">Архетип, сила, конфликт, отношения</div></div><button class="btn btn-soft" onclick="location.href='/mini.html'">Открыть</button></article>
+<article class="card list-card"><div><div class="list-title">Совместимость</div><div class="list-sub">Разбор пары по двум датам — отдельный апселл</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
+<article class="card list-card"><div><div class="list-title">Прогноз на год</div><div class="list-sub">Циклы, риски, возможности — будущий продукт</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
+</section>
+<section class="panel" id="tab-subscription">
+<article class="card card-pad"><div class="eyebrow">Подписка</div><h2 class="title" style="font-size:32px;margin-top:8px">Ежедневные практики</h2><div style="margin:10px 0 14px"><span class="price">390 ₽</span> <span class="small">/ месяц</span></div><p class="lead">Карта дня, фокус недели и расширенный чат с NURA. Матрица — разовая покупка, не входит в ежемесячный платёж.</p><button class="btn btn-primary btn-full" style="margin-top:16px" onclick="location.href='https://t.me/ai_nura_bot'">Подключить подписку</button></article>
+<article class="card list-card"><div><div class="list-title">Матрица Судьбы</div><div class="list-sub">Разовая покупка · отчёт навсегда</div></div><button class="btn btn-soft" id="matrix-status-btn">Куплена</button></article>
+</section>
+<section class="panel" id="tab-notifications"><div class="card">
+<label class="toggle-row"><div><div class="list-title">Карта дня</div><div class="list-sub">Утром в 8:00</div></div><span class="switch"><input type="checkbox" checked onchange="saveNotif('daily_card', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
+<label class="toggle-row"><div><div class="list-title">Фокус недели</div><div class="list-sub">В понедельник утром</div></div><span class="switch"><input type="checkbox" checked onchange="saveNotif('weekly_spread', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
+<label class="toggle-row"><div><div class="list-title">Практики из отчёта</div><div class="list-sub">Мягкие напоминания 7 дней</div></div><span class="switch"><input type="checkbox" onchange="saveNotif('practices', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
+<label class="toggle-row"><div><div class="list-title">Новости NURA</div><div class="list-sub">Обновления и новые функции</div></div><span class="switch"><input type="checkbox" onchange="saveNotif('news', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
+</div></section>
+<section class="panel" id="tab-settings">
+<article class="card list-card" onclick="editProfile()"><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="small">›</span></article>
+<article class="card list-card" id="tg-link-item" onclick="linkTelegram()"><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="small">›</span></article>
+<article class="card list-card" id="themeToggle2" onclick="document.getElementById('themeToggle').click()"><div><div class="list-title">Тема</div><div class="list-sub" id="theme-label">Светлая</div></div><span class="small">›</span></article>
+<article class="card list-card" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Политика конфиденциальности</div></div><span class="small">›</span></article>
+<article class="card list-card" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Обратная связь</div></div><span class="small">›</span></article>
+<article class="card list-card" onclick="logout()"><div><div class="list-title" style="color:#C45C5C">Выйти из аккаунта</div></div></article>
+</section>
+</main></div>
+<nav class="tabbar"><div class="tabbar-inner">
+<a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
+<a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
+<a class="tab-item" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
+<a class="tab-item active" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
+</div></nav>
+<script src="nura-pwa.js"></script>
+<script type="text/javascript">
+(function() {
+  var N = window.NURA;
+  var BASE = N.BASE, session_id = N.sessionId;
+  var $ = document.getElementById.bind(document);
 
-  // Tab switching
   document.querySelectorAll('.tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-      document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
       btn.classList.add('active');
-      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      $('tab-' + btn.dataset.tab).classList.add('active');
     });
   });
 
-  // Load user data
+  if (location.hash === '#subscription') {
+    var s = document.querySelector('[data-tab="subscription"]'); if (s) s.click();
+  }
+  if (location.hash === '#reports') {
+    var r = document.querySelector('[data-tab="reports"]'); if (r) r.click();
+  }
+
   if (session_id) {
-    fetch(BASE + '/user/me', { headers: { 'X-Session-Id': session_id } })
-      .then(function(r) { return r.ok ? r.json() : null; })
+    N.fetchJSON(BASE + '/user/me', { headers: { 'X-Session-Id': session_id } })
       .then(function(d) {
         if (!d) return;
         if (d.name) {
-          document.getElementById('profile-name').textContent = d.name;
-          var initials = d.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().slice(0,2);
-          document.getElementById('avatar-initials').textContent = initials;
+          $('profile-name').textContent = d.name;
+          var initials = d.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
+          $('avatar-initials').textContent = initials;
         }
-        if (d.birthdate) document.getElementById('profile-dob').textContent = 'дата рождения · ' + d.birthdate;
-        if (d.archetype) document.getElementById('profile-archetype').textContent = '✦ ' + d.archetype;
-        var tgStatusEl = document.getElementById('tg-link-status');
-        var tgItemEl = document.getElementById('tg-link-item');
+        if (d.birthdate) $('profile-dob').textContent = 'дата рождения · ' + d.birthdate;
+        if (d.archetype) $('profile-archetype').textContent = '✦ ' + d.archetype;
         if (d.telegram_linked) {
-          if (tgStatusEl) tgStatusEl.textContent = 'подключён';
-          if (tgItemEl) tgItemEl.style.opacity = '0.6';
+          $('tg-link-status').textContent = 'подключён';
+          $('tg-link-item').style.opacity = '0.6';
         }
-      })
-      .catch(function() {});
+        if (!d.matrix_arcane_num) $('matrix-status-btn').textContent = 'Купить';
+      });
   }
 
-  // Restore notification prefs from localStorage
   var notifPrefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
   Object.keys(notifPrefs).forEach(function(k) {
-    var input = document.querySelector('input[onchange*="' + k + '"]');
-    if (input) input.checked = notifPrefs[k];
+    var inp = document.querySelector('input[onchange*="' + k + '"]');
+    if (inp) inp.checked = notifPrefs[k];
   });
 
-  function saveNotif(key, val) {
+  window.saveNotif = function(key, val) {
     var prefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
     prefs[key] = val;
     localStorage.setItem('nura_notif_prefs', JSON.stringify(prefs));
@@ -559,31 +129,20 @@
         body: JSON.stringify({ key: key, enabled: val })
       }).catch(function() {});
     }
-  }
+  };
 
-  function openReport(id) {
+  window.openReport = function(id) {
     if (session_id) {
-      fetch(BASE + '/reports/' + id, { headers: { 'X-Session-Id': session_id } })
-        .then(function(r) { return r.ok ? r.json() : null; })
-        .then(function(d) { if (d && d.url) window.open(d.url, '_blank'); })
-        .catch(function() {});
+      N.fetchJSON(BASE + '/reports/' + id, { headers: { 'X-Session-Id': session_id } })
+        .then(function(d) { if (d && d.url) window.open(d.url, '_blank'); });
     }
-  }
+  };
 
-  function editProfile() { location.href = 'https://t.me/ai_nura_bot'; }
+  window.editProfile = function() { location.href = 'https://t.me/ai_nura_bot'; };
 
-  function toggleLanguage() {
-    var current = localStorage.getItem('nura-lang') || 'ru';
-    var next = current === 'ru' ? 'en' : 'ru';
-    localStorage.setItem('nura-lang', next);
-    var label = document.getElementById('lang-label');
-    if (label) label.textContent = next === 'ru' ? 'Русский' : 'English';
-  }
-
-  async function linkTelegram() {
+  window.linkTelegram = async function() {
     if (!session_id) return;
-    var statusEl = document.getElementById('tg-link-status');
-    if (statusEl) statusEl.textContent = '...';
+    var el = $('tg-link-status'); if (el) el.textContent = '…';
     try {
       var res = await fetch(BASE + '/web/generate-link-token', {
         method: 'POST',
@@ -593,49 +152,26 @@
       if (res.ok) {
         var data = await res.json();
         window.open(data.tg_url, '_blank');
-        if (statusEl) statusEl.textContent = 'открой Telegram';
-        setTimeout(function() { if (statusEl) statusEl.textContent = 'ожидание...'; }, 10000);
-      } else {
-        if (statusEl) statusEl.textContent = 'не подключён';
-      }
-    } catch(e) {
-      if (statusEl) statusEl.textContent = 'не подключён';
-    }
-  }
+        if (el) el.textContent = 'открой Telegram';
+        setTimeout(function() { if (el) el.textContent = 'ожидание…'; }, 10000);
+      } else { if (el) el.textContent = 'не подключён'; }
+    } catch(e) { if (el) el.textContent = 'не подключён'; }
+  };
 
-  function logout() {
+  window.logout = function() {
     if (!confirm('Выйти из аккаунта?')) return;
     localStorage.removeItem('nura_session_id');
     localStorage.removeItem('nura_chat_log');
     localStorage.removeItem('nura_notif_prefs');
     location.href = '../index.html';
-  }
-</script>
+  };
 
-<script>
-(function(){
-  var root = document.documentElement;
-  var STORAGE_KEY = 'nura-theme';
-
-  var saved = localStorage.getItem(STORAGE_KEY) || 'dark';
-  applyTheme(saved);
-
-  var toggleBtn = document.getElementById('themeToggle');
-  var label = document.getElementById('theme-label');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', function(){
-      var current = root.getAttribute('data-theme') || 'dark';
-      var next = current === 'dark' ? 'light' : 'dark';
-      applyTheme(next);
-      localStorage.setItem(STORAGE_KEY, next);
-    });
-  }
-
-  function applyTheme(theme){
-    root.setAttribute('data-theme', theme);
-    if (label) label.textContent = theme === 'dark' ? 'Тёмная' : 'Светлая';
-  }
+  var label = $('theme-label');
+  document.getElementById('themeToggle').addEventListener('click', function() {
+    var next = N.toggleTheme();
+    this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
+    if (label) label.textContent = next === 'dark' ? 'Тёмная' : 'Светлая';
+  });
 })();
 </script>
-</body>
-</html>
+</body></html>

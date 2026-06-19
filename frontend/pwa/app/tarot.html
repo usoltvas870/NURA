@@ -1,427 +1,91 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>NURA · Таро</title>
-  <script>
-    (function(){
-      var t = localStorage.getItem('nura-theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', t);
-    })();
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg:var(--nura-obsidian); --bg-soft:var(--nura-cave); --bg-card:var(--nura-surface);
-      --ink:#F2EFE7; --ink-soft:rgba(242,239,231,.72);
-      --ink-mute:rgba(242,239,231,.5); --ink-faint:var(--nura-faint);
-      --line:rgba(242,239,231,.10); --line-strong:rgba(242,239,231,.18);
-      --m-accent:var(--nura-gold); --m-accent-soft:rgba(201,165,92,.16);
-      --m-leaf:var(--nura-leaf); --m-leaf-soft:rgba(107,163,122,.12);
-      --t-accent:#D8B36A; --t-accent-soft:rgba(216,179,106,.16);
-      --t-violet:#7E7AC8;
-      --danger:#C45C5C;
-      --r-sm:6px; --r-md:12px; --r-lg:18px;
-      --bg-alpha:rgba(18,16,14,.97);
-    }
-    [data-theme="light"] {
-      --bg:#F7F3ED; --bg-soft:#EFEAE2; --bg-card:#F0EBE2;
-      --ink:#1C1814; --ink-soft:rgba(28,24,20,.70);
-      --ink-mute:rgba(28,24,20,.48); --ink-faint:#8A7F75;
-      --line:rgba(28,24,20,.10); --line-strong:rgba(28,24,20,.18);
-      --m-accent:#9B7A2F; --m-accent-soft:rgba(155,122,47,.14);
-      --m-leaf:#4A7A5A; --m-leaf-soft:rgba(74,122,90,.10);
-      --t-accent:#A67C3D; --t-accent-soft:rgba(166,124,61,.14);
-      --t-violet:#6A6798; --danger:#C45C5C;
-      --bg-alpha:rgba(247,243,237,.92);
-    }
-    [data-theme="light"] body { background:var(--bg); color:var(--ink); }
-
-    /* ── LIGHT THEME — PWA ──────────────────────────────────── */
-    [data-theme="light"] .header {
-      background: rgba(247, 243, 237, 0.92);
-      border-bottom: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .header .nura-name,
-    [data-theme="light"] .header .logo,
-    [data-theme="light"] .header .header-title { color: #1C1814; }
-    [data-theme="light"] .header .nura-avatar  { color: #9B7A2F; }
-
-    [data-theme="light"] .tabbar {
-      background: rgba(247, 243, 237, 0.92);
-      border-top: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .tab-item { color: rgba(28, 24, 20, 0.45); }
-    [data-theme="light"] .tab-item.active { color: #A67C3D; }
-    [data-theme="light"] .tabbar .tab-item.active .ti { color: #A67C3D; }
-    [data-theme="light"] .tabbar .tab-item:not(.active) .ti {
-      color: rgba(28, 24, 20, 0.40);
-      opacity: 1;
-    }
-
-    [data-theme="light"] .hero-card {
-      background: var(--nura-light-pwa-hero-bg, #1C1814);
-      color: var(--nura-light-pwa-hero-text, #F2EFE7);
-    }
-    [data-theme="light"] .hero-card .hero-eyebrow  { color: rgba(242, 239, 231, 0.55); }
-    [data-theme="light"] .hero-card .hero-num      { color: #C9A55C; }
-    [data-theme="light"] .hero-card .hero-symbol   { color: #C9A55C; }
-    [data-theme="light"] .hero-card .hero-name     { color: #F2EFE7; }
-    [data-theme="light"] .hero-card .hero-phrase,
-    [data-theme="light"] .hero-card .hero-advice   { color: rgba(242, 239, 231, 0.75); }
-    [data-theme="light"] .hero-card .hero-affirmation { color: rgba(242, 239, 231, 0.60); }
-    [data-theme="light"] .hero-card .share-btn {
-      background: rgba(201, 165, 92, 0.15);
-      border-color: rgba(201, 165, 92, 0.30);
-      color: #C9A55C;
-    }
-    [data-theme="light"] .spreads-title { color: #1C1814; }
-    [data-theme="light"] .spreads-sub   { color: rgba(28, 24, 20, 0.55); }
-    [data-theme="light"] .spread-card {
-      background: var(--nura-light-spread-card-bg, #FFFFFF);
-      border-color: var(--nura-light-spread-card-border, rgba(28, 24, 20, 0.12));
-      box-shadow: var(--nura-light-spread-card-shadow, 0 2px 12px rgba(0, 0, 0, 0.07));
-    }
-    [data-theme="light"] .spread-card.locked {
-      background: rgba(255, 255, 255, 0.60);
-      opacity: 0.75;
-    }
-    [data-theme="light"] .spread-card .sc-icon   { color: #A67C3D; }
-    [data-theme="light"] .spread-card .sc-name   { color: #1C1814; }
-    [data-theme="light"] .spread-card .sc-desc   { color: rgba(28, 24, 20, 0.58); }
-    [data-theme="light"] .spread-card .sc-lock   { color: rgba(28, 24, 20, 0.30); }
-    [data-theme="light"] .paywall-sheet {
-      background: #F7F3ED;
-      border-top: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .paywall-sheet .pw-title { color: #1C1814; }
-    [data-theme="light"] .paywall-sheet .pw-sub   { color: rgba(28, 24, 20, 0.62); }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{-webkit-tap-highlight-color:transparent}
-    body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);
-      min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-    a{text-decoration:none;color:inherit}
-    button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-
-    .scroll-area{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px) + 24px)}
-    .page{padding:16px;display:flex;flex-direction:column;gap:20px}
-
-    /* Header */
-    .header{
-      position:sticky;top:0;z-index:40;height:52px;
-      background:var(--bg-alpha);backdrop-filter:blur(14px);
-      -webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
-      display:flex;align-items:center;justify-content:space-between;padding:0 16px
-    }
-    .logo{display:flex;align-items:center;gap:8px;
-      font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:18px;letter-spacing:.18em;color:var(--m-accent)}
-    .logo-sep{width:1px;height:13px;background:rgba(201,165,92,.28)}
-    .header-title{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:18px;letter-spacing:.12em;color:var(--ink);position:absolute;
-      left:50%;transform:translateX(-50%)}
-    .icon-btn{width:34px;height:34px;border-radius:50%;
-      background:var(--bg-card);border:1px solid var(--line);
-      display:grid;place-items:center;font-size:15px;color:var(--ink-soft)}
-
-    /* Hero day card */
-    .hero-card{
-      background:var(--bg-card);border:1px solid var(--line);border-radius:var(--r-lg);
-      padding:24px 20px 20px;overflow:hidden;position:relative
-    }
-    .hero-card::after{
-      content:'';position:absolute;bottom:0;right:0;
-      width:220px;height:220px;border-radius:50%;
-      background:radial-gradient(circle,rgba(201,165,92,.05) 0%,transparent 65%);
-      transform:translate(30%,30%);pointer-events:none
-    }
-    .hero-eyebrow{font-size:10px;letter-spacing:.18em;text-transform:uppercase;
-      color:var(--ink-faint);margin-bottom:16px}
-    .hero-symbol{font-family:'Cormorant Garamond',serif;font-size:48px;
-      line-height:1;color:var(--m-accent);opacity:.5;margin-bottom:8px;display:block}
-    .hero-num{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:80px;line-height:.9;color:var(--m-accent);opacity:.18;
-      position:absolute;top:16px;right:20px;letter-spacing:-.02em}
-    .hero-name{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:34px;line-height:1.1;color:var(--ink);margin-bottom:10px}
-    .hero-phrase{font-size:14px;line-height:1.65;color:var(--ink-soft);
-      font-weight:300;margin-bottom:8px}
-    .hero-advice{font-size:12.5px;line-height:1.55;color:var(--ink-faint);
-      font-weight:300;padding-top:10px;border-top:1px solid var(--line);
-      margin-top:10px}
-    .btn-ghost{
-      display:inline-flex;align-items:center;gap:6px;
-      margin-top:16px;padding:9px 18px;border-radius:var(--r-md);
-      background:transparent;border:1px solid rgba(201,165,92,.28);
-      color:var(--m-accent);font-size:13px;font-weight:400;letter-spacing:.04em;
-      transition:background .2s
-    }
-    .btn-ghost:hover{background:rgba(201,165,92,.08)}
-
-    /* Spreads grid */
-    .spreads-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .spread-card{
-      background:var(--bg-card);border:1px solid var(--line);
-      border-radius:var(--r-lg);padding:16px;
-      cursor:pointer;transition:border-color .2s;position:relative;overflow:hidden
-    }
-    .spread-card:hover:not(.locked){border-color:rgba(201,165,92,.25)}
-    .spread-card.locked{opacity:.55;cursor:default}
-    .spread-icon{font-family:'Cormorant Garamond',serif;font-size:26px;
-      line-height:1;margin-bottom:8px;display:block;color:var(--m-accent)}
-    .spread-name{font-size:13px;font-weight:500;color:var(--ink);margin-bottom:4px}
-    .spread-desc{font-size:11.5px;color:var(--ink-soft);font-weight:300;line-height:1.4}
-    .lock-overlay{
-      position:absolute;top:10px;right:10px;
-      width:22px;height:22px;border-radius:50%;
-      background:rgba(18,16,14,.7);display:grid;place-items:center;
-      font-size:11px
-    }
-
-    /* Sec title */
-    .sec-head{display:flex;align-items:center;justify-content:space-between}
-    .sec-title{font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-      color:var(--ink-faint);font-weight:400}
-
-    /* Paywall sheet */
-    .paywall-backdrop{
-      position:fixed;inset:0;z-index:60;
-      background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
-      -webkit-backdrop-filter:blur(4px);
-      opacity:0;pointer-events:none;transition:opacity .28s
-    }
-    .paywall-backdrop.open{opacity:1;pointer-events:auto}
-    .paywall-sheet{
-      position:fixed;bottom:0;left:0;right:0;z-index:61;
-      background:var(--bg-soft);border-top:1px solid var(--line);
-      border-radius:20px 20px 0 0;padding:20px 20px calc(env(safe-area-inset-bottom,0px)+24px);
-      transform:translateY(100%);transition:transform .3s cubic-bezier(.22,.61,.36,1)
-    }
-    .paywall-sheet.open{transform:translateY(0)}
-    .sheet-handle{width:36px;height:3px;border-radius:2px;
-      background:var(--line);margin:0 auto 20px}
-    .sheet-tag{font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-      color:var(--m-accent);margin-bottom:8px}
-    .sheet-title{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:26px;color:var(--ink);margin-bottom:8px}
-    .sheet-desc{font-size:13.5px;color:var(--ink-soft);font-weight:300;
-      line-height:1.6;margin-bottom:20px}
-    .btn-cta{
-      display:flex;align-items:center;justify-content:center;
-      width:100%;height:52px;border-radius:var(--r-md);
-      background:rgba(201,165,92,.15);border:1px solid rgba(201,165,92,.40);
-      color:var(--m-accent);font-size:15px;font-weight:500;
-      letter-spacing:.04em;margin-bottom:10px;transition:background .2s
-    }
-    .btn-cta:hover{background:rgba(201,165,92,.22)}
-    .btn-cancel{
-      display:flex;align-items:center;justify-content:center;
-      width:100%;height:44px;color:var(--ink-faint);font-size:13.5px
-    }
-
-    /* Tabbar */
-    .tabbar{
-      position:fixed;bottom:0;left:0;right:0;z-index:50;
-      height:calc(56px + env(safe-area-inset-bottom,0px));
-      padding-bottom:env(safe-area-inset-bottom,0px);
-      background:var(--bg-alpha);backdrop-filter:blur(20px);
-      -webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);
-      display:flex;align-items:flex-start
-    }
-    .tab-item{flex:1;height:56px;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;gap:3px;
-      color:var(--ink-faint);font-size:11px;font-weight:400;
-      letter-spacing:.02em;text-decoration:none;transition:color .2s}
-    .tab-item.active{color:var(--m-accent)}
-    .tab-icon{font-size:17px;line-height:1}
-.tabbar .ti{font-size:22px;line-height:1;display:block;margin-bottom:4px}
-.tabbar .tab-item.active .ti{color:var(--m-accent)}
-.tabbar .tab-item:not(.active) .ti{color:var(--ink-faint);opacity:0.7}
-  </style>
-  <link rel="stylesheet" href="/static/nura-ds.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-</head>
-<body>
-
-<header class="header" style="position:relative">
-  <div class="logo" style="visibility:hidden">✦</div>
-  <span class="header-title">Таро</span>
-  <button class="icon-btn" id="themeToggle" aria-label="Тема" title="Светлая / тёмная тема" style="font-size:14px">◑</button>
-</header>
-
-<main class="scroll-area">
-  <div class="page">
-
-    <!-- Hero day card -->
-    <div class="hero-card">
-      <div class="hero-eyebrow">Карта дня · <span id="hero-date">15 июня 2026</span></div>
-      <div class="hero-num" id="hero-num" aria-hidden="true">XIX</div>
-      <span class="hero-symbol" id="hero-symbol">☉</span>
-      <div class="hero-name" id="hero-name">XIX · Солнце</div>
-      <p class="hero-phrase" id="hero-phrase">
-        День для ясности и открытых решений. Энергия Солнца усиливает твою способность
-        видеть ситуацию без искажений и страхов.
-      </p>
-      <p class="hero-advice" id="hero-advice">
-        Совет: начни с самого важного — пока ясность не рассеялась. Избегай откладывания
-        решений на вечер.
-      </p>
-      <button class="btn-ghost" onclick="shareDayCard()">↗ Поделиться</button>
-    </div>
-
-    <!-- Spreads -->
-    <div>
-      <div class="sec-head" style="margin-bottom:12px">
-        <span class="sec-title">Расклады</span>
-      </div>
-      <div class="spreads-grid">
-
-        <div class="spread-card locked" onclick="openPaywall()">
-          <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">✦</span>
-          <div class="spread-name">Расклад недели</div>
-          <div class="spread-desc">Тело · Ум · Дух на предстоящие 7 дней</div>
-        </div>
-
-        <div class="spread-card locked" onclick="openPaywall()">
-          <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">⟁</span>
-          <div class="spread-name">По вопросу</div>
-          <div class="spread-desc">3 аркана по оси времени для любой ситуации</div>
-        </div>
-
-        <div class="spread-card locked" onclick="openPaywall()">
-          <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">✶</span>
-          <div class="spread-name">Сферы жизни</div>
-          <div class="spread-desc">Деньги · Отношения · Предназначение</div>
-        </div>
-
-        <div class="spread-card locked" onclick="openPaywall()">
-          <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">☯</span>
-          <div class="spread-name">Двойники</div>
-          <div class="spread-desc">Совместимость с партнёром по матрице</div>
-        </div>
-
-        <div class="spread-card locked" onclick="openPaywall()">
-          <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">🌅</span>
-          <div class="spread-name">Портал месяца</div>
-          <div class="spread-desc">Чему научит · что отпустить · что усилить</div>
-        </div>
-
-        <div class="spread-card locked" onclick="openPaywall()">
-          <div class="lock-overlay">🔒</div>
-          <span class="spread-icon">👁</span>
-          <div class="spread-name">Да / Нет</div>
-          <div class="spread-desc">Один аркан — прямой ответ на вопрос</div>
-        </div>
-
-      </div>
-    </div>
-
-  </div>
-</main>
-
-<!-- Paywall -->
-<div class="paywall-backdrop" id="pw-backdrop" onclick="closePaywall()"></div>
-<div class="paywall-sheet" id="pw-sheet">
-  <div class="sheet-handle"></div>
-  <div class="sheet-tag">Подписка · Таро-ритуалы</div>
-  <div class="sheet-title">Разблокировать<br>все расклады</div>
-  <p class="sheet-desc">30+ персональных раскладов в месяц, основанных на твоей Матрице Судьбы. Включает расклады по отношениям, деньгам и годовой прогноз.</p>
-  <button class="btn-cta" onclick="location.href='https://t.me/ai_nura_bot'">
-    Подключить · 390 ₽/мес
-  </button>
-  <button class="btn-cancel" onclick="closePaywall()">Не сейчас</button>
-</div>
-
-<nav class="tabbar">
-  <a class="tab-item" href="index.html">
-    <i class="ti ti-layout-grid"></i><span>Матрица</span>
-  </a>
-  <a class="tab-item active" href="tarot.html">
-    <i class="ti ti-cards"></i><span>Таро</span>
-  </a>
-  <a class="tab-item" href="chat.html">
-    <i class="ti ti-message-circle"></i><span>Чат</span>
-  </a>
-  <a class="tab-item" href="profile.html">
-    <i class="ti ti-user-circle"></i><span>Профиль</span>
-  </a>
-</nav>
-
+<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-  var BASE = 'https://nura-ai.ru/api/v1';
-  var session_id = localStorage.getItem('nura_session_id');
+  (function(){
+    var t = localStorage.getItem('nura-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<link rel="stylesheet" href="nura-pwa.css"/>
+<title>NURA · Практики</title><style>
+.hero-card{padding:22px;background:radial-gradient(circle at 90% 0%,rgba(194,164,118,.22),transparent 36%),var(--bg-card)}
+.hero-num{position:absolute;right:20px;top:12px;font-family:var(--font-serif);font-size:78px;line-height:1;color:var(--terra);opacity:.12}
+.hero-symbol{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-family:var(--font-serif);font-size:32px;margin:14px 0}
+.hero-name{font-family:var(--font-serif);font-size:34px;line-height:1.1;margin-bottom:10px}
+.practice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.practice{padding:16px;min-height:128px;cursor:pointer}.practice.locked{opacity:.72}
+.practice-icon{width:38px;height:38px;border-radius:14px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-size:20px;margin-bottom:12px}
+.practice-title{font-size:14px;font-weight:800;margin-bottom:5px}
+.practice-sub{font-size:12px;color:var(--text-m);line-height:1.4}
+.lock{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--bg-card-soft);border:1px solid var(--line);font-size:12px;color:var(--text-s)}
+.sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.38);backdrop-filter:blur(4px);z-index:60;opacity:0;pointer-events:none;transition:.25s}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--bg);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:.3s var(--ease)}
+.sheet-inner{width:min(100%,520px);margin:0 auto}.sheet.open{transform:none}.sheet-backdrop.open{opacity:1;pointer-events:auto}
+.handle{width:42px;height:4px;border-radius:99px;background:var(--line-strong);margin:0 auto 20px}
+@media(max-width:380px){.practice-grid{grid-template-columns:1fr}}
+</style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="icon-btn" aria-label="Назад"><i class="ti ti-chevron-left"></i></a><span class="header-title">Практики</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page"><section class="card hero-card"><div class="eyebrow">Карта дня · <span id="hero-date">сегодня</span></div><div class="hero-num" id="hero-num">XIX</div><div class="hero-symbol" id="hero-symbol">☉</div><h1 class="hero-name" id="hero-name">XIX · Солнце</h1><p class="lead" id="hero-phrase">День для ясности и открытых решений. Энергия Солнца помогает увидеть ситуацию без искажений.</p><p class="lead" style="border-top:1px solid var(--line);padding-top:12px;margin-top:12px" id="hero-advice">Совет: начни с самого важного, пока ясность не рассеялась.</p><button class="btn btn-soft" style="margin-top:16px" onclick="shareDayCard()"><i class="ti ti-share-3"></i> Поделиться</button></section><section class="section-block"><div class="section-head"><span class="section-title">Практики на языке арканов</span></div><div class="practice-grid">
+<article class="card practice locked" onclick="openPaywall()"><span class="lock">🔒</span><div class="practice-icon"><i class="ti ti-calendar-week"></i></div><div class="practice-title">Фокус недели</div><div class="practice-sub">Тело · Ум · Дух на 7 дней</div></article>
+<article class="card practice locked" onclick="openPaywall()"><span class="lock">🔒</span><div class="practice-icon"><i class="ti ti-message-question"></i></div><div class="practice-title">Вопрос к NURA</div><div class="practice-sub">3 аркана для ситуации</div></article>
+<article class="card practice locked" onclick="openPaywall()"><span class="lock">🔒</span><div class="practice-icon"><i class="ti ti-coins"></i></div><div class="practice-title">Деньги</div><div class="practice-sub">Фокус дохода и действий</div></article>
+<article class="card practice locked" onclick="openPaywall()"><span class="lock">🔒</span><div class="practice-icon"><i class="ti ti-heart"></i></div><div class="practice-title">Отношения</div><div class="practice-sub">Сценарий пары и диалог</div></article>
+<article class="card practice locked" onclick="openPaywall()"><span class="lock">🔒</span><div class="practice-icon"><i class="ti ti-moon-stars"></i></div><div class="practice-title">Фокус месяца</div><div class="practice-sub">Что усилить и отпустить</div></article>
+<article class="card practice locked" onclick="openPaywall()"><span class="lock">🔒</span><div class="practice-icon"><i class="ti ti-bolt"></i></div><div class="practice-title">Короткий ответ</div><div class="practice-sub">Один аркан, один шаг</div></article></div></section><section class="card card-pad"><div class="eyebrow">Позиционирование</div><p class="lead" style="margin-top:8px">Карты не предсказывают будущее. Они помогают увидеть состояние, выбор и следующий шаг через язык архетипов.</p></section></main></div><div class="sheet-backdrop" id="pw-backdrop" onclick="closePaywall()"></div><div class="sheet" id="pw-sheet"><div class="sheet-inner"><div class="handle"></div><div class="eyebrow">Подписка · 390 ₽/мес</div><h2 class="title" style="font-size:34px;margin-top:8px">Разблокировать <em>ежедневные практики</em></h2><p class="lead" style="margin:12px 0 18px">Карта дня, фокус недели и вопросы к NURA на основе твоей Матрицы.</p><button class="btn btn-primary btn-full" onclick="location.href='profile.html#subscription'">Подключить подписку</button><button class="btn btn-soft btn-full" style="margin-top:10px" onclick="closePaywall()">Не сейчас</button></div></div>
+<nav class="tabbar"><div class="tabbar-inner">
+<a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
+<a class="tab-item active" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
+<a class="tab-item" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
+<a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
+</div></nav>
+<script src="nura-pwa.js"></script>
+<script type="text/javascript">
+(function() {
+  var N = window.NURA;
+  var BASE = N.BASE, session_id = N.sessionId;
+  var $ = document.getElementById.bind(document);
 
-  // Update date
-  document.getElementById('hero-date').textContent = new Date().toLocaleDateString('ru-RU', {day:'numeric',month:'long',year:'numeric'});
+  $('hero-date').textContent = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
 
   if (session_id) {
-    fetch(BASE + '/tarot/daily', { headers: { 'X-Session-Id': session_id } })
-      .then(function(r) { return r.ok ? r.json() : null; })
+    N.fetchJSON(BASE + '/tarot/daily', { headers: { 'X-Session-Id': session_id } })
       .then(function(d) {
         if (!d) return;
-        if (d.num)    { document.getElementById('hero-num').textContent  = d.num; }
-        if (d.symbol) { document.getElementById('hero-symbol').textContent = d.symbol; }
-        if (d.name)   { document.getElementById('hero-name').textContent = d.name; }
-        if (d.phrase) { document.getElementById('hero-phrase').textContent = d.phrase; }
-        if (d.advice) { document.getElementById('hero-advice').textContent = 'Совет: ' + d.advice; }
-      })
-      .catch(function() {});
+        if (d.num) $('hero-num').textContent = d.num;
+        if (d.symbol) $('hero-symbol').textContent = d.symbol;
+        if (d.name) $('hero-name').textContent = d.name;
+        if (d.phrase) $('hero-phrase').textContent = d.phrase;
+        if (d.advice) $('hero-advice').textContent = 'Совет: ' + d.advice;
+      });
   }
 
-  function openPaywall() {
+  window.openPaywall = function() {
     document.getElementById('pw-backdrop').classList.add('open');
     document.getElementById('pw-sheet').classList.add('open');
-  }
-  function closePaywall() {
+  };
+  window.closePaywall = function() {
     document.getElementById('pw-backdrop').classList.remove('open');
     document.getElementById('pw-sheet').classList.remove('open');
-  }
-
-  function shareDayCard() {
-    var name = document.getElementById('hero-name').textContent || '';
-    var phrase = document.getElementById('hero-phrase').textContent || '';
+  };
+  window.shareDayCard = function() {
+    var name = $('hero-name').textContent || '';
+    var phrase = $('hero-phrase').textContent || '';
     var text = name + '\n' + phrase + '\n\nУзнай свою карту дня в NURA:';
     var url = 'https://nura-ai.ru/app/tarot';
-
     if (navigator.share) {
       navigator.share({ title: 'Моя карта дня — NURA', text: text, url: url }).catch(function(){});
     } else {
-      var shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text);
-      window.open(shareUrl, '_blank');
+      window.open('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text), '_blank');
     }
-  }
-</script>
+  };
 
-<script>
-(function(){
-  var btn = document.getElementById('themeToggle');
-  if (!btn) return;
-  var root = document.documentElement;
-  var STORAGE_KEY = 'nura-theme';
-
-  var saved = localStorage.getItem(STORAGE_KEY) || 'dark';
-  applyTheme(saved);
-
-  btn.addEventListener('click', function(){
-    var current = root.getAttribute('data-theme') || 'dark';
-    var next = current === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    localStorage.setItem(STORAGE_KEY, next);
+  document.getElementById('themeToggle').addEventListener('click', function() {
+    var next = N.toggleTheme();
+    this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
   });
-
-  function applyTheme(theme){
-    root.setAttribute('data-theme', theme);
-    btn.textContent = theme === 'dark' ? '◑' : '◐';
-    btn.title = theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему';
-  }
 })();
 </script>
-</body>
-</html>
+</body></html>

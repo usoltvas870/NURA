@@ -1,355 +1,102 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>NURA · Чат</title>
-  <script>
-    (function(){
-      var t = localStorage.getItem('nura-theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', t);
-    })();
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg:var(--nura-obsidian); --bg-soft:var(--nura-cave); --bg-card:var(--nura-surface);
-      --ink:#F2EFE7; --ink-soft:rgba(242,239,231,.72);
-      --ink-mute:rgba(242,239,231,.5); --ink-faint:var(--nura-faint);
-      --line:rgba(242,239,231,.10); --line-strong:rgba(242,239,231,.18);
-      --m-accent:var(--nura-gold); --m-accent-soft:rgba(201,165,92,.16);
-      --m-leaf:var(--nura-leaf); --m-leaf-soft:rgba(107,163,122,.12);
-      --t-accent:#D8B36A; --t-accent-soft:rgba(216,179,106,.16);
-      --t-violet:#7E7AC8;
-      --danger:#C45C5C;
-      --r-sm:6px; --r-md:12px; --r-lg:18px;
-      --bg-alpha:rgba(18,16,14,.97);
-    }
-    [data-theme="light"] {
-      --bg:#F7F3ED; --bg-soft:#EFEAE2; --bg-card:#F0EBE2;
-      --ink:#1C1814; --ink-soft:rgba(28,24,20,.70);
-      --ink-mute:rgba(28,24,20,.48); --ink-faint:#8A7F75;
-      --line:rgba(28,24,20,.10); --line-strong:rgba(28,24,20,.18);
-      --m-accent:#9B7A2F; --m-accent-soft:rgba(155,122,47,.14);
-      --m-leaf:#4A7A5A; --m-leaf-soft:rgba(74,122,90,.10);
-      --t-accent:#A67C3D; --t-accent-soft:rgba(166,124,61,.14);
-      --t-violet:#6A6798; --danger:#C45C5C;
-      --bg-alpha:rgba(247,243,237,.92);
-    }
-    [data-theme="light"] body { background:var(--bg); color:var(--ink); }
-
-    /* ── LIGHT THEME — PWA ──────────────────────────────────── */
-    [data-theme="light"] .header {
-      background: rgba(247, 243, 237, 0.92);
-      border-bottom: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .header .nura-name,
-    [data-theme="light"] .header .logo,
-    [data-theme="light"] .header .header-title { color: #1C1814; }
-    [data-theme="light"] .header .nura-avatar  { color: #9B7A2F; }
-
-    [data-theme="light"] .tabbar {
-      background: rgba(247, 243, 237, 0.92);
-      border-top: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .tab-item { color: rgba(28, 24, 20, 0.45); }
-    [data-theme="light"] .tab-item.active { color: #A67C3D; }
-    [data-theme="light"] .tabbar .tab-item.active .ti { color: #A67C3D; }
-    [data-theme="light"] .tabbar .tab-item:not(.active) .ti {
-      color: rgba(28, 24, 20, 0.40);
-      opacity: 1;
-    }
-
-    [data-theme="light"] .messages-area { background: #F7F3ED; }
-    [data-theme="light"] .bubble.user {
-      background: #9B7A2F;
-      color: #F7F3ED;
-    }
-    [data-theme="light"] .bubble.nura {
-      background: #FFFFFF;
-      border: 1px solid rgba(28, 24, 20, 0.10);
-      color: #1C1814;
-      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
-    }
-    [data-theme="light"] .empty-icon  { color: #9B7A2F; }
-    [data-theme="light"] .empty-text  { color: rgba(28, 24, 20, 0.55); }
-    [data-theme="light"] .hint-chip {
-      background: #FFFFFF;
-      border: 1px solid rgba(28, 24, 20, 0.12);
-      color: #1C1814;
-    }
-    [data-theme="light"] .hint-chip:hover {
-      border-color: rgba(155, 122, 47, 0.35);
-      color: #9B7A2F;
-    }
-    [data-theme="light"] .input-area {
-      background: rgba(247, 243, 237, 0.95);
-      border-top: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .chat-input {
-      background: #FFFFFF;
-      border: 1px solid rgba(28, 24, 20, 0.15);
-      color: #1C1814;
-    }
-    [data-theme="light"] .chat-input::placeholder { color: rgba(28, 24, 20, 0.38); }
-    [data-theme="light"] .send-btn {
-      background: #9B7A2F;
-      color: #F7F3ED;
-    }
-    [data-theme="light"] .send-btn:disabled {
-      background: rgba(28, 24, 20, 0.10);
-      color: rgba(28, 24, 20, 0.35);
-    }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;-webkit-tap-highlight-color:transparent}
-    body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);
-      overflow:hidden;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
-    a{text-decoration:none;color:inherit}
-    button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-
-    /* Header */
-    .header{
-      flex-shrink:0;height:58px;
-      background:rgba(18,16,14,.97);backdrop-filter:blur(14px);
-      -webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
-      display:flex;align-items:center;gap:12px;padding:0 16px;
-      padding-top:env(safe-area-inset-top,0px)
-    }
-    .nura-avatar{
-      width:38px;height:38px;border-radius:50%;flex-shrink:0;
-      background:rgba(201,165,92,.12);border:1px solid rgba(201,165,92,.28);
-      display:grid;place-items:center;
-      font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--m-accent)
-    }
-    .nura-info{flex:1;min-width:0}
-    .nura-name{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:17px;letter-spacing:.08em;color:var(--ink);line-height:1.2}
-    .nura-status{display:flex;align-items:center;gap:5px;margin-top:1px}
-    .status-dot{width:6px;height:6px;border-radius:50%;background:var(--m-leaf);
-      box-shadow:0 0 6px rgba(107,163,122,.6)}
-    .status-text{font-size:11px;color:var(--m-leaf);font-weight:300}
-    .icon-btn{width:34px;height:34px;border-radius:50%;
-      background:var(--bg-card);border:1px solid var(--line);
-      display:grid;place-items:center;font-size:15px;color:var(--ink-soft)}
-
-    /* Messages area */
-    .messages-area{
-      flex:1;overflow-y:auto;overflow-x:hidden;
-      padding:16px 12px;display:flex;flex-direction:column;gap:10px;
-      scroll-behavior:smooth
-    }
-    .messages-area::-webkit-scrollbar{width:0}
-
-    /* Empty state */
-    .empty-state{
-      display:flex;flex-direction:column;align-items:center;
-      justify-content:center;gap:20px;height:100%;padding:24px;text-align:center
-    }
-    .empty-icon{font-family:'Cormorant Garamond',serif;font-size:48px;
-      color:var(--m-accent);opacity:.35}
-    .empty-text{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:20px;color:var(--ink-soft)}
-    .hints-row{display:flex;gap:8px;overflow-x:auto;width:100%;
-      scrollbar-width:none;padding:2px 0}
-    .hints-row::-webkit-scrollbar{display:none}
-    .hint-chip{flex-shrink:0;padding:9px 14px;
-      background:var(--bg-card);border:1px solid var(--line);
-      border-radius:999px;font-size:12.5px;color:var(--ink-soft);
-      white-space:nowrap;cursor:pointer;transition:border-color .2s}
-    .hint-chip:hover{border-color:rgba(201,165,92,.28);color:var(--ink)}
-
-    /* Message bubble */
-    .msg{max-width:78%;display:flex;flex-direction:column;gap:3px}
-    .msg.nura{align-self:flex-start}
-    .msg.user{align-self:flex-end}
-    .bubble{
-      padding:11px 14px;font-size:14px;line-height:1.58;font-weight:300;
-      word-break:break-word
-    }
-    .msg.nura .bubble{
-      background:rgba(107,163,122,.08);border:1px solid rgba(107,163,122,.16);
-      border-radius:16px 16px 16px 4px;color:var(--ink)
-    }
-    .msg.user .bubble{
-      background:rgba(201,165,92,.1);border:1px solid rgba(201,165,92,.2);
-      border-radius:16px 16px 4px 16px;color:var(--ink)
-    }
-    .msg-time{font-size:10px;color:var(--ink-faint);font-weight:300;padding:0 4px}
-    .msg.user .msg-time{text-align:right}
-
-    /* Typing indicator */
-    .typing-bubble{
-      align-self:flex-start;
-      background:rgba(107,163,122,.08);border:1px solid rgba(107,163,122,.16);
-      border-radius:16px 16px 16px 4px;
-      padding:12px 16px;display:flex;gap:5px;align-items:center
-    }
-    .dot{width:6px;height:6px;border-radius:50%;background:var(--m-leaf);opacity:.5;
-      animation:bounce 1.2s infinite}
-    .dot:nth-child(2){animation-delay:.18s}
-    .dot:nth-child(3){animation-delay:.36s}
-    @keyframes bounce{
-      0%,60%,100%{transform:translateY(0);opacity:.4}
-      30%{transform:translateY(-5px);opacity:.9}
-    }
-
-    /* Input area */
-    .input-area{
-      flex-shrink:0;
-      padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 66px);
-      border-top:1px solid var(--line);background:var(--bg);
-    }
-    .input-row{
-      display:flex;align-items:flex-end;gap:8px;
-      background:var(--bg-card);border:1px solid var(--line);
-      border-radius:var(--r-lg);padding:10px 10px 10px 14px;
-      transition:border-color .2s
-    }
-    .input-row:focus-within{border-color:rgba(201,165,92,.30)}
-    .chat-input{
-      flex:1;background:none;border:none;outline:none;resize:none;
-      color:var(--ink);font-family:'DM Sans',sans-serif;
-      font-size:14.5px;font-weight:300;line-height:1.5;
-      max-height:120px;overflow-y:auto;
-      scrollbar-width:none;min-height:24px
-    }
-    .chat-input::placeholder{color:var(--ink-faint)}
-    .chat-input::-webkit-scrollbar{display:none}
-    .send-btn{
-      width:38px;height:38px;border-radius:var(--r-md);flex-shrink:0;
-      background:rgba(201,165,92,.15);border:1px solid rgba(201,165,92,.30);
-      display:grid;place-items:center;color:var(--m-accent);
-      font-size:16px;transition:background .2s;align-self:flex-end
-    }
-    .send-btn:hover{background:rgba(201,165,92,.25)}
-    .send-btn:disabled{opacity:.4;pointer-events:none}
-
-    /* Tabbar */
-    .tabbar{
-      position:fixed;bottom:0;left:0;right:0;z-index:50;
-      height:calc(56px + env(safe-area-inset-bottom,0px));
-      padding-bottom:env(safe-area-inset-bottom,0px);
-      background:var(--bg-alpha);backdrop-filter:blur(20px);
-      -webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);
-      display:flex;align-items:flex-start
-    }
-    .tab-item{flex:1;height:56px;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;gap:3px;
-      color:var(--ink-faint);font-size:11px;font-weight:400;
-      letter-spacing:.02em;text-decoration:none;transition:color .2s}
-    .tab-item.active{color:var(--m-accent)}
-    .tab-icon{font-size:17px;line-height:1}
-.tabbar .ti{font-size:22px;line-height:1;display:block;margin-bottom:4px}
-.tabbar .tab-item.active .ti{color:var(--m-accent)}
-.tabbar .tab-item:not(.active) .ti{color:var(--ink-faint);opacity:0.7}
-  </style>
-  <link rel="stylesheet" href="/static/nura-ds.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-</head>
-<body>
-
-<header class="header">
-  <div class="nura-avatar">✦</div>
-  <div class="nura-info">
-    <div class="nura-name">NURA</div>
-    <div class="nura-status">
-      <span class="status-dot"></span>
-      <span class="status-text" id="status-text">онлайн</span>
-    </div>
-  </div>
-  <button class="icon-btn" aria-label="Очистить чат" onclick="clearChat()" title="Очистить историю">···</button>
-  <button class="icon-btn" id="themeToggle" aria-label="Тема" title="Светлая / тёмная тема" style="font-size:14px">◑</button>
-</header>
-
-<div class="messages-area" id="messages">
-
-  <!-- Empty state — hidden when messages exist -->
-  <div class="empty-state" id="empty-state">
-    <div class="empty-icon">✦</div>
-    <div class="empty-text">Спроси у NURA<br>о своей матрице</div>
-    <div class="hints-row" id="hint-chips">
-      <span class="hint-chip" onclick="sendHint(this)">Карта дня</span>
-      <span class="hint-chip" onclick="sendHint(this)">Разбор матрицы</span>
-      <span class="hint-chip" onclick="sendHint(this)">Совет на неделю</span>
-      <span class="hint-chip" onclick="sendHint(this)">Финансовый прогноз</span>
-      <span class="hint-chip" onclick="sendHint(this)">Отношения</span>
-    </div>
-  </div>
-
-</div>
-
-<div class="input-area">
-  <div class="input-row">
-    <textarea class="chat-input" id="chat-input" placeholder="Написать NURA…" rows="1"></textarea>
-    <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>↑</button>
-  </div>
-</div>
-
-<nav class="tabbar">
-  <a class="tab-item" href="index.html">
-    <i class="ti ti-layout-grid"></i><span>Матрица</span>
-  </a>
-  <a class="tab-item" href="tarot.html">
-    <i class="ti ti-cards"></i><span>Таро</span>
-  </a>
-  <a class="tab-item active" href="chat.html">
-    <i class="ti ti-message-circle"></i><span>Чат</span>
-  </a>
-  <a class="tab-item" href="profile.html">
-    <i class="ti ti-user-circle"></i><span>Профиль</span>
-  </a>
-</nav>
-
+<![CDATA[<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-  var BASE = 'https://nura-ai.ru/api/v1';
-  var session_id = localStorage.getItem('nura_session_id');
-  var msgs = document.getElementById('messages');
-  var inputEl = document.getElementById('chat-input');
-  var sendBtn = document.getElementById('send-btn');
-  var emptyState = document.getElementById('empty-state');
-  var chatLog = JSON.parse(localStorage.getItem('nura_chat_log') || '[]');
-  var isTyping = false;
+  (function(){
+    var t = localStorage.getItem('nura-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<link rel="stylesheet" href="nura-pwa.css"/>
+<title>NURA · Чат</title><style>
+body{overflow:hidden;padding-bottom:0}
+.app-shell{height:100dvh;display:flex;flex-direction:column}
+.chat-area{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.context{font-size:11px;color:var(--text-s);font-weight:700;letter-spacing:.04em}
+.empty{margin:auto;text-align:center;display:grid;gap:16px;justify-items:center;padding:26px}
+.empty-icon{width:62px;height:62px;border-radius:50%;background:rgba(184,116,63,.09);color:var(--terra);display:grid;place-items:center;font-family:var(--font-serif);font-size:30px}
+.hints{display:flex;gap:8px;overflow-x:auto;width:100%;padding-bottom:2px;scrollbar-width:none}
+.hints::-webkit-scrollbar{display:none}
+.hint{flex:0 0 auto;padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card);color:var(--text-m);font-size:12px;font-weight:700;cursor:pointer}
+.msg{max-width:82%;display:flex;flex-direction:column;gap:4px}
+.msg.nura{align-self:flex-start}.msg.user{align-self:flex-end}
+.bubble{padding:11px 14px;border-radius:17px;font-size:14px;line-height:1.58;box-shadow:var(--shadow-card)}
+.msg.nura .bubble{background:var(--bg-card);border:1px solid var(--line);border-bottom-left-radius:5px;color:var(--text)}
+.msg.user .bubble{background:var(--terra);color:white;border-bottom-right-radius:5px}
+.msg-time{font-size:10px;color:var(--text-s);padding:0 4px}
+.msg.user .msg-time{text-align:right}
+.input-area{flex:0 0 auto;padding:10px 12px calc(74px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--header-bg);backdrop-filter:blur(18px)}
+.input-row{display:flex;gap:8px;align-items:flex-end;background:var(--bg-card);border:1px solid var(--line);border-radius:var(--r-lg);padding:8px 8px 8px 12px;box-shadow:var(--shadow-card)}
+.chat-input{flex:1;border:0;background:none;outline:none;font-size:14px;line-height:1.5;min-height:24px;max-height:130px;resize:none;color:var(--text);overflow-y:auto;scrollbar-width:none}
+.chat-input::-webkit-scrollbar{display:none}.chat-input::placeholder{color:var(--text-s)}
+.send{width:40px;height:40px;border-radius:var(--r-md);display:grid;place-items:center;background:var(--terra);color:white;flex:0 0 auto}
+.send:disabled{background:var(--line-strong);color:var(--text-s)}
+.limit-note{padding:10px 14px;background:var(--bg-card-soft);border-bottom:1px solid var(--line);font-size:11px;color:var(--text-s);text-align:center}
+.typing{align-self:flex-start;display:flex;gap:5px;padding:12px 16px;border-radius:17px;border-bottom-left-radius:5px;background:var(--bg-card);border:1px solid var(--line)}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--terra);opacity:.45;animation:bounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.18s}.typing span:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:.9}}
+</style></head><body><div class="app-shell"><header class="header"><div style="display:flex;align-items:center;gap:12px"><a href="index.html" class="nura-text-logo" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><div><div class="context" id="status-text">отвечает на основе твоей Матрицы</div></div></div><div class="header-actions"><button class="icon-btn" onclick="clearChat()" aria-label="Очистить"><i class="ti ti-dots"></i></button><button class="icon-btn" id="themeToggle"><i class="ti ti-sun-moon"></i></button></div></header><div class="limit-note" id="limit-note">NURA отвечает через контекст твоей Матрицы и отчёта. Задавай вопросы по любым сферам жизни.</div><div class="chat-area" id="messages"><div class="empty" id="empty-state"><div class="empty-icon">✦</div><h1 class="title" style="font-size:30px">Спроси у NURA</h1><p class="lead">Я отвечаю не как обычный чат, а через контекст твоей Матрицы и отчёта.</p><div class="hints"><button class="hint" onclick="sendHint(this)">Почему я повторяю этот сценарий?</button><button class="hint" onclick="sendHint(this)">Что мне делать с деньгами?</button><button class="hint" onclick="sendHint(this)">Какой мой шаг на 7 дней?</button><button class="hint" onclick="sendHint(this)">Разбери мой главный запрос</button></div></div></div><div class="input-area"><div class="input-row"><textarea class="chat-input" id="chat-input" placeholder="Написать NURA…" rows="1"></textarea><button class="send" id="send-btn" onclick="sendMessage()" disabled><i class="ti ti-arrow-up"></i></button></div></div></div>
+<nav class="tabbar"><div class="tabbar-inner">
+<a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
+<a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
+<a class="tab-item active" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
+<a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
+</div></nav>
+<script src="nura-pwa.js"></script>
+<script type="text/javascript">
+(function() {
+  var N = window.NURA;
+  var BASE = N.BASE, session_id = N.sessionId;
+  var msgs = document.getElementById('messages'),
+      inputEl = document.getElementById('chat-input'),
+      sendBtn = document.getElementById('send-btn'),
+      emptyState = document.getElementById('empty-state'),
+      chatLog = JSON.parse(localStorage.getItem('nura_chat_log') || '[]'),
+      typingEl = null;
 
-  // Auto-resize textarea
   inputEl.addEventListener('input', function() {
     this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    this.style.height = Math.min(this.scrollHeight, 130) + 'px';
     sendBtn.disabled = !this.value.trim();
   });
   inputEl.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
 
-  // Restore history
   chatLog.forEach(function(m) { addBubble(m.role, m.text, m.time, false); });
   if (chatLog.length) emptyState.style.display = 'none';
   scrollBottom();
 
-  // Handle query param spread
   var params = new URLSearchParams(location.search);
-  if (params.get('spread')) {
-    var spreadNames = { ppt: 'Прошлое · Настоящее · Будущее', week: 'Расклад недели' };
-    var s = spreadNames[params.get('spread')];
-    if (s) setTimeout(function() { addUserMsg('Сделай расклад: ' + s); }, 400);
+  var q = params.get('question') || localStorage.getItem('nura_pending_question');
+  if (q) {
+    localStorage.removeItem('nura_pending_question');
+    setTimeout(function() { inputEl.value = q; sendMessage(); }, 350);
   }
 
-  function clearChat() {
+  window.clearChat = function() {
     if (!confirm('Очистить историю чата?')) return;
     localStorage.removeItem('nura_chat_log');
-    document.getElementById('messages').innerHTML = '';
-    var emptyState = document.getElementById('empty-state');
-    if (emptyState) document.getElementById('messages').appendChild(emptyState);
-    window.nuraTrack && window.nuraTrack('chat_cleared');
-  }
+    chatLog = [];
+    msgs.innerHTML = '';
+    msgs.appendChild(emptyState);
+    emptyState.style.display = 'grid';
+  };
 
-  function sendHint(el) { inputEl.value = el.textContent; sendMessage(); }
+  window.sendHint = function(el) { inputEl.value = el.textContent; sendMessage(); };
 
-  function sendMessage() {
+  window.sendMessage = function() {
     var text = inputEl.value.trim();
     if (!text) return;
     inputEl.value = ''; inputEl.style.height = 'auto'; sendBtn.disabled = true;
-    addUserMsg(text);
+    emptyState.style.display = 'none';
+    var t = N.now();
+    addBubble('user', text, t, true); saveMsg('user', text, t);
     showTyping();
 
     fetch(BASE + '/chat/message', {
@@ -360,105 +107,46 @@
     .then(function(r) { return r.ok ? r.json() : null; })
     .then(function(d) {
       hideTyping();
-      if (d && d.reply) addNuraMsg(d.reply);
-      else addNuraMsg('Что-то пошло не так. Попробуй ещё раз.');
+      if (d && d.reply) addBubble('nura', d.reply, N.now(), true);
+      else addBubble('nura', 'Что-то пошло не так. Попробуй ещё раз.', N.now(), true);
     })
     .catch(function() {
       hideTyping();
-      addNuraMsg('Нет соединения. Проверь сеть и повтори.');
+      addBubble('nura', 'Нет соединения. Проверь сеть и повтори.', N.now(), true);
     });
-  }
-
-  function addUserMsg(text) {
-    emptyState.style.display = 'none';
-    var t = now();
-    addBubble('user', text, t, true);
-    saveMsg('user', text, t);
-  }
-
-  function addNuraMsg(text) {
-    var t = now();
-    addBubble('nura', text, t, true);
-    saveMsg('nura', text, t);
-  }
+  };
 
   function addBubble(role, text, time, animate) {
-    var wrap = document.createElement('div');
-    wrap.className = 'msg ' + role;
+    var wrap = document.createElement('div'); wrap.className = 'msg ' + role;
     if (animate) { wrap.style.opacity = '0'; wrap.style.transform = 'translateY(6px)'; }
-    wrap.innerHTML = '<div class="bubble">' + escHtml(text) + '</div>'
-      + '<span class="msg-time">' + time + '</span>';
+    wrap.innerHTML = '<div class="bubble">' + N.escHtml(text) + '</div><span class="msg-time">' + time + '</span>';
     msgs.appendChild(wrap);
-    if (animate) {
-      requestAnimationFrame(function() {
-        wrap.style.transition = 'opacity .25s, transform .25s';
-        wrap.style.opacity = '1'; wrap.style.transform = 'translateY(0)';
-      });
-    }
+    if (animate) requestAnimationFrame(function() { wrap.style.transition = 'opacity .25s, transform .25s'; wrap.style.opacity = '1'; wrap.style.transform = 'none'; });
     scrollBottom();
   }
 
-  var typingEl = null;
   function showTyping() {
-    isTyping = true;
     document.getElementById('status-text').textContent = 'печатает…';
-    typingEl = document.createElement('div');
-    typingEl.className = 'typing-bubble';
-    typingEl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-    msgs.appendChild(typingEl);
-    scrollBottom();
+    typingEl = document.createElement('div'); typingEl.className = 'typing';
+    typingEl.innerHTML = '<span></span><span></span><span></span>';
+    msgs.appendChild(typingEl); scrollBottom();
   }
   function hideTyping() {
-    isTyping = false;
-    document.getElementById('status-text').textContent = 'онлайн';
-    if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
-    typingEl = null;
+    document.getElementById('status-text').textContent = 'отвечает на основе твоей Матрицы';
+    if (typingEl) { typingEl.remove(); typingEl = null; }
   }
 
-  function scrollBottom() {
-    setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 60);
-  }
-
+  function scrollBottom() { setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 40); }
   function saveMsg(role, text, time) {
     chatLog.push({ role: role, text: text, time: time });
     if (chatLog.length > 80) chatLog = chatLog.slice(-80);
     try { localStorage.setItem('nura_chat_log', JSON.stringify(chatLog)); } catch(e) {}
   }
 
-  function now() {
-    var d = new Date();
-    return d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
-  }
-
-  function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/\n/g,'<br>');
-  }
-</script>
-
-<script>
-(function(){
-  var btn = document.getElementById('themeToggle');
-  if (!btn) return;
-  var root = document.documentElement;
-  var STORAGE_KEY = 'nura-theme';
-
-  var saved = localStorage.getItem(STORAGE_KEY) || 'dark';
-  applyTheme(saved);
-
-  btn.addEventListener('click', function(){
-    var current = root.getAttribute('data-theme') || 'dark';
-    var next = current === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    localStorage.setItem(STORAGE_KEY, next);
+  document.getElementById('themeToggle').addEventListener('click', function() {
+    var next = N.toggleTheme();
+    this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
   });
-
-  function applyTheme(theme){
-    root.setAttribute('data-theme', theme);
-    btn.textContent = theme === 'dark' ? '◑' : '◐';
-    btn.title = theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему';
-  }
 })();
 </script>
-</body>
-</html>
+</body></html>]]>

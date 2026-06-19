@@ -925,38 +925,38 @@
     "semantic_hash": ""
   },
   "frontend/index.html": {
-    "mtime": 1781796845.3140929,
-    "ast_hash": "4256cd39962d4a39af66ed0d5d4791f6",
+    "mtime": 1781799566.1873074,
+    "ast_hash": "e7c5145e5d384630c384481b1da98d44",
     "semantic_hash": ""
   },
   "frontend/pwa/app/chat.html": {
-    "mtime": 1781691911.79932,
-    "ast_hash": "5d363b5d1b2663fdd78b076bd0c654c6",
+    "mtime": 1781798796.0003235,
+    "ast_hash": "c5f66ca275298d603fe013daa73db56b",
     "semantic_hash": ""
   },
   "frontend/pwa/app/index.html": {
-    "mtime": 1781691911.8003292,
-    "ast_hash": "487f0d90682408e8b686a10d94b1c7c7",
+    "mtime": 1781798775.2486136,
+    "ast_hash": "fa8a35b126d1d24d20683690533a1c86",
     "semantic_hash": ""
   },
   "frontend/pwa/app/profile.html": {
-    "mtime": 1781691911.8013287,
-    "ast_hash": "69307283fb31fed1fb2f37fca0e89434",
+    "mtime": 1781799541.6304595,
+    "ast_hash": "6079b9221bad1be3b75dcce38ac6ab45",
     "semantic_hash": ""
   },
   "frontend/pwa/app/tarot.html": {
-    "mtime": 1781691911.8023314,
-    "ast_hash": "d6fb5fec9b0cbcd2a06bf507555f649e",
+    "mtime": 1781799523.681119,
+    "ast_hash": "4d79ca9b47145c465fb7ca946d927649",
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1781796844.8471212,
-    "ast_hash": "4256cd39962d4a39af66ed0d5d4791f6",
+    "mtime": 1781799558.1331246,
+    "ast_hash": "e7c5145e5d384630c384481b1da98d44",
     "semantic_hash": ""
   },
   "mini.html": {
-    "mtime": 1781620114.619379,
-    "ast_hash": "de39c9c368d44075cee5ab56cad8a77d",
+    "mtime": 1781798637.90486,
+    "ast_hash": "7437f15695b71ad40740b05c81e2c70d",
     "semantic_hash": ""
   },
   "nura_app/core/prompts/brief_parser.txt": {
@@ -1255,8 +1255,8 @@
     "semantic_hash": ""
   },
   "success.html": {
-    "mtime": 1781084776.2763088,
-    "ast_hash": "b5c103516b9d2e4024a81c91a55e10b4",
+    "mtime": 1781798660.1135142,
+    "ast_hash": "e73ba796569aaa38eba4a01e77f92885",
     "semantic_hash": ""
   },
   "docs/\u041a\u0430\u0440\u0442\u0430 \u0432\u0435\u0447\u043d\u043e\u0437\u0435\u043b\u0451\u043d\u043e\u0433\u043e \u0441\u043f\u0440\u043e\u0441\u0430 \u0434\u043b\u044f Nura_ \u041a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u044f Viral Screening Radar \u0432 \u043d\u0438\u0448\u0435 \u0441\u0430\u043c\u043e\u043f\u043e\u0437\u043d\u0430\u043d\u0438\u044f \u043d\u0430 TikTok.pdf": {
@@ -1307,6 +1307,11 @@
   "frontend/nura-hero.webp": {
     "mtime": 1781794278.6076884,
     "ast_hash": "b48c88e20af08cb2e9fbcb265c2bdb1e",
+    "semantic_hash": ""
+  },
+  "STATE.md": {
+    "mtime": 1781797971.8665335,
+    "ast_hash": "042b1be7368ce869c826a3d58b3f2fba",
     "semantic_hash": ""
   }
 }

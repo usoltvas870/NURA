@@ -1,406 +1,146 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <!-- PWA -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0A0E0C">
-  <!-- iOS -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="NURA">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <!-- Service Worker -->
-  <script>if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));</script>
-  <title>NURA AI — Оплата прошла</title>
-  <meta name="description" content="Оплата прошла. Генерируем твою Матрицу Судьбы." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      --bg:        #0A0E0C;
-      --bg-soft:   #111613;
-      --ink:       #F2EFE7;
-      --ink-soft:  rgba(242, 239, 231, 0.72);
-      --ink-mute:  rgba(242, 239, 231, 0.50);
-      --line:      rgba(242, 239, 231, 0.10);
-      --line-strong: rgba(242, 239, 231, 0.18);
-      --m-bg:       #0E2419;
-      --m-bg-soft:  #143527;
-      --m-line:     rgba(151, 197, 161, 0.18);
-      --m-accent:   #C9A55C;
-      --m-accent-soft: rgba(201, 165, 92, 0.16);
-      --m-leaf:     #6BA37A;
-      --radius-lg: 24px;
-      --radius-md: 18px;
-      --radius-sm: 12px;
-    }
-
-    *, *::before, *::after { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: 'DM Sans', system-ui, sans-serif;
-      color: var(--ink);
-      background: var(--bg);
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 50% 60% at 50% 30%, rgba(201, 165, 92, 0.12), transparent 60%),
-        radial-gradient(ellipse 45% 45% at 50% 80%, rgba(107, 163, 122, 0.08), transparent 60%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .wrapper {
-      position: relative;
-      z-index: 1;
-      width: min(440px, calc(100% - 32px));
-      text-align: center;
-    }
-
-    .card {
-      background:
-        radial-gradient(ellipse 80% 50% at 50% 0%, rgba(107, 163, 122, 0.16), transparent 60%),
-        linear-gradient(160deg, var(--m-bg) 0%, var(--m-bg-soft) 100%);
-      border: 1px solid var(--m-line);
-      border-radius: var(--radius-lg);
-      padding: 48px 32px 40px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .check-icon {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background: var(--m-accent-soft);
-      border: 1px solid rgba(201, 165, 92, 0.3);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      margin-bottom: 24px;
-      color: var(--m-accent);
-    }
-
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--ink-soft);
-      font-size: 13px;
-      font-weight: 400;
-      text-decoration: none;
-      margin-bottom: 24px;
-      transition: color 0.2s;
-    }
-    .back-link:hover { color: var(--ink); }
-
-    .nav-footer {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid var(--line);
-    }
-    .nav-footer a {
-      display: block;
-      text-align: center;
-      color: var(--ink-soft);
-      font-size: 13px;
-      font-weight: 400;
-      text-decoration: none;
-      padding: 8px 0;
-      transition: color 0.2s;
-    }
-    .nav-footer a:hover { color: var(--ink); }
-    .nav-footer a.tg-link {
-      color: var(--m-accent);
-      font-weight: 500;
-    }
-
-    h1 {
-      margin: 0 0 12px;
-      font-family: 'Cormorant Garamond', Georgia, serif;
-      font-weight: 500;
-      font-size: clamp(28px, 5vw, 38px);
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-    }
-
-    h1 .star {
-      color: var(--m-accent);
-      margin-left: 2px;
-    }
-
-    .subtitle {
-      color: var(--ink-soft);
-      font-size: 15px;
-      line-height: 1.6;
-      font-weight: 300;
-      margin: 0 0 36px;
-    }
-
-    .spinner-wrapper {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 0;
-    }
-
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 3px solid rgba(201, 165, 92, 0.2);
-      border-top-color: var(--m-accent);
-      border-right-color: var(--m-leaf);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Pulse ring */
-    .spinner-ring {
-      position: relative;
-      width: 48px;
-      height: 48px;
-      margin: 0 auto;
-    }
-
-    .spinner-ring::before {
-      content: "";
-      position: absolute;
-      inset: -4px;
-      border-radius: 50%;
-      border: 1px solid rgba(201, 165, 92, 0.15);
-      animation: pulse-ring 2s ease-out infinite;
-    }
-
-    @keyframes pulse-ring {
-      0%   { transform: scale(1); opacity: 1; }
-      100% { transform: scale(1.8); opacity: 0; }
-    }
-
-    .status-msg {
-      display: none;
-      color: var(--ink-soft);
-      font-size: 15px;
-      line-height: 1.6;
-      margin: 24px 0 0;
-      font-weight: 300;
-    }
-
-    .status-msg.visible { display: block; }
-    .status-msg .attempt-count {
-      color: var(--ink-mute);
-      font-size: 12px;
-      display: block;
-      margin-top: 6px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      min-height: 52px;
-      padding: 0 28px;
-      border-radius: 999px;
-      border: 1px solid rgba(201, 165, 92, 0.4);
-      background: transparent;
-      color: var(--m-accent);
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 500;
-      font-size: 15px;
-      cursor: pointer;
-      transition: all 0.22s ease;
-      text-decoration: none;
-      margin-top: 28px;
-    }
-
-    .btn:hover {
-      background: var(--m-accent-soft);
-      transform: translateY(-1px);
-    }
-
-    .btn:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn .btn-spinner {
-      display: none;
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(201, 165, 92, 0.3);
-      border-top-color: var(--m-accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-
-    .btn.loading .btn-text { display: none; }
-    .btn.loading .btn-spinner { display: inline-block; }
-    .btn.loading { pointer-events: none; }
-
-    /* Responsive */
-    @media (max-width: 480px) {
-      .card { padding: 36px 20px 32px; }
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .card { animation: fadeUp 0.5s ease both; }
-  </style>
-  <script src="/metrika.js" defer></script>
-</head>
-<body>
-  <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px;" alt="" /></div></noscript>
-  <div class="wrapper">
-    <div class="card">
-      <a href="/" class="back-link">← На главную</a>
-      <div class="check-icon">✦</div>
-      <script>
-  window.addEventListener('DOMContentLoaded', function() {
-    window.nuraTrack && window.nuraTrack('payment_success', {product: 'matrix_890'});
-  });
+<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<link rel="manifest" href="/manifest.json">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#EFEEE9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="NURA">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<script>if("serviceWorker"in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})});</script>
+<script>
+  (function(){
+    var t = localStorage.getItem('nura-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
 </script>
-      <h1>Оплата прошла <span class="star">✦</span></h1>
-      <p class="subtitle" id="status-text">Генерируем твою Матрицу Судьбы. Это займёт 1-2 минуты.</p>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<title>NURA · Оплата прошла</title><meta name="description" content="Генерируем твою Матрицу Судьбы."><style>
+:root {
+  --bg:#EFEEE9; --bg-soft:#F7F4EE; --bg-card:#FFFFFF; --bg-card-soft:#FBFAF6;
+  --gold:#C2A476; --terra:#B8743F; --terra-d:#9C5F30; --sage:#6B8068; --violet:#7B6FE8;
+  --text:#1A1A1A; --text-m:#5A5752; --text-s:#8A877E;
+  --line:rgba(44,42,30,.10); --line-strong:rgba(44,42,30,.16);
+  --shadow-card:0 4px 16px rgba(44,42,30,.08),0 1px 3px rgba(44,42,30,.06);
+  --font-serif:'Playfair Display',Georgia,serif; --font-sans:'Manrope',system-ui,sans-serif;
+  --r-sm:10px; --r-md:16px; --r-lg:22px; --r-xl:28px;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+[data-theme="dark"]{
+  --bg:#12100E; --bg-soft:#1A1713; --bg-card:#1E1A16; --bg-card-soft:#181511;
+  --gold:#C9A55C; --terra:#C9874A; --terra-d:#B8743F; --sage:#7A9275; --violet:#8D84E8;
+  --text:#F2EFE7; --text-m:rgba(242,239,231,.72); --text-s:rgba(242,239,231,.48);
+  --line:rgba(242,239,231,.10); --line-strong:rgba(242,239,231,.18);
+  --shadow-card:0 4px 18px rgba(0,0,0,.22),0 1px 3px rgba(0,0,0,.18);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{
+  min-height:100dvh;
+  background:radial-gradient(circle at 12% 0%,rgba(194,164,118,.20),transparent 28%),
+             radial-gradient(circle at 88% 8%,rgba(184,116,63,.12),transparent 26%),var(--bg);
+  color:var(--text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  display:flex;align-items:center;justify-content:center;padding-bottom:0;
+}
+a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;background:none;color:inherit;cursor:pointer}
+.wrap{width:min(100%,460px);padding:28px 16px;text-align:center}
+.card{background:var(--bg-card);border:1px solid rgba(255,255,255,.64);border-radius:var(--r-lg);box-shadow:var(--shadow-card);overflow:hidden;position:relative}
+[data-theme="dark"] .card{border-color:var(--line)}
+.success-card{padding:38px 24px;background:radial-gradient(circle at 50% 0%,rgba(194,164,118,.22),transparent 36%),var(--bg-card)}
+.success-icon{width:68px;height:68px;border-radius:50%;display:inline-grid;place-items:center;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.18);color:var(--terra);font-size:30px;margin-bottom:18px}
+.title{font-family:var(--font-serif);font-size:clamp(32px,8vw,44px);line-height:1.08;font-weight:400;letter-spacing:-.02em}
+.lead{color:var(--text-m);font-size:14.5px;line-height:1.6}
+.btn{min-height:46px;border-radius:var(--r-sm);display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;font-size:13.5px;font-weight:800;line-height:1.2;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s var(--ease)}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,116,63,.26)}
+.btn-primary:hover{background:var(--terra-d)}
+.btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
+.btn-full{width:100%}
+.progress{display:grid;gap:10px;margin:26px 0;text-align:left}
+.step{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:center;padding:12px;background:var(--bg-card-soft);border:1px solid var(--line);border-radius:var(--r-md);color:var(--text-m);font-size:13px}
+.step-dot{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(194,164,118,.16);color:var(--terra);font-weight:800}
+.step.active{color:var(--text);border-color:rgba(184,116,63,.22)}.step.active .step-dot{background:var(--terra);color:white}
+.spinner{width:44px;height:44px;border:3px solid rgba(184,116,63,.16);border-top-color:var(--terra);border-radius:50%;animation:spin 1s linear infinite;margin:20px auto 0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.small{font-size:12px;color:var(--text-s);line-height:1.5}
+.nav-footer{display:flex;flex-direction:column;gap:8px;margin-top:18px;padding-top:18px;border-top:1px solid var(--line);text-align:center}
+.nav-footer a{display:block;font-size:13px;color:var(--text-m);font-weight:700;padding:6px 0}
+.nav-footer a.tg-link{color:var(--terra);font-weight:800}
+</style>
+<script src="/metrika.js" defer></script>
+</head><body>
+<noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px" alt=""/></div></noscript>
+<div class="wrap"><section class="card success-card">
+<a href="/" class="small">← На главную</a>
+<div style="margin-top:22px" class="success-icon">✦</div>
+<h1 class="title">Оплата прошла</h1>
+<p class="lead" id="status-text" style="margin-top:12px">NURA готовит твой персональный отчёт. Обычно это занимает 1–2 минуты.</p>
+<div class="spinner" id="spinner"></div>
+<div class="progress">
+<div class="step active" id="s1"><div class="step-dot">1</div><div>Рассчитываем позиции Матрицы</div></div>
+<div class="step" id="s2"><div class="step-dot">2</div><div>Собираем архетипы и программы</div></div>
+<div class="step" id="s3"><div class="step-dot">3</div><div>Формируем личные выводы по запросу</div></div>
+<div class="step" id="s4"><div class="step-dot">4</div><div>Сохраняем HTML-отчёт в профиль</div></div>
+</div>
+<p class="small">Не закрывай страницу. Если отчёт не откроется автоматически, он всё равно появится в профиле.</p>
+<div class="small" id="attempt-count"></div>
+<button class="btn btn-soft btn-full" style="margin-top:14px" id="retry-btn" onclick="retryPolling()">Проверить ещё раз</button>
+<button class="btn btn-primary btn-full" style="margin-top:10px" onclick="location.href='profile.html#reports'">Открыть профиль</button>
+<div class="nav-footer">
+<a href="/app/" class="tg-link">Открыть NURA — карта дня и чат</a>
+<a href="https://t.me/ai_nura_bot" class="tg-link">Открыть в Telegram</a>
+<a href="/">← Вернуться на лендинг</a>
+</div>
+</section></div><script>
+window.addEventListener('DOMContentLoaded',function(){
+  window.nuraTrack&&window.nuraTrack('payment_success',{product:'matrix_890'});
+});
 
-      <div class="spinner-wrapper" id="spinner">
-        <div class="spinner-ring">
-          <div class="spinner"></div>
-        </div>
-      </div>
+var MAX_ATTEMPTS=24,INTERVAL_MS=5000,attempts=0,timer=null;
+var params=new URLSearchParams(location.search),token=params.get('token');
+var spinner=document.getElementById('spinner'),statusText=document.getElementById('status-text');
+var attemptEl=document.getElementById('attempt-count'),retryBtn=document.getElementById('retry-btn');
+var steps=['s1','s2','s3','s4'],stepIdx=0;
 
-      <div class="status-msg" id="timeout-msg">
-        Отчёт готовится. Обычно это занимает до 2 минут.
-        <span class="attempt-count" id="attempt-count"></span>
-      </div>
+if(!token)retryBtn.style.display='inline-flex';
 
-      <button class="btn" id="retry-btn" style="display: none;">
-        <span class="btn-text">Проверить ещё раз</span>
-        <span class="btn-spinner"></span>
-      </button>
+var stepTimer=setInterval(function(){
+  if(stepIdx<steps.length-1){stepIdx++;document.getElementById(steps[stepIdx]).classList.add('active');}
+  if(stepIdx>=steps.length-1)clearInterval(stepTimer);
+},1700);
 
-      <div class="nav-footer">
-        <a href="/app/" class="tg-link">Открыть NURA — карта дня и чат</a>
-        <a href="https://t.me/ai_nura_bot" class="tg-link">Открыть в Telegram</a>
-        <a href="/">← Вернуться на лендинг</a>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    (function() {
-      var params = new URLSearchParams(window.location.search);
-      var token = params.get('token');
-
-      if (!token) return;
-
-      var MAX_ATTEMPTS = 24;
-      var INTERVAL_MS  = 5000;
-      var attempts     = 0;
-      var timer        = null;
-
-      var spinner     = document.getElementById('spinner');
-      var statusText  = document.getElementById('status-text');
-      var timeoutMsg  = document.getElementById('timeout-msg');
-      var attemptEl   = document.getElementById('attempt-count');
-      var retryBtn    = document.getElementById('retry-btn');
-
-      function updateAttempt() {
-        if (attempts > 0) {
-          attemptEl.textContent = 'Попытка ' + attempts + ' из ' + MAX_ATTEMPTS;
-        }
-      }
-
-      function stopPolling() {
-        if (timer) {
-          clearTimeout(timer);
-          timer = null;
-        }
-      }
-
-      function showTimeout() {
-        stopPolling();
-        spinner.style.display = 'none';
-        statusText.textContent = 'Генерируем твою Матрицу Судьбы. Это займёт 1-2 минуты.';
-        timeoutMsg.classList.add('visible');
-        updateAttempt();
-        retryBtn.style.display = 'inline-flex';
-      }
-
-      function checkReport() {
-        attempts++;
-        updateAttempt();
-
-        fetch('/report/' + token, { method: 'GET' })
-          .then(function(res) {
-            if (res.ok) {
-              stopPolling();
-              window.location.href = '/report/' + token;
-              return;
-            }
-            if (attempts >= MAX_ATTEMPTS) {
-              showTimeout();
-              return;
-            }
-            timer = setTimeout(checkReport, INTERVAL_MS);
-          })
-          .catch(function() {
-            if (attempts >= MAX_ATTEMPTS) {
-              showTimeout();
-              return;
-            }
-            timer = setTimeout(checkReport, INTERVAL_MS);
-          });
-      }
-
-      retryBtn.addEventListener('click', function() {
-        var btn = this;
-        btn.classList.add('loading');
-
-        attempts = 0;
-        timeoutMsg.classList.remove('visible');
-        spinner.style.display = '';
-        statusText.textContent = 'Генерируем твою Матрицу Судьбы. Это займёт 1-2 минуты.';
-        btn.style.display = 'none';
-
-        checkReport();
-
-        setTimeout(function() {
-          btn.classList.remove('loading');
-        }, 600);
-      });
-
-      setTimeout(function() {
-        checkReport();
-      }, 3000);
-    })();
-  </script>
-</body>
-</html>
+function updateAttempt(){
+  if(attempts>0)attemptEl.textContent='Попытка '+attempts+' из '+MAX_ATTEMPTS;
+}
+function stopPolling(){if(timer){clearTimeout(timer);timer=null;}}
+function showTimeout(){
+  stopPolling();spinner.style.display='none';
+  statusText.textContent='Генерация затянулась. Отчёт появится в профиле автоматически.';
+  retryBtn.style.display='inline-flex';
+}
+function checkReport(){
+  attempts++;updateAttempt();
+  fetch('/report/'+token,{method:'GET'})
+    .then(function(res){
+      if(res.ok){stopPolling();clearInterval(stepTimer);window.location.href='/report/'+token;return;}
+      if(attempts>=MAX_ATTEMPTS){showTimeout();return;}
+      timer=setTimeout(checkReport,INTERVAL_MS);
+    })
+    .catch(function(){
+      if(attempts>=MAX_ATTEMPTS){showTimeout();return;}
+      timer=setTimeout(checkReport,INTERVAL_MS);
+    });
+}
+function retryPolling(){
+  retryBtn.style.display='none';attempts=0;spinner.style.display='';
+  statusText.textContent='NURA готовит твой персональный отчёт. Обычно это занимает 1–2 минуты.';
+  attemptEl.textContent='';stepIdx=0;
+  steps.forEach(function(id,i){document.getElementById(id).classList.toggle('active',i===0);});
+  checkReport();
+}
+if(token&&token!=='demo')setTimeout(function(){checkReport();},3000);
+</script>
+</body></html>

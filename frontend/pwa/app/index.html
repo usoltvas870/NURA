@@ -1,368 +1,113 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>NURA</title>
-  <script>
-    (function(){
-      var t = localStorage.getItem('nura-theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', t);
-    })();
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg:var(--nura-obsidian); --bg-soft:var(--nura-cave); --bg-card:var(--nura-surface);
-      --ink:#F2EFE7; --ink-soft:rgba(242,239,231,.72);
-      --ink-mute:rgba(242,239,231,.5); --ink-faint:var(--nura-faint);
-      --line:rgba(242,239,231,.10); --line-strong:rgba(242,239,231,.18);
-      --m-accent:var(--nura-gold); --m-accent-soft:rgba(201,165,92,.16);
-      --m-leaf:var(--nura-leaf); --m-leaf-soft:rgba(107,163,122,.12);
-      --t-accent:#D8B36A; --t-accent-soft:rgba(216,179,106,.16);
-      --t-violet:#7E7AC8;
-      --danger:#C45C5C;
-      --r-sm:6px; --r-md:12px; --r-lg:18px;
-      --bg-alpha:rgba(18,16,14,.97);
-    }
-    [data-theme="light"] {
-      --bg:#F7F3ED; --bg-soft:#EFEAE2; --bg-card:#F0EBE2;
-      --ink:#1C1814; --ink-soft:rgba(28,24,20,.70);
-      --ink-mute:rgba(28,24,20,.48); --ink-faint:#8A7F75;
-      --line:rgba(28,24,20,.10); --line-strong:rgba(28,24,20,.18);
-      --m-accent:#9B7A2F; --m-accent-soft:rgba(155,122,47,.14);
-      --m-leaf:#4A7A5A; --m-leaf-soft:rgba(74,122,90,.10);
-      --t-accent:#A67C3D; --t-accent-soft:rgba(166,124,61,.14);
-      --t-violet:#6A6798; --danger:#C45C5C;
-      --bg-alpha:rgba(247,243,237,.92);
-    }
-    [data-theme="light"] body { background:var(--bg); color:var(--ink); }
-
-    /* ── LIGHT THEME — PWA ──────────────────────────────────── */
-    [data-theme="light"] .header {
-      background: rgba(247, 243, 237, 0.92);
-      border-bottom: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .header .nura-name,
-    [data-theme="light"] .header .logo,
-    [data-theme="light"] .header .header-title { color: #1C1814; }
-    [data-theme="light"] .header .nura-avatar  { color: #9B7A2F; }
-
-    [data-theme="light"] .tabbar {
-      background: rgba(247, 243, 237, 0.92);
-      border-top: 1px solid rgba(28, 24, 20, 0.10);
-    }
-    [data-theme="light"] .tab-item { color: rgba(28, 24, 20, 0.45); }
-    [data-theme="light"] .tab-item.active { color: #A67C3D; }
-    [data-theme="light"] .tabbar .tab-item.active .ti { color: #A67C3D; }
-    [data-theme="light"] .tabbar .tab-item:not(.active) .ti {
-      color: rgba(28, 24, 20, 0.40);
-      opacity: 1;
-    }
-
-    [data-theme="light"] .greeting-hi { color: #1C1814; }
-    [data-theme="light"] .badge {
-      background: rgba(74, 122, 90, 0.18);
-      color: #3A6848;
-      border-color: rgba(74, 122, 90, 0.25);
-    }
-    [data-theme="light"] .matrix-card {
-      background: #E2ECE6;
-      border-color: rgba(74, 122, 90, 0.25);
-    }
-    [data-theme="light"] .matrix-card .card-eyebrow { color: rgba(28, 24, 20, 0.50); }
-    [data-theme="light"] .matrix-card .arcane-num   { color: #9B7A2F; }
-    [data-theme="light"] .matrix-card .arcane-name  { color: #9B7A2F; }
-    [data-theme="light"] .matrix-card .matrix-desc  { color: rgba(28, 24, 20, 0.68); }
-    [data-theme="light"] .matrix-card .btn-card {
-      background: rgba(155, 122, 47, 0.12);
-      color: #9B7A2F;
-      border-color: rgba(155, 122, 47, 0.25);
-    }
-    [data-theme="light"] .day-card {
-      background: #FFFFFF;
-      border-color: rgba(28, 24, 20, 0.10);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    }
-    [data-theme="light"] .day-symbol { color: #A67C3D; }
-    [data-theme="light"] .day-name   { color: #1C1814; }
-    [data-theme="light"] .day-phrase { color: rgba(28, 24, 20, 0.62); }
-    [data-theme="light"] .quick-btn {
-      background: #FFFFFF;
-      border-color: rgba(28, 24, 20, 0.12);
-      color: #1C1814;
-    }
-    [data-theme="light"] .quick-btn:hover {
-      border-color: rgba(155, 122, 47, 0.35);
-      color: #9B7A2F;
-    }
-    [data-theme="light"] .sec-title { color: #1C1814; }
-    [data-theme="light"] .sec-link  { color: #9B7A2F; }
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html{-webkit-tap-highlight-color:transparent}
-    body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);
-      min-height:100dvh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
-    a{text-decoration:none;color:inherit}
-    button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-
-    .scroll-area{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px) + 24px)}
-    .page{padding:16px;display:flex;flex-direction:column;gap:20px}
-
-    /* Header */
-    .header{
-      position:sticky;top:0;z-index:40;height:52px;
-      background:var(--bg-alpha);backdrop-filter:blur(14px);
-      -webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);
-      display:flex;align-items:center;justify-content:space-between;padding:0 16px
-    }
-    .logo{display:flex;align-items:center;gap:8px;
-      font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:18px;letter-spacing:.18em;color:var(--m-accent)}
-    .logo-sep{width:1px;height:13px;background:rgba(201,165,92,.28)}
-    .icon-btn{width:34px;height:34px;border-radius:50%;
-      background:var(--bg-card);border:1px solid var(--line);
-      display:grid;place-items:center;font-size:15px;color:var(--ink-soft);transition:opacity .2s}
-    .icon-btn:hover{opacity:.7}
-
-    /* Greeting */
-    .greeting{}
-    .greeting-hi{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:32px;line-height:1.1;color:var(--ink);margin-bottom:10px}
-    .badge{display:inline-flex;align-items:center;gap:5px;
-      padding:4px 10px;border-radius:var(--r-sm);
-      background:rgba(201,165,92,.08);border:1px solid rgba(201,165,92,.22);
-      font-size:11px;font-weight:500;letter-spacing:.12em;
-      text-transform:uppercase;color:var(--m-accent);white-space:nowrap}
-
-    /* Matrix card */
-    .matrix-card{
-      background:var(--bg-card);border:1px solid var(--line);
-      border-radius:var(--r-lg);padding:20px 20px 18px;overflow:hidden;position:relative
-    }
-    .matrix-card::before{
-      content:'';position:absolute;top:0;right:0;
-      width:180px;height:180px;border-radius:50%;
-      background:radial-gradient(circle,rgba(201,165,92,.06) 0%,transparent 70%);
-      transform:translate(40%,-40%);pointer-events:none
-    }
-    .card-eyebrow{font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-      color:var(--ink-faint);font-weight:400;margin-bottom:14px}
-    .arcane-hero{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
-    .arcane-num{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:72px;line-height:1;color:var(--m-accent);opacity:.65}
-    .arcane-name{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:30px;line-height:1.1;color:var(--ink)}
-    .matrix-desc{font-size:13.5px;line-height:1.65;color:var(--ink-soft);
-      font-weight:300;margin-bottom:18px}
-    .btn-card{
-      display:flex;align-items:center;justify-content:center;gap:7px;
-      width:100%;height:44px;border-radius:var(--r-md);
-      background:rgba(201,165,92,.1);border:1px solid rgba(201,165,92,.28);
-      color:var(--m-accent);font-size:13.5px;font-weight:500;
-      letter-spacing:.04em;transition:background .2s
-    }
-    .btn-card:hover{background:rgba(201,165,92,.16)}
-
-    /* Section head */
-    .sec-head{display:flex;align-items:center;justify-content:space-between}
-    .sec-title{font-size:10px;letter-spacing:.16em;text-transform:uppercase;
-      color:var(--ink-faint);font-weight:400}
-    .sec-link{font-size:11px;color:var(--m-accent);opacity:.7}
-
-    /* Day card */
-    .day-card{
-      background:var(--bg-card);border:1px solid var(--line);border-radius:var(--r-lg);
-      padding:14px;display:flex;gap:14px;align-items:center;
-      cursor:pointer;transition:border-color .2s
-    }
-    .day-card:hover{border-color:rgba(201,165,92,.25)}
-    .day-symbol{
-      width:52px;height:52px;flex-shrink:0;border-radius:var(--r-md);
-      background:rgba(107,163,122,.1);border:1px solid rgba(107,163,122,.18);
-      display:grid;place-items:center;
-      font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--m-leaf)
-    }
-    .day-info{flex:1;min-width:0}
-    .day-name{font-family:'Cormorant Garamond',serif;font-weight:300;
-      font-size:17px;color:var(--ink);margin-bottom:3px}
-    .day-phrase{font-size:12px;color:var(--ink-soft);font-weight:300;
-      line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;
-      -webkit-box-orient:vertical;overflow:hidden}
-    .day-arrow{color:var(--ink-faint);font-size:18px;flex-shrink:0}
-
-    /* Recent insights placeholder */
-    .insights-row{display:flex;gap:8px;overflow-x:auto;
-      scrollbar-width:none;padding-bottom:2px}
-    .insights-row::-webkit-scrollbar{display:none}
-    .insight-chip{flex-shrink:0;padding:8px 14px;
-      background:var(--bg-card);border:1px solid var(--line);
-      border-radius:999px;font-size:12px;color:var(--ink-soft);white-space:nowrap}
-
-    /* Tabbar */
-    .tabbar{
-      position:fixed;bottom:0;left:0;right:0;z-index:50;
-      height:calc(56px + env(safe-area-inset-bottom,0px));
-      padding-bottom:env(safe-area-inset-bottom,0px);
-      background:var(--bg-alpha);backdrop-filter:blur(20px);
-      -webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);
-      display:flex;align-items:flex-start
-    }
-    .tab-item{flex:1;height:56px;display:flex;flex-direction:column;
-      align-items:center;justify-content:center;gap:3px;
-      color:var(--ink-faint);font-size:11px;font-weight:400;
-      letter-spacing:.02em;text-decoration:none;transition:color .2s}
-    .tab-item.active{color:var(--m-accent)}
-    .tab-icon{font-size:17px;line-height:1}
-.tabbar .ti{font-size:22px;line-height:1;display:block;margin-bottom:4px}
-.tabbar .tab-item.active .ti{color:var(--m-accent)}
-.tabbar .tab-item:not(.active) .ti{color:var(--ink-faint);opacity:0.7}
-
-    /* Skeleton */
-    .skel{background:linear-gradient(90deg,var(--bg-card) 25%,var(--bg-soft) 50%,var(--bg-card) 75%);
-      background-size:200% 100%;animation:sh 1.5s infinite;border-radius:var(--r-sm)}
-    @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
-  </style>
-  <link rel="stylesheet" href="/static/nura-ds.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-</head>
-<body>
-
-<header class="header">
-  <div class="logo">
-    <span>✦</span>
-    <span class="logo-sep"></span>
-    <span>NURA</span>
-  </div>
-  <button class="icon-btn" id="themeToggle" aria-label="Тема" title="Светлая / тёмная тема" style="font-size:14px">◑</button>
-  <a href="profile.html" class="icon-btn" aria-label="Профиль">👤</a>
-</header>
-
-<main class="scroll-area">
-  <div class="page">
-
-    <!-- Greeting -->
-    <div class="greeting">
-      <div class="greeting-hi" id="greeting-name">Привет, Алина</div>
-      <span class="badge" id="archetype-badge">✦ Верховная Жрица</span>
-    </div>
-
-    <!-- Matrix card -->
-    <div class="matrix-card">
-      <div class="card-eyebrow">Матрица Судьбы · ключевой аркан</div>
-      <div class="arcane-hero">
-        <span class="arcane-num" id="matrix-num">II</span>
-        <span class="arcane-name" id="matrix-name">Жрица</span>
-      </div>
-      <p class="matrix-desc" id="matrix-desc">
-        Интуиция — твоя главная навигационная система. Ты воспринимаешь то,
-        что другие не замечают. Ключевой урок: доверять внутреннему знанию
-        раньше, чем появится внешнее подтверждение.
-      </p>
-      <button class="btn-card" onclick="location.href='https://t.me/ai_nura_bot'">
-        Открыть разбор →
-      </button>
-    </div>
-
-    <!-- Day card -->
-    <div>
-      <div class="sec-head" style="margin-bottom:10px">
-        <span class="sec-title">Карта дня</span>
-        <a href="tarot.html" class="sec-link" style="font-size:11px">все расклады →</a>
-      </div>
-      <div class="day-card" onclick="location.href='tarot.html'">
-        <div class="day-symbol" id="day-symbol">☉</div>
-        <div class="day-info">
-          <div class="day-name" id="day-name">XIX · Солнце</div>
-          <div class="day-phrase" id="day-phrase">День для ясности и открытых решений. Доверяй первому импульсу.</div>
-        </div>
-        <span class="day-arrow">›</span>
-      </div>
-    </div>
-
-    <!-- Quick hints -->
-    <div>
-      <div class="sec-head" style="margin-bottom:10px">
-        <span class="sec-title">Спросить у NURA</span>
-      </div>
-      <div class="insights-row">
-        <span class="insight-chip" onclick="location.href='chat.html'">Совет на сегодня</span>
-        <span class="insight-chip" onclick="location.href='chat.html'">Прогноз недели</span>
-        <span class="insight-chip" onclick="location.href='chat.html'">Что блокирует рост?</span>
-        <span class="insight-chip" onclick="location.href='chat.html'">Отношения и пара</span>
-      </div>
-    </div>
-
-  </div>
-</main>
-
-<nav class="tabbar">
-  <a class="tab-item active" href="index.html">
-    <i class="ti ti-layout-grid"></i><span>Матрица</span>
-  </a>
-  <a class="tab-item" href="tarot.html">
-    <i class="ti ti-cards"></i><span>Таро</span>
-  </a>
-  <a class="tab-item" href="chat.html">
-    <i class="ti ti-message-circle"></i><span>Чат</span>
-  </a>
-  <a class="tab-item" href="profile.html">
-    <i class="ti ti-user-circle"></i><span>Профиль</span>
-  </a>
-</nav>
-
+<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <script>
-  var BASE = 'https://nura-ai.ru/api/v1';
-  var session_id = localStorage.getItem('nura_session_id');
+  (function(){
+    var t = localStorage.getItem('nura-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<link rel="stylesheet" href="nura-pwa.css"/>
+<title>NURA · Главная</title><meta name="description" content="Личный центр NURA после мини-разбора или покупки отчёта."><style>
+.hero{display:grid;gap:10px}
+.greeting-title{font-family:var(--font-serif);font-size:clamp(32px,8vw,44px);line-height:1.08;font-weight:400}
+.greeting-title em{color:var(--terra);font-style:italic}
+.status-card{padding:18px;background:linear-gradient(135deg,rgba(184,116,63,.10),rgba(194,164,118,.10)),var(--bg-card)}
+.status-row{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:center}
+.status-icon{width:42px;height:42px;border-radius:15px;background:rgba(184,116,63,.10);display:grid;place-items:center;color:var(--terra);font-size:22px}
+.matrix-card{padding:22px;background:radial-gradient(circle at 90% 8%,rgba(194,164,118,.20),transparent 34%),var(--bg-card)}
+.arcane{display:flex;gap:12px;align-items:baseline;margin:12px 0}
+.arcane-num{font-family:var(--font-serif);font-size:68px;line-height:.9;color:var(--terra);font-weight:600}
+.arcane-name{font-family:var(--font-serif);font-size:29px;line-height:1.08}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.day-card{display:grid;grid-template-columns:58px 1fr 22px;gap:14px;align-items:center;padding:16px;cursor:pointer}
+.day-symbol{width:58px;height:58px;border-radius:17px;display:grid;place-items:center;background:rgba(184,116,63,.08);color:var(--terra);font-family:var(--font-serif);font-size:29px}
+.day-name{font-family:var(--font-serif);font-size:21px;margin-bottom:4px}
+.day-phrase{font-size:13px;line-height:1.45;color:var(--text-m)}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quick-card{padding:16px;min-height:108px}
+.quick-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px;background:rgba(107,128,104,.10);color:var(--sage);font-size:20px}
+.quick-title{font-size:14px;font-weight:800;margin-bottom:5px}
+.quick-sub{font-size:12px;color:var(--text-m);line-height:1.4}
+@media(max-width:380px){.btn-row,.quick-grid{grid-template-columns:1fr}}
+</style></head><body>
+<div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header>
+<main class="page">
+<section class="hero"><div class="eyebrow">Личный центр</div><h1 class="greeting-title" id="greeting-name">Привет, <em>Алина</em></h1><p class="lead">Твой отчёт, карта дня и вопросы к NURA собраны в одном месте.</p></section>
+<section class="card status-card"><div class="status-row"><div class="status-icon"><i class="ti ti-file-check"></i></div><div><div class="meta-label">Твой путь</div><p class="lead" style="margin-top:4px" id="status-copy">Получи полный отчёт, чтобы раскрыть свою Матрицу.</p></div></div><button class="btn btn-primary btn-full" style="margin-top:14px" id="report-cta" onclick="openReport()">Получить полный отчёт</button></section>
+<section class="card matrix-card"><div class="meta-label">Матрица Судьбы · центр</div><div class="arcane"><span class="arcane-num" id="matrix-num">…</span><span class="arcane-name" id="matrix-name">…</span></div><p class="lead" id="matrix-desc">Загрузка данных матрицы…</p><div class="btn-row"><button class="btn btn-primary" onclick="openReport()">Открыть разбор</button><button class="btn btn-soft" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button></div></section>
+<section class="section-block"><div class="section-head"><span class="section-title">Сегодня для тебя</span><a href="tarot.html" class="section-link">практики →</a></div><article class="card day-card" onclick="location.href='tarot.html'"><div class="day-symbol" id="day-symbol">…</div><div><div class="day-name" id="day-name">Загрузка…</div><div class="day-phrase" id="day-phrase">Получаем твою карту дня…</div></div><span style="color:var(--text-s);font-size:24px">›</span></article></section>
+<section class="section-block"><div class="section-head"><span class="section-title">Быстрые вопросы</span></div><div class="quick-grid">
+<article class="card quick-card" onclick="askNura('Какой мой главный шаг на сегодня?')"><div class="quick-icon"><i class="ti ti-sparkles"></i></div><div class="quick-title">Шаг на сегодня</div><div class="quick-sub">Короткий совет по твоей матрице</div></article>
+<article class="card quick-card" onclick="askNura('Что сейчас блокирует мой рост?')"><div class="quick-icon"><i class="ti ti-lock-open"></i></div><div class="quick-title">Что блокирует рост?</div><div class="quick-sub">Один внутренний узел</div></article>
+<article class="card quick-card" onclick="askNura('Что мне важно понять про деньги?')"><div class="quick-icon"><i class="ti ti-coins"></i></div><div class="quick-title">Деньги</div><div class="quick-sub">Где утекает энергия дохода</div></article>
+<article class="card quick-card" onclick="askNura('Что мне важно понять про отношения?')"><div class="quick-icon"><i class="ti ti-heart"></i></div><div class="quick-title">Отношения</div><div class="quick-sub">Повторяющийся сценарий</div></article>
+</div></section>
+</main></div>
+<nav class="tabbar"><div class="tabbar-inner">
+<a class="tab-item active" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
+<a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
+<a class="tab-item" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
+<a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
+</div></nav>
+<script src="nura-pwa.js"></script>
+<script type="text/javascript">
+(function() {
+  var N = window.NURA;
+  var BASE = N.BASE;
+  var session_id = N.sessionId;
+
+  var $ = document.getElementById.bind(document);
+
+  function openReport(){
+    if (session_id) location.href = 'profile.html#reports';
+    else location.href = '/mini.html';
+  }
+  window.openReport = openReport;
+
+  function askNura(text){
+    localStorage.setItem('nura_pending_question', text);
+    location.href = 'chat.html?question=' + encodeURIComponent(text);
+  }
+  window.askNura = askNura;
 
   if (session_id) {
-    fetch(BASE + '/user/me', { headers: { 'X-Session-Id': session_id } })
-      .then(function(r) { return r.ok ? r.json() : null; })
+    N.fetchJSON(BASE + '/user/me', { headers: { 'X-Session-Id': session_id } })
       .then(function(d) {
         if (!d) return;
-        if (d.name) document.getElementById('greeting-name').textContent = 'Привет, ' + d.name;
-        if (d.archetype) document.getElementById('archetype-badge').textContent = '✦ ' + d.archetype;
-        if (d.matrix_arcane_num) document.getElementById('matrix-num').textContent = d.matrix_arcane_num;
-        if (d.matrix_arcane_name) document.getElementById('matrix-name').textContent = d.matrix_arcane_name;
-        if (d.matrix_desc) document.getElementById('matrix-desc').textContent = d.matrix_desc;
-      })
-      .catch(function() {});
+        if (d.name) {
+          $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
+        }
+        var hasReport = d.matrix_arcane_num;
+        if (hasReport) {
+          $('status-copy').textContent = 'Полный отчёт готов. Начни с главного вывода или задай вопрос по любой главе.';
+          $('report-cta').textContent = 'Продолжить отчёт';
+        } else {
+          $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
+          $('report-cta').textContent = 'Получить полный отчёт';
+        }
+        if (d.matrix_arcane_num) $('matrix-num').textContent = d.matrix_arcane_num;
+        if (d.matrix_arcane_name) $('matrix-name').textContent = d.matrix_arcane_name;
+        if (d.matrix_desc) $('matrix-desc').textContent = d.matrix_desc;
+      });
 
-    fetch(BASE + '/tarot/daily', { headers: { 'X-Session-Id': session_id } })
-      .then(function(r) { return r.ok ? r.json() : null; })
+    N.fetchJSON(BASE + '/tarot/daily', { headers: { 'X-Session-Id': session_id } })
       .then(function(d) {
         if (!d) return;
-        if (d.symbol) document.getElementById('day-symbol').textContent = d.symbol;
-        if (d.name) document.getElementById('day-name').textContent = d.name;
-        if (d.phrase) document.getElementById('day-phrase').textContent = d.phrase;
-      })
-      .catch(function() {});
+        if (d.symbol) $('day-symbol').textContent = d.symbol;
+        if (d.name) $('day-name').textContent = d.name;
+        if (d.phrase) $('day-phrase').textContent = d.phrase;
+      });
   }
-</script>
 
-<script>
-(function(){
-  var btn = document.getElementById('themeToggle');
-  if (!btn) return;
-  var root = document.documentElement;
-  var STORAGE_KEY = 'nura-theme';
-
-  var saved = localStorage.getItem(STORAGE_KEY) || 'dark';
-  applyTheme(saved);
-
-  btn.addEventListener('click', function(){
-    var current = root.getAttribute('data-theme') || 'dark';
-    var next = current === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    localStorage.setItem(STORAGE_KEY, next);
+  document.getElementById('themeToggle').addEventListener('click', function() {
+    var next = N.toggleTheme();
+    this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
   });
-
-  function applyTheme(theme){
-    root.setAttribute('data-theme', theme);
-    btn.textContent = theme === 'dark' ? '◑' : '◐';
-    btn.title = theme === 'dark' ? 'Переключить на светлую тему' : 'Переключить на тёмную тему';
-  }
 })();
 </script>
-</body>
-</html>
+</body></html>

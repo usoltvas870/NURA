@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+  (function(){
+    var t = localStorage.getItem('nura-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<title>NURA · Профиль</title><style>
+:root {
+  --bg:#EFEEE9; --bg-soft:#F7F4EE; --bg-card:#FFFFFF; --bg-card-soft:#FBFAF6;
+  --gold:#C2A476; --terra:#B8743F; --terra-d:#9C5F30; --sage:#6B8068; --violet:#7B6FE8;
+  --text:#1A1A1A; --text-m:#5A5752; --text-s:#8A877E;
+  --line:rgba(44,42,30,.10); --line-strong:rgba(44,42,30,.16);
+  --shadow-card:0 4px 16px rgba(44,42,30,.08),0 1px 3px rgba(44,42,30,.06);
+  --shadow-soft:0 10px 28px rgba(44,42,30,.10),0 2px 6px rgba(44,42,30,.06);
+  --font-serif:'Playfair Display',Georgia,serif; --font-sans:'Manrope',system-ui,sans-serif;
+  --r-sm:10px; --r-md:16px; --r-lg:22px; --r-xl:28px;
+  --tabbar-bg:rgba(239,238,233,.92); --header-bg:rgba(239,238,233,.92);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+[data-theme="dark"]{
+  --bg:#12100E; --bg-soft:#1A1713; --bg-card:#1E1A16; --bg-card-soft:#181511;
+  --gold:#C9A55C; --terra:#C9874A; --terra-d:#B8743F; --sage:#7A9275; --violet:#8D84E8;
+  --text:#F2EFE7; --text-m:rgba(242,239,231,.72); --text-s:rgba(242,239,231,.48);
+  --line:rgba(242,239,231,.10); --line-strong:rgba(242,239,231,.18);
+  --shadow-card:0 4px 18px rgba(0,0,0,.22),0 1px 3px rgba(0,0,0,.18);
+  --shadow-soft:0 16px 38px rgba(0,0,0,.30);
+  --tabbar-bg:rgba(18,16,14,.92); --header-bg:rgba(18,16,14,.92);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{
+  min-height:100dvh;
+  background:radial-gradient(circle at 12% 0%,rgba(194,164,118,.20),transparent 28%),
+             radial-gradient(circle at 88% 8%,rgba(184,116,63,.12),transparent 26%),var(--bg);
+  color:var(--text);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  padding-bottom:calc(72px + env(safe-area-inset-bottom,0px));
+}
+a{color:inherit;text-decoration:none} button,input,textarea,select{font-family:inherit}
+button{border:0;background:none;color:inherit;cursor:pointer}
+.app-shell{width:min(100%,520px);margin:0 auto;min-height:100dvh;position:relative}
+.header{
+  position:sticky;top:0;z-index:40;height:calc(58px + env(safe-area-inset-top,0px));
+  padding:env(safe-area-inset-top,0px) 16px 0;background:var(--header-bg);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.header-title{position:absolute;left:50%;transform:translateX(-50%);font-family:var(--font-serif);font-size:20px;letter-spacing:.04em;font-weight:400}
+.logo{display:inline-flex;align-items:center;gap:10px;letter-spacing:.18em;font-weight:700;font-size:14px;color:var(--text)}
+.logo-diamond{width:14px;height:14px;border:1.5px solid var(--terra);transform:rotate(45deg);border-radius:3px;position:relative;flex:0 0 auto}
+.logo-diamond::after{content:"";position:absolute;inset:3px;background:var(--gold);border-radius:1px}
+.header-actions{display:flex;gap:8px;align-items:center}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:var(--bg-card);border:1px solid var(--line);box-shadow:var(--shadow-card);display:grid;place-items:center;color:var(--text-m)}
+.page{padding:20px 16px 28px;display:grid;gap:18px}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--terra)}
+.title{font-family:var(--font-serif);font-size:clamp(32px,8vw,44px);line-height:1.08;font-weight:400;letter-spacing:-.02em}
+.title em{color:var(--terra);font-style:italic}
+.lead{color:var(--text-m);font-size:14.5px;line-height:1.6}
+.card{background:var(--bg-card);border:1px solid rgba(255,255,255,.64);border-radius:var(--r-lg);box-shadow:var(--shadow-card);overflow:hidden;position:relative}
+[data-theme="dark"] .card{border-color:var(--line)}
+.card-pad{padding:20px}
+.section-block{display:grid;gap:10px}
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px}
+.section-title{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--text-s)}
+.section-link{font-size:12px;color:var(--terra);font-weight:800}
+.btn{min-height:46px;border-radius:var(--r-sm);display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;font-size:13.5px;font-weight:800;line-height:1.2;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s var(--ease)}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,116,63,.26)}
+.btn-primary:hover{background:var(--terra-d)}
+.btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
+.btn-full{width:100%}
+.input,.textarea,select.input{width:100%;border:1px solid var(--line-strong);background:var(--bg-card);color:var(--text);border-radius:var(--r-md);outline:none;font-size:15px;transition:border-color .2s,box-shadow .2s}
+.input{height:52px;padding:0 16px}.textarea{min-height:46px;max-height:130px;padding:12px 14px;resize:none;line-height:1.5}
+.input:focus,.textarea:focus{border-color:rgba(184,116,63,.42);box-shadow:0 0 0 3px rgba(184,116,63,.10)}
+.input::placeholder,.textarea::placeholder{color:var(--text-s)}
+.meta-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-s);font-weight:800}
+.small{font-size:12px;color:var(--text-s);line-height:1.5}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;height:calc(64px + env(safe-area-inset-bottom,0px));padding:6px 10px env(safe-area-inset-bottom,0px);background:var(--tabbar-bg);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-top:1px solid var(--line)}
+.tabbar-inner{width:min(100%,520px);height:58px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.tab-item{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:16px;gap:3px;color:var(--text-s);font-size:10.5px;font-weight:700;transition:background .2s,color .2s}
+.tab-item .ti{font-size:22px;line-height:1}.tab-item.active{background:rgba(184,116,63,.10);color:var(--terra)}
+@media(min-width:760px){
+  body{padding-top:24px;padding-bottom:96px}
+  .app-shell{border-radius:32px;overflow:hidden;min-height:auto;box-shadow:0 28px 80px rgba(44,42,30,.16);border:1px solid rgba(255,255,255,.66)}
+  [data-theme="dark"] .app-shell{border-color:var(--line)}
+  .header{position:relative}
+  .tabbar{left:50%;right:auto;transform:translateX(-50%);width:min(100%,520px);border-radius:28px 28px 0 0;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+}
+@media(max-width:380px){.page{padding-left:12px;padding-right:12px}.title{font-size:32px}}
+
+.profile-hero{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:center;padding:20px;background:linear-gradient(135deg,rgba(184,116,63,.09),rgba(194,164,118,.10)),var(--bg-card)}.avatar{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:rgba(184,116,63,.09);border:1px solid rgba(184,116,63,.18);color:var(--terra);font-weight:800;font-size:20px}.profile-name{font-family:var(--font-serif);font-size:30px;line-height:1.1}.badge{display:inline-flex;margin-top:6px;padding:5px 10px;border-radius:999px;background:rgba(184,116,63,.09);border:1px solid rgba(184,116,63,.16);color:var(--terra);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab-btn{flex:0 0 auto;padding:10px 13px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card);color:var(--text-m);font-size:12px;font-weight:800}.tab-btn.active{background:var(--terra);color:white;border-color:var(--terra)}.panel{display:none;gap:10px}.panel.active{display:grid}.list-card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:16px}.list-title{font-size:14px;font-weight:800;margin-bottom:4px}.list-sub{font-size:12px;color:var(--text-m);line-height:1.4}.price{font-family:var(--font-serif);font-size:30px;color:var(--terra);line-height:1}.toggle-row{display:grid;grid-template-columns:1fr 44px;gap:12px;align-items:center;padding:15px 16px;border-bottom:1px solid var(--line)}.toggle-row:last-child{border-bottom:0}.switch{position:relative;width:44px;height:26px}.switch input{opacity:0;width:0;height:0}.track{position:absolute;inset:0;border-radius:99px;background:var(--line-strong)}.thumb{position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:var(--bg-card);box-shadow:var(--shadow-card);transition:.2s}.switch input:checked+.track{background:rgba(107,128,104,.42)}.switch input:checked+.track .thumb{transform:translateX(18px);background:var(--sage)}
+
+/* NURA text logo from approved reference */
+.nura-text-logo{display:inline-flex;align-items:center;gap:10px;color:var(--terra);white-space:nowrap}
+.nura-text-logo .nura-star{font-size:18px;line-height:1;color:var(--terra);transform:translateY(-1px)}
+.nura-text-logo .nura-sep{width:1px;height:18px;background:rgba(184,116,63,.32)}
+.nura-text-logo .nura-word{font-family:var(--font-serif);font-weight:600;font-size:19px;letter-spacing:.16em;line-height:1;color:var(--terra)}
+[data-theme="dark"] .nura-text-logo .nura-sep{background:rgba(201,165,92,.34)}
+
+</style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="icon-btn" aria-label="Назад"><i class="ti ti-chevron-left"></i></a><span class="header-title">Профиль</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page"><section class="card profile-hero"><div class="avatar">А</div><div><div class="profile-name">Алина</div><div class="small">дата рождения · 12.03.1993</div><span class="badge">✦ Верховная Жрица</span></div></section><div class="tabs"><button class="tab-btn active" data-tab="reports">Отчёты</button><button class="tab-btn" data-tab="subscription">Подписка</button><button class="tab-btn" data-tab="notifications">Уведомления</button><button class="tab-btn" data-tab="settings">Настройки</button></div>
+<section class="panel active" id="tab-reports"><article class="card list-card"><div><div class="list-title">Матрица Судьбы · полный разбор</div><div class="list-sub">HTML + PDF · доступ навсегда</div></div><button class="btn btn-soft">Открыть</button></article><article class="card list-card"><div><div class="list-title">Мини-разбор</div><div class="list-sub">Архетип, сила, конфликт, отношения</div></div><button class="btn btn-soft">Открыть</button></article><article class="card list-card"><div><div class="list-title">Совместимость</div><div class="list-sub">Апселл: разбор пары по двум датам</div></div><button class="btn btn-primary">Добавить</button></article><article class="card list-card"><div><div class="list-title">Прогноз на год</div><div class="list-sub">Апселл: циклы, риски, возможности</div></div><button class="btn btn-primary">Добавить</button></article></section>
+<section class="panel" id="tab-subscription"><article class="card card-pad"><div class="eyebrow">Подписка</div><h2 class="title" style="font-size:32px;margin-top:8px">Ежедневные практики</h2><div style="margin:10px 0 14px"><span class="price">390 ₽</span> <span class="small">/ месяц</span></div><p class="lead">Карта дня, фокус недели и расширенный чат с NURA. Матрица остаётся разовой покупкой и не входит в ежемесячный платёж.</p><button class="btn btn-primary btn-full" style="margin-top:16px">Подключить подписку</button></article><article class="card list-card"><div><div class="list-title">Матрица Судьбы</div><div class="list-sub">Разовая покупка · отчёт навсегда</div></div><button class="btn btn-soft">Куплена</button></article></section>
+<section class="panel" id="tab-notifications"><div class="card"><label class="toggle-row"><div><div class="list-title">Карта дня</div><div class="list-sub">Утром в 8:00</div></div><span class="switch"><input type="checkbox" checked><span class="track"><span class="thumb"></span></span></span></label><label class="toggle-row"><div><div class="list-title">Фокус недели</div><div class="list-sub">В понедельник утром</div></div><span class="switch"><input type="checkbox" checked><span class="track"><span class="thumb"></span></span></span></label><label class="toggle-row"><div><div class="list-title">Практики из отчёта</div><div class="list-sub">Мягкие напоминания 7 дней</div></div><span class="switch"><input type="checkbox"><span class="track"><span class="thumb"></span></span></span></label></div></section>
+<section class="panel" id="tab-settings"><article class="card list-card"><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="small">›</span></article><article class="card list-card"><div><div class="list-title">Подключить Telegram</div><div class="list-sub">Получать карту дня и отчёты в боте</div></div><span class="small">›</span></article><article class="card list-card" id="themeToggle2"><div><div class="list-title">Тема</div><div class="list-sub">Светлая / тёмная</div></div><span class="small">›</span></article><article class="card list-card"><div><div class="list-title" style="color:#C45C5C">Выйти из аккаунта</div></div></article></section>
+</main></div>
+<nav class="tabbar"><div class="tabbar-inner">
+<a class="tab-item " href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
+<a class="tab-item " href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
+<a class="tab-item " href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
+<a class="tab-item active" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
+</div></nav><script>
+document.querySelectorAll('.tab-btn').forEach(function(btn){btn.addEventListener('click',function(){document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});btn.classList.add('active');document.getElementById('tab-'+btn.dataset.tab).classList.add('active');});});
+if(location.hash==='#subscription')document.querySelector('[data-tab="subscription"]').click();if(location.hash==='#reports')document.querySelector('[data-tab="reports"]').click();
+document.getElementById('themeToggle2').addEventListener('click',function(){document.getElementById('themeToggle').click();});
+</script>
+<script>
+(function(){
+  var btn=document.getElementById('themeToggle'); if(!btn) return;
+  var root=document.documentElement;
+  btn.addEventListener('click',function(){
+    var current=root.getAttribute('data-theme')||'light';
+    var next=current==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next); localStorage.setItem('nura-theme',next);
+  });
+})();
+</script>
+</body></html>

@@ -60,9 +60,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);font-si
 nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 48px;transition:background 0.4s var(--ease),box-shadow 0.4s var(--ease),padding 0.4s var(--ease);background:transparent}
 nav.scrolled{background:rgba(239,238,233,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 2px 16px rgba(44,42,30,0.06);padding:14px 48px}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto}
-.nav-logo{font-family:var(--font-sans);font-size:16px;font-weight:700;color:var(--text);letter-spacing:0.18em;text-transform:uppercase;text-decoration:none;display:flex;align-items:center;gap:10px}
-.nav-logo-diamond{width:13px;height:13px;border:1.5px solid var(--terra);transform:rotate(45deg);position:relative;flex-shrink:0;border-radius:2px}
-.nav-logo-diamond::after{content:'';position:absolute;inset:3px;background:var(--gold);border-radius:1px}
+.nav-logo{display:inline-flex;align-items:center;gap:10px;color:var(--terra);white-space:nowrap;text-decoration:none;font-family:var(--font-sans);font-size:16px;font-weight:700;letter-spacing:0.18em}.nav-logo-star{font-size:18px;line-height:1;color:var(--terra);transform:translateY(-1px)}.nav-logo-sep{width:1px;height:18px;background:rgba(184,116,63,.32)}.nav-logo-word{font-family:var(--font-serif);font-weight:600;font-size:19px;letter-spacing:.16em;line-height:1;color:var(--terra)}
 .nav-links{display:flex;align-items:center;gap:36px;list-style:none}
 .nav-links a{color:var(--text-m);text-decoration:none;font-size:13px;font-weight:600;letter-spacing:0.05em;transition:color 0.2s;position:relative}
 .nav-links a:hover{color:var(--text)}
@@ -200,7 +198,7 @@ nav.scrolled{background:rgba(239,238,233,0.92);backdrop-filter:blur(20px);-webki
 
 footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;margin-top:40px;box-shadow:0 -2px 24px rgba(44,42,30,0.05)}
 .foot-inner{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;gap:32px}
-.foot-logo{font-family:var(--font-sans);font-size:14px;font-weight:700;color:var(--text);letter-spacing:0.18em;text-transform:uppercase;text-decoration:none;display:flex;align-items:center;gap:10px}
+.foot-logo{display:inline-flex;align-items:center;gap:10px;color:var(--terra);white-space:nowrap;text-decoration:none;font-family:var(--font-sans);font-size:14px;font-weight:700;letter-spacing:0.18em}.foot-logo .nav-logo-star{font-size:16px}.foot-logo .nav-logo-sep{height:16px}.foot-logo .nav-logo-word{font-size:17px}
 .foot-links{display:flex;gap:28px;list-style:none}
 .foot-links a{font-size:13px;color:var(--text-m);text-decoration:none;transition:color 0.2s;font-weight:600}
 .foot-links a:hover{color:var(--text)}
@@ -247,9 +245,10 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 
 <nav id="nav">
   <div class="nav-inner">
-    <a href="#top" class="nav-logo">
-      <div class="nav-logo-diamond"></div>
-      NURA
+    <a href="#top" class="nav-logo" aria-label="NURA">
+      <span class="nav-logo-star">✦</span>
+      <span class="nav-logo-sep"></span>
+      <span class="nav-logo-word">NURA</span>
     </a>
     <ul class="nav-links">
       <li><a href="#matrix">Матрица</a></li>
@@ -676,9 +675,10 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 <!-- FOOTER -->
 <footer>
   <div class="foot-inner">
-    <a href="#top" class="foot-logo">
-      <div class="nav-logo-diamond"></div>
-      NURA
+    <a href="#top" class="foot-logo" aria-label="NURA">
+      <span class="nav-logo-star">✦</span>
+      <span class="nav-logo-sep"></span>
+      <span class="nav-logo-word">NURA</span>
     </a>
     <ul class="foot-links">
       <li><a href="/app/">Приложение</a></li>
