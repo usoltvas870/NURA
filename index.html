@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+  (function(){
+    var t = localStorage.getItem('nura-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 <title>NURA — Матрица Судьбы и Таро</title>
 <meta name="description" content="Telegram-бот NURA: глубокий разбор Матрицы Судьбы и ежедневные таро-ритуалы на основе твоего цифрового кода. Бесплатный расчёт по дате рождения.">
 <!-- Yandex.Metrika counter -->
@@ -50,6 +56,22 @@
   --r-xl:  28px;
   --ease:  cubic-bezier(0.16,1,0.3,1);
 }
+[data-theme="dark"]{
+  --bg:         #12100E;
+  --bg-card:    #1E1A16;
+  --bg-tab:     #1E1A16;
+  --gold:       #C9A55C;
+  --terra:      #C9874A;
+  --terra-d:    #B8743F;
+  --sage:       #7A9275;
+  --violet:     #8D84E8;
+  --violet-d:   #7B6FE8;
+  --text:       #F2EFE7;
+  --text-m:     rgba(242,239,231,0.72);
+  --text-s:     rgba(242,239,231,0.48);
+  --shadow-card: 0 4px 18px rgba(0,0,0,0.22), 0 1px 3px rgba(0,0,0,0.18);
+  --shadow-card-hover: 0 10px 28px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.12);
+}
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
@@ -67,6 +89,9 @@ nav.scrolled{background:rgba(239,238,233,0.92);backdrop-filter:blur(20px);-webki
 .nav-cta{background:var(--terra) !important;color:#FFFFFF !important;padding:12px 26px;border-radius:var(--r-sm);font-weight:700 !important;letter-spacing:0.02em;box-shadow:0 4px 14px rgba(184,116,63,0.3);transition:background 0.25s,transform 0.25s,box-shadow 0.25s !important;text-decoration:none;font-size:13px}
 .nav-cta:hover{background:var(--terra-d) !important;transform:translateY(-1px);box-shadow:0 8px 20px rgba(184,116,63,0.38)}
 .nav-right{display:flex;align-items:center;gap:16px}
+.theme-toggle{width:34px;height:34px;border-radius:50%;background:var(--bg-card);border:1px solid rgba(44,42,30,.14);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-m);font-size:15px;box-shadow:var(--shadow-card);transition:all .2s}
+.theme-toggle:hover{box-shadow:var(--shadow-card-hover)}
+[data-theme="dark"] .theme-toggle{border-color:rgba(242,239,231,.14)}
 
 .section{padding:128px 24px;position:relative;z-index:1}
 .container{max-width:1140px;margin:0 auto}
@@ -210,6 +235,18 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 .reveal-delay-2{transition-delay:0.2s}
 .reveal-delay-3{transition-delay:0.3s}
 
+[data-theme="dark"] nav.scrolled{background:rgba(18,16,14,.92)}
+[data-theme="dark"] .prev-foot{border-top-color:rgba(242,239,231,.08)}
+[data-theme="dark"] .testi-foot{border-top-color:rgba(242,239,231,.08)}
+[data-theme="dark"] .acc-body{border-top-color:rgba(242,239,231,.08)}
+[data-theme="dark"] .feat-list li{border-bottom-color:rgba(242,239,231,.06)}
+[data-theme="dark"] .step-connector{background:rgba(242,239,231,.1)}
+[data-theme="dark"] .bridge{box-shadow:0 2px 24px rgba(0,0,0,.15)}
+[data-theme="dark"] footer{box-shadow:0 -2px 24px rgba(0,0,0,.15)}
+[data-theme="dark"] .faq-icon{background:var(--bg-card)}
+[data-theme="dark"] .testi-badge{background:var(--bg-soft,var(--bg))}
+[data-theme="dark"] .nav-logo-sep{background:rgba(201,165,92,.34)}
+
 @media(max-width:1024px){
   nav{padding:18px 24px}
   nav.scrolled{padding:12px 24px}
@@ -256,6 +293,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <li><a href="#faq">FAQ</a></li>
     </ul>
     <div class="nav-right">
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Сменить тему">◐</button>
       <a href="https://nura-ai.ru/mini.html" class="btn nav-cta">Попробовать бесплатно</a>
     </div>
   </div>
@@ -694,6 +732,14 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 <script>
 (function(){
 'use strict';
+
+// ── THEME TOGGLE ──────────────────────────────
+window.toggleTheme = function(){
+  var cur = document.documentElement.getAttribute('data-theme') || 'light';
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('nura-theme', next);
+};
 
 // ── NAV SCROLL ──────────────────────────────
 var nav = document.getElementById('nav');
