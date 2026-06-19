@@ -29,7 +29,7 @@
 .day-name{font-family:var(--font-serif);font-size:21px;margin-bottom:4px}
 .day-phrase{font-size:13px;line-height:1.45;color:var(--text-m)}
 .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.quick-card{padding:16px;min-height:108px}
+.quick-card{padding:16px;min-height:108px;border-top:3px solid var(--sage)}
 .quick-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px;background:rgba(107,128,104,.10);color:var(--sage);font-size:20px}
 .quick-title{font-size:14px;font-weight:800;margin-bottom:5px}
 .quick-sub{font-size:12px;color:var(--text-m);line-height:1.4}
@@ -39,7 +39,7 @@
 <main class="page">
 <section class="hero"><div class="eyebrow">Личный центр</div><h1 class="greeting-title" id="greeting-name">Привет, <em>Алина</em></h1><p class="lead">Твой отчёт, карта дня и вопросы к NURA собраны в одном месте.</p></section>
 <section class="card status-card"><div class="status-row"><div class="status-icon"><i class="ti ti-file-check"></i></div><div><div class="meta-label">Твой путь</div><p class="lead" style="margin-top:4px" id="status-copy">Получи полный отчёт, чтобы раскрыть свою Матрицу.</p></div></div><button class="btn btn-primary btn-full" style="margin-top:14px" id="report-cta" onclick="openReport()">Получить полный отчёт</button></section>
-<section class="card matrix-card"><div class="meta-label">Матрица Судьбы · центр</div><div class="arcane"><span class="arcane-num" id="matrix-num">…</span><span class="arcane-name" id="matrix-name">…</span></div><p class="lead" id="matrix-desc">Загрузка данных матрицы…</p><div class="btn-row"><button class="btn btn-primary" onclick="openReport()">Открыть разбор</button><button class="btn btn-soft" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button></div></section>
+<section class="card matrix-card"><div class="meta-label">Матрица Судьбы · центр</div><div class="arcane"><span class="arcane-num" id="matrix-num">…</span><span class="arcane-name" id="matrix-name">…</span></div><p class="lead" id="matrix-desc">Загрузка данных матрицы…</p><div class="btn-row"><button class="btn btn-primary" onclick="openReport()">Открыть разбор</button><button class="btn btn-chat" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button></div></section>
 <section class="section-block"><div class="section-head"><span class="section-title">Сегодня для тебя</span><a href="tarot.html" class="section-link">практики →</a></div><article class="card day-card" onclick="location.href='tarot.html'"><div class="day-symbol" id="day-symbol">…</div><div><div class="day-name" id="day-name">Загрузка…</div><div class="day-phrase" id="day-phrase">Получаем твою карту дня…</div></div><span style="color:var(--text-s);font-size:24px">›</span></article></section>
 <section class="section-block"><div class="section-head"><span class="section-title">Быстрые вопросы</span></div><div class="quick-grid">
 <article class="card quick-card" onclick="askNura('Какой мой главный шаг на сегодня?')"><div class="quick-icon"><i class="ti ti-sparkles"></i></div><div class="quick-title">Шаг на сегодня</div><div class="quick-sub">Короткий совет по твоей матрице</div></article>
@@ -51,7 +51,7 @@
 <nav class="tabbar"><div class="tabbar-inner">
 <a class="tab-item active" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
 <a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
-<a class="tab-item" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
+<a class="tab-item tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
 <a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
 </div></nav>
 <script src="nura-pwa.js"></script>
