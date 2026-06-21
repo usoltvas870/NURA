@@ -98,7 +98,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 <p class="lead" style="margin-top:12px">Дата рождения рассчитывает матрицу. Главный запрос помогает NURA показать не абстрактный текст, а то, что сейчас болит.</p>
 <form class="form-grid" id="mini-form" novalidate>
 <div><label class="meta-label" for="birth_date">Дата рождения</label><input class="input" type="text" id="birth_date" placeholder="ДД.ММ.ГГГГ" autocomplete="bday" required></div>
-<div><label class="meta-label" for="name">Имя · необязательно</label><input class="input" type="text" id="name" placeholder="Как к тебе обращаться?" autocomplete="given-name"></div>
+<div><label class="meta-label" for="name">Имя</label><input class="input" type="text" id="name" placeholder="Как к тебе обращаться?" autocomplete="given-name" required></div>
 <div><label class="meta-label">Что хочешь понять сейчас?</label><div class="chips">
 <label class="chip"><input type="radio" name="request" value="self" checked><span>Себя</span></label>
 <label class="chip"><input type="radio" name="request" value="money"><span>Деньги</span></label>
@@ -154,6 +154,7 @@ form.addEventListener('submit',function(e){
   e.preventDefault();err.style.display='none';
   var nameVal=document.getElementById('name').value.trim();
   var birthVal=birth.value.trim();
+  if(!nameVal){err.textContent='Введи имя — как к тебе обращаться';err.style.display='block';return;}
   if(!/^\d{2}\.\d{2}\.\d{4}$/.test(birthVal)){err.textContent='Введи дату в формате ДД.ММ.ГГГГ';err.style.display='block';return;}
   var req=document.querySelector('input[name=request]:checked').value;
   localStorage.setItem('nura_main_request',req);
