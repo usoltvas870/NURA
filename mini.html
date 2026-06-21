@@ -61,6 +61,16 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 .btn:disabled{opacity:.55;cursor:not-allowed}
 .input{width:100%;height:52px;border:1px solid var(--line-strong);background:var(--bg-card);color:var(--text);border-radius:var(--r-md);outline:none;font-size:15px;padding:0 16px;transition:border-color .2s,box-shadow .2s}
 .input:focus{border-color:rgba(184,116,63,.42);box-shadow:0 0 0 3px rgba(184,116,63,.10)}
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus{
+  -webkit-text-fill-color:var(--text);
+  -webkit-box-shadow:0 0 0 1000px var(--bg-card) inset;
+  box-shadow:0 0 0 1000px var(--bg-card) inset;
+  border-color:rgba(184,116,63,.42);
+  transition:background-color 5000s ease-in-out 0s;
+}
+.input:focus-visible{outline:none}
 .input::placeholder{color:var(--text-s)}
 .meta-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-s);font-weight:800;display:block;margin-bottom:8px}
 .small{font-size:12px;color:var(--text-s);line-height:1.5}
@@ -176,6 +186,7 @@ form.addEventListener('submit',function(e){
   .then(function(data){
     setLoading(submitBtn,false);
     sessionId=data.session_id;
+    localStorage.setItem('nura_session_id', data.session_id);
     var fullArchetype=data.main_archetype||'';
     var nameMatch=fullArchetype.match(/[—-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)*)\s*\(/);
     var archetypeName=nameMatch?nameMatch[1]:fullArchetype.split('.')[0];

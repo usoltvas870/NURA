@@ -80,8 +80,8 @@ button{border:0;background:none;color:inherit;cursor:pointer}
 .btn-primary{background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,116,63,.32)}
 .btn-primary:hover{background:var(--terra-d);transform:translateY(-2px);box-shadow:0 14px 32px rgba(184,116,63,.4)}
 .btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
-.btn-chat{background:var(--sage);color:#fff;box-shadow:0 8px 24px rgba(107,128,104,.32)}
-.btn-chat:hover{background:var(--sage-d);transform:translateY(-2px);box-shadow:0 14px 32px rgba(107,128,104,.4)}
+.btn-chat{background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,116,63,.32)}
+.btn-chat:hover{background:var(--terra-d);transform:translateY(-2px);box-shadow:0 14px 32px rgba(184,116,63,.4)}
 .btn-full{width:100%}
 .btn:disabled{opacity:.55;cursor:not-allowed}
 
@@ -102,7 +102,7 @@ button{border:0;background:none;color:inherit;cursor:pointer}
 .tab-item{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:16px;gap:3px;color:var(--text-s);font-size:10.5px;font-weight:700;transition:background .2s,color .2s}
 .tab-item .ti{font-size:22px;line-height:1}
 .tab-item.active{background:rgba(184,116,63,.10);color:var(--terra)}
-.tab-item.active.tab-chat{background:rgba(107,128,104,.10);color:var(--sage)}
+.tab-item.active.tab-chat{background:rgba(184,116,63,.10);color:var(--terra)}
 
 /* Loader */
 .loader{display:none;width:20px;height:20px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
