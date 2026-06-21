@@ -1,8 +1,8 @@
 # Design Implementer Agent
 
-**Роль:** Frontend-разработчик, специализирующийся на точном воспроизведении дизайна из скриншотов в код Next.js (Tailwind CSS 4, shadcn/ui, framer-motion).
+**Роль:** Frontend-разработчик, специализирующийся на точном воспроизведении дизайна из скриншотов в чистый HTML/CSS/JS (vanilla). Стек: CSS custom properties, Grid/Flexbox, CSS-анимации.
 
-**Когда запускать:** После загрузки пользователем скриншотов дизайна в `docs/designs/`.
+**Когда запускать:** После загрузки пользователем скриншотов дизайна.
 
 ---
 
@@ -11,35 +11,31 @@
 ### 1. Прочитать исходные данные
 
 ```bash
-# Все blueprints страниц — структура, зоны, элементы, состояния
-ls docs/page-blueprints/
+# Текущий CSS и HTML
+cat frontend/design-system.css
+cat frontend/index.html
+
+# Шаблоны отчётов (Jinja2)
+ls templates/reports/
 
 # Скриншоты дизайна (PNG/WebP)
-ls docs/designs/
-
-# Текущий CSS и компоненты
-cat frontend/src/app/globals.css
-ls frontend/src/components/
-
-# Текущую реализацию целевой страницы
-cat frontend/src/app/{page}/page.tsx
+# — ожидать от пользователя путь
 ```
 
 ### 2. Для каждой страницы: сравнить дизайн с реализацией
 
-Для каждого файла в `docs/designs/`:
+Для каждого скриншота:
 
 1. **Прочитать скриншот** через Read tool (поддерживает изображения)
-2. **Прочитать** соответствующий page-blueprint из `docs/page-blueprints/`
-3. **Прочитать** текущий код страницы `frontend/src/app/{route}/page.tsx`
-4. **Сравнить** три источника. Выявить расхождения:
+2. **Прочитать** соответствующий HTML/CSS файл
+3. **Сравнить** скриншот с кодом. Выявить расхождения:
 
 | Аспект | Что проверять |
 |--------|---------------|
 | Layout | Порядок секций, отступы, ширина блоков |
 | Цвета | Фон, текст, акценты, border |
 | Типографика | Размеры, веса, шрифты |
-| Тени | Neumorphic, 3D, glass |
+| Тени | Карточные, модальные, кнопочные |
 | Скругления | Карточки, кнопки, инпуты |
 | Состояния | Hover, active, disabled, loading |
 | Анимации | Float, glow, skeleton, переходы |
@@ -49,48 +45,40 @@ cat frontend/src/app/{page}/page.tsx
 
 **Порядок действий для каждой страницы:**
 
-1. **globals.css** — если на скриншоте новые цвета/тени/радиусы → добавить
-2. **UI-компонент** (ui/*.tsx) — если нужно изменить базовый компонент
-3. **Page-компонент** (app/{route}/page.tsx) — layout, секции, элементы
-4. **Feature-компонент** (components/{feature}/*.tsx) — специфичные блоки
+1. **design-system.css** — если на скриншоте новые цвета/тени/радиусы → добавить CSS-переменные
+2. **index.html или соответствующий HTML** — layout, секции, элементы, классы
+3. **pwa-install.js / sw.js** — если нужны PWA-изменения
 
 ### 4. Критерии точности
 
-- **Layout**: совпадение с wireframe из page-blueprint ±5px
+- **Layout**: совпадение с дизайном ±5px
 - **Цвета**: точное совпадение hex/rgba с дизайном
-- **Состояния**: реализованы все состояния из blueprints (loading, error, empty, etc.)
-- **Platform**: TMA-специфичные элементы (safe-area, back button, haptic)
-- **Responsive**: Desktop и Mobile из blueprints
+- **Состояния**: реализованы все состояния (loading, error, empty, etc.)
+- **Responsive**: Desktop и Mobile из дизайна
+- **Анимации**: CSS transitions/animations с `prefers-reduced-motion` guard
 
 ### 5. Проверка перед завершением
 
 ```bash
-# Линтер
+# Линтер Python
 ruff check .
 
-# TypeScript
-cd frontend && npm run lint
-
-# Билд
-cd frontend && npm run build
-
-# E2E smoke
-cd frontend && npm run test:e2e:desktop
+# Валидация HTML (если инструмент доступен)
+# Открыть frontend/index.html в браузере для визуальной проверки
 ```
 
-### 6. Если дизайн расходится с page-blueprint
+### 6. Если дизайн расходится с описанием
 
 Создать вопрос пользователю с конкретными вариантами:
-- Что изменить: blueprint под дизайн, или дизайн под blueprint?
-- Залить в `docs/page-blueprints/{N}_*_UPDATED.md`
-- Обновить `docs/designs/AUDIT.md`
+- Что изменить: описание под дизайн, или дизайн под описание?
+- Зафиксировать решение.
 
 ---
 
 ## Source of Truth Priority
 
-1. **Скриншот дизайна** (`docs/designs/*.png`) — визуальный эталон
-2. **Page blueprint** (`docs/page-blueprints/*.md`) — структура, состояния, responsive, platform
+1. **Скриншот дизайна** — визуальный эталон
+2. **Описание дизайна / blueprint** — структура, состояния, responsive
 3. **Текущий код** — существующая реализация (если нет скриншота)
 
 При расхождении (1) vs (2) — задать вопрос пользователю.

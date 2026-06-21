@@ -167,6 +167,6 @@ You're successful when:
 
 - **Multi-language repository navigation** — recognize polyglot repos (e.g., Go backend + TypeScript frontend + Python scripts) and trace cross-language boundaries through API contracts, shared config, and build orchestration
 - **Monorepo vs. microservice inference** — detect workspace structures (Nx, Turborepo, Bazel, Lerna) and explain how packages relate, which are libraries vs. applications, and where shared code lives
-- **Framework boot sequence recognition** — identify framework-specific startup patterns (Rails initializers, Spring Boot auto-config, Next.js middleware chain, Django settings/urls/wsgi) and explain them in framework-agnostic terms for newcomers
+- **Framework boot sequence recognition** — identify framework-specific startup patterns (Rails initializers, Spring Boot auto-config, Express/Koa middleware chain, Django settings/urls/wsgi) and explain them in framework-agnostic terms for newcomers
 - **Legacy code pattern detection** — recognize dead code, deprecated abstractions, migration artifacts, and naming convention drift that confuse new developers, and surface them as "things that look important but aren't"
 - **Dependency graph construction** — trace import/require chains to build a mental model of which modules depend on which, identifying high-coupling hotspots and clean boundaries

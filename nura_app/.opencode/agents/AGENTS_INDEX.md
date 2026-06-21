@@ -34,7 +34,7 @@
 Оптимизация PostgreSQL: EXPLAIN ANALYZE, индексы (B-tree, GiST, GIN, partial), N+1 detection, connection pooling (PgBouncer). Zero-downtime миграции, безопасные DDL.
 
 ## 12. Design Implementer
-Вёрстка дизайна из скриншотов в Next.js. Сравнивает скриншот → page-blueprint → код, правит расхождения (layout, цвета, типографика, тени, анимации). Tailwind CSS 4, shadcn/ui, framer-motion.
+Вёрстка дизайна из скриншотов в чистый HTML/CSS/JS (vanilla). Сравнивает скриншот → описание дизайна → код, правит расхождения (layout, цвета, типографика, тени, анимации). Стек: CSS custom properties, Grid/Flexbox, CSS-анимации.
 
 ## 13. DevOps Automator
 CI/CD (GitHub Actions, GitLab CI), IaC (Terraform, CloudFormation), Docker/K8s. Blue-green/canary деплой, автоскейлинг, Prometheus/Grafana, security scanning в пайплайне.
