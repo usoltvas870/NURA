@@ -94,7 +94,7 @@
   }
 
   if (session_id) {
-    N.fetchJSON(BASE + '/user/me', { headers: { 'X-Session-Id': session_id } })
+    N.fetchJSON(BASE + '/web/me?session_id=' + encodeURIComponent(session_id))
       .then(function(d) {
         if (!d) return;
         if (d.name) {
@@ -102,7 +102,7 @@
           var initials = d.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
           $('avatar-initials').textContent = initials;
         }
-        if (d.birthdate) $('profile-dob').textContent = 'дата рождения · ' + d.birthdate;
+        if (d.birth_date) $('profile-dob').textContent = 'дата рождения · ' + d.birth_date;
         if (d.archetype) $('profile-archetype').textContent = '✦ ' + d.archetype;
         if (d.telegram_linked) {
           $('tg-link-status').textContent = 'подключён';

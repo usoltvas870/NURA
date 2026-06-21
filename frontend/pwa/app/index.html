@@ -76,13 +76,13 @@
   window.askNura = askNura;
 
   if (session_id) {
-    N.fetchJSON(BASE + '/user/me', { headers: { 'X-Session-Id': session_id } })
+    N.fetchJSON(BASE + '/web/me?session_id=' + encodeURIComponent(session_id))
       .then(function(d) {
         if (!d) return;
         if (d.name) {
           $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
         }
-        var hasReport = d.matrix_arcane_num;
+        var hasReport = d.archetype_number;
         if (hasReport) {
           $('status-copy').textContent = 'Полный отчёт готов. Начни с главного вывода или задай вопрос по любой главе.';
           $('report-cta').textContent = 'Продолжить отчёт';
@@ -90,17 +90,17 @@
           $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
           $('report-cta').textContent = 'Получить полный отчёт';
         }
-        if (d.matrix_arcane_num) $('matrix-num').textContent = d.matrix_arcane_num;
-        if (d.matrix_arcane_name) $('matrix-name').textContent = d.matrix_arcane_name;
-        if (d.matrix_desc) $('matrix-desc').textContent = d.matrix_desc;
+        if (d.archetype_number) $('matrix-num').textContent = d.archetype_number;
+        if (d.archetype) $('matrix-name').textContent = d.archetype;
+        if (d.archetype) $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype;
       });
 
-    N.fetchJSON(BASE + '/tarot/daily', { headers: { 'X-Session-Id': session_id } })
+    N.fetchJSON(BASE + '/tarot/daily-card?session_id=' + encodeURIComponent(session_id))
       .then(function(d) {
         if (!d) return;
-        if (d.symbol) $('day-symbol').textContent = d.symbol;
-        if (d.name) $('day-name').textContent = d.name;
-        if (d.phrase) $('day-phrase').textContent = d.phrase;
+        if (d.arcana_symbol) $('day-symbol').textContent = d.arcana_symbol;
+        if (d.arcana_name) $('day-name').textContent = d.arcana_name;
+        if (d.key_phrase) $('day-phrase').textContent = d.key_phrase;
       });
   }
 
