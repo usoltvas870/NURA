@@ -62,6 +62,27 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         if (d.key_phrase) $('hero-phrase').textContent = d.key_phrase;
         if (d.advice) $('hero-advice').textContent = 'Совет: ' + d.advice;
       });
+
+    N.fetchJSON(BASE + '/web/me?session_id=' + encodeURIComponent(session_id))
+      .then(function(d) {
+        if (!d || !d.has_tarot) return;
+        document.querySelectorAll('.practice.locked').forEach(function(el) {
+          el.classList.remove('locked');
+          var lock = el.querySelector('.lock');
+          if (lock) lock.remove();
+          var title = (el.querySelector('.practice-title') || {}).textContent || '';
+          var map = {
+            'Фокус недели': 'Составь фокус недели по моей матрице: тело, ум, дух на 7 дней',
+            'Вопрос к NURA': 'Разложи 3 аркана для моей текущей ситуации',
+            'Деньги': 'Разбери мой денежный канал, фокус дохода и действий',
+            'Отношения': 'Разбери сценарий моих отношений и диалог пары',
+            'Фокус месяца': 'Составь фокус месяца: что усилить, что отпустить',
+            'Короткий ответ': 'Дай короткий ответ одним арканом, один шаг'
+          };
+          var q = map[title] || 'Практика по моей матрице';
+          el.onclick = function() { askNura(q); };
+        });
+      });
   }
 
   window.openPaywall = function() {
@@ -71,6 +92,10 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   window.closePaywall = function() {
     document.getElementById('pw-backdrop').classList.remove('open');
     document.getElementById('pw-sheet').classList.remove('open');
+  };
+  window.askNura = function(text) {
+    localStorage.setItem('nura_pending_question', text);
+    location.href = 'chat.html?question=' + encodeURIComponent(text);
   };
   window.shareDayCard = function() {
     var name = $('hero-name').textContent || '';

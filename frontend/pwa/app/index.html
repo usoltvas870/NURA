@@ -79,7 +79,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   if (session_id) {
     N.fetchJSON(BASE + '/web/me?session_id=' + encodeURIComponent(session_id))
       .then(function(d) {
-        if (!d) return;
+        if (!d) { $('matrix-desc').textContent = 'Не удалось загрузить данные. Попробуй позже.'; return; }
         if (d.name) {
           $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
         }
@@ -94,7 +94,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         if (d.archetype_number) $('matrix-num').textContent = d.archetype_number;
         if (d.archetype) $('matrix-name').textContent = d.archetype;
         if (d.archetype) $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype;
-      });
+        else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
+      })
+      .catch(function() { $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.'; });
 
     N.fetchJSON(BASE + '/tarot/daily-card?session_id=' + encodeURIComponent(session_id))
       .then(function(d) {

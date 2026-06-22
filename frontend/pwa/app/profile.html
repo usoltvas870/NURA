@@ -97,7 +97,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   if (session_id) {
     N.fetchJSON(BASE + '/web/me?session_id=' + encodeURIComponent(session_id))
       .then(function(d) {
-        if (!d) return;
+        if (!d) { $('profile-archetype').textContent = 'Ошибка загрузки'; return; }
         if (d.name) {
           $('profile-name').textContent = d.name;
           var initials = d.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
@@ -105,12 +105,23 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         }
         if (d.birth_date) $('profile-dob').textContent = 'дата рождения · ' + d.birth_date;
         if (d.archetype) $('profile-archetype').textContent = '✦ ' + d.archetype;
+        else $('profile-archetype').textContent = '✦ Нет отчёта';
         if (d.telegram_linked) {
           $('tg-link-status').textContent = 'подключён';
           $('tg-link-item').style.opacity = '0.6';
         }
         if (!d.matrix_arcane_num) $('matrix-status-btn').textContent = 'Купить';
-      });
+        if (d.has_tarot) {
+          var sBtn = $('subscribe-btn');
+          if (sBtn) {
+            sBtn.textContent = 'Активна';
+            sBtn.classList.remove('btn-primary');
+            sBtn.classList.add('btn-soft');
+            sBtn.disabled = true;
+          }
+        }
+      })
+      .catch(function() { $('profile-archetype').textContent = 'Ошибка сети'; });
   }
 
   var notifPrefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
