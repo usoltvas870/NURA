@@ -346,3 +346,36 @@ async def web_chat(request: Request, body: ChatRequest):
         messages_left = max(0, _WEB_CHAT_FREE_LIMIT - new_count)
 
     return ChatResponse(reply=reply, messages_left=messages_left)
+
+
+class TestSubscribeRequest(BaseModel):
+    session_id: str
+
+
+class TestSubscribeResponse(BaseModel):
+    ok: bool
+    subscription_until: str
+
+
+@router.post("/test-subscribe", response_model=TestSubscribeResponse)
+async def test_subscribe(request: Request, body: TestSubscribeRequest):
+    if not settings.test_mode:
+        raise HTTPException(status_code=403, detail="Доступно только в тестовом режиме")
+
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+
+    user = await user_repo.get_by_web_session_id(body.session_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Сессия не найдена")
+
+    from datetime import datetime, timedelta, timezone
+
+    until_date = datetime.now(timezone.utc) + timedelta(days=30)
+    await user_repo.update_subscription(user.id, "premium", until_date)
+    await user_repo.update_tarot_subscription(user.id, True, until_date)
+
+    return TestSubscribeResponse(
+        ok=True,
+        subscription_until=until_date.strftime("%d.%m.%Y"),
+    )

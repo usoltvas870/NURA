@@ -99,10 +99,13 @@ body{overflow:hidden;padding-bottom:0}
     addBubble('user', text, t, true); saveMsg('user', text, t);
     showTyping();
 
-    fetch(BASE + '/chat/message', {
+    var history = chatLog.slice(-10).map(function(m) {
+      return { role: m.role === 'nura' ? 'assistant' : 'user', content: m.text };
+    });
+    fetch(BASE + '/web/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Session-Id': session_id || '' },
-      body: JSON.stringify({ message: text, session_id: session_id })
+      body: JSON.stringify({ message: text, session_id: session_id, history: history })
     })
     .then(function(r) { return r.ok ? r.json() : null; })
     .then(function(d) {
@@ -148,5 +151,5 @@ body{overflow:hidden;padding-bottom:0}
     this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
   });
 })();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
 </script>
-</body></html>]]>

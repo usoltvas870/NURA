@@ -5,7 +5,8 @@
   (function(){
     var t = localStorage.getItem('nura-theme') || 'light';
     document.documentElement.setAttribute('data-theme', t);
-  })();
+})();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
