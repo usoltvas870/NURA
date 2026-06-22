@@ -6,6 +6,8 @@ git pull origin main
 
 echo "→ Copying landing page..."
 cp index.html /var/www/nura-ai.ru/index.html 2>/dev/null || true
+cp privacy.html /var/www/nura-ai.ru/privacy.html 2>/dev/null || true
+cp theme.css /var/www/nura-ai.ru/theme.css 2>/dev/null || true
 
 echo "→ Copying static assets..."
 cp nura-ds.css /var/www/nura-ai.ru/static/nura-ds.css 2>/dev/null || true
