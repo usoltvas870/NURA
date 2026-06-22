@@ -2375,26 +2375,38 @@ class TestBuyMatrix:
     async def test_test_mode_activates(
         self, mock_callback, mock_user
     ):
-        """Тестовый режим активирует матрицу."""
+        """Тестовый режим активирует матрицу и ставит отчёт в очередь."""
         with (
             patch("bot.handlers.payment.UserRepository") as MockRepo,
             patch("bot.handlers.payment.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.payment.main_menu_keyboard") as mock_mm,
             patch("bot.handlers.payment.settings") as mock_settings,
+            patch("core.repositories.report.ReportRepository") as MockReportRepo,
+            patch("core.tasks.generate_full_report") as mock_gen_report,
+            patch("core.services.report.ReportService") as MockReportService,
         ):
             repo_instance = MagicMock()
             repo_instance.get_by_telegram_id = AsyncMock(return_value=mock_user)
             repo_instance.update_has_matrix = AsyncMock()
             MockRepo.return_value = repo_instance
+            report_repo_instance = MagicMock()
+            report_repo_instance.get_by_user_id_and_type = AsyncMock(return_value=None)
+            MockReportRepo.return_value = report_repo_instance
             mock_gsm.return_value = MagicMock()
             mock_mm.return_value = MagicMock()
             mock_settings.test_mode = True
+            mock_gen_report.delay = MagicMock()
+            MockReportService.generate_token.return_value = "report-token-abc"
 
             from bot.handlers.payment import buy_matrix
 
             await buy_matrix(mock_callback)
 
         repo_instance.update_has_matrix.assert_awaited_once()
+        report_repo_instance.get_by_user_id_and_type.assert_awaited_once()
+        mock_gen_report.delay.assert_called_once_with(
+            str(mock_user.id), mock_user.birth_date, "report-token-abc"
+        )
         text = mock_callback.message.edit_text.await_args[0][0]
         assert "Тест-режим" in text
 
