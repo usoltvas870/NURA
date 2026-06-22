@@ -11,7 +11,7 @@ from core.models import ReportType
 from core.repositories.payment import PaymentRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
-from core.schemas import MatrixData
+
 from core.services.ai import AIService
 from core.services.matrix import MatrixService
 from core.services.payment import PaymentService
