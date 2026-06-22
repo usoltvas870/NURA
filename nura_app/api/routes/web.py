@@ -189,10 +189,11 @@ async def generate_link_token(request: Request, body: GenerateLinkTokenRequest):
 async def check_link_token(request: Request, token: str):
     redis = get_redis()
     key = f"link_token:{token}"
-    user_id = await redis.get(key)
+    user_id = await redis.execute_command("GETDEL", key)
     if not user_id:
         raise HTTPException(status_code=404, detail="Токен не найден или истёк")
-    await redis.delete(key)
+    if isinstance(user_id, bytes):
+        user_id = user_id.decode()
     return CheckLinkTokenResponse(user_id=user_id)
 
 
@@ -361,6 +362,46 @@ class TestSubscribeRequest(BaseModel):
 class TestSubscribeResponse(BaseModel):
     ok: bool
     subscription_until: str
+
+
+class NotificationPrefRequest(BaseModel):
+    session_id: str
+    key: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-z0-9_]+$")
+    enabled: bool
+
+
+class NotificationPrefsResponse(BaseModel):
+    prefs: dict[str, bool]
+
+
+_ALLOWED_NOTIF_KEYS = {"daily_card", "weekly_spread", "practices", "news"}
+
+
+@router.patch("/notifications", response_model=NotificationPrefsResponse)
+@limiter.limit("30/minute")
+async def update_notification_pref(request: Request, body: NotificationPrefRequest):
+    if body.key not in _ALLOWED_NOTIF_KEYS:
+        raise HTTPException(status_code=400, detail="Неизвестная настройка уведомлений")
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_web_session_id(body.session_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Сессия не найдена")
+    await user_repo.update_notification_pref(user.id, body.key, body.enabled)
+    prefs = await user_repo.get_notification_prefs(user.id)
+    return NotificationPrefsResponse(prefs=prefs)
+
+
+@router.get("/notifications", response_model=NotificationPrefsResponse)
+@limiter.limit("60/minute")
+async def get_notification_prefs(request: Request, session_id: str):
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_web_session_id(session_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Сессия не найдена")
+    prefs = await user_repo.get_notification_prefs(user.id)
+    return NotificationPrefsResponse(prefs=prefs)
 
 
 @router.post("/test-subscribe", response_model=TestSubscribeResponse)

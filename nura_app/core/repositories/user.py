@@ -238,3 +238,27 @@ class UserRepository(SQLAlchemyRepository[User]):
                 user.push_p256dh = None
                 user.push_auth = None
                 await session.commit()
+
+    async def update_notification_pref(
+        self,
+        user_id: uuid.UUID,
+        key: str,
+        enabled: bool,
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            prefs = dict(user.notification_prefs or {})
+            prefs[key] = bool(enabled)
+            user.notification_prefs = prefs
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def get_notification_prefs(self, user_id: uuid.UUID) -> dict:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return {}
+            return dict(user.notification_prefs or {})

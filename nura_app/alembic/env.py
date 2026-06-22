@@ -1,3 +1,4 @@
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -13,8 +14,16 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def _resolve_url() -> str:
+    env_url = os.environ.get("DATABASE_URL")
+    if env_url:
+        env_url = env_url.replace("postgresql+asyncpg://", "postgresql://")
+        return env_url
+    return settings.database_url_sync
+
+
 def run_migrations_offline():
-    url = settings.database_url_sync
+    url = _resolve_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -27,7 +36,7 @@ def run_migrations_offline():
 
 def run_migrations_online():
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = settings.database_url_sync
+    configuration["sqlalchemy.url"] = _resolve_url()
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",

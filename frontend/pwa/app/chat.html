@@ -110,12 +110,12 @@ body{overflow:hidden;padding-bottom:0}
     .then(function(r) { return r.ok ? r.json() : null; })
     .then(function(d) {
       hideTyping();
-      if (d && d.reply) addBubble('nura', d.reply, N.now(), true);
-      else addBubble('nura', 'Что-то пошло не так. Попробуй ещё раз.', N.now(), true);
+      if (d && d.reply) { addBubble('nura', d.reply, N.now(), true); saveMsg('nura', d.reply, N.now()); }
+      else { addBubble('nura', 'Что-то пошло не так. Попробуй ещё раз.', N.now(), true); saveMsg('nura', 'Что-то пошло не так. Попробуй ещё раз.', N.now()); }
     })
     .catch(function() {
       hideTyping();
-      addBubble('nura', 'Нет соединения. Проверь сеть и повтори.', N.now(), true);
+      addBubble('nura', 'Нет соединения. Проверь сеть и повтори.', N.now(), true); saveMsg('nura', 'Нет соединения. Проверь сеть и повтори.', N.now());
     });
   };
 

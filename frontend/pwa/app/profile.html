@@ -135,11 +135,19 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     prefs[key] = val;
     localStorage.setItem('nura_notif_prefs', JSON.stringify(prefs));
     if (session_id) {
-      fetch(BASE + '/user/notifications', {
+      fetch(BASE + '/web/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'X-Session-Id': session_id },
-        body: JSON.stringify({ key: key, enabled: val })
-      }).catch(function() {});
+        body: JSON.stringify({ session_id: session_id, key: key, enabled: val })
+      }).then(function(r) {
+        if (!r.ok) {
+          r.json().then(function(e) {
+            console.error('[notifications] save failed:', r.status, (e && e.detail) || '');
+          });
+        }
+      }).catch(function(err) {
+        console.error('[notifications] network error:', err && err.message);
+      });
     }
   };
 
@@ -185,30 +193,36 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     btn.disabled = true;
     btn.textContent = 'Активирую…';
     status.style.display = 'none';
-    fetch(BASE + '/web/test-subscribe', {
+    fetch(BASE + '/web/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ session_id: session_id })
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+      if (!r.ok) {
+        return r.json().then(function(err) {
+          var msg = (err && err.detail) || ('HTTP ' + r.status);
+          console.error('[subscribe] server error:', r.status, msg);
+          throw new Error(msg);
+        });
+      }
+      return r.json();
+    })
     .then(function(d) {
-      if (d.ok) {
-        btn.textContent = 'Активна до ' + d.subscription_until;
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-soft');
-        status.textContent = 'Premium + Таро активированы на 30 дней';
+      if (d && d.payment_url) {
+        status.textContent = 'Перенаправляю на оплату…';
         status.style.display = 'block';
+        window.location.href = d.payment_url;
       } else {
-        btn.disabled = false;
-        btn.textContent = 'Ошибка, попробуй ещё раз';
-        status.textContent = d.detail || 'Что-то пошло не так';
-        status.style.display = 'block';
+        throw new Error('Нет payment_url в ответе');
       }
     })
-    .catch(function() {
+    .catch(function(err) {
+      console.error('[subscribe] request failed:', err && err.message);
       btn.disabled = false;
-      btn.textContent = 'Ошибка сети';
-      status.textContent = 'Нет соединения';
+      btn.textContent = 'Подключить подписку';
+      status.textContent = (err && err.message) || 'Нет соединения';
+      status.style.color = '#C45C5C';
       status.style.display = 'block';
     });
   };
