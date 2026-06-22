@@ -190,8 +190,9 @@ def nonexistent_user():
 
 @pytest.fixture
 def mock_get_user(request):
-    """Patch UserRepository.get_by_web_session_id.
+    """Patch UserRepository.get_by_web_session_id (class-level).
 
+    Works for both Depends-based (daily-card) and direct-body (spread) routes.
     By default returns *subscribed_user*. Override by setting
     a ``pytest.mark.mock_user(retval)`` marker on the test/node.
     """
@@ -200,7 +201,7 @@ def mock_get_user(request):
     retval = marker.args[0] if marker else default
 
     with patch(
-        "api.routes.tarot_pwa.UserRepository.get_by_web_session_id",
+        "core.repositories.user.UserRepository.get_by_web_session_id",
         new_callable=AsyncMock,
     ) as mock:
         mock.return_value = retval
@@ -310,7 +311,7 @@ class TestDailyCard:
         # mock_arcana returns 3 → arcana 3 = Императрица
         response = client.get(
             "/api/v1/tarot/daily-card",
-            params={"session_id": MOCK_SESSION_ID},
+            headers={"X-Session-Id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
         data = response.json()
@@ -332,7 +333,7 @@ class TestDailyCard:
         # mock_arcana always returns 3 regardless of birth_date
         response = client.get(
             "/api/v1/tarot/daily-card",
-            params={"session_id": MOCK_SESSION_ID},
+            headers={"X-Session-Id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
         data = response.json()
@@ -353,7 +354,7 @@ class TestDailyCard:
         expected = f"{today.day} {months[today.month - 1]}"
         response = client.get(
             "/api/v1/tarot/daily-card",
-            params={"session_id": MOCK_SESSION_ID},
+            headers={"X-Session-Id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
         assert response.json()["date_label"] == expected
@@ -366,7 +367,7 @@ class TestDailyCard:
         """404 — сессия не найдена."""
         response = client.get(
             "/api/v1/tarot/daily-card",
-            params={"session_id": "nonexistent-session"},
+            headers={"X-Session-Id": "nonexistent-session"},
         )
         assert response.status_code == 404
         assert "Сессия не найдена" in response.json()["detail"]
@@ -381,7 +382,7 @@ class TestDailyCard:
         """400 — дата рождения не указана."""
         response = client.get(
             "/api/v1/tarot/daily-card",
-            params={"session_id": MOCK_SESSION_ID},
+            headers={"X-Session-Id": MOCK_SESSION_ID},
         )
         assert response.status_code == 400
         assert "Дата рождения не указана" in response.json()["detail"]
@@ -393,7 +394,7 @@ class TestDailyCard:
         """422 — session_id обязательный параметр."""
         response = client.get("/api/v1/tarot/daily-card")
         assert response.status_code == 422
-        assert "session_id" in response.text
+        assert "X-Session-Id" in response.text
 
     # ── Response schema ───────────────────────────────────────────
 
@@ -405,7 +406,7 @@ class TestDailyCard:
         """200 — ответ соответствует схеме DailyCardResponse."""
         response = client.get(
             "/api/v1/tarot/daily-card",
-            params={"session_id": MOCK_SESSION_ID},
+            headers={"X-Session-Id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
         try:
@@ -427,7 +428,7 @@ class TestDailyCard:
         ):
             response = client.get(
                 "/api/v1/tarot/daily-card",
-                params={"session_id": MOCK_SESSION_ID},
+                headers={"X-Session-Id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -447,7 +448,7 @@ class TestDailyCard:
         ):
             response = client.get(
                 "/api/v1/tarot/daily-card",
-                params={"session_id": MOCK_SESSION_ID},
+                headers={"X-Session-Id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -465,7 +466,7 @@ class TestDailyCard:
         """200 — даже без имени/username не падает."""
         response = client.get(
             "/api/v1/tarot/daily-card",
-            params={"session_id": MOCK_SESSION_ID},
+            headers={"X-Session-Id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
 
@@ -1811,7 +1812,7 @@ class TestDailyCardEdgeCases:
         """404 — пустой session_id возвращает 404 (not found)."""
         resp = client.get(
             "/api/v1/tarot/daily-card",
-            params={"session_id": ""},
+            headers={"X-Session-Id": ""},
         )
         # UserRepository.get_by_web_session_id will be called with ""
         # and since mock returns None, we get 404
@@ -1822,7 +1823,7 @@ class TestDailyCardEdgeCases:
     async def test_daily_card_extra_query_params(self, client):
         """200 — лишние query-параметры игнорируются."""
         with patch(
-            "api.routes.tarot_pwa.UserRepository.get_by_web_session_id",
+            "api.dependencies.UserRepository.get_by_web_session_id",
             new_callable=AsyncMock,
         ) as mock_get:
             mock_get.return_value = _build_mock_user()
@@ -1832,9 +1833,7 @@ class TestDailyCardEdgeCases:
             ):
                 resp = client.get(
                     "/api/v1/tarot/daily-card",
-                    params={
-                        "session_id": MOCK_SESSION_ID,
-                        "extra_param": "value",
-                    },
+                    headers={"X-Session-Id": MOCK_SESSION_ID},
+                    params={"extra_param": "value"},
                 )
         assert resp.status_code == 200

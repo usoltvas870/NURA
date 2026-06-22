@@ -1,10 +1,12 @@
 from datetime import date, datetime
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from api.deps import limiter
+from api.dependencies import get_current_web_user
 from core.database import get_async_sessionmaker
+from core.models import User
 from core.repositories.user import UserRepository
 from core.services.ai import AIService
 from core.arcana_data import ARCANA
@@ -60,14 +62,10 @@ SPREAD_NAMES = {
 
 @router.get("/daily-card", response_model=DailyCardResponse)
 @limiter.limit("30/minute")
-async def get_daily_card(request: Request, session_id: str):
-    session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-
-    user = await user_repo.get_by_web_session_id(session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
-
+async def get_daily_card(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
     birth_date = user.birth_date
     if not birth_date:
         raise HTTPException(status_code=400, detail="Дата рождения не указана")

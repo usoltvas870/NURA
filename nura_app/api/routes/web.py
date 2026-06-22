@@ -1,13 +1,14 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from api.deps import limiter
+from api.dependencies import get_current_web_user
 from core.arcana_data import ARCANA
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
-from core.models import ReportType
+from core.models import ReportType, User
 from core.repositories.payment import PaymentRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
@@ -186,9 +187,12 @@ async def generate_link_token(request: Request, body: GenerateLinkTokenRequest):
 
 @router.get("/check-link-token", response_model=CheckLinkTokenResponse)
 @limiter.limit("30/minute")
-async def check_link_token(request: Request, token: str):
+async def check_link_token(
+    request: Request,
+    x_link_token: str = Header(..., alias="X-Link-Token"),
+):
     redis = get_redis()
-    key = f"link_token:{token}"
+    key = f"link_token:{x_link_token}"
     user_id = await redis.execute_command("GETDEL", key)
     if not user_id:
         raise HTTPException(status_code=404, detail="Токен не найден или истёк")
@@ -199,14 +203,12 @@ async def check_link_token(request: Request, token: str):
 
 @router.get("/me", response_model=UserProfileResponse)
 @limiter.limit("60/minute")
-async def get_user_profile(request: Request, session_id: str):
+async def get_user_profile(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
     session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
     report_repo = ReportRepository(session_factory)
-
-    user = await user_repo.get_by_web_session_id(session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
 
     raw_reports = await report_repo.get_by_user_id(user.id)
     reports = []
@@ -394,12 +396,12 @@ async def update_notification_pref(request: Request, body: NotificationPrefReque
 
 @router.get("/notifications", response_model=NotificationPrefsResponse)
 @limiter.limit("60/minute")
-async def get_notification_prefs(request: Request, session_id: str):
+async def get_notification_prefs(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
-    user = await user_repo.get_by_web_session_id(session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
     prefs = await user_repo.get_notification_prefs(user.id)
     return NotificationPrefsResponse(prefs=prefs)
 

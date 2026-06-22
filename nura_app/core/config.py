@@ -3,9 +3,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    app_name: str = "NURA"
     app_env: str = "development"
-    debug: bool = False
     secret_key: str = "change-me"
 
     # Database
@@ -32,8 +30,6 @@ class Settings(BaseSettings):
         )
 
     # Redis
-    redis_host: str = "localhost"
-    redis_port: int = 6379
     redis_url: str = "redis://localhost:6379/0"
 
     # Celery
@@ -60,10 +56,6 @@ class Settings(BaseSettings):
     subscription_price_rub: int = 590
     tarot_subscription_price_rub: int = 390
     matrix_one_time_price_rub: int = 890
-
-    # Rate limit
-    rate_limit_requests: int = 30
-    rate_limit_window: int = 60
 
     # Web Push (VAPID)
     vapid_private_key: str = ""

@@ -24,3 +24,6 @@ itsdangerous==2.2.0
 # Video assembly
 faster-whisper>=1.1,<2
 pywebpush>=2.0.0
+
+# Testing
+aiosqlite>=0.20

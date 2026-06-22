@@ -77,7 +77,7 @@ async def _handle_link_token(message: Message, token: str) -> None:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
                 "http://127.0.0.1:8000/api/v1/web/check-link-token",
-                params={"token": token},
+                headers={"X-Link-Token": token},
                 timeout=5.0,
             )
 

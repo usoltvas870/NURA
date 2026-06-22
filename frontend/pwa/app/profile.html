@@ -98,7 +98,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   var userReports = [];
 
   if (session_id) {
-    N.fetchJSON(BASE + '/web/me?session_id=' + encodeURIComponent(session_id))
+    N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
       .then(function(d) {
         if (!d) { $('profile-archetype').textContent = 'Ошибка загрузки'; return; }
         if (d.name) {

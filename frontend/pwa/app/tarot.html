@@ -54,7 +54,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   $('hero-date').textContent = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
 
   if (session_id) {
-    N.fetchJSON(BASE + '/tarot/daily-card?session_id=' + encodeURIComponent(session_id))
+    N.fetchJSON(BASE + '/tarot/daily-card', {headers: {'X-Session-Id': session_id}})
       .then(function(d) {
         if (!d) return;
         if (d.arcana_number) $('hero-num').textContent = d.arcana_number;
@@ -64,7 +64,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         if (d.advice) $('hero-advice').textContent = 'Совет: ' + d.advice;
       });
 
-    N.fetchJSON(BASE + '/web/me?session_id=' + encodeURIComponent(session_id))
+    N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
       .then(function(d) {
         if (!d || !d.has_tarot) return;
         document.querySelectorAll('.practice.locked').forEach(function(el) {
