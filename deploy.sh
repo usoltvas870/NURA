@@ -27,6 +27,10 @@ echo "→ Copying icons..."
 mkdir -p /var/www/nura-ai.ru/icons
 cp -r frontend/icons/* /var/www/nura-ai.ru/icons/ 2>/dev/null || true
 
+echo "→ Copying fonts..."
+mkdir -p /var/www/nura-ai.ru/fonts
+cp -r frontend/fonts/* /var/www/nura-ai.ru/fonts/ 2>/dev/null || true
+
 echo "→ Copying favicon and images..."
 cp favicon.ico /var/www/nura-ai.ru/favicon.ico 2>/dev/null || true
 cp favicon.png /var/www/nura-ai.ru/favicon.png 2>/dev/null || true
