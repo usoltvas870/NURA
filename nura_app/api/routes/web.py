@@ -4,12 +4,14 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from api.deps import limiter
+from core.arcana_data import ARCANA
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
 from core.models import ReportType
 from core.repositories.payment import PaymentRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
+from core.schemas import MatrixData
 from core.services.ai import AIService
 from core.services.matrix import MatrixService
 from core.services.payment import PaymentService
@@ -84,6 +86,10 @@ async def mini_analysis(request: Request, body: MiniAnalysisRequest):
         matrix_data = MatrixService.calculate(body.birth_date)
     except Exception:
         raise HTTPException(status_code=400, detail="Неверный формат даты")
+
+    center_num = matrix_data.center
+    center_name = ARCANA.get(center_num, {}).get("name", "Неизвестный")
+    await user_repo.update_archetype(user.id, center_name, center_num)
 
     report_repo = ReportRepository(session_factory)
     await report_repo.create(

@@ -65,8 +65,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   var $ = document.getElementById.bind(document);
 
   function openReport(){
-    if (session_id) location.href = 'profile.html#reports';
-    else location.href = '/mini.html';
+    if (!session_id) { location.href = '/mini.html'; return; }
+    if (window.__hasFullReport) location.href = 'profile.html#reports';
+    else location.href = 'profile.html#subscription';
   }
   window.openReport = openReport;
 
@@ -83,10 +84,15 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         if (d.name) {
           $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
         }
-        var hasReport = d.archetype_number;
-        if (hasReport) {
+        var hasFull = d.has_matrix;
+        window.__hasFullReport = hasFull;
+        var hasMini = d.reports && d.reports.length > 0;
+        if (hasFull) {
           $('status-copy').textContent = 'Полный отчёт готов. Начни с главного вывода или задай вопрос по любой главе.';
           $('report-cta').textContent = 'Продолжить отчёт';
+        } else if (hasMini) {
+          $('status-copy').textContent = 'Мини-разбор готов. Хочешь полную Матрицу?';
+          $('report-cta').textContent = 'Купить полный отчёт';
         } else {
           $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
           $('report-cta').textContent = 'Получить полный отчёт';
@@ -94,6 +100,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         if (d.archetype_number) $('matrix-num').textContent = d.archetype_number;
         if (d.archetype) $('matrix-name').textContent = d.archetype;
         if (d.archetype) $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype;
+        else if (hasMini) $('matrix-desc').textContent = 'Мини-разбор пройден. Купи полный отчёт для детального разбора.';
         else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
       })
       .catch(function() { $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.'; });

@@ -10,6 +10,8 @@
 <script>if("serviceWorker"in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("/service-worker.js").catch(function(){})});</script>
 <script>
   (function(){
+    var sid = localStorage.getItem('nura_session_id');
+    if (sid) { location.href = '/app/'; return; }
     var t = localStorage.getItem('nura-theme') || 'light';
     document.documentElement.setAttribute('data-theme', t);
   })();
