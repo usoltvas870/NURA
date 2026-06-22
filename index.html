@@ -24,11 +24,18 @@
 </script>
 <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
 <!-- /Yandex.Metrika counter -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/manrope-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/playfair-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/theme.css">
 <style>
+@font-face{font-family:'Manrope';font-style:normal;font-weight:400 700;font-display:swap;src:url('fonts/manrope-cyrillic.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:400 700;font-display:swap;src:url('fonts/manrope-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/playfair-cyrillic.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/playfair-cyrillic.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Playfair Display';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/playfair-cyrillic-italic.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/playfair-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:600;font-display:swap;src:url('fonts/playfair-latin.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Playfair Display';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/playfair-latin-italic.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
@@ -36,8 +43,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);font-si
 
 #nura-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.5}
 
-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 48px;transition:background 0.4s var(--ease),box-shadow 0.4s var(--ease),padding 0.4s var(--ease);background:transparent}
-nav.scrolled{background:rgba(239,238,233,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 2px 16px rgba(44,42,30,0.06);padding:14px 48px}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 48px;transition:background 0.4s var(--ease),box-shadow 0.4s var(--ease),padding 0.4s var(--ease),border-color 0.4s var(--ease);background:rgba(239,238,233,0.55);border-bottom:1px solid var(--line)}
+nav.scrolled{background:rgba(239,238,233,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 2px 16px rgba(44,42,30,0.06);padding:14px 48px;border-bottom-color:transparent}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto}
 .nav-logo{display:inline-flex;align-items:center;gap:10px;color:var(--terra);white-space:nowrap;text-decoration:none;font-family:var(--font-sans);font-size:16px;font-weight:700;letter-spacing:0.18em}.nav-logo-star{font-size:18px;line-height:1;color:var(--terra);transform:translateY(-1px)}.nav-logo-sep{width:1px;height:18px;background:rgba(184,116,63,.32)}.nav-logo-word{font-family:var(--font-serif);font-weight:600;font-size:19px;letter-spacing:.16em;line-height:1;color:var(--terra)}
 .nav-links{display:flex;align-items:center;gap:36px;list-style:none}
@@ -69,7 +76,7 @@ nav.scrolled{background:rgba(239,238,233,0.92);backdrop-filter:blur(20px);-webki
 .btn-outline:hover{box-shadow:var(--shadow-card-hover);transform:translateY(-2px)}
 .btn-full{width:100%;text-align:center}
 
-.hero{min-height:96vh;display:grid;grid-template-columns:1.1fr 0.9fr;gap:64px;align-items:center;padding:150px 48px 100px;max-width:1200px;margin:0 auto;overflow:hidden}
+.hero{min-height:96vh;display:grid;grid-template-columns:1.1fr 0.9fr;gap:64px;align-items:center;padding:100px 48px 100px;max-width:1200px;margin:0 auto;overflow:hidden}
 .hero-content{max-width:600px;justify-self:start}
 .hero-visual{position:relative;display:flex;justify-content:center;align-items:flex-end}
 .hero-img-wrap{position:relative;width:100%;max-width:440px;overflow:hidden}
@@ -192,6 +199,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 .reveal-delay-2{transition-delay:0.2s}
 .reveal-delay-3{transition-delay:0.3s}
 
+[data-theme="dark"] nav{background:rgba(18,16,14,0.55)}
 [data-theme="dark"] nav.scrolled{background:rgba(18,16,14,.92)}
 [data-theme="dark"] .prev-foot{border-top-color:rgba(242,239,231,.08)}
 [data-theme="dark"] .testi-foot{border-top-color:rgba(242,239,231,.08)}
@@ -207,7 +215,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 @media(max-width:1024px){
   nav{padding:18px 24px}
   nav.scrolled{padding:12px 24px}
-  .hero{grid-template-columns:1fr;gap:40px;padding:130px 24px 80px;min-height:auto}
+  .hero{grid-template-columns:1fr;gap:40px;padding:90px 24px 80px;min-height:auto}
   .hero-content{text-align:center;max-width:100%;justify-self:center}
   .hero-content-inner{max-width:100%;margin:0 auto}
   .hero-desc,.cta-group,.hero-meta{margin-left:auto;margin-right:auto}
@@ -220,7 +228,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 @media(max-width:768px){
   .section{padding:88px 16px}
   .nav-links{display:none}
-  .hero{grid-template-columns:1fr;gap:32px;padding:110px 20px 60px;min-height:auto}
+  .hero{grid-template-columns:1fr;gap:32px;padding:80px 20px 60px;min-height:auto}
   .hero-visual{display:none}
   .pain-grid{grid-template-columns:1fr}
   .preview-grid{grid-template-columns:1fr}
@@ -271,7 +279,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           <a href="#preview" class="btn btn-outline">Пример отчёта →</a>
         </div>
         <div class="hero-meta">
-          Только дата рождения и имя <span class="dot"></span> без регистрации <span class="dot"></span> 2 минуты <span class="dot"></span> 1200+ разборов на этой неделе<!-- TODO: заменить на реальную цифру из аналитики -->
+          Только дата рождения <span class="dot"></span> без регистрации <span class="dot"></span> 2 минуты <span class="dot"></span> 1200+ разборов на этой неделе<!-- TODO: заменить на реальную цифру из аналитики -->
         </div>
         <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--ink-mute);">
           Уже пользуешься? <a href="/app/" style="color:var(--gold);font-weight:500;text-decoration:none;">Открыть приложение →</a>
@@ -457,7 +465,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
         </ul>
         <a href="https://nura-ai.ru/mini.html" class="btn btn-primary btn-full">Купить Матрицу — 890 ₽</a>
         <a href="https://nura-ai.ru/mini.html" class="checkout-ghost">← Сначала попробовать бесплатно</a>
-        <p class="checkout-note">🔒 Только дата рождения и имя. Без спама.</p>
+        <p class="checkout-note">🔒 Только дата рождения. Без спама.</p>
       </div>
     </div>
 
@@ -496,7 +504,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
         </ul>
         <a href="https://nura-ai.ru/app/tarot" class="btn btn-primary btn-full">Подключить Таро — 390 ₽/мес</a>
         <p class="checkout-note" style="color:var(--text-m);font-size:12px;margin-top:8px">Первая карта дня — бесплатно</p>
-        <p class="checkout-note">🔒 Только дата рождения и имя. Без спама.</p>
+        <p class="checkout-note">🔒 Только дата рождения. Без спама.</p>
       </div>
     </div>
   </div>
@@ -518,7 +526,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <div class="step-node reveal reveal-delay-1">
         <div class="step-head-line"><div class="step-circle">2</div><div class="step-connector"></div></div>
         <h4 class="step-title">Введи дату рождения</h4>
-        <p class="step-desc">Только дата и имя. Без телефона. Алгоритм рассчитывает твои 22 позиции.</p>
+        <p class="step-desc">Только дата. Без имени и телефона. Алгоритм рассчитывает твои 22 позиции.</p>
       </div>
       <div class="step-node reveal reveal-delay-2">
         <div class="step-head-line"><div class="step-circle">3</div><div class="step-connector"></div></div>
@@ -633,7 +641,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           Что нужно для старта?
           <span class="faq-icon">+</span>
         </button>
-        <div class="faq-a">Только дата рождения и имя. Никакого ФИО, телефона или email. Открываешь Telegram-бот, вводишь дату и имя — и получаешь бесплатный мини-разбор за 2 минуты.</div>
+        <div class="faq-a">Только дата рождения. Никакого ФИО, телефона или email. Открываешь Telegram-бот, вводишь дату — и получаешь бесплатный мини-разбор за 2 минуты.</div>
       </div>
 
       <div class="faq-item">
@@ -660,7 +668,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <div class="cta-pills">
         <span><span class="dot"></span>Матрица — 890 ₽ разово</span>
         <span><span class="dot"></span>Таро — 390 ₽/мес</span>
-        <span><span class="dot"></span>🔒 Только дата рождения и имя</span>
+        <span><span class="dot"></span>🔒 Только дата рождения</span>
       </div>
     </div>
   </div>
