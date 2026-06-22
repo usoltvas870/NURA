@@ -43,8 +43,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);font-si
 
 #nura-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.5}
 
-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 48px;transition:background 0.4s var(--ease),box-shadow 0.4s var(--ease),padding 0.4s var(--ease),border-color 0.4s var(--ease);background:rgba(239,238,233,0.55);border-bottom:1px solid var(--line)}
-nav.scrolled{background:rgba(239,238,233,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 2px 16px rgba(44,42,30,0.06);padding:14px 48px;border-bottom-color:transparent}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 48px;transition:background 0.4s var(--ease),box-shadow 0.4s var(--ease),padding 0.4s var(--ease),border-color 0.4s var(--ease);background:var(--bg-card);box-shadow:0 1px 0 var(--line),0 10px 28px rgba(44,42,30,.06)}
+nav.scrolled{box-shadow:0 1px 0 var(--line),0 14px 36px rgba(44,42,30,.12);padding:14px 48px}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto}
 .nav-logo{display:inline-flex;align-items:center;gap:10px;color:var(--terra);white-space:nowrap;text-decoration:none;font-family:var(--font-sans);font-size:16px;font-weight:700;letter-spacing:0.18em}.nav-logo-star{font-size:18px;line-height:1;color:var(--terra);transform:translateY(-1px)}.nav-logo-sep{width:1px;height:18px;background:rgba(184,116,63,.32)}.nav-logo-word{font-family:var(--font-serif);font-weight:600;font-size:19px;letter-spacing:.16em;line-height:1;color:var(--terra)}
 .nav-links{display:flex;align-items:center;gap:36px;list-style:none}
@@ -53,9 +53,18 @@ nav.scrolled{background:rgba(239,238,233,0.92);backdrop-filter:blur(20px);-webki
 .nav-cta{background:var(--terra) !important;color:#FFFFFF !important;padding:12px 26px;border-radius:var(--r-sm);font-weight:700 !important;letter-spacing:0.02em;box-shadow:0 4px 14px rgba(184,116,63,0.3);transition:background 0.25s,transform 0.25s,box-shadow 0.25s !important;text-decoration:none;font-size:13px}
 .nav-cta:hover{background:var(--terra-d) !important;transform:translateY(-1px);box-shadow:0 8px 20px rgba(184,116,63,0.38)}
 .nav-right{display:flex;align-items:center;gap:16px}
-.theme-toggle{width:34px;height:34px;border-radius:50%;background:var(--bg-card);border:1px solid rgba(44,42,30,.14);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-m);font-size:15px;box-shadow:var(--shadow-card);transition:all .2s}
-.theme-toggle:hover{box-shadow:var(--shadow-card-hover)}
-[data-theme="dark"] .theme-toggle{border-color:rgba(242,239,231,.14)}
+.theme-switch{position:relative;width:60px;height:32px;border-radius:999px;background:rgba(184,116,63,.12);border:1px solid var(--line-strong);padding:3px;cursor:pointer;display:inline-flex;align-items:center;flex-shrink:0;box-shadow:inset 0 1px 3px rgba(44,42,30,.08);transition:background .4s var(--ease),border-color .4s var(--ease)}
+.theme-switch:hover{border-color:var(--terra)}
+[data-theme="dark"] .theme-switch{background:rgba(123,111,232,.16)}
+[data-theme="dark"] .theme-switch:hover{border-color:var(--violet)}
+.theme-switch-thumb{position:relative;width:24px;height:24px;border-radius:50%;background:var(--bg-card);box-shadow:0 3px 10px rgba(44,42,30,.22),0 1px 3px rgba(44,42,30,.14);display:flex;align-items:center;justify-content:center;transform:translateX(0);transition:transform .45s var(--ease),background .4s var(--ease)}
+.theme-switch:active .theme-switch-thumb{transform:scale(.9)}
+[data-theme="dark"] .theme-switch-thumb{transform:translateX(30px);background:#241F18}
+[data-theme="dark"] .theme-switch:active .theme-switch-thumb{transform:translateX(30px) scale(.9)}
+.ts-icon{position:absolute;width:14px;height:14px;color:var(--terra);opacity:1;transform:rotate(0) scale(1);transition:opacity .3s var(--ease),transform .45s var(--ease)}
+.ts-icon-moon{color:var(--violet);opacity:0;transform:rotate(-80deg) scale(.4)}
+[data-theme="dark"] .ts-icon-sun{opacity:0;transform:rotate(80deg) scale(.4)}
+[data-theme="dark"] .ts-icon-moon{opacity:1;transform:rotate(0) scale(1)}
 
 .section{padding:128px 24px;position:relative;z-index:1}
 .container{max-width:1140px;margin:0 auto}
@@ -199,8 +208,8 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 .reveal-delay-2{transition-delay:0.2s}
 .reveal-delay-3{transition-delay:0.3s}
 
-[data-theme="dark"] nav{background:rgba(18,16,14,0.55)}
-[data-theme="dark"] nav.scrolled{background:rgba(18,16,14,.92)}
+[data-theme="dark"] nav{box-shadow:0 1px 0 var(--line),0 10px 28px rgba(0,0,0,.20)}
+[data-theme="dark"] nav.scrolled{box-shadow:0 1px 0 var(--line),0 14px 36px rgba(0,0,0,.32)}
 [data-theme="dark"] .prev-foot{border-top-color:rgba(242,239,231,.08)}
 [data-theme="dark"] .testi-foot{border-top-color:rgba(242,239,231,.08)}
 [data-theme="dark"] .acc-body{border-top-color:rgba(242,239,231,.08)}
@@ -258,7 +267,12 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <li><a href="#faq">FAQ</a></li>
     </ul>
     <div class="nav-right">
-      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Сменить тему">◐</button>
+      <button class="theme-switch" onclick="toggleTheme()" aria-label="Переключить тему">
+        <span class="theme-switch-thumb">
+          <svg class="ts-icon ts-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+          <svg class="ts-icon ts-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </span>
+      </button>
     </div>
   </div>
 </nav>
@@ -288,7 +302,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
     </div>
     <div class="hero-visual">
       <div class="hero-img-wrap">
-        <img src="hero.png" alt="NURA — персонализированный анализ личности" class="hero-img">
+        <picture><source srcset="nura-hero.webp" type="image/webp"><img src="hero.png" alt="NURA — персонализированный анализ личности" class="hero-img"></picture>
       </div>
     </div>
   </div>
