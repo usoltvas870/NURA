@@ -94,6 +94,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     var r = document.querySelector('[data-tab="reports"]'); if (r) r.click();
   }
 
+  var userReports = [];
+
   if (session_id) {
     N.fetchJSON(BASE + '/web/me?session_id=' + encodeURIComponent(session_id))
       .then(function(d) {
@@ -120,6 +122,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
             sBtn.disabled = true;
           }
         }
+        if (d.reports) userReports = d.reports;
       })
       .catch(function() { $('profile-archetype').textContent = 'Ошибка сети'; });
   }
@@ -134,6 +137,13 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     var prefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
     prefs[key] = val;
     localStorage.setItem('nura_notif_prefs', JSON.stringify(prefs));
+    if (val && session_id && localStorage.getItem('nura_push_subscribed') !== '1') {
+      N.subscribeToPush(session_id).then(function() {
+        console.log('[push] subscribed');
+      }).catch(function(err) {
+        console.warn('[push] subscribe skipped:', err && err.message);
+      });
+    }
     if (session_id) {
       fetch(BASE + '/web/notifications', {
         method: 'PATCH',
@@ -152,9 +162,14 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   };
 
   window.openReport = function(id) {
-    if (session_id) {
-      N.fetchJSON(BASE + '/reports/' + id, { headers: { 'X-Session-Id': session_id } })
-        .then(function(d) { if (d && d.url) window.open(d.url, '_blank'); });
+    var report = null;
+    for (var i = 0; i < userReports.length; i++) {
+      if (userReports[i].report_type === 'full') { report = userReports[i]; break; }
+    }
+    if (report && report.url) {
+      window.open(report.url, '_blank');
+    } else {
+      location.href = '/mini.html';
     }
   };
 
