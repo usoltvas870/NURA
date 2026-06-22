@@ -1,8 +1,13 @@
-name: Deploy
+name: Deploy to production
 
 on:
   push:
-    branches: [master]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -10,37 +15,54 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy landing page
-        uses: appleboy/scp-action@v0.1.7
+      - name: Pre-flight — verify working tree on VPS is clean
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: index.html
-          target: /var/www/nura-ai.ru/
-          strip_components: 0
-
-      - name: Rebuild app
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          envs: GITHUB_TOKEN
           script: |
             set -e
-            if [ ! -d /opt/nura/.git ]; then
-              rm -rf /opt/nura
-              git clone https://x-access-token:${GITHUB_TOKEN}@github.com/usoltvas870/NURA.git /opt/nura
-            else
-              cd /opt/nura
-              git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/usoltvas870/NURA.git
-              git fetch origin
-              git reset --hard origin/master
-            fi
             cd /opt/nura
-            cp -f index.html /var/www/nura-ai.ru/index.html
-            cd nura_app
-            docker compose up -d --build || true
+            if git diff --quiet && git diff --cached --quiet && [ -z "$(git status --porcelain)" ]; then
+              echo "✓ Working tree is clean — safe to deploy."
+              exit 0
+            else
+              echo "::error::Working tree on VPS is NOT clean. Automatic deploy aborted to avoid clobbering uncommitted prod-only changes."
+              echo "::error::See DEPLOY.md → «Деплой упал из-за грязного working tree» for the manual resolution pattern."
+              echo ""
+              echo "--- git status --porcelain ---"
+              git status --porcelain
+              echo "--- git diff --stat ---"
+              git diff --stat
+              exit 1
+            fi
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/nura
+            git fetch origin
+            git pull --ff-only origin main
+            bash deploy.sh
+            echo "$(git rev-parse HEAD) - $(date -u +%Y-%m-%dT%H:%M:%SZ)" > /var/www/nura-ai.ru/VERSION
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            if curl -sf https://nura-ai.ru/ > /dev/null; then
+              echo "✓ Site is up (https://nura-ai.ru/ returned 2xx)"
+            else
+              echo "::error::Site check failed after deploy (https://nura-ai.ru/ did not return 2xx)"
+              exit 1
+            fi
