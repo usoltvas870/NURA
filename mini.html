@@ -207,14 +207,7 @@ document.getElementById('pay-btn').addEventListener('click',function(){
   .catch(function(){setLoading(btn,false);err.textContent='Что-то пошло не так, попробуй ещё раз';err.style.display='block';});
 });
 </script>
-<div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center">
-  <div style="flex:1">
-    <div style="font-weight:800;font-size:14px;color:var(--text)">Установи NURA</div>
-    <div style="font-size:12px;color:var(--text-m);margin-top:2px">Быстрый доступ без браузера</div>
-  </div>
-  <button onclick="triggerAndroidInstall()" style="background:var(--terra);color:#fff;border:0;border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0;white-space:nowrap">Установить</button>
-  <button onclick="dismissInstallBanner()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--bg-card-soft);color:var(--text-m);font-size:16px;cursor:pointer;flex-shrink:0;display:grid;place-items:center">✕</button>
-</div>
+<div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
 <div id="pwa-ios-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
   <div style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
     <button onclick="hideIOSInstallModal()" style="position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--bg-card-soft);color:var(--text-m);font-size:14px;cursor:pointer;display:grid;place-items:center">✕</button>
