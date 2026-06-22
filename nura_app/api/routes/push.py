@@ -21,6 +21,8 @@ class PushSubscription(BaseModel):
 
 class PushUnsubscribe(BaseModel):
     endpoint: str
+    session_id: str | None = None
+    telegram_id: int | None = None
 
 
 @router.get("/vapid-public-key")
@@ -60,7 +62,24 @@ async def subscribe(request: Request, body: PushSubscription):
 @router.post("/unsubscribe")
 @limiter.limit("5/minute")
 async def unsubscribe(request: Request, body: PushUnsubscribe):
+    if not body.session_id and not body.telegram_id:
+        raise HTTPException(status_code=401, detail="Требуется session_id или telegram_id")
+
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
+
+    user = None
+    if body.session_id:
+        user = await user_repo.get_by_web_session_id(body.session_id)
+    elif body.telegram_id:
+        user = await user_repo.get_by_telegram_id(body.telegram_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    if user.push_endpoint != body.endpoint:
+        raise HTTPException(status_code=403, detail="Endpoint не принадлежит пользователю")
+
     await user_repo.clear_push_subscription_by_endpoint(body.endpoint)
+    logger.info("Push unsubscribed: user_id=%s", user.id)
     return {"ok": True}

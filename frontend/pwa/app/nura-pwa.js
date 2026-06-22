@@ -94,7 +94,7 @@
     return fetch(window.NURA.BASE + '/push/unsubscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: endpoint })
+      body: JSON.stringify({ endpoint: endpoint, session_id: sessionId })
     }).then(function(r) {
       localStorage.removeItem('nura_push_subscribed');
       localStorage.removeItem('nura_push_endpoint');

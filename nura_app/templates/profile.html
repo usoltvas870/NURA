@@ -575,7 +575,7 @@ async function togglePush() {
         await fetch('/api/v1/push/unsubscribe', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({endpoint: sub.endpoint}),
+          body:JSON.stringify({endpoint: sub.endpoint, session_id: sessionId}),
         });
         await sub.unsubscribe();
       }
