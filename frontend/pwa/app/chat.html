@@ -154,12 +154,6 @@ body{overflow:hidden;padding-bottom:0}
     try { localStorage.setItem('nura_chat_log', JSON.stringify(chatLog)); } catch(e) {}
   }
 
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', function() {
-      document.querySelector('.app-shell').style.height = window.visualViewport.height + 'px';
-    });
-  }
-
   document.getElementById('themeToggle').addEventListener('click', function() {
     var next = N.toggleTheme();
     this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');

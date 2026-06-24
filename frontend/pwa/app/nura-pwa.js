@@ -20,8 +20,11 @@
   window.NURA.initUpdateListener = function() {
     if (!('serviceWorker' in navigator)) return;
 
-    navigator.serviceWorker.getRegistration().then(function(reg) {
-      if (!reg) return;
+    navigator.serviceWorker.ready.then(function(reg) {
+      if (reg.waiting) {
+        showUpdateToast(reg.waiting);
+      }
+
       reg.addEventListener('updatefound', function() {
         var newSW = reg.installing;
         if (!newSW) return;
