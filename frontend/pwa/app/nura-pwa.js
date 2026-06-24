@@ -17,6 +17,44 @@
     return next;
   };
 
+  window.NURA.initUpdateListener = function() {
+    if (!('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.getRegistration().then(function(reg) {
+      if (!reg) return;
+      reg.addEventListener('updatefound', function() {
+        var newSW = reg.installing;
+        if (!newSW) return;
+        newSW.addEventListener('statechange', function() {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateToast(newSW);
+          }
+        });
+      });
+    });
+
+    var refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+
+    function showUpdateToast(newSW) {
+      if (document.getElementById('nura-update-toast')) return;
+      var toast = document.createElement('div');
+      toast.id = 'nura-update-toast';
+      toast.setAttribute('role', 'status');
+      toast.style.cssText = 'position:fixed;left:16px;right:16px;bottom:calc(var(--tabbar-h,64px) + 12px);z-index:250;background:var(--bg-card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-card-hover);padding:14px 16px;display:flex;align-items:center;gap:12px;max-width:488px;margin:0 auto';
+      toast.innerHTML = '<span style="flex:1;font-size:13.5px;color:var(--text)">Доступно обновление NURA</span>' +
+        '<button id="nura-update-btn" style="background:var(--terra-d);color:#fff;border:0;border-radius:var(--r-sm);padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">Обновить</button>';
+      document.body.appendChild(toast);
+      document.getElementById('nura-update-btn').addEventListener('click', function() {
+        newSW.postMessage({ type: 'SKIP_WAITING' });
+      });
+    }
+  };
+
   /* ── API ───────────────────────────────── */
   window.NURA.BASE = 'https://nura-ai.ru/api/v1';
   window.NURA.sessionId = localStorage.getItem('nura_session_id');
@@ -110,3 +148,6 @@
     }
   });
 })();
+
+if (document.readyState === 'complete') { window.NURA.initUpdateListener(); }
+else { window.addEventListener('load', function(){ window.NURA.initUpdateListener(); }); }

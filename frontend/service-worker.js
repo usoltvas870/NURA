@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nura-v3';
+const CACHE_NAME = 'nura-v4';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
@@ -29,7 +29,12 @@ self.addEventListener('install', function(e) {
       });
     })
   );
-  self.skipWaiting();
+});
+
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', function(e) {
