@@ -46,16 +46,36 @@
 
     function showUpdateToast(newSW) {
       if (document.getElementById('nura-update-toast')) return;
-      var toast = document.createElement('div');
-      toast.id = 'nura-update-toast';
-      toast.setAttribute('role', 'status');
-      toast.style.cssText = 'position:fixed;left:16px;right:16px;bottom:calc(var(--tabbar-h,64px) + 12px);z-index:250;background:var(--bg-card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-card-hover);padding:14px 16px;display:flex;align-items:center;gap:12px;max-width:488px;margin:0 auto';
-      toast.innerHTML = '<span style="flex:1;font-size:13.5px;color:var(--text)">Доступно обновление NURA</span>' +
-        '<button id="nura-update-btn" style="background:var(--terra-d);color:#fff;border:0;border-radius:var(--r-sm);padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">Обновить</button>';
-      document.body.appendChild(toast);
-      document.getElementById('nura-update-btn').addEventListener('click', function() {
+
+      var backdrop = document.createElement('div');
+      backdrop.id = 'nura-update-toast';
+      backdrop.style.cssText = 'position:fixed;inset:0;z-index:249;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px';
+
+      var card = document.createElement('div');
+      card.style.cssText = 'width:min(100%,360px);background:#1A1814;border-radius:20px;padding:28px 24px 20px;box-shadow:0 24px 64px rgba(0,0,0,.55);text-align:center';
+
+      card.innerHTML =
+        '<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;margin:0 auto 16px;font-size:24px">✦</div>' +
+        '<div style="font-family:var(--font-serif);font-size:22px;color:#fff;margin-bottom:8px">Новая версия NURA</div>' +
+        '<div style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.5;margin-bottom:24px">Обновление готово — нажми чтобы применить</div>' +
+        '<button id="nura-update-btn" style="display:block;width:100%;min-height:50px;background:#fff;color:#12100E;border:0;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.01em;-webkit-tap-highlight-color:transparent;transition:opacity .15s,transform .15s">Обновить сейчас</button>' +
+        '<button id="nura-update-skip" style="display:block;width:100%;min-height:44px;background:transparent;color:rgba(255,255,255,.40);border:0;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px;-webkit-tap-highlight-color:transparent">Позже</button>';
+
+      backdrop.appendChild(card);
+      document.body.appendChild(backdrop);
+
+      var btn = document.getElementById('nura-update-btn');
+      btn.addEventListener('touchstart', function() { btn.style.opacity='.75'; btn.style.transform='scale(.97)'; }, {passive:true});
+      btn.addEventListener('touchend', function() { btn.style.opacity=''; btn.style.transform=''; });
+      btn.addEventListener('click', function() {
+        btn.textContent = 'Обновляю…';
+        btn.disabled = true;
         shouldReload = true;
         newSW.postMessage({ type: 'SKIP_WAITING' });
+      });
+
+      document.getElementById('nura-update-skip').addEventListener('click', function() {
+        backdrop.remove();
       });
     }
   };
