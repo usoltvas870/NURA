@@ -60,10 +60,10 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <article class="card list-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы</div><div class="list-sub">Разовая покупка · отчёт навсегда</div></div><button class="btn btn-soft" id="matrix-status-btn">Куплена</button></article>
 </section>
 <section class="panel" id="tab-notifications"><div class="card">
-<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-cards"></i></div><div><div class="list-title">Карта дня</div><div class="list-sub">Утром в 8:00</div></div><span class="switch"><input type="checkbox" checked onchange="saveNotif('daily_card', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
-<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-calendar-week"></i></div><div><div class="list-title">Фокус недели</div><div class="list-sub">В понедельник утром</div></div><span class="switch"><input type="checkbox" checked onchange="saveNotif('weekly_spread', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
-<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-bell"></i></div><div><div class="list-title">Практики из отчёта</div><div class="list-sub">Мягкие напоминания 7 дней</div></div><span class="switch"><input type="checkbox" onchange="saveNotif('practices', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
-<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-speakerphone"></i></div><div><div class="list-title">Новости NURA</div><div class="list-sub">Обновления и новые функции</div></div><span class="switch"><input type="checkbox" onchange="saveNotif('news', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
+<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-cards"></i></div><div><div class="list-title">Карта дня</div><div class="list-sub">Утром в 8:00</div></div><span class="switch"><input type="checkbox" checked data-notif-key="daily_card" onchange="saveNotif('daily_card', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
+<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-calendar-week"></i></div><div><div class="list-title">Фокус недели</div><div class="list-sub">В понедельник утром</div></div><span class="switch"><input type="checkbox" checked data-notif-key="weekly_spread" onchange="saveNotif('weekly_spread', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
+<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-bell"></i></div><div><div class="list-title">Практики из отчёта</div><div class="list-sub">Мягкие напоминания 7 дней</div></div><span class="switch"><input type="checkbox" data-notif-key="practices" onchange="saveNotif('practices', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
+<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-speakerphone"></i></div><div><div class="list-title">Новости NURA</div><div class="list-sub">Обновления и новые функции</div></div><span class="switch"><input type="checkbox" data-notif-key="news" onchange="saveNotif('news', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
 </div></section>
 <section class="panel" id="tab-settings">
 <article class="card list-card" role="button" tabindex="0" onclick="editProfile()"><div class="list-icon"><i class="ti ti-user-edit"></i></div><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="chevron">›</span></article>
@@ -138,7 +138,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 
   var notifPrefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
   Object.keys(notifPrefs).forEach(function(k) {
-    var inp = document.querySelector('input[onchange*="' + k + '"]');
+    var inp = document.querySelector('input[data-notif-key="' + k + '"]');
     if (inp) inp.checked = notifPrefs[k];
   });
 
@@ -195,9 +195,11 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       });
       if (res.ok) {
         var data = await res.json();
-        window.open(data.tg_url, '_blank');
-        if (el) el.textContent = 'открой Telegram';
-        setTimeout(function() { if (el) el.textContent = 'ожидание…'; }, 10000);
+        if (data && data.tg_url) {
+          window.open(data.tg_url, '_blank');
+          if (el) el.textContent = 'открой Telegram';
+          setTimeout(function() { if (el) el.textContent = 'ожидание…'; }, 10000);
+        } else { if (el) el.textContent = 'не подключён'; }
       } else { if (el) el.textContent = 'не подключён'; }
     } catch(e) { if (el) el.textContent = 'не подключён'; }
   };
