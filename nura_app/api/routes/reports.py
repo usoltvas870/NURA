@@ -77,6 +77,18 @@ GENERATING_HTML = """<!DOCTYPE html>
 </html>"""
 
 
+@router.get("/sample")
+async def serve_sample_report():
+    sample_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "templates", "reports", "sample-report.html"
+    )
+    sample_path = os.path.abspath(sample_path)
+    if os.path.exists(sample_path):
+        with open(sample_path, "r", encoding="utf-8") as f:
+            return Response(content=f.read(), media_type="text/html")
+    return HTMLResponse(content=NOT_FOUND_HTML, status_code=404)
+
+
 @router.get("/{token}")
 async def serve_report(token: str):
     session_factory = get_async_sessionmaker()
