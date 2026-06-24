@@ -47,6 +47,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 .btn-primary:hover{background:var(--terra-d)}
 .btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
 .btn-full{width:100%}
+.chevron{color:var(--text-m);font-size:19px;line-height:1;flex-shrink:0}
 </style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><span class="header-title">Профиль</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page"><section class="card profile-hero"><div class="avatar" id="avatar-initials">А</div><div><div class="profile-name" id="profile-name">Алина</div><div class="small" id="profile-dob">дата рождения</div><span class="badge" id="profile-archetype">✦ Загрузка…</span></div></section><div class="tabs"><button class="tab-btn active" data-tab="reports">Отчёты</button><button class="tab-btn" data-tab="subscription">Подписка</button><button class="tab-btn" data-tab="notifications">Уведомления</button><button class="tab-btn" data-tab="settings">Настройки</button></div>
 <section class="panel active" id="tab-reports">
 <article class="card list-card"><div><div class="list-title">Матрица Судьбы · полный разбор</div><div class="list-sub">Разовая покупка · доступ навсегда</div></div><button class="btn btn-soft" onclick="openReport('matrix-full')">Открыть</button></article>
@@ -65,11 +66,11 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <label class="toggle-row"><div><div class="list-title">Новости NURA</div><div class="list-sub">Обновления и новые функции</div></div><span class="switch"><input type="checkbox" onchange="saveNotif('news', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
 </div></section>
 <section class="panel" id="tab-settings">
-<article class="card list-card" role="button" tabindex="0" onclick="editProfile()"><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="small">›</span></article>
-<article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()"><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="small">›</span></article>
-<article class="card list-card" role="button" tabindex="0" id="themeToggle2" onclick="document.getElementById('themeToggle').click()"><div><div class="list-title">Тема</div><div class="list-sub" id="theme-label">Светлая</div></div><span class="small">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Политика конфиденциальности</div></div><span class="small">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Обратная связь</div></div><span class="small">›</span></article>
+<article class="card list-card" role="button" tabindex="0" onclick="editProfile()"><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="chevron">›</span></article>
+<article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()"><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="chevron">›</span></article>
+<article class="card list-card" role="button" tabindex="0" id="themeToggle2" onclick="document.getElementById('themeToggle').click()"><div><div class="list-title">Тема</div><div class="list-sub" id="theme-label">Светлая</div></div><span class="chevron">›</span></article>
+<article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Политика конфиденциальности</div></div><span class="chevron">›</span></article>
+<article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Обратная связь</div></div><span class="chevron">›</span></article>
 <article class="card list-card" role="button" tabindex="0" onclick="logout()"><div><div class="list-title" style="color:#C45C5C">Выйти из аккаунта</div></div></article>
 </section>
 </main></div>
