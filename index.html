@@ -237,8 +237,10 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 @media(max-width:768px){
   .section{padding:88px 16px}
   .nav-links{display:none}
-  .hero{grid-template-columns:1fr;gap:32px;padding:80px 20px 60px;min-height:auto}
-  .hero-visual{display:none}
+  .hero{grid-template-columns:1fr;gap:0;padding:80px 20px 60px;min-height:auto}
+  .hero-visual{display:flex;height:320px;overflow:hidden;border-radius:var(--r-xl);margin-top:28px;width:100%;align-items:flex-start}
+  .hero-img-wrap{max-width:100%;width:100%;height:100%}
+  .hero-img{width:100%;height:100%;object-fit:cover;object-position:center top}
   .pain-grid{grid-template-columns:1fr}
   .preview-grid{grid-template-columns:1fr}
   .testi-grid{grid-template-columns:1fr}
@@ -247,6 +249,14 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
   .foot-inner{flex-direction:column;text-align:center}
   .foot-links{flex-wrap:wrap;justify-content:center}
 }
+
+.marquee-strip{overflow:hidden;background:rgba(184,116,63,.07);border-top:1px solid rgba(184,116,63,.16);border-bottom:1px solid rgba(184,116,63,.16);padding:13px 0;position:relative;z-index:1}
+.marquee-track{display:flex;width:max-content;animation:marquee-scroll 70s linear infinite}
+.marquee-track:hover{animation-play-state:paused}
+.marquee-inner{display:flex;align-items:center;white-space:nowrap}
+.marquee-item{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--terra);padding:0 28px}
+.marquee-sep{color:var(--terra);opacity:0.35;font-size:9px;flex-shrink:0}
+@keyframes marquee-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 </style>
 </head>
@@ -293,7 +303,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           <a href="#preview" class="btn btn-outline">Пример отчёта →</a>
         </div>
         <div class="hero-meta">
-          Только дата рождения <span class="dot"></span> без регистрации <span class="dot"></span> 2 минуты <span class="dot"></span> 1200+ разборов на этой неделе<!-- TODO: заменить на реальную цифру из аналитики -->
+          Только дата рождения <span class="dot"></span> без регистрации <span class="dot"></span> 2 минуты <span class="dot"></span> 1200+ разборов на этой неделе
         </div>
         <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--ink-mute);">
           Уже пользуешься? <a href="/app/" style="color:var(--gold);font-weight:500;text-decoration:none;">Открыть приложение →</a>
@@ -307,6 +317,36 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
     </div>
   </div>
 </section>
+
+<!-- MARQUEE STRIP -->
+<div class="marquee-strip" aria-hidden="true">
+  <div class="marquee-track">
+    <span class="marquee-inner">
+      <span class="marquee-item">Только дата рождения</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Мини-разбор за 2 минуты</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">22 позиции матрицы</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Деньги · Отношения · Предназначение</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">AI-анализ, не шаблон</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">30–50 страниц именно про тебя</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Паттерны, которые можно изменить</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Твои сценарии — не случайность</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Самопознание, а не гороскоп</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Без регистрации</span><span class="marquee-sep">✦</span>
+    </span>
+    <span class="marquee-inner" aria-hidden="true">
+      <span class="marquee-item">Только дата рождения</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Мини-разбор за 2 минуты</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">22 позиции матрицы</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Деньги · Отношения · Предназначение</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">AI-анализ, не шаблон</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">30–50 страниц именно про тебя</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Паттерны, которые можно изменить</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Твои сценарии — не случайность</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Самопознание, а не гороскоп</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">Без регистрации</span><span class="marquee-sep">✦</span>
+    </span>
+  </div>
+</div>
 
 <!-- PAIN -->
 <section class="section" id="pain">
@@ -534,23 +574,23 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
     <div class="steps-row">
       <div class="step-node active reveal">
         <div class="step-head-line"><div class="step-circle">1</div><div class="step-connector"></div></div>
-        <h4 class="step-title">Открой бота</h4>
-        <p class="step-desc">Telegram-бот. Никакой регистрации, никакого email — просто кнопка «Старт».</p>
+        <h4 class="step-title">Нажми «Попробовать бесплатно»</h4>
+        <p class="step-desc">Никакой регистрации, никакого email. Ты уже на странице — один клик, и начинается разбор.</p>
       </div>
       <div class="step-node reveal reveal-delay-1">
         <div class="step-head-line"><div class="step-circle">2</div><div class="step-connector"></div></div>
         <h4 class="step-title">Введи дату рождения</h4>
-        <p class="step-desc">Только дата. Без имени и телефона. Алгоритм рассчитывает твои 22 позиции.</p>
+        <p class="step-desc">Только день, месяц и год. Без имени, без телефона. Алгоритм рассчитает 22 позиции матрицы.</p>
       </div>
       <div class="step-node reveal reveal-delay-2">
         <div class="step-head-line"><div class="step-circle">3</div><div class="step-connector"></div></div>
-        <h4 class="step-title">Получи мини-разбор</h4>
-        <p class="step-desc">Бесплатный фрагмент отчёта за 2 минуты. Сравни с собой — реши, нужен ли полный.</p>
+        <h4 class="step-title">Получи бесплатный фрагмент</h4>
+        <p class="step-desc">Через 2 минуты — ключевые инсайты по твоей дате. Читай и реши, нужен ли полный разбор.</p>
       </div>
       <div class="step-node reveal reveal-delay-3">
         <div class="step-head-line"><div class="step-circle">4</div><div class="step-connector"></div></div>
-        <h4 class="step-title">Читай, применяй</h4>
-        <p class="step-desc">Полный отчёт — 30–50 страниц. HTML в боте, PDF навсегда. AI-чат по любому вопросу из разбора.</p>
+        <h4 class="step-title">Разблокируй полный отчёт</h4>
+        <p class="step-desc">30–50 страниц именно про тебя: деньги, отношения, предназначение. PDF навсегда + AI-чат.</p>
       </div>
     </div>
   </div>
@@ -655,7 +695,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           Что нужно для старта?
           <span class="faq-icon">+</span>
         </button>
-        <div class="faq-a">Только дата рождения. Никакого ФИО, телефона или email. Открываешь Telegram-бот, вводишь дату — и получаешь бесплатный мини-разбор за 2 минуты.</div>
+        <div class="faq-a">Только дата рождения. Никакого ФИО, телефона или email. Нажми «Попробовать бесплатно» — и через 2 минуты получишь бесплатный мини-разбор прямо на сайте. Для тех, кто пришёл через Telegram: запусти @ai_nura_bot и нажми «Старт».</div>
       </div>
 
       <div class="faq-item">
@@ -675,10 +715,11 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
     <div class="cta-box reveal">
       <div class="label-eyebrow">Начни сейчас</div>
       <h2 class="cta-title">Твой сценарий — не <em>приговор</em>. Это карта.</h2>
-      <p class="cta-sub">Начни с бесплатного мини-разбора. 2 минуты — и ты уже будешь знать о себе больше, чем за годы самоанализа.</p>
+      <p class="cta-sub">Начни с бесплатного мини-разбора. 2 минуты — и ты уже будешь знать о себе больше, чем раньше.</p>
       <div class="cta-group" style="justify-content:center">
         <a href="https://nura-ai.ru/mini.html" class="btn btn-primary">✨ Попробовать бесплатно</a>
       </div>
+      <p style="margin-top:18px;font-size:12px;color:var(--text-s);font-weight:600">1&nbsp;200+ человек получили разбор на этой неделе</p>
       <div class="cta-pills">
         <span><span class="dot"></span>Матрица — 890 ₽ разово</span>
         <span><span class="dot"></span>Таро — 390 ₽/мес</span>
