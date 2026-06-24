@@ -27,16 +27,16 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 .photo-card{position:relative;overflow:hidden;border-radius:var(--r-xl);-webkit-tap-highlight-color:transparent;cursor:pointer}
 .photo-card-img{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s ease}
 .photo-card:active .photo-card-img{transform:scale(1.03)}
-.photo-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.90) 0%,rgba(18,16,14,.32) 55%,rgba(18,16,14,.08) 100%)}
+.photo-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.97) 0%,rgba(18,16,14,.75) 35%,rgba(18,16,14,.50) 62%,rgba(18,16,14,.32) 100%)}
 .photo-card-body{position:relative;z-index:1;padding:22px 20px 20px;display:flex;flex-direction:column;justify-content:flex-end}
-.eyebrow-light{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:10px}
+.eyebrow-light{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.90);background:rgba(0,0,0,.38);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);padding:4px 10px;border-radius:999px;margin-bottom:12px}
 
 /* ── Hero greeting ── */
 .hero-photo{min-height:256px}
 .hero-photo .photo-card-body{min-height:256px}
-.greeting-title{font-family:var(--font-serif);font-size:clamp(36px,9vw,50px);line-height:1.05;font-weight:400;color:#fff;margin:0}
+.greeting-title{font-family:var(--font-serif);font-size:clamp(36px,9vw,50px);line-height:1.05;font-weight:400;color:#fff;margin:0;text-shadow:0 2px 16px rgba(0,0,0,.6),0 1px 4px rgba(0,0,0,.4)}
 .greeting-title em{color:#D4956A;font-style:italic}
-.greeting-sub{font-size:13px;color:rgba(255,255,255,.65);margin-top:7px;line-height:1.55}
+.greeting-sub{font-size:13px;color:rgba(255,255,255,.82);margin-top:7px;line-height:1.55;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 .hero-cta{margin-top:16px;align-self:flex-start}
 
 /* ── Matrix card ── */
@@ -44,9 +44,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 .matrix-photo .photo-card-overlay{background:linear-gradient(150deg,rgba(18,16,14,.55) 0%,rgba(18,16,14,.94) 100%)}
 .matrix-photo .photo-card-body{min-height:210px;padding:20px}
 .arcane{display:flex;gap:10px;align-items:baseline;margin:6px 0 8px}
-.arcane-num{font-family:var(--font-serif);font-size:74px;line-height:.88;color:#D4956A;font-weight:600}
-.arcane-name{font-family:var(--font-serif);font-size:28px;line-height:1.1;color:#fff}
-.matrix-desc{font-size:13px;color:rgba(255,255,255,.6);line-height:1.55;margin-bottom:14px}
+.arcane-num{font-family:var(--font-serif);font-size:74px;line-height:.88;color:#D4956A;font-weight:600;text-shadow:0 2px 20px rgba(0,0,0,.5)}
+.arcane-name{font-family:var(--font-serif);font-size:28px;line-height:1.1;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.5)}
+.matrix-desc{font-size:13px;color:rgba(255,255,255,.75);line-height:1.55;margin-bottom:14px;text-shadow:0 1px 6px rgba(0,0,0,.4)}
 .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .btn-ghost{border:1px solid rgba(255,255,255,.35);color:#fff;background:rgba(255,255,255,.07);backdrop-filter:blur(4px)}
 .btn-ghost:active{background:rgba(255,255,255,.14)}

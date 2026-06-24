@@ -27,16 +27,16 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 .photo-card{position:relative;overflow:hidden;border-radius:var(--r-xl);-webkit-tap-highlight-color:transparent}
 .photo-card-img{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s ease}
 .photo-card:active .photo-card-img{transform:scale(1.03)}
-.photo-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.92) 0%,rgba(18,16,14,.38) 55%,rgba(18,16,14,.10) 100%)}
+.photo-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.97) 0%,rgba(18,16,14,.75) 35%,rgba(18,16,14,.50) 62%,rgba(18,16,14,.32) 100%)}
 .photo-card-body{position:relative;z-index:1;padding:22px 20px 20px;display:flex;flex-direction:column;justify-content:flex-end}
 
 /* ── hero card of the day ── */
 .hero-day{min-height:280px;cursor:default}
-.hero-day-eyebrow{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:12px}
-.arcane-roman{font-family:var(--font-serif);font-size:72px;line-height:.88;color:#D4956A;font-weight:600;margin-bottom:6px}
-.arcane-name{font-family:var(--font-serif);font-size:28px;line-height:1.1;font-weight:400;color:#fff;margin-bottom:10px}
-.arcane-phrase{font-size:13px;line-height:1.6;color:rgba(255,255,255,.72);margin-bottom:14px}
-.arcane-advice{font-size:12px;line-height:1.5;color:rgba(212,149,106,.85);padding-top:12px;border-top:1px solid rgba(255,255,255,.12)}
+.hero-day-eyebrow{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.90);background:rgba(0,0,0,.38);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);padding:4px 10px;border-radius:999px;margin-bottom:14px}
+.arcane-roman{font-family:var(--font-serif);font-size:72px;line-height:.88;color:#D4956A;font-weight:600;margin-bottom:6px;text-shadow:0 2px 20px rgba(0,0,0,.55)}
+.arcane-name{font-family:var(--font-serif);font-size:28px;line-height:1.1;font-weight:400;color:#fff;margin-bottom:10px;text-shadow:0 1px 10px rgba(0,0,0,.55)}
+.arcane-phrase{font-size:13px;line-height:1.6;color:rgba(255,255,255,.85);margin-bottom:14px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.arcane-advice{font-size:12px;line-height:1.5;color:rgba(212,149,106,.90);padding-top:12px;border-top:1px solid rgba(255,255,255,.14);text-shadow:0 1px 4px rgba(0,0,0,.4)}
 .share-row{margin-top:16px}
 .btn-ghost-sm{border:1px solid rgba(255,255,255,.30);color:rgba(255,255,255,.85);background:rgba(255,255,255,.07);backdrop-filter:blur(4px);padding:8px 14px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
 
@@ -50,9 +50,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 .practice-photo .photo-card-overlay{background:linear-gradient(to top,rgba(18,16,14,.88) 0%,rgba(18,16,14,.20) 60%,transparent 100%)}
 .practice-photo.locked .photo-card-overlay{background:linear-gradient(to top,rgba(18,16,14,.93) 0%,rgba(18,16,14,.50) 60%,rgba(18,16,14,.25) 100%)}
 .practice-photo-body{position:relative;z-index:1;padding:14px 12px 12px;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-height:148px}
-.practice-tag{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.50);margin-bottom:6px}
-.practice-label{font-size:13px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:3px}
-.practice-sub-txt{font-size:11px;color:rgba(255,255,255,.55);line-height:1.35}
+.practice-tag{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.70);margin-bottom:6px;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+.practice-label{font-size:13px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:3px;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+.practice-sub-txt{font-size:11px;color:rgba(255,255,255,.75);line-height:1.35;text-shadow:0 1px 4px rgba(0,0,0,.5)}
 .lock-badge{position:absolute;top:10px;right:10px;z-index:2;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(18,16,14,.55);border:1px solid rgba(255,255,255,.18);font-size:11px;color:rgba(255,255,255,.65)}
 
 /* ── wide practice card (full width) ── */
