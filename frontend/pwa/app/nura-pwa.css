@@ -37,7 +37,7 @@ button{border:0;background:none;color:inherit;cursor:pointer}
 .page{padding:20px 16px 28px;display:grid;gap:18px}
 
 /* Typography */
-.eyebrow{font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:var(--terra)}
+.eyebrow{font-size:11.5px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--terra)}
 .title{font-family:var(--font-serif);font-size:clamp(32px,8vw,44px);line-height:1.08;font-weight:400;letter-spacing:-.02em}
 .title em{color:var(--terra);font-style:italic}
 .lead{color:var(--text-m);font-size:14.5px;line-height:1.6}
@@ -50,7 +50,7 @@ button{border:0;background:none;color:inherit;cursor:pointer}
 /* Section */
 .section-block{display:grid;gap:10px}
 .section-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px}
-.section-title{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--text-s)}
+.section-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-s)}
 .section-link{font-size:12px;color:var(--terra);font-weight:800}
 
 /* Button */
@@ -72,7 +72,7 @@ button{border:0;background:none;color:inherit;cursor:pointer}
 .input::placeholder,.textarea::placeholder{color:var(--text-s)}
 
 /* Meta */
-.meta-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-s);font-weight:700}
+.meta-label{font-size:11.5px;letter-spacing:.10em;text-transform:uppercase;color:var(--text-s);font-weight:700}
 .small{font-size:12px;color:var(--text-s);line-height:1.5}
 
 /* Tabbar */
