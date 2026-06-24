@@ -43,7 +43,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <section class="hero"><div class="eyebrow">Личный центр</div><h1 class="greeting-title" id="greeting-name">Привет, <em>Алина</em></h1><p class="lead">Твой отчёт, карта дня и вопросы к NURA собраны в одном месте.</p></section>
 <section class="card status-card"><div class="status-row"><div class="status-icon"><i class="ti ti-file-check"></i></div><div><div class="meta-label">Твой путь</div><p class="lead" style="margin-top:4px" id="status-copy">Получи полный отчёт, чтобы раскрыть свою Матрицу.</p></div></div><button class="btn btn-primary btn-full" style="margin-top:14px" id="report-cta" onclick="openReport()">Получить полный отчёт</button></section>
 <section class="card matrix-card"><div class="meta-label">Матрица Судьбы · центр</div><div class="arcane"><span class="arcane-num" id="matrix-num">…</span><span class="arcane-name" id="matrix-name">…</span></div><p class="lead" id="matrix-desc">Загрузка данных матрицы…</p><div class="btn-row"><button class="btn btn-primary" onclick="openReport()">Открыть разбор</button><button class="btn btn-chat" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button></div></section>
-<section class="section-block"><div class="section-head"><span class="section-title">Сегодня для тебя</span><a href="tarot.html" class="section-link">практики →</a></div><article class="card day-card" onclick="location.href='tarot.html'"><div class="day-symbol" id="day-symbol">…</div><div><div class="day-name" id="day-name">Загрузка…</div><div class="day-phrase" id="day-phrase">Получаем твою карту дня…</div></div><span style="color:var(--text-s);font-size:24px">›</span></article></section>
+<section class="section-block"><div class="section-head"><span class="section-title">Сегодня для тебя</span><a href="tarot.html" class="section-link">практики →</a></div><article class="card day-card" role="button" tabindex="0" onclick="location.href='tarot.html'"><div class="day-symbol" id="day-symbol">…</div><div><div class="day-name" id="day-name">Загрузка…</div><div class="day-phrase" id="day-phrase">Получаем твою карту дня…</div></div><span style="color:var(--text-s);font-size:24px">›</span></article></section>
 <section class="section-block"><div class="section-head"><span class="section-title">Быстрые вопросы</span></div><div class="quick-grid">
 <article class="card quick-card accent-top" onclick="askNura('Какой мой главный шаг на сегодня?')"><div class="quick-icon"><i class="ti ti-sparkles"></i></div><div class="quick-title">Шаг на сегодня</div><div class="quick-sub">Короткий совет по твоей матрице</div></article>
 <article class="card quick-card accent-top" onclick="askNura('Что сейчас блокирует мой рост?')"><div class="quick-icon"><i class="ti ti-lock-open"></i></div><div class="quick-title">Что блокирует рост?</div><div class="quick-sub">Один внутренний узел</div></article>
@@ -129,7 +129,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         if (d.arcana_symbol) $('day-symbol').textContent = d.arcana_symbol;
         if (d.arcana_name) $('day-name').textContent = d.arcana_name;
         if (d.key_phrase) $('day-phrase').textContent = d.key_phrase;
-      });
+      })
+      .catch(function() { $('day-phrase').textContent = 'Не удалось загрузить карту дня.'; });
   }
 
   document.getElementById('themeToggle').addEventListener('click', function() {

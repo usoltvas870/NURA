@@ -63,7 +63,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         if (d.arcana_name) $('hero-name').textContent = d.arcana_name;
         if (d.key_phrase) $('hero-phrase').textContent = d.key_phrase;
         if (d.advice) $('hero-advice').textContent = 'Совет: ' + d.advice;
-      });
+      })
+      .catch(function() { $('hero-phrase').textContent = 'Не удалось загрузить карту дня.'; });
 
     N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
       .then(function(d) {
@@ -84,7 +85,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
           var q = map[title] || 'Практика по моей матрице';
           el.onclick = function() { askNura(q); };
         });
-      });
+      })
+      .catch(function() { /* практики останутся заблокированными — допустимо */ });
   }
 
   window.openPaywall = function() {
