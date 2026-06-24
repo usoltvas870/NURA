@@ -19,43 +19,139 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-<link rel="stylesheet" href="nura-pwa.css?v=8"/>
-<link rel="stylesheet" href="/theme.css?v=8"/>
+<link rel="stylesheet" href="nura-pwa.css?v=9"/>
+<link rel="stylesheet" href="/theme.css?v=9"/>
 <title>NURA · Главная</title><meta name="description" content="Личный центр NURA после мини-разбора или покупки отчёта."><style>
-.hero{display:grid;gap:10px}
-.greeting-title{font-family:var(--font-serif);font-size:clamp(32px,8vw,44px);line-height:1.08;font-weight:400}
-.greeting-title em{color:var(--terra);font-style:italic}
-.status-card{padding:18px;background:linear-gradient(135deg,rgba(184,116,63,.10),rgba(194,164,118,.10)),var(--bg-card)}
-.status-row{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:center}
-.status-icon{width:42px;height:42px;border-radius:15px;background:rgba(184,116,63,.10);display:grid;place-items:center;color:var(--terra);font-size:22px}
-.matrix-card{padding:22px;background:radial-gradient(circle at 90% 8%,rgba(194,164,118,.20),transparent 34%),var(--bg-card)}
-.arcane{display:flex;gap:12px;align-items:baseline;margin:12px 0}
-.arcane-num{font-family:var(--font-serif);font-size:68px;line-height:.9;color:var(--terra);font-weight:600}
-.arcane-name{font-family:var(--font-serif);font-size:29px;line-height:1.08}
-.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
-.day-card{display:grid;grid-template-columns:58px 1fr 22px;gap:14px;align-items:center;padding:16px;cursor:pointer}
-.day-symbol{width:58px;height:58px;border-radius:17px;display:grid;place-items:center;background:rgba(184,116,63,.08);color:var(--terra);font-family:var(--font-serif);font-size:29px}
-.day-name{font-family:var(--font-serif);font-size:21px;margin-bottom:4px}
-.day-phrase{font-size:13px;line-height:1.45;color:var(--text-m)}
+
+/* ── Photo card base ── */
+.photo-card{position:relative;overflow:hidden;border-radius:var(--r-xl);-webkit-tap-highlight-color:transparent;cursor:pointer}
+.photo-card-img{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s ease}
+.photo-card:active .photo-card-img{transform:scale(1.03)}
+.photo-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.90) 0%,rgba(18,16,14,.32) 55%,rgba(18,16,14,.08) 100%)}
+.photo-card-body{position:relative;z-index:1;padding:22px 20px 20px;display:flex;flex-direction:column;justify-content:flex-end}
+.eyebrow-light{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:10px}
+
+/* ── Hero greeting ── */
+.hero-photo{min-height:256px}
+.hero-photo .photo-card-body{min-height:256px}
+.greeting-title{font-family:var(--font-serif);font-size:clamp(36px,9vw,50px);line-height:1.05;font-weight:400;color:#fff;margin:0}
+.greeting-title em{color:#D4956A;font-style:italic}
+.greeting-sub{font-size:13px;color:rgba(255,255,255,.65);margin-top:7px;line-height:1.55}
+.hero-cta{margin-top:16px;align-self:flex-start}
+
+/* ── Matrix card ── */
+.matrix-photo{min-height:210px}
+.matrix-photo .photo-card-overlay{background:linear-gradient(150deg,rgba(18,16,14,.55) 0%,rgba(18,16,14,.94) 100%)}
+.matrix-photo .photo-card-body{min-height:210px;padding:20px}
+.arcane{display:flex;gap:10px;align-items:baseline;margin:6px 0 8px}
+.arcane-num{font-family:var(--font-serif);font-size:74px;line-height:.88;color:#D4956A;font-weight:600}
+.arcane-name{font-family:var(--font-serif);font-size:28px;line-height:1.1;color:#fff}
+.matrix-desc{font-size:13px;color:rgba(255,255,255,.6);line-height:1.55;margin-bottom:14px}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-ghost{border:1px solid rgba(255,255,255,.35);color:#fff;background:rgba(255,255,255,.07);backdrop-filter:blur(4px)}
+.btn-ghost:active{background:rgba(255,255,255,.14)}
+
+/* ── Day card ── */
+.day-card-new{display:flex;gap:16px;align-items:center;padding:18px 20px}
+.day-symbol-new{width:66px;height:66px;border-radius:18px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-family:var(--font-serif);font-size:32px;flex-shrink:0;border:1px solid rgba(184,116,63,.16)}
+.day-name-new{font-family:var(--font-serif);font-size:22px;margin-bottom:5px;color:var(--text)}
+.day-phrase-new{font-size:13px;line-height:1.5;color:var(--text-m)}
+
+/* ── Quick grid ── */
 .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.quick-card{padding:16px;min-height:108px}
-.quick-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px;background:rgba(107,128,104,.10);color:var(--sage);font-size:20px}
-.quick-title{font-size:14px;font-weight:800;margin-bottom:5px}
-.quick-sub{font-size:12px;color:var(--text-m);line-height:1.4}
-@media(max-width:380px){.btn-row,.quick-grid{grid-template-columns:1fr}}
+.quick-card{padding:18px 16px 16px;min-height:122px;display:flex;flex-direction:column;justify-content:flex-end;border-top:2px solid var(--terra)}
+.quick-num{font-family:var(--font-serif);font-size:30px;color:rgba(184,116,63,.22);font-weight:600;line-height:1;margin-bottom:10px}
+.quick-title{font-size:14px;font-weight:800;margin-bottom:4px;color:var(--text)}
+.quick-sub{font-size:11.5px;color:var(--text-m);line-height:1.4}
+
+/* ── Section head ── */
+.section-head-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.section-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-s)}
+.section-link{font-size:12px;color:var(--terra);font-weight:700}
+
+@media(max-width:360px){.btn-row,.quick-grid{grid-template-columns:1fr}}
 </style></head><body>
 <div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header>
 <main class="page">
-<section class="hero"><div class="eyebrow">Личный центр</div><h1 class="greeting-title" id="greeting-name">Привет, <em>Алина</em></h1><p class="lead">Твой отчёт, карта дня и вопросы к NURA собраны в одном месте.</p></section>
-<section class="card status-card"><div class="status-row"><div class="status-icon"><i class="ti ti-file-check"></i></div><div><div class="meta-label">Твой путь</div><p class="lead" style="margin-top:4px" id="status-copy">Получи полный отчёт, чтобы раскрыть свою Матрицу.</p></div></div><button class="btn btn-primary btn-full" style="margin-top:14px" id="report-cta" onclick="openReport()">Получить полный отчёт</button></section>
-<section class="card matrix-card"><div class="meta-label">Матрица Судьбы · центр</div><div class="arcane"><span class="arcane-num skeleton skeleton-num" id="matrix-num"></span><span class="arcane-name skeleton skeleton-name" id="matrix-name"></span></div><p class="lead" id="matrix-desc"><span class="skeleton skeleton-line" style="width:88%"></span><span class="skeleton skeleton-line" style="width:62%"></span></p><div class="btn-row"><button class="btn btn-primary" onclick="openReport()">Открыть разбор</button><button class="btn btn-chat" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button></div></section>
-<section class="section-block"><div class="section-head"><span class="section-title">Сегодня для тебя</span><a href="tarot.html" class="section-link">практики →</a></div><article class="card day-card" role="button" tabindex="0" onclick="location.href='tarot.html'"><div class="day-symbol" id="day-symbol"><span class="skeleton skeleton-icon"></span></div><div><div class="day-name skeleton skeleton-name" id="day-name"></div><div class="day-phrase" id="day-phrase"><span class="skeleton skeleton-line" style="width:100%"></span><span class="skeleton skeleton-line" style="width:80%"></span></div></div><span style="color:var(--text-m);font-size:24px">›</span></article></section>
-<section class="section-block"><div class="section-head"><span class="section-title"><i class="ti ti-message-circle" style="font-size:13px;margin-right:5px;vertical-align:-1px"></i>Спроси NURA</span></div><div class="quick-grid">
-<article class="card quick-card accent-top" role="button" tabindex="0" onclick="askNura('Какой мой главный шаг на сегодня?')"><div class="quick-icon"><i class="ti ti-sparkles"></i></div><div class="quick-title">Шаг на сегодня</div><div class="quick-sub">Короткий совет по твоей матрице</div></article>
-<article class="card quick-card accent-top" role="button" tabindex="0" onclick="askNura('Что сейчас блокирует мой рост?')"><div class="quick-icon"><i class="ti ti-lock-open"></i></div><div class="quick-title">Что блокирует рост?</div><div class="quick-sub">Один внутренний узел</div></article>
-<article class="card quick-card accent-top" role="button" tabindex="0" onclick="askNura('Что мне важно понять про деньги?')"><div class="quick-icon"><i class="ti ti-coins"></i></div><div class="quick-title">Деньги</div><div class="quick-sub">Где утекает энергия дохода</div></article>
-<article class="card quick-card accent-top" role="button" tabindex="0" onclick="askNura('Что мне важно понять про отношения?')"><div class="quick-icon"><i class="ti ti-heart"></i></div><div class="quick-title">Отношения</div><div class="quick-sub">Повторяющийся сценарий</div></article>
-</div></section>
+
+<!-- Hero greeting photo card -->
+<div class="photo-card hero-photo">
+  <div class="photo-card-img" style="background-image:url('images/hero-greeting.webp')"></div>
+  <div class="photo-card-overlay"></div>
+  <div class="photo-card-body">
+    <div class="eyebrow-light">Личный центр</div>
+    <h1 class="greeting-title" id="greeting-name">Привет, <em>Алина</em></h1>
+    <p class="greeting-sub" id="status-copy">Твой отчёт, карта дня и вопросы к NURA собраны в одном месте.</p>
+    <button class="btn btn-primary hero-cta" id="report-cta" onclick="openReport()">Получить полный отчёт</button>
+  </div>
+</div>
+
+<!-- Matrix photo card -->
+<div class="photo-card matrix-photo">
+  <div class="photo-card-img" style="background-image:url('images/matrix-card.webp')"></div>
+  <div class="photo-card-overlay"></div>
+  <div class="photo-card-body">
+    <div class="eyebrow-light">Матрица Судьбы · центр</div>
+    <div class="arcane">
+      <span class="arcane-num skeleton skeleton-num" id="matrix-num"></span>
+      <span class="arcane-name skeleton skeleton-name" id="matrix-name"></span>
+    </div>
+    <p class="matrix-desc" id="matrix-desc"><span class="skeleton skeleton-line" style="width:88%"></span><span class="skeleton skeleton-line" style="width:62%"></span></p>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="openReport()">Открыть разбор</button>
+      <button class="btn btn-ghost" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day card -->
+<section class="section-block">
+  <div class="section-head-row">
+    <span class="section-label">Сегодня для тебя</span>
+    <a href="tarot.html" class="section-link">практики →</a>
+  </div>
+  <article class="card day-card-new" role="button" tabindex="0" onclick="location.href='tarot.html'">
+    <div class="day-symbol-new" id="day-symbol"><span class="skeleton skeleton-icon"></span></div>
+    <div style="flex:1;min-width:0">
+      <div class="day-name-new skeleton skeleton-name" id="day-name"></div>
+      <div class="day-phrase-new" id="day-phrase">
+        <span class="skeleton skeleton-line" style="width:100%"></span>
+        <span class="skeleton skeleton-line" style="width:75%"></span>
+      </div>
+    </div>
+    <span style="color:var(--text-m);font-size:22px;flex-shrink:0">›</span>
+  </article>
+</section>
+
+<!-- Quick questions -->
+<section class="section-block">
+  <div class="section-head-row">
+    <span class="section-label">Спроси NURA</span>
+  </div>
+  <div class="quick-grid">
+    <article class="card quick-card" role="button" tabindex="0" onclick="askNura('Какой мой главный шаг на сегодня?')">
+      <div class="quick-num">01</div>
+      <div class="quick-title">Шаг на сегодня</div>
+      <div class="quick-sub">Короткий совет по твоей матрице</div>
+    </article>
+    <article class="card quick-card" role="button" tabindex="0" onclick="askNura('Что сейчас блокирует мой рост?')">
+      <div class="quick-num">02</div>
+      <div class="quick-title">Что блокирует рост?</div>
+      <div class="quick-sub">Один внутренний узел</div>
+    </article>
+    <article class="card quick-card" role="button" tabindex="0" onclick="askNura('Что мне важно понять про деньги?')">
+      <div class="quick-num">03</div>
+      <div class="quick-title">Деньги</div>
+      <div class="quick-sub">Где утекает энергия дохода</div>
+    </article>
+    <article class="card quick-card" role="button" tabindex="0" onclick="askNura('Что мне важно понять про отношения?')">
+      <div class="quick-num">04</div>
+      <div class="quick-title">Отношения</div>
+      <div class="quick-sub">Повторяющийся сценарий</div>
+    </article>
+  </div>
+</section>
+
 </main></div>
 <nav class="tabbar"><div class="tabbar-inner">
 <a class="tab-item active" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
@@ -63,7 +159,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <a class="tab-item tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
 <a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
 </div></nav>
-<script src="nura-pwa.js?v=8"></script>
+<script src="nura-pwa.js?v=9"></script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
 <div id="pwa-ios-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
   <div style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
@@ -79,7 +175,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     <button onclick="hideIOSInstallModal()" style="background:var(--bg-card-soft);color:var(--text-m);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;width:100%">Может потом</button>
   </div>
 </div>
-<script src="/pwa-install.js?v=8"></script>
+<script src="/pwa-install.js?v=9"></script>
 <script type="text/javascript">
 (function() {
   var N = window.NURA;
