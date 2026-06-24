@@ -48,8 +48,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <main class="page">
 <section class="hero"><div class="eyebrow">Личный центр</div><h1 class="greeting-title" id="greeting-name">Привет, <em>Алина</em></h1><p class="lead">Твой отчёт, карта дня и вопросы к NURA собраны в одном месте.</p></section>
 <section class="card status-card"><div class="status-row"><div class="status-icon"><i class="ti ti-file-check"></i></div><div><div class="meta-label">Твой путь</div><p class="lead" style="margin-top:4px" id="status-copy">Получи полный отчёт, чтобы раскрыть свою Матрицу.</p></div></div><button class="btn btn-primary btn-full" style="margin-top:14px" id="report-cta" onclick="openReport()">Получить полный отчёт</button></section>
-<section class="card matrix-card"><div class="meta-label">Матрица Судьбы · центр</div><div class="arcane"><span class="arcane-num" id="matrix-num">…</span><span class="arcane-name" id="matrix-name">…</span></div><p class="lead" id="matrix-desc">Загрузка данных матрицы…</p><div class="btn-row"><button class="btn btn-primary" onclick="openReport()">Открыть разбор</button><button class="btn btn-chat" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button></div></section>
-<section class="section-block"><div class="section-head"><span class="section-title">Сегодня для тебя</span><a href="tarot.html" class="section-link">практики →</a></div><article class="card day-card" role="button" tabindex="0" onclick="location.href='tarot.html'"><div class="day-symbol" id="day-symbol">…</div><div><div class="day-name" id="day-name">Загрузка…</div><div class="day-phrase" id="day-phrase">Получаем твою карту дня…</div></div><span style="color:var(--text-m);font-size:24px">›</span></article></section>
+<section class="card matrix-card"><div class="meta-label">Матрица Судьбы · центр</div><div class="arcane"><span class="arcane-num skeleton skeleton-num" id="matrix-num"></span><span class="arcane-name skeleton skeleton-name" id="matrix-name"></span></div><p class="lead" id="matrix-desc"><span class="skeleton skeleton-line" style="width:88%"></span><span class="skeleton skeleton-line" style="width:62%"></span></p><div class="btn-row"><button class="btn btn-primary" onclick="openReport()">Открыть разбор</button><button class="btn btn-chat" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button></div></section>
+<section class="section-block"><div class="section-head"><span class="section-title">Сегодня для тебя</span><a href="tarot.html" class="section-link">практики →</a></div><article class="card day-card" role="button" tabindex="0" onclick="location.href='tarot.html'"><div class="day-symbol" id="day-symbol"><span class="skeleton skeleton-icon"></span></div><div><div class="day-name skeleton skeleton-name" id="day-name"></div><div class="day-phrase" id="day-phrase"><span class="skeleton skeleton-line" style="width:100%"></span><span class="skeleton skeleton-line" style="width:80%"></span></div></div><span style="color:var(--text-m);font-size:24px">›</span></article></section>
 <section class="section-block"><div class="section-head"><span class="section-title">Быстрые вопросы</span></div><div class="quick-grid">
 <article class="card quick-card accent-top" role="button" tabindex="0" onclick="askNura('Какой мой главный шаг на сегодня?')"><div class="quick-icon"><i class="ti ti-sparkles"></i></div><div class="quick-title">Шаг на сегодня</div><div class="quick-sub">Короткий совет по твоей матрице</div></article>
 <article class="card quick-card accent-top" role="button" tabindex="0" onclick="askNura('Что сейчас блокирует мой рост?')"><div class="quick-icon"><i class="ti ti-lock-open"></i></div><div class="quick-title">Что блокирует рост?</div><div class="quick-sub">Один внутренний узел</div></article>
@@ -121,22 +121,22 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
           $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
           $('report-cta').textContent = 'Получить полный отчёт';
         }
-        if (d.archetype_number) $('matrix-num').textContent = d.archetype_number;
-        if (d.archetype) $('matrix-name').textContent = d.archetype;
+        if (d.archetype_number) { $('matrix-num').textContent = d.archetype_number; $('matrix-num').classList.remove('skeleton'); }
+        if (d.archetype) { $('matrix-name').textContent = d.archetype; $('matrix-name').classList.remove('skeleton'); }
         if (d.archetype) $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype;
         else if (hasMini) $('matrix-desc').textContent = 'Мини-разбор пройден. Купи полный отчёт для детального разбора.';
         else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
       })
-      .catch(function() { $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.'; });
+      .catch(function() { $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.'; $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—'; $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных'; });
 
     N.fetchJSON(BASE + '/tarot/daily-card', {headers: {'X-Session-Id': session_id}})
       .then(function(d) {
         if (!d) return;
-        if (d.arcana_symbol) $('day-symbol').textContent = d.arcana_symbol;
-        if (d.arcana_name) $('day-name').textContent = d.arcana_name;
-        if (d.key_phrase) $('day-phrase').textContent = d.key_phrase;
+        if (d.arcana_symbol) { $('day-symbol').textContent = d.arcana_symbol; $('day-symbol').classList.remove('skeleton'); }
+        if (d.arcana_name) { $('day-name').textContent = d.arcana_name; $('day-name').classList.remove('skeleton'); }
+        if (d.key_phrase) { $('day-phrase').textContent = d.key_phrase; }
       })
-      .catch(function() { $('day-phrase').textContent = 'Не удалось загрузить карту дня.'; });
+      .catch(function() { $('day-phrase').textContent = 'Не удалось загрузить карту дня.'; $('day-symbol').classList.remove('skeleton'); $('day-symbol').textContent = '—'; $('day-name').classList.remove('skeleton'); $('day-name').textContent = 'Нет данных'; });
   }
 
   document.getElementById('themeToggle').addEventListener('click', function() {
