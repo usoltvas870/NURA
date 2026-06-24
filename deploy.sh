@@ -40,4 +40,9 @@ cp frontend/nura-hero.webp /var/www/nura-ai.ru/nura-hero.webp 2>/dev/null || tru
 echo "→ Reloading nginx..."
 nginx -t && systemctl reload nginx
 
+echo "→ Rebuilding API container..."
+cd /opt/nura/nura_app
+docker compose up -d --build api
+cd /opt/nura
+
 echo "✓ Deploy complete"
