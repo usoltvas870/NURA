@@ -19,16 +19,17 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-<link rel="stylesheet" href="nura-pwa.css?v=8"/>
-<link rel="stylesheet" href="/theme.css?v=8"/>
+<link rel="stylesheet" href="nura-pwa.css?v=9"/>
+<link rel="stylesheet" href="/theme.css?v=9"/>
 <title>NURA · Профиль</title><style>
-.profile-hero{display:grid;grid-template-columns:62px 1fr;gap:14px;align-items:center;padding:20px;background:linear-gradient(135deg,rgba(184,116,63,.09),rgba(194,164,118,.10)),var(--bg-card)}
-.avatar{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:rgba(184,116,63,.09);border:1px solid rgba(184,116,63,.18);color:var(--terra);font-weight:800;font-size:20px}
-.profile-name{font-family:var(--font-serif);font-size:30px;line-height:1.1}
-.badge{display:inline-flex;margin-top:6px;padding:5px 10px;border-radius:999px;background:rgba(184,116,63,.09);border:1px solid rgba(184,116,63,.16);color:var(--terra);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
-.tab-btn{flex:0 0 auto;padding:10px 13px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card);color:var(--text-m);font-size:12px;font-weight:800;cursor:pointer}
-.tab-btn.active{background:var(--terra);color:white;border-color:var(--terra)}
+.profile-hero{position:relative;overflow:hidden;padding:24px 20px 20px;background:linear-gradient(135deg,rgba(184,116,63,.13) 0%,rgba(194,164,118,.07) 50%,var(--bg-card) 100%);border-bottom:1px solid var(--line)}
+.profile-hero::before{content:'✦';position:absolute;right:16px;top:10px;font-family:var(--font-serif);font-size:90px;line-height:1;color:var(--terra);opacity:.06;pointer-events:none}
+.avatar{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;background:rgba(184,116,63,.12);border:2px solid rgba(184,116,63,.28);color:var(--terra);font-weight:800;font-size:24px;margin-bottom:14px;flex-shrink:0}
+.profile-name{font-family:var(--font-serif);font-size:34px;line-height:1.05;margin-bottom:4px}
+.badge{display:inline-flex;margin-top:8px;padding:6px 12px;border-radius:999px;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.20);color:var(--terra);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:14px 0 2px}.tabs::-webkit-scrollbar{display:none}
+.tab-btn{flex:0 0 auto;padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card);color:var(--text-m);font-size:12px;font-weight:800;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.tab-btn.active{background:var(--terra);color:white;border-color:var(--terra);box-shadow:0 4px 14px rgba(184,116,63,.28)}
 .panel{display:none;gap:10px}.panel.active{display:grid}
 .list-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:16px}.list-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-size:18px;flex-shrink:0}.list-icon.danger{background:rgba(196,92,92,.10);color:#C45C5C}
 .list-title{font-size:14px;font-weight:800;margin-bottom:4px}
@@ -48,7 +49,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 .btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
 .btn-full{width:100%}
 .chevron{color:var(--text-m);font-size:19px;line-height:1;flex-shrink:0}
-</style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><span class="header-title">Профиль</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page"><section class="card profile-hero"><div class="avatar" id="avatar-initials">А</div><div><div class="profile-name" id="profile-name">Алина</div><div class="small" id="profile-dob">дата рождения</div><span class="badge" id="profile-archetype">✦ Загрузка…</span></div></section><div class="tabs"><button class="tab-btn active" data-tab="reports">Отчёты</button><button class="tab-btn" data-tab="subscription">Подписка</button><button class="tab-btn" data-tab="notifications">Уведомления</button><button class="tab-btn" data-tab="settings">Настройки</button></div>
+</style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><span class="header-title">Профиль</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page"><section class="card profile-hero" style="padding:0"><div style="padding:24px 20px 18px"><div class="avatar" id="avatar-initials">А</div><div class="profile-name" id="profile-name">Алина</div><div class="small" id="profile-dob" style="color:var(--text-m);margin-top:4px">дата рождения</div><span class="badge" id="profile-archetype">✦ Загрузка…</span></div></section><div class="tabs"><button class="tab-btn active" data-tab="reports">Отчёты</button><button class="tab-btn" data-tab="subscription">Подписка</button><button class="tab-btn" data-tab="notifications">Уведомления</button><button class="tab-btn" data-tab="settings">Настройки</button></div>
 <section class="panel active" id="tab-reports">
 <article class="card list-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы · полный разбор</div><div class="list-sub">Разовая покупка · доступ навсегда</div></div><button class="btn btn-soft" onclick="openReport('matrix-full')">Открыть</button></article>
 <article class="card list-card"><div class="list-icon"><i class="ti ti-sparkles"></i></div><div><div class="list-title">Мини-разбор</div><div class="list-sub">Архетип, сила, конфликт, отношения</div></div><button class="btn btn-soft" onclick="location.href='/mini.html'">Открыть</button></article>
@@ -80,7 +81,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <a class="tab-item tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
 <a class="tab-item active" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
 </div></nav>
-<script src="nura-pwa.js?v=8"></script>
+<script src="nura-pwa.js?v=9"></script>
 <script type="text/javascript">
 (function() {
   var N = window.NURA;

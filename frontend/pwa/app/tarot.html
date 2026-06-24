@@ -19,41 +19,190 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-<link rel="stylesheet" href="nura-pwa.css?v=8"/>
-<link rel="stylesheet" href="/theme.css?v=8"/>
+<link rel="stylesheet" href="nura-pwa.css?v=9"/>
+<link rel="stylesheet" href="/theme.css?v=9"/>
 <title>NURA · Практики</title><style>
-.hero-card{padding:22px;background:radial-gradient(circle at 90% 0%,rgba(194,164,118,.22),transparent 36%),var(--bg-card)}
-.hero-num{position:absolute;right:20px;top:12px;font-family:var(--font-serif);font-size:78px;line-height:1;color:var(--terra);opacity:.12}
-.hero-symbol{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-family:var(--font-serif);font-size:32px;margin:14px 0}
-.hero-name{font-family:var(--font-serif);font-size:34px;line-height:1.1;margin-bottom:10px}
+
+/* ── photo card system (shared with index) ── */
+.photo-card{position:relative;overflow:hidden;border-radius:var(--r-xl);-webkit-tap-highlight-color:transparent}
+.photo-card-img{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s ease}
+.photo-card:active .photo-card-img{transform:scale(1.03)}
+.photo-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.92) 0%,rgba(18,16,14,.38) 55%,rgba(18,16,14,.10) 100%)}
+.photo-card-body{position:relative;z-index:1;padding:22px 20px 20px;display:flex;flex-direction:column;justify-content:flex-end}
+
+/* ── hero card of the day ── */
+.hero-day{min-height:280px;cursor:default}
+.hero-day-eyebrow{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:12px}
+.arcane-roman{font-family:var(--font-serif);font-size:72px;line-height:.88;color:#D4956A;font-weight:600;margin-bottom:6px}
+.arcane-name{font-family:var(--font-serif);font-size:28px;line-height:1.1;font-weight:400;color:#fff;margin-bottom:10px}
+.arcane-phrase{font-size:13px;line-height:1.6;color:rgba(255,255,255,.72);margin-bottom:14px}
+.arcane-advice{font-size:12px;line-height:1.5;color:rgba(212,149,106,.85);padding-top:12px;border-top:1px solid rgba(255,255,255,.12)}
+.share-row{margin-top:16px}
+.btn-ghost-sm{border:1px solid rgba(255,255,255,.30);color:rgba(255,255,255,.85);background:rgba(255,255,255,.07);backdrop-filter:blur(4px);padding:8px 14px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
+
+/* ── section head ── */
+.section-head-plain{padding:20px 0 10px;display:flex;align-items:baseline;gap:8px}
+.section-head-plain .section-title{font-size:14px;font-weight:800;color:var(--text)}
+
+/* ── practice grid with photos ── */
 .practice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.practice{padding:16px;min-height:128px;cursor:pointer}
-.practice.locked{background:var(--bg-card-soft)}
-.practice.locked .practice-icon{opacity:.55}
-.practice-icon{width:38px;height:38px;border-radius:14px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-size:20px;margin-bottom:12px}
-.practice-title{font-size:14px;font-weight:800;margin-bottom:5px}
-.practice-sub{font-size:12px;color:var(--text-m);line-height:1.4}
-.lock{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--bg-card-soft);border:1px solid var(--line);font-size:12px;color:var(--text-s)}
+.practice-photo{min-height:148px;cursor:pointer}
+.practice-photo .photo-card-overlay{background:linear-gradient(to top,rgba(18,16,14,.88) 0%,rgba(18,16,14,.20) 60%,transparent 100%)}
+.practice-photo.locked .photo-card-overlay{background:linear-gradient(to top,rgba(18,16,14,.93) 0%,rgba(18,16,14,.50) 60%,rgba(18,16,14,.25) 100%)}
+.practice-photo-body{position:relative;z-index:1;padding:14px 12px 12px;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-height:148px}
+.practice-tag{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.50);margin-bottom:6px}
+.practice-label{font-size:13px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:3px}
+.practice-sub-txt{font-size:11px;color:rgba(255,255,255,.55);line-height:1.35}
+.lock-badge{position:absolute;top:10px;right:10px;z-index:2;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(18,16,14,.55);border:1px solid rgba(255,255,255,.18);font-size:11px;color:rgba(255,255,255,.65)}
+
+/* ── wide practice card (full width) ── */
+.practice-wide{grid-column:1/-1;min-height:120px}
+.practice-wide .photo-card-overlay{background:linear-gradient(to right,rgba(18,16,14,.92) 0%,rgba(18,16,14,.30) 60%,rgba(18,16,14,.10) 100%)}
+.practice-wide .practice-photo-body{padding:20px}
+
+/* ── disclaimer card ── */
+.disclaimer-card{padding:16px 18px;border-left:3px solid var(--terra)}
+.disclaimer-card p{font-size:12px;line-height:1.6;color:var(--text-m);margin-top:6px}
+
+/* ── paywall sheet ── */
 .sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.38);backdrop-filter:blur(4px);z-index:60;opacity:0;pointer-events:none;transition:.25s}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--bg);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:.3s var(--ease)}
 .sheet-inner{width:min(100%,520px);margin:0 auto}.sheet.open{transform:none}.sheet-backdrop.open{opacity:1;pointer-events:auto}
 .handle{width:42px;height:4px;border-radius:99px;background:var(--line-strong);margin:0 auto 20px}
-.practice-nura .practice-icon{background:rgba(107,128,104,.12);color:var(--sage)}
-@media(max-width:380px){.practice-grid{grid-template-columns:1fr}}
-</style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><span class="header-title">Практики</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page"><section class="card hero-card"><div class="eyebrow">Карта дня · <span id="hero-date">сегодня</span></div><div class="hero-num" id="hero-num">XIX</div><div class="hero-symbol" id="hero-symbol">☉</div><h1 class="hero-name" id="hero-name">XIX · Солнце</h1><p class="lead" id="hero-phrase">День для ясности и открытых решений. Энергия Солнца помогает увидеть ситуацию без искажений.</p><p class="lead" style="border-top:1px solid var(--line);padding-top:12px;margin-top:12px" id="hero-advice">Совет: начни с самого важного, пока ясность не рассеялась.</p><button class="btn btn-soft" style="margin-top:16px" onclick="shareDayCard()"><i class="ti ti-share-3"></i> Поделиться</button></section><section class="section-block"><div class="section-head"><span class="section-title">Практики на языке арканов</span></div><div class="practice-grid">
-<article class="card practice locked" role="button" tabindex="0" onclick="openPaywall()"><span class="lock"><i class="ti ti-lock"></i></span><div class="practice-icon"><i class="ti ti-calendar-week"></i></div><div class="practice-title">Фокус недели</div><div class="practice-sub">Тело · Ум · Дух на 7 дней</div></article>
-<article class="card practice practice-nura accent-top locked" role="button" tabindex="0" onclick="openPaywall()"><span class="lock"><i class="ti ti-lock"></i></span><div class="practice-icon"><i class="ti ti-message-question"></i></div><div class="practice-title">Вопрос к NURA</div><div class="practice-sub">3 аркана для ситуации</div></article>
-<article class="card practice locked" role="button" tabindex="0" onclick="openPaywall()"><span class="lock"><i class="ti ti-lock"></i></span><div class="practice-icon"><i class="ti ti-coins"></i></div><div class="practice-title">Деньги</div><div class="practice-sub">Фокус дохода и действий</div></article>
-<article class="card practice locked" role="button" tabindex="0" onclick="openPaywall()"><span class="lock"><i class="ti ti-lock"></i></span><div class="practice-icon"><i class="ti ti-heart"></i></div><div class="practice-title">Отношения</div><div class="practice-sub">Сценарий пары и диалог</div></article>
-<article class="card practice locked" role="button" tabindex="0" onclick="openPaywall()"><span class="lock"><i class="ti ti-lock"></i></span><div class="practice-icon"><i class="ti ti-moon-stars"></i></div><div class="practice-title">Фокус месяца</div><div class="practice-sub">Что усилить и отпустить</div></article>
-<article class="card practice locked" role="button" tabindex="0" onclick="openPaywall()"><span class="lock"><i class="ti ti-lock"></i></span><div class="practice-icon"><i class="ti ti-bolt"></i></div><div class="practice-title">Короткий ответ</div><div class="practice-sub">Один аркан, один шаг</div></article></div></section><section class="card card-pad"><div class="eyebrow">Позиционирование</div><p class="lead" style="margin-top:8px">Карты не предсказывают будущее. Они помогают увидеть состояние, выбор и следующий шаг через язык архетипов.</p></section></main></div><div class="sheet-backdrop" id="pw-backdrop" onclick="closePaywall()"></div><div class="sheet" id="pw-sheet"><div class="sheet-inner"><div class="handle"></div><div class="eyebrow">Подписка · 390 ₽/мес</div><h2 class="title" style="font-size:34px;margin-top:8px">Разблокировать <em>ежедневные практики</em></h2><p class="lead" style="margin:12px 0 18px">Карта дня, фокус недели и вопросы к NURA на основе твоей Матрицы.</p><button class="btn btn-primary btn-full" onclick="location.href='profile.html#subscription'">Подключить подписку</button><button class="btn btn-soft btn-full" style="margin-top:10px" onclick="closePaywall()">Не сейчас</button></div></div>
+
+@media(max-width:360px){.practice-grid{grid-template-columns:1fr}.practice-wide{grid-column:auto}}
+</style></head><body><div class="app-shell"><header class="header">
+<a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a>
+<span class="header-title">Практики</span>
+<div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div>
+</header>
+
+<main class="page">
+
+  <!-- hero: card of the day -->
+  <div class="photo-card hero-day">
+    <div class="photo-card-img" style="background-image:url('images/tarot-hero.webp')"></div>
+    <div class="photo-card-overlay"></div>
+    <div class="photo-card-body">
+      <div class="hero-day-eyebrow">Карта дня · <span id="hero-date">сегодня</span></div>
+      <div class="arcane-roman" id="hero-num">XIX</div>
+      <div class="arcane-name" id="hero-name">XIX · Солнце</div>
+      <div class="arcane-phrase" id="hero-phrase">День для ясности и открытых решений. Энергия Солнца помогает увидеть ситуацию без искажений.</div>
+      <div class="arcane-advice" id="hero-advice">Совет: начни с самого важного, пока ясность не рассеялась.</div>
+      <div class="share-row">
+        <button class="btn-ghost-sm" onclick="shareDayCard()"><i class="ti ti-share-3"></i> Поделиться</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- practices section -->
+  <div class="section-head-plain">
+    <span class="section-title">Практики на языке арканов</span>
+  </div>
+
+  <div class="practice-grid">
+
+    <!-- wide: weekly focus -->
+    <article class="photo-card practice-photo practice-wide locked" role="button" tabindex="0" onclick="openPaywall()" id="p-week">
+      <div class="photo-card-img" style="background-image:url('images/practice-journal.webp')"></div>
+      <div class="photo-card-overlay"></div>
+      <span class="lock-badge"><i class="ti ti-lock"></i></span>
+      <div class="practice-photo-body">
+        <div class="practice-tag">Тело · Ум · Дух</div>
+        <div class="practice-label">Фокус недели</div>
+        <div class="practice-sub-txt">7 дней по твоей Матрице</div>
+      </div>
+    </article>
+
+    <!-- meditation -->
+    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall()" id="p-money">
+      <div class="photo-card-img" style="background-image:url('images/practice-meditation.webp')"></div>
+      <div class="photo-card-overlay"></div>
+      <span class="lock-badge"><i class="ti ti-lock"></i></span>
+      <div class="practice-photo-body">
+        <div class="practice-tag">Финансы</div>
+        <div class="practice-label">Деньги</div>
+        <div class="practice-sub-txt">Фокус дохода и действий</div>
+      </div>
+    </article>
+
+    <!-- relationships -->
+    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall()" id="p-rel">
+      <div class="photo-card-img" style="background-image:url('images/practice-body.webp')"></div>
+      <div class="photo-card-overlay"></div>
+      <span class="lock-badge"><i class="ti ti-lock"></i></span>
+      <div class="practice-photo-body">
+        <div class="practice-tag">Связи</div>
+        <div class="practice-label">Отношения</div>
+        <div class="practice-sub-txt">Сценарий пары и диалог</div>
+      </div>
+    </article>
+
+    <!-- month focus -->
+    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall()" id="p-month">
+      <div class="photo-card-img" style="background-image:url('images/practice-nature.webp')"></div>
+      <div class="photo-card-overlay"></div>
+      <span class="lock-badge"><i class="ti ti-lock"></i></span>
+      <div class="practice-photo-body">
+        <div class="practice-tag">Цикл</div>
+        <div class="practice-label">Фокус месяца</div>
+        <div class="practice-sub-txt">Что усилить и отпустить</div>
+      </div>
+    </article>
+
+    <!-- short answer -->
+    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall()" id="p-short">
+      <div class="photo-card-img" style="background-image:url('images/practice-breath.webp')"></div>
+      <div class="photo-card-overlay"></div>
+      <span class="lock-badge"><i class="ti ti-lock"></i></span>
+      <div class="practice-photo-body">
+        <div class="practice-tag">Быстро</div>
+        <div class="practice-label">Короткий ответ</div>
+        <div class="practice-sub-txt">Один аркан, один шаг</div>
+      </div>
+    </article>
+
+    <!-- ask nura -->
+    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall()" id="p-nura">
+      <div class="photo-card-img" style="background-image:url('images/practice-meditation.webp');filter:hue-rotate(160deg) saturate(.7)"></div>
+      <div class="photo-card-overlay" style="background:linear-gradient(to top,rgba(18,32,24,.93) 0%,rgba(18,32,24,.45) 60%,transparent 100%)"></div>
+      <span class="lock-badge"><i class="ti ti-lock"></i></span>
+      <div class="practice-photo-body">
+        <div class="practice-tag" style="color:rgba(107,180,120,.65)">NURA AI</div>
+        <div class="practice-label">Вопрос к NURA</div>
+        <div class="practice-sub-txt">3 аркана для ситуации</div>
+      </div>
+    </article>
+
+  </div>
+
+  <!-- disclaimer -->
+  <div class="card disclaimer-card" style="margin-top:10px">
+    <div class="eyebrow">Позиционирование</div>
+    <p>Карты не предсказывают будущее. Они помогают увидеть состояние, выбор и следующий шаг через язык архетипов.</p>
+  </div>
+
+</main></div>
+
+<!-- paywall sheet -->
+<div class="sheet-backdrop" id="pw-backdrop" onclick="closePaywall()"></div>
+<div class="sheet" id="pw-sheet"><div class="sheet-inner">
+  <div class="handle"></div>
+  <div class="eyebrow">Подписка · 390 ₽/мес</div>
+  <h2 class="title" style="font-size:32px;margin-top:8px">Разблокировать <em>ежедневные практики</em></h2>
+  <p class="lead" style="margin:12px 0 18px">Карта дня, фокус недели и вопросы к NURA на основе твоей Матрицы.</p>
+  <button class="btn btn-primary btn-full" onclick="location.href='profile.html#subscription'">Подключить подписку</button>
+  <button class="btn btn-soft btn-full" style="margin-top:10px" onclick="closePaywall()">Не сейчас</button>
+</div></div>
+
 <nav class="tabbar"><div class="tabbar-inner">
 <a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
 <a class="tab-item active" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
 <a class="tab-item tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
 <a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
 </div></nav>
-<script src="nura-pwa.js?v=8"></script>
+
+<script src="nura-pwa.js?v=9"></script>
 <script type="text/javascript">
 (function() {
   var N = window.NURA;
@@ -67,7 +216,6 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       .then(function(d) {
         if (!d) return;
         if (d.arcana_number) $('hero-num').textContent = d.arcana_number;
-        if (d.arcana_symbol) $('hero-symbol').textContent = d.arcana_symbol;
         if (d.arcana_name) $('hero-name').textContent = d.arcana_name;
         if (d.key_phrase) $('hero-phrase').textContent = d.key_phrase;
         if (d.advice) $('hero-advice').textContent = 'Совет: ' + d.advice;
@@ -77,33 +225,34 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
       .then(function(d) {
         if (!d || !d.has_tarot) return;
-        document.querySelectorAll('.practice.locked').forEach(function(el) {
+        var map = {
+          'p-week':  'Составь фокус недели по моей матрице: тело, ум, дух на 7 дней',
+          'p-money': 'Разбери мой денежный канал, фокус дохода и действий',
+          'p-rel':   'Разбери сценарий моих отношений и диалог пары',
+          'p-month': 'Составь фокус месяца: что усилить, что отпустить',
+          'p-short': 'Дай короткий ответ одним арканом, один шаг',
+          'p-nura':  'Разложи 3 аркана для моей текущей ситуации'
+        };
+        Object.keys(map).forEach(function(id) {
+          var el = $(id);
+          if (!el) return;
           el.classList.remove('locked');
-          var lock = el.querySelector('.lock');
+          var lock = el.querySelector('.lock-badge');
           if (lock) lock.remove();
-          var title = (el.querySelector('.practice-title') || {}).textContent || '';
-          var map = {
-            'Фокус недели': 'Составь фокус недели по моей матрице: тело, ум, дух на 7 дней',
-            'Вопрос к NURA': 'Разложи 3 аркана для моей текущей ситуации',
-            'Деньги': 'Разбери мой денежный канал, фокус дохода и действий',
-            'Отношения': 'Разбери сценарий моих отношений и диалог пары',
-            'Фокус месяца': 'Составь фокус месяца: что усилить, что отпустить',
-            'Короткий ответ': 'Дай короткий ответ одним арканом, один шаг'
-          };
-          var q = map[title] || 'Практика по моей матрице';
+          var q = map[id];
           el.onclick = function() { askNura(q); };
         });
       })
-      .catch(function() { /* практики останутся заблокированными — допустимо */ });
+      .catch(function() {});
   }
 
   window.openPaywall = function() {
-    document.getElementById('pw-backdrop').classList.add('open');
-    document.getElementById('pw-sheet').classList.add('open');
+    $('pw-backdrop').classList.add('open');
+    $('pw-sheet').classList.add('open');
   };
   window.closePaywall = function() {
-    document.getElementById('pw-backdrop').classList.remove('open');
-    document.getElementById('pw-sheet').classList.remove('open');
+    $('pw-backdrop').classList.remove('open');
+    $('pw-sheet').classList.remove('open');
   };
   window.askNura = function(text) {
     localStorage.setItem('nura_pending_question', text);
