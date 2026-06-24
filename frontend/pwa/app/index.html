@@ -107,12 +107,13 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <!-- Day card -->
 <section class="section-block">
   <div class="section-head-row">
-    <span class="section-label">Сегодня для тебя</span>
-    <a href="tarot.html" class="section-link">практики →</a>
+    <span class="section-label">Карта дня · твой архетип</span>
+    <a href="tarot.html" class="section-link">все практики →</a>
   </div>
-  <article class="card day-card-new" role="button" tabindex="0" onclick="location.href='tarot.html'">
+  <article class="card day-card-new" role="button" tabindex="0" onclick="location.href='tarot.html'" style="position:relative">
     <div class="day-symbol-new" id="day-symbol"><span class="skeleton skeleton-icon"></span></div>
     <div style="flex:1;min-width:0">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--terra);margin-bottom:4px">Аркан дня</div>
       <div class="day-name-new skeleton skeleton-name" id="day-name"></div>
       <div class="day-phrase-new" id="day-phrase">
         <span class="skeleton skeleton-line" style="width:100%"></span>

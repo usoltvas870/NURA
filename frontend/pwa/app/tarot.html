@@ -80,7 +80,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <main class="page">
 
   <!-- hero: card of the day -->
-  <div class="photo-card hero-day">
+  <div class="photo-card hero-day" onclick="openCardDetail()" style="cursor:pointer">
     <div class="photo-card-img" style="background-image:url('images/tarot-hero.webp')"></div>
     <div class="photo-card-overlay"></div>
     <div class="photo-card-body">
@@ -89,8 +89,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       <div class="arcane-name" id="hero-name">XIX · Солнце</div>
       <div class="arcane-phrase" id="hero-phrase">День для ясности и открытых решений. Энергия Солнца помогает увидеть ситуацию без искажений.</div>
       <div class="arcane-advice" id="hero-advice">Совет: начни с самого важного, пока ясность не рассеялась.</div>
-      <div class="share-row">
-        <button class="btn-ghost-sm" onclick="shareDayCard()"><i class="ti ti-share-3"></i> Поделиться</button>
+      <div class="share-row" style="display:flex;gap:8px;align-items:center">
+        <button class="btn-ghost-sm" onclick="event.stopPropagation();shareDayCard()"><i class="ti ti-share-3"></i> Поделиться</button>
+        <span style="font-size:11px;color:rgba(255,255,255,.50);display:flex;align-items:center;gap:4px"><i class="ti ti-info-circle" style="font-size:13px"></i> нажми для разбора</span>
       </div>
     </div>
   </div>
@@ -184,6 +185,31 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 
 </main></div>
 
+<!-- card detail sheet -->
+<div class="sheet-backdrop" id="card-backdrop" onclick="closeCardDetail()"></div>
+<div class="sheet" id="card-sheet" style="max-height:88dvh;overflow-y:auto"><div class="sheet-inner">
+  <div class="handle"></div>
+  <div class="eyebrow">Карта дня · <span id="sheet-date"></span></div>
+  <div style="display:flex;gap:14px;align-items:baseline;margin:12px 0 10px">
+    <span style="font-family:var(--font-serif);font-size:60px;line-height:.9;color:var(--terra);font-weight:600" id="sheet-num">XIX</span>
+    <span style="font-family:var(--font-serif);font-size:26px;line-height:1.1;color:var(--text)" id="sheet-name">Солнце</span>
+  </div>
+  <div style="padding:14px 16px;background:rgba(184,116,63,.07);border-radius:var(--r-md);border-left:3px solid var(--terra);margin-bottom:16px">
+    <div class="eyebrow" style="margin-bottom:6px">Значение карты</div>
+    <p id="sheet-phrase" style="font-size:14px;line-height:1.65;color:var(--text);margin:0"></p>
+  </div>
+  <div style="margin-bottom:18px">
+    <div class="eyebrow" style="margin-bottom:8px;color:var(--terra)">Совет на сегодня</div>
+    <p id="sheet-advice" style="font-size:14px;line-height:1.65;color:var(--text-m);margin:0"></p>
+  </div>
+  <div style="padding:14px 16px;background:var(--bg-card-soft);border-radius:var(--r-md);margin-bottom:16px;font-size:12px;line-height:1.55;color:var(--text-m)">
+    <strong style="color:var(--text);display:block;margin-bottom:4px">Как использовать карту?</strong>
+    Возьми главный вопрос своего дня и примерь к нему смысл карты. NURA поможет сделать это через контекст твоей Матрицы.
+  </div>
+  <button class="btn btn-primary btn-full" id="sheet-ask-btn">Спросить NURA об этой карте</button>
+  <button class="btn btn-soft btn-full" style="margin-top:8px" onclick="closeCardDetail()">Закрыть</button>
+</div></div>
+
 <!-- paywall sheet -->
 <div class="sheet-backdrop" id="pw-backdrop" onclick="closePaywall()"></div>
 <div class="sheet" id="pw-sheet"><div class="sheet-inner">
@@ -209,16 +235,19 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   var BASE = N.BASE, session_id = N.sessionId;
   var $ = document.getElementById.bind(document);
 
-  $('hero-date').textContent = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
+  var dateStr = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
+  $('hero-date').textContent = dateStr;
+
+  var cardData = { num: 'XIX', name: 'XIX · Солнце', phrase: 'День для ясности и открытых решений.', advice: 'Начни с самого важного, пока ясность не рассеялась.' };
 
   if (session_id) {
     N.fetchJSON(BASE + '/tarot/daily-card', {headers: {'X-Session-Id': session_id}})
       .then(function(d) {
         if (!d) return;
-        if (d.arcana_number) $('hero-num').textContent = d.arcana_number;
-        if (d.arcana_name) $('hero-name').textContent = d.arcana_name;
-        if (d.key_phrase) $('hero-phrase').textContent = d.key_phrase;
-        if (d.advice) $('hero-advice').textContent = 'Совет: ' + d.advice;
+        if (d.arcana_number) { $('hero-num').textContent = d.arcana_number; cardData.num = d.arcana_number; }
+        if (d.arcana_name) { $('hero-name').textContent = d.arcana_name; cardData.name = d.arcana_name; }
+        if (d.key_phrase) { $('hero-phrase').textContent = d.key_phrase; cardData.phrase = d.key_phrase; }
+        if (d.advice) { $('hero-advice').textContent = 'Совет: ' + d.advice; cardData.advice = d.advice; }
       })
       .catch(function() { $('hero-phrase').textContent = 'Не удалось загрузить карту дня.'; });
 
@@ -245,6 +274,24 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       })
       .catch(function() {});
   }
+
+  window.openCardDetail = function() {
+    $('sheet-date').textContent = dateStr;
+    $('sheet-num').textContent = cardData.num;
+    $('sheet-name').textContent = cardData.name;
+    $('sheet-phrase').textContent = cardData.phrase;
+    $('sheet-advice').textContent = cardData.advice;
+    $('sheet-ask-btn').onclick = function() {
+      closeCardDetail();
+      askNura('Разбери мою карту дня ' + cardData.name + ' через мою матрицу судьбы');
+    };
+    $('card-backdrop').classList.add('open');
+    $('card-sheet').classList.add('open');
+  };
+  window.closeCardDetail = function() {
+    $('card-backdrop').classList.remove('open');
+    $('card-sheet').classList.remove('open');
+  };
 
   window.openPaywall = function() {
     $('pw-backdrop').classList.add('open');

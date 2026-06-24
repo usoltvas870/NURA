@@ -46,6 +46,8 @@ body{overflow:hidden;padding-bottom:0}
 .send{width:40px;height:40px;border-radius:var(--r-md);display:grid;place-items:center;background:var(--terra);color:white;flex:0 0 auto}
 .send:disabled{background:var(--line-strong);color:var(--text-s)}
 .limit-note{flex:0 0 auto;padding:10px 14px;background:var(--bg-card-soft);border-bottom:1px solid var(--line);font-size:11px;color:var(--text-s);text-align:center}
+.limit-note a{color:var(--terra);font-weight:800}
+.limit-note.warn{background:rgba(184,116,63,.08);color:var(--terra)}
 .typing{align-self:flex-start;display:flex;gap:5px;padding:12px 16px;border-radius:17px;border-bottom-left-radius:5px;background:var(--bg-card);border:1px solid var(--line)}
 .typing span{width:6px;height:6px;border-radius:50%;background:var(--terra);opacity:.45;animation:bounce 1.2s infinite}
 .typing span:nth-child(2){animation-delay:.18s}.typing span:nth-child(3){animation-delay:.36s}
@@ -66,8 +68,37 @@ body{overflow:hidden;padding-bottom:0}
       inputEl = document.getElementById('chat-input'),
       sendBtn = document.getElementById('send-btn'),
       emptyState = document.getElementById('empty-state'),
+      limitNote = document.getElementById('limit-note'),
       chatLog = JSON.parse(localStorage.getItem('nura_chat_log') || '[]'),
       typingEl = null;
+
+  var FREE_LIMIT = 5;
+  var today = new Date().toISOString().slice(0, 10);
+  var qUsed = parseInt(localStorage.getItem('nura_q_' + today) || '0', 10);
+  var hasUnlimited = false;
+
+  function updateLimitNote(exhausted) {
+    if (hasUnlimited) {
+      limitNote.className = 'limit-note';
+      limitNote.innerHTML = '✦ Безлимитный чат с NURA · подписка активна';
+      return;
+    }
+    if (exhausted || qUsed >= FREE_LIMIT) {
+      limitNote.className = 'limit-note warn';
+      limitNote.innerHTML = 'Бесплатный лимит исчерпан · <a href="profile.html#subscription">Подключить подписку →</a>';
+    } else {
+      var left = FREE_LIMIT - qUsed;
+      limitNote.className = 'limit-note';
+      limitNote.innerHTML = 'Осталось <strong>' + left + ' из ' + FREE_LIMIT + '</strong> бесплатных вопросов сегодня';
+    }
+  }
+  updateLimitNote();
+
+  if (session_id) {
+    N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
+      .then(function(d) { if (d && d.has_tarot) { hasUnlimited = true; updateLimitNote(); } })
+      .catch(function() {});
+  }
 
   inputEl.addEventListener('input', function() {
     this.style.height = 'auto';
@@ -117,11 +148,22 @@ body{overflow:hidden;padding-bottom:0}
       headers: { 'Content-Type': 'application/json', 'X-Session-Id': session_id || '' },
       body: JSON.stringify({ message: text, session_id: session_id, history: history })
     })
-    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(r) {
+      if (r.status === 429) return { _limit: true };
+      return r.json().then(function(j) { return r.ok ? j : Object.assign({ _status: r.status }, j); }).catch(function() { return { _status: r.status }; });
+    })
     .then(function(d) {
       hideTyping();
-      if (d && d.reply) { addBubble('nura', d.reply, N.now(), true); saveMsg('nura', d.reply, N.now()); }
-      else { addBubble('nura', 'Что-то пошло не так. Попробуй ещё раз.', N.now(), true); saveMsg('nura', 'Что-то пошло не так. Попробуй ещё раз.', N.now()); }
+      if (d && d.reply) {
+        addBubble('nura', d.reply, N.now(), true); saveMsg('nura', d.reply, N.now());
+        if (!hasUnlimited) { qUsed++; localStorage.setItem('nura_q_' + today, qUsed); updateLimitNote(); }
+      } else if (d && (d._limit || (d.detail && /limit|quota|exceed/i.test(d.detail)))) {
+        var limitMsg = 'Бесплатный лимит на сегодня исчерпан. Подключи подписку — доступ безлимитный.';
+        addBubble('nura', limitMsg, N.now(), true); saveMsg('nura', limitMsg, N.now());
+        updateLimitNote(true);
+      } else {
+        addBubble('nura', 'Что-то пошло не так. Попробуй ещё раз.', N.now(), true); saveMsg('nura', 'Что-то пошло не так. Попробуй ещё раз.', N.now());
+      }
     })
     .catch(function() {
       hideTyping();
