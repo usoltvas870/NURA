@@ -1,285 +1,136 @@
 # NURA — Agent Rules
 
 ## Language
-- Всегда отвечай на русском, даже если промт был на английском.
+- Всегда отвечай на русском.
 
 ## Project
 
 | | |
 |---|---|
 | Stack | Python 3.11, FastAPI 0.115, aiogram 3.13, SQLAlchemy 2.0 async, Redis, Celery |
-| AI | DeepSeek V4 Flash / V4 Pro |
-| PDF | WeasyPrint |
-| Frontend | HTML / CSS / JS (vanilla) |
+| AI | DeepSeek (via `core/prompts/`) |
+| PDF | WeasyPrint (templates in `templates/reports/`) |
+| Frontend | Vanilla HTML/CSS/JS, mobile-first, dark premium palette |
 | DB | PostgreSQL 16, Redis 7 |
-| Infra | Docker, Nginx, Certbot |
-| Analytics | Яндекс.Метрика |
-| Lint | Ruff (line-length 88, py311) |
-| Test | pytest-asyncio, pytest-cov |
+| Infra | Docker Compose, Nginx, Certbot |
+| Lint | Ruff (config: `ruff.toml`, target py311) |
+| Test | pytest + pytest-asyncio (`asyncio_mode = auto`) |
 
-## Directories
+## Working directory
+- **Все команды Python выполняются из `nura_app/`** — там лежат `requirements.txt`, `pytest.ini`, `alembic.ini`, `docker-compose.yml`.
+
+## Directories (relative to `nura_app/`)
 
 | Path | Role |
 |------|------|
-| `core/services/` | Domain logic (matrix, AI, reports, payments…) |
+| `core/services/` | Domain logic (matrix, AI, reports, payments) |
 | `core/models/` | SQLAlchemy models |
 | `core/repositories/` | Data access layer |
 | `core/schemas/` | Pydantic request/response |
-| `core/prompts/` | AI prompt templates |
+| `core/prompts/` | AI prompt templates — **единственное место для промптов** |
 | `core/tasks/` | Celery tasks |
+| `core/config.py` | **Единственный источник конфигурации** (pydantic-settings) |
 | `bot/handlers/` | Telegram bot message handlers |
 | `bot/keyboards/` | Inline/Reply keyboards |
-| `bot/middlewares/` | Bot middlewares |
+| `bot/middlewares/` | Bot middlewares (UserRegistration, Throttling, AntiFlood) |
 | `bot/states/` | FSM states |
-| `api/routes/` | FastAPI endpoints (webhooks, report serving) |
-| `api/deps/` | Dependency injection |
+| `api/routes/` | FastAPI endpoints (webhooks, report serving, payment, push) |
+| `api/deps.py` | Dependency injection + limiter |
 | `alembic/` | DB migrations |
 | `tests/` | Test suites |
-| `docs/` | Project documentation |
-| `frontend/` | Landing page (корень проекта) |
-| `templates/` | Jinja2-шаблоны отчётов (`reports/`) и слайдов (`carousel/`) |
+| `templates/` | Jinja2: `reports/` (HTML→PDF), `carousel/` (slides) |
+| `docs/` | Project specification (source of truth, see below) |
+| `frontend/` | Landing page + PWA assets (served from repo root via Nginx) |
 
 ## Source of Truth
-
-**Документация — приоритет.** Документы в `docs/` задают спецификацию. Если код расходится с документацией — код надо исправлять под доку, а не наоборот. `Nura PRD.txt` — канонический источник требований.
-
-Если при сверке кода с документацией возникают неоднозначности — задать вопрос пользователю, а не принимать решение самостоятельно.
+- `docs/` — спецификация продукта. Если код расходится с документацией — уточнить у пользователя.
+- `docs/README.md` — индекс всех документов, всегда актуален.
+- При неоднозначностях между кодом и доками — спрашивать, не решать самостоятельно.
 
 ## Architecture Rules
-
-1. Services depend on Repositories, never on Routes
-2. Routes depend on Services and Schemas, never on Repositories directly
-3. Models know nothing about API or Services
-4. Schemas validate input/output; Models define DB structure
-5. AI prompts in `core/prompts/` only, never inline in services
-6. Config via `core/config.py` (pydantic-settings), never hardcode
+1. Services → Repositories (никогда не наоборот)
+2. Routes → Services + Schemas (никогда не обращаются к Repositories напрямую)
+3. Models — только структура БД, не знают про API/Services
+4. AI промпты только в `core/prompts/`
+5. Конфигурация только через `core/config.py` (settings)
+6. Вся валидация ввода — через Pydantic BaseModel + Field validators
 
 ## Security (non-negotiable)
-
-- All user input is hostile — validate at every boundary
-- No custom crypto — use python-jose, passlib, cryptography
+- Весь пользовательский ввод — hostile. Валидировать на каждой границе.
+- No custom crypto — python-jose, passlib, cryptography
 - Secrets never in code, logs, or client bundles
-- Default deny — whitelist over blacklist (CORS, CSP, input)
-- Fail securely — no stack traces or internal info in error responses
-- Least privilege — services, DB users, API scopes, containers
-- Defense in depth — never rely on single layer
-- Rate limit all bot commands and API endpoints
-- Parameterized queries only — never interpolate user input into SQL
+- Default deny (CORS whitelist: только `https://nura-ai.ru`)
+- Fail securely — без stack traces в API-ответах
+- Rate limit на все bot-команды и API-endpoints (slowapi + middleware)
+- Parameterized queries only — никакой интерполяции в SQL
 
-## Output Protocol: CAVEMAN
-
-Zero conversational filler. Save tokens.
-
-1. NO greetings, NO conclusions, NO "Here is the code", NO "Let me know"
-2. Primitive speech: "Fix payment race condition" not "I will now fix the payment race condition"
-3. Output ONLY: code, file paths, terminal commands, ultra-short answers
-4. Bug format: "Bug: X. Fix: Y."
-5. NEVER explain code unless explicitly asked
-6. If task done — stop. No summary.
-
-## Code Style
-
-### Python
-- Ruff (pyproject.toml rules), type hints required
-- Async-first: SQLAlchemy 2.0 async, httpx, aiofiles
-- Pydantic BaseModel + Field validators for all I/O
-- No comments unless requested
-- No emoji in code unless requested
-
-### Frontend
-- Vanilla HTML/CSS/JS
-- Mobile-first responsive
-- Dark premium aesthetic (black/deep green/orange palette)
-- Consistent with landing page design
-
-## Commands
+## Commands (run from `nura_app/`)
 
 | Task | Command |
 |------|---------|
-| Lint Python | `ruff check .` |
-| Fix Python | `ruff check --fix .` |
+| Lint | `ruff check .` |
+| Lint fix | `ruff check --fix .` |
 | Test all | `pytest` |
-| Test with cov | `pytest --cov=core --cov=api --cov=bot` |
-| Docker dev | `docker compose -f docker-compose.dev.yml up -d` |
+| Test single file | `pytest tests/test_matrix.py -v` |
+| Test with coverage | `pytest --cov=core --cov=api --cov=bot` |
 | Alembic migrate | `alembic upgrade head` |
 | Alembic generate | `alembic revision --autogenerate -m "desc"` |
+| Docker up (dev) | `docker compose up -d` |
+| Docker rebuild one | `docker compose up -d --build bot` |
+
+## Testing quirks
+- **Тесты работают на SQLite** (aiosqlite) — в `conftest.py` переопределена компиляция JSONB и UUID типов для совместимости.
+- Redis требуется для интеграционных тестов (поднят как service в CI).
+- CI пропускает эти файлы: `tests/test_tarot_handlers.py`, `tests/test_handlers.py`, `tests/test_tasks.py` — см. аргументы `--ignore` в `ci-cd.yml`.
+- `APP_ENV=test` в CI.
+- Все внешние вызовы (AI, платежи, Telegram API) должны быть замоканы.
+
+## Code Style
+- Python: async-first (SQLAlchemy async, httpx, aiofiles), type hints обязательны
+- Без комментариев если не просили. Без эмодзи в коде если не просили.
+- Frontend: vanilla HTML/CSS/JS, mobile-first, тёмная палитра (чёрный/тёмно-зелёный/оранжевый)
+- Шаблоны отчётов должны работать и в браузере, и в WeasyPrint — тестировать оба
+- Пользовательский контент всегда эскейпить; избегать `innerHTML`
 
 ## Git Protocol
+- Commit только когда явно просят. Push только когда явно просят.
+- Commit messages на английском, краткие, фокус на WHY.
+- Никогда не force push в main/master.
 
-- Commit only when explicitly asked
-- Messages in English, concise, focus on WHY
-- Push only when explicitly asked
-- Never force push to main/master
+## Deploy
 
-## Review Priority
+Два CI/CD workflow в `.github/workflows/`:
+- **`ci-cd.yml`** — lint → test → deploy backend containers (api, bot, celery) на VPS
+- **`deploy.yml`** — деплой статики (landing, PWA, фронтенд) через `deploy.sh`
 
-- 🔴 Blocker: security vuln, data loss, race condition, broken contract, missing error handling
-- 🟡 Suggestion: missing validation, unclear naming, missing test, N+1, duplication
-- 💭 Nit: style, minor naming, doc gap
-
-## Model Router
-
-### Code (ядро — ~85%)
-
-| Модель | Доля | Когда |
-|--------|------|-------|
-| DeepSeek V4 Flash | ~60% | CRUD, тесты, багфиксы, одиночные файлы, стили, миграции, рефакторинг, компоненты |
-| DeepSeek V4 Pro | ~15% | 2–3 модуля, schema design, неочевидные баги, архитектурные решения, 1M контекст |
-| GLM-5.1 | ~10% | Сложный код, альтернативный взгляд на архитектуру, задачи где Flash/Pro упёрлись |
-
-### Design & Visual (мультимодальность)
-
-| Модель | Когда |
-|--------|-------|
-| MiMo-V2.5-Pro | Анализ скриншотов/макетов, сравнение UI с Figma, визуальные баги, генерация CSS по картинке |
-| DeepSeek V4 Pro | Дизайн-решения, рассуждения о композиции, ревью UI |
-
-### Copy & Content (тексты)
-
-| Модель | Когда |
-|--------|-------|
-| MiniMax M2.7 | Маркетинговые тексты, посты, описания, креатив, копирайтинг для лендинга |
-| Kimi K2.6 | Длинные структурированные тексты, статьи, документация, аналитические отчёты, промпт-инжиниринг |
-
-### Document Analysis (документы)
-
-| Модель | Когда |
-|--------|-------|
-| Kimi K2.6 | Анализ спецификаций, docs/, PDF-отчёты, большие контексты (до 2M токенов), RAG |
-| DeepSeek V4 Pro | Глубокая аналитика по документации |
-
-### Fallback
-
-| Модель | Когда |
-|--------|-------|
-| Qwen3.6 Plus | Flash/Pro недоступны, свежий взгляд на код, простые запросы без контекста |
-
-### Правила
-1. По умолчанию — **DeepSeek V4 Flash**.
-2. **DeepSeek V4 Pro** — когда задача затрагивает 2+ модуля или нужна архитектура.
-3. **GLM-5.1** — когда Flash/Pro упёрлись в тупик, нужен альтернативный подход к сложному коду.
-4. **MiMo-V2.5-Pro** — только если в задаче есть скриншот/изображение (Figma, UI, баг-скрин).
-5. **MiniMax M2.7 / Kimi K2.6** — только если задача явно про текст, контент или промпты.
-6. **Qwen3.6 Plus** — fallback при недоступности DeepSeek или для "свежей головы".
-7. Стартовать с самой лёгвой модели под задачу. Переключаться на более мощную при фейле.
-8. Не тратить токены на обоснование выбора — просто работать.
-
-## MCP-инструменты
-
-MCP-серверы настраиваются в `~/.hermes/config.yaml` секция `mcp_servers` и подключаются автоматически при старте.
-
-| MCP сервер | Для чего | Требует API ключ |
-|---|---|---|
-| Sequential Thinking | Структурированные рассуждения для сложных архитектурных решений | нет |
-| Context7 | Live docs lookup (Python/React/FastAPI) | нет |
-| Playwright | Скриншоты, E2E-тесты, браузерная отладка | нет |
-| Figma | Доступ к дизайн-макетам | `FIGMA_ACCESS_TOKEN` |
-| GitHub | PR/issues/CI из чата | `GITHUB_PERSONAL_ACCESS_TOKEN` |
-
-## Subagent Delegation (Hermes)
-
-Используй `delegate_task(goal=..., context=...)` для сложных подзадач:
-- параллельные независимые работы (через `tasks=[{goal, ...}]`)
-- исследования, ресёрч, ревью
-- задачи, которые не влезают в контекст
-
-## Slash-команды (Hermes)
-
-Доступны встроенные команды Hermes: `/plan`, `/model`, `/compact`, `/compress`, `/retry`, `/undo`, `/yolo`, `/help` и другие. Полный список: `/help` в сессии.
-
-## Skills (Hermes — загружаются при старте или через `/skill name`)
-
-| Skill | Назначение |
-|-------|-----------|
-| `research-first` | Исследование перед написанием кода — поиск готовых решений на PyPI/npm/GitHub |
-| `test-driven-development` | Red-Green-Refactor для pytest-asyncio |
-| `security-and-hardening` | Безопасность FastAPI/PWA: OWASP, SSRF, Rate Limiting, инъекции |
-| `systematic-debugging` | 4-фазный поиск root cause |
-| `plan` | Планирование и декомпозиция |
-| `nura-dev` | Специфика разработки NURA |
-| `workflow-architect` | Проектирование workflow деревьев |
-
-## VPS Access
-
-Проект NURA развёрнут на отдельном VPS.
-
-| | |
-|---|---|
-| SSH | `root@45.144.178.118` |
-| SSH key | `C:\Users\Bayzel\.ssh\id_ed25519_astro` (Windows, без пароля) |
-| Landing | `https://nura-ai.ru` — статика в `/opt/nura/index.html` |
-| Project root | `/opt/nura/` |
-| Code | `/opt/nura/nura_app/` |
-
-### Docker контейнеры (в `/opt/nura/nura_app/`)
-
-| Контейнер | Роль |
-|---|---|
-| `nura_app-bot-1` | Telegram бот (aiogram) |
-| `nura_app-api-1` | FastAPI (вебхуки, отчёты) |
-| `nura_app-celery-worker-1` | Celery worker |
-| `nura_app-celery-beat-1` | Celery beat |
-| `nura_app-postgres-1` | PostgreSQL |
-| `nura_app-redis-1` | Redis (FSM + Celery) |
-
-### Deploy commands
-
+### Backend deploy (вручную)
 ```bash
-# Подключение
-ssh -i C:\Users\Bayzel\.ssh\id_ed25519_astro -o StrictHostKeyChecking=no root@45.144.178.118
-
-# Pull + rebuild bot
-cd /opt/nura && git pull origin master && cd nura_app && docker compose up -d --build bot
-
-# Pull + rebuild всё
-cd /opt/nura && git pull origin master && cd nura_app && docker compose up -d --build
-
-# Логи бота
-docker logs nura_app-bot-1 --tail 50
-
-# Перезапуск контейнера
-docker compose restart bot
+# Все контейнеры
+ssh nura-vps 'cd /opt/nura && git pull origin main && cd nura_app && docker compose up -d --build'
+# Один контейнер
+ssh nura-vps 'cd /opt/nura && git pull origin main && cd nura_app && docker compose up -d --build bot'
 ```
 
-## Suspicious Activity
+### Docker контейнеры на VPS
+| Контейнер | Команда |
+|---|---|
+| `api` | `uvicorn api.main:app --host 0.0.0.0 --port 8000` |
+| `bot` | `python -m bot.main` |
+| `celery-worker` | `celery -A core.tasks worker --loglevel=info --concurrency=2` |
+| `celery-beat` | `celery -A core.tasks beat --loglevel=info` |
 
-Report immediately if found:
-- Unknown domains or URLs in code
-- Base64 blobs without clear purpose
-- eval/exec with dynamic content
-- Network calls to non-project endpoints
-- Obfuscated code
-- Hidden files or directories appearing
+### VPS
+- SSH: `root@45.144.178.118`, ключ: `C:\Users\Bayzel\.ssh\id_ed25519_astro`
+- Project root: `/opt/nura/`, код: `/opt/nura/nura_app/`
+- Контейнеры Docker именуются `nura_app-<service>-1`
 
 ## Trend Radar
-
-Проект `nura-trend-radar/` — локальный инструмент сбора TikTok-видео по 50 источникам.
-
-### Быстрый старт
-```bash
-cd nura-trend-radar
-# 1. Убедись что Chrome запущен с --remote-debugging-port=9222
-# 2. Войди в TikTok в этом Chrome
-python run_radar.py
-```
-
-### Частые проблемы
-- **Топ из плейлистов** → `rm data/videos.db` (удалить БД)
-- **Все 0 видео** → куки протухли, переэкспорт или CHROME_DEBUG_PORT
-- **AI пустой** → баланс DeepSeek или ключ
-- **networkidle таймаут** → уже пофиксено (load + fallback)
-
-Полная документация: `nura-trend-radar/docs/radar_guide.md`
+- `nura-trend-radar/` — сбор TikTok-видео. Требует Chrome с `--remote-debugging-port=9222`.
+- Полная документация: `nura-trend-radar/docs/radar_guide.md`.
 
 ## graphify
+- Knowledge graph: `graphify-out/`. Для навигации по коду используй `graphify query`, `graphify path`, `graphify explain`.
+- После изменений в коде: `graphify update .` (AST-only).
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
-
-When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"` before doing anything else.
-
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+## Suspicious Activity
+Сообщать немедленно при обнаружении: неизвестные домены/URL, base64 без явной цели, eval/exec с динамическим контентом, сетевые вызовы к сторонним эндпоинтам, обфусцированный код, скрытые файлы/директории.
