@@ -101,4 +101,12 @@
       return r.ok ? r.json() : null;
     });
   };
+
+  /* ── Keyboard accessibility ────────────── */
+  document.addEventListener('keydown', function(e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.getAttribute('role') === 'button') {
+      e.preventDefault();
+      e.target.click();
+    }
+  });
 })();

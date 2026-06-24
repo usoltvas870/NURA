@@ -59,12 +59,12 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <label class="toggle-row"><div><div class="list-title">Новости NURA</div><div class="list-sub">Обновления и новые функции</div></div><span class="switch"><input type="checkbox" onchange="saveNotif('news', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
 </div></section>
 <section class="panel" id="tab-settings">
-<article class="card list-card" onclick="editProfile()"><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="small">›</span></article>
-<article class="card list-card" id="tg-link-item" onclick="linkTelegram()"><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="small">›</span></article>
-<article class="card list-card" id="themeToggle2" onclick="document.getElementById('themeToggle').click()"><div><div class="list-title">Тема</div><div class="list-sub" id="theme-label">Светлая</div></div><span class="small">›</span></article>
-<article class="card list-card" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Политика конфиденциальности</div></div><span class="small">›</span></article>
-<article class="card list-card" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Обратная связь</div></div><span class="small">›</span></article>
-<article class="card list-card" onclick="logout()"><div><div class="list-title" style="color:#C45C5C">Выйти из аккаунта</div></div></article>
+<article class="card list-card" role="button" tabindex="0" onclick="editProfile()"><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="small">›</span></article>
+<article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()"><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="small">›</span></article>
+<article class="card list-card" role="button" tabindex="0" id="themeToggle2" onclick="document.getElementById('themeToggle').click()"><div><div class="list-title">Тема</div><div class="list-sub" id="theme-label">Светлая</div></div><span class="small">›</span></article>
+<article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Политика конфиденциальности</div></div><span class="small">›</span></article>
+<article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div><div class="list-title">Обратная связь</div></div><span class="small">›</span></article>
+<article class="card list-card" role="button" tabindex="0" onclick="logout()"><div><div class="list-title" style="color:#C45C5C">Выйти из аккаунта</div></div></article>
 </section>
 </main></div>
 <nav class="tabbar"><div class="tabbar-inner">
