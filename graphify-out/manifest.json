@@ -70,14 +70,14 @@
     "semantic_hash": "1206c1d5073380d4104790421c6aeae5"
   },
   "deploy.sh": {
-    "mtime": 1781541716.73834,
-    "ast_hash": "e6ab2dec8a25d030236ca33085595d31",
-    "semantic_hash": "e6ab2dec8a25d030236ca33085595d31"
+    "mtime": 1782114708.872513,
+    "ast_hash": "210959fa20cd759f7b1f8d00953c5e36",
+    "semantic_hash": ""
   },
   "frontend/pwa-install.js": {
-    "mtime": 1781022755.7335968,
-    "ast_hash": "4cdb1548e65e47b67e821c6ee7b20844",
-    "semantic_hash": "4cdb1548e65e47b67e821c6ee7b20844"
+    "mtime": 1782120339.3431084,
+    "ast_hash": "704926088dfa3de187f2c6cd421f083b",
+    "semantic_hash": ""
   },
   "frontend/pwa/metrika.js": {
     "mtime": 1781084776.2718399,
@@ -160,9 +160,9 @@
     "semantic_hash": "52dda18f4d5a5f79e87f67f8f8e4c905"
   },
   "nura_app/alembic/env.py": {
-    "mtime": 1778763446.9816318,
-    "ast_hash": "7f4a98de5c7b86c8fc94c19423ac10c7",
-    "semantic_hash": "7f4a98de5c7b86c8fc94c19423ac10c7"
+    "mtime": 1782100390.319309,
+    "ast_hash": "6f856c83b8f48c0c06d678f5e481a541",
+    "semantic_hash": ""
   },
   "nura_app/alembic/versions/5a8cac04bf5e_add_web_session_fields.py": {
     "mtime": 1780309472.1008031,
@@ -210,9 +210,9 @@
     "semantic_hash": "fc08ccdfa70848761e3dfdd5f1862f54"
   },
   "nura_app/api/main.py": {
-    "mtime": 1781024945.7635734,
-    "ast_hash": "1ba74ccb280652fca007fbc48c1c2c73",
-    "semantic_hash": "1ba74ccb280652fca007fbc48c1c2c73"
+    "mtime": 1782106408.105535,
+    "ast_hash": "d7d1c4a4f0ec517b1c0408f77092c95c",
+    "semantic_hash": ""
   },
   "nura_app/api/routes/__init__.py": {
     "mtime": 1778763309.3209753,
@@ -225,9 +225,9 @@
     "semantic_hash": "8b35d56e25aec270522a9d9d20e9203f"
   },
   "nura_app/api/routes/push.py": {
-    "mtime": 1781022755.7372544,
-    "ast_hash": "e75b592f99df1040322b4d97ed273a08",
-    "semantic_hash": "e75b592f99df1040322b4d97ed273a08"
+    "mtime": 1782106424.5980942,
+    "ast_hash": "ffa162142e046b5eef5fe41b4818ce64",
+    "semantic_hash": ""
   },
   "nura_app/api/routes/reports.py": {
     "mtime": 1780021482.7305133,
@@ -235,19 +235,14 @@
     "semantic_hash": "a8098ee238d2529d48e135ecdcd213fe"
   },
   "nura_app/api/routes/tarot_pwa.py": {
-    "mtime": 1781511727.7419648,
-    "ast_hash": "9f77221893304ad5c6636b4b756def4c",
-    "semantic_hash": "9f77221893304ad5c6636b4b756def4c"
+    "mtime": 1782107897.8570633,
+    "ast_hash": "83cbe5631c362c9e2d88b4e6ba58158e",
+    "semantic_hash": ""
   },
   "nura_app/api/routes/web.py": {
-    "mtime": 1781025852.1512182,
-    "ast_hash": "10e358a13dd7107d4a844775da5ebdab",
-    "semantic_hash": "10e358a13dd7107d4a844775da5ebdab"
-  },
-  "nura_app/api/routes/webhook.py": {
-    "mtime": 1778763316.1413429,
-    "ast_hash": "192d6ceb445ebb15d3c6425593ea6cbe",
-    "semantic_hash": "192d6ceb445ebb15d3c6425593ea6cbe"
+    "mtime": 1782107906.5908885,
+    "ast_hash": "5248d53c7fce0549d4db9c0867d77572",
+    "semantic_hash": ""
   },
   "nura_app/bot/__init__.py": {
     "mtime": 1778763353.7392397,
@@ -290,9 +285,9 @@
     "semantic_hash": "a851a429db89f33cee7f952a5b662347"
   },
   "nura_app/bot/handlers/start.py": {
-    "mtime": 1781015821.2488198,
-    "ast_hash": "5e343266e5e7a49d9b8f3ee2141e0a47",
-    "semantic_hash": "5e343266e5e7a49d9b8f3ee2141e0a47"
+    "mtime": 1782107755.0949275,
+    "ast_hash": "6e36b8feb55bc42b8953182712d1387b",
+    "semantic_hash": ""
   },
   "nura_app/bot/handlers/tarot.py": {
     "mtime": 1781508563.2599301,
@@ -470,9 +465,9 @@
     "semantic_hash": "c54e2e0daaa9ddf5c37a06f022bf59bf"
   },
   "nura_app/core/config.py": {
-    "mtime": 1781514906.6614366,
-    "ast_hash": "356aecc35019f0b2e1d1879cda49bdb5",
-    "semantic_hash": "356aecc35019f0b2e1d1879cda49bdb5"
+    "mtime": 1782107970.6439095,
+    "ast_hash": "fd9cebceaea9fbd022c0794124a8ab13",
+    "semantic_hash": ""
   },
   "nura_app/core/database.py": {
     "mtime": 1781014296.5776215,
@@ -490,9 +485,9 @@
     "semantic_hash": "c6258357d43c6db9dc6a2bd41ca35b21"
   },
   "nura_app/core/models.py": {
-    "mtime": 1781151289.6982968,
-    "ast_hash": "949e787b13448698ed39af6b2a800172",
-    "semantic_hash": "949e787b13448698ed39af6b2a800172"
+    "mtime": 1782100309.729962,
+    "ast_hash": "f4bfd7349146dd4f6b9f1e97a764b9bb",
+    "semantic_hash": ""
   },
   "nura_app/core/repositories/__init__.py": {
     "mtime": 1778777204.9922433,
@@ -520,9 +515,9 @@
     "semantic_hash": "192d74f30e5472db3e3dcbc9bc39cc0e"
   },
   "nura_app/core/repositories/user.py": {
-    "mtime": 1781151499.274939,
-    "ast_hash": "b60b1192f14981e5e36d54aebc74005d",
-    "semantic_hash": "b60b1192f14981e5e36d54aebc74005d"
+    "mtime": 1782100319.7677236,
+    "ast_hash": "882e2ad4d5a5a76bcbf90a1e113634ff",
+    "semantic_hash": ""
   },
   "nura_app/core/schemas/__init__.py": {
     "mtime": 1781106346.7784514,
@@ -675,14 +670,14 @@
     "semantic_hash": "5317e0f249dcadbe1e6849ceb4774778"
   },
   "nura_app/tests/test_tarot_handlers.py": {
-    "mtime": 1781516628.7692504,
-    "ast_hash": "47d5f48b66ad5be81360b7876c0dc117",
-    "semantic_hash": "47d5f48b66ad5be81360b7876c0dc117"
+    "mtime": 1782110275.2788742,
+    "ast_hash": "ac15853d1a4ebd57b0c4a50fcb2d275b",
+    "semantic_hash": ""
   },
   "nura_app/tests/test_tarot_pwa.py": {
-    "mtime": 1781516679.4391842,
-    "ast_hash": "41fabe98b94891b81d40969ff0cda0e8",
-    "semantic_hash": "41fabe98b94891b81d40969ff0cda0e8"
+    "mtime": 1782108176.9958801,
+    "ast_hash": "a6ce60bfba11ecbf8c46e0beb15a4c7c",
+    "semantic_hash": ""
   },
   "nura_app/tests/test_tasks.py": {
     "mtime": 1781517318.9254215,
@@ -785,18 +780,18 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci-cd.yml": {
-    "mtime": 1781517014.6716,
-    "ast_hash": "bbd20c8015a9b089c83275c4332eac8e",
+    "mtime": 1782118235.2635005,
+    "ast_hash": "0792c0935ee4b1b116774d457f2ca7cc",
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
-    "mtime": 1778772121.3784945,
-    "ast_hash": "ef2f1238c5ec9402f1f4b5c09b1abfc1",
+    "mtime": 1782118236.0291758,
+    "ast_hash": "8b2467a8319a5e44b56ddb01d1aec24f",
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1781668878.272968,
-    "ast_hash": "1b5175d26d752055d808d3f77d0b1fad",
+    "mtime": 1782267560.2454226,
+    "ast_hash": "33980957b69c619015401dd11442b857",
     "semantic_hash": ""
   },
   "docs/NURA FORMS SYSTEM.txt": {
@@ -860,8 +855,8 @@
     "semantic_hash": ""
   },
   "docs/launch-checklist.md": {
-    "mtime": 1781508635.4323454,
-    "ast_hash": "869b467763babf6fa8a0cbf481d91cb8",
+    "mtime": 1782105351.153144,
+    "ast_hash": "8e7dd4d404693e62aed96f8f8f603a98",
     "semantic_hash": ""
   },
   "docs/matrix-algo.md": {
@@ -875,8 +870,8 @@
     "semantic_hash": ""
   },
   "docs/pricing.md": {
-    "mtime": 1779849270.6755862,
-    "ast_hash": "b910a25f0fd2de5441137ef5ce16778a",
+    "mtime": 1782105371.0045278,
+    "ast_hash": "3a9e05f1eb7e45431b61607c25a652f4",
     "semantic_hash": ""
   },
   "docs/prompt-spec.md": {
@@ -885,8 +880,8 @@
     "semantic_hash": ""
   },
   "docs/pwa-spec.md": {
-    "mtime": 1781241052.362746,
-    "ast_hash": "033efebd1c3923dfe3db844b78570929",
+    "mtime": 1782105342.180133,
+    "ast_hash": "5b3edd27df631b2a904eae823cb39a1e",
     "semantic_hash": ""
   },
   "docs/report-spec.md": {
@@ -924,39 +919,34 @@
     "ast_hash": "9884f30f2c222887843c452757f6e047",
     "semantic_hash": ""
   },
-  "frontend/index.html": {
-    "mtime": 1781799566.1873074,
-    "ast_hash": "e7c5145e5d384630c384481b1da98d44",
-    "semantic_hash": ""
-  },
   "frontend/pwa/app/chat.html": {
-    "mtime": 1781798796.0003235,
-    "ast_hash": "c5f66ca275298d603fe013daa73db56b",
+    "mtime": 1782287413.5349941,
+    "ast_hash": "804f5dbe6dcdb1a529304807c4a5602c",
     "semantic_hash": ""
   },
   "frontend/pwa/app/index.html": {
-    "mtime": 1781798775.2486136,
-    "ast_hash": "fa8a35b126d1d24d20683690533a1c86",
+    "mtime": 1782284974.7910752,
+    "ast_hash": "78a0790e1d50bfc1a56425a70eba57d9",
     "semantic_hash": ""
   },
   "frontend/pwa/app/profile.html": {
-    "mtime": 1781799541.6304595,
-    "ast_hash": "6079b9221bad1be3b75dcce38ac6ab45",
+    "mtime": 1782284977.2720385,
+    "ast_hash": "1ea9adbbb0a5d8722cea66c13bb478f1",
     "semantic_hash": ""
   },
   "frontend/pwa/app/tarot.html": {
-    "mtime": 1781799523.681119,
-    "ast_hash": "4d79ca9b47145c465fb7ca946d927649",
+    "mtime": 1782284979.747803,
+    "ast_hash": "9a8e9410d46501c447d0ac41a12a6ef3",
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1781799558.1331246,
-    "ast_hash": "e7c5145e5d384630c384481b1da98d44",
+    "mtime": 1782125416.2422087,
+    "ast_hash": "e233be6a0b7e28c29a48d6cd9ec6db44",
     "semantic_hash": ""
   },
   "mini.html": {
-    "mtime": 1781798637.90486,
-    "ast_hash": "7437f15695b71ad40740b05c81e2c70d",
+    "mtime": 1782120356.971716,
+    "ast_hash": "c0252adedb42976d882e695d2b6458b3",
     "semantic_hash": ""
   },
   "nura_app/core/prompts/brief_parser.txt": {
@@ -1065,13 +1055,13 @@
     "semantic_hash": ""
   },
   "nura_app/docker-compose.yml": {
-    "mtime": 1781515142.7940695,
-    "ast_hash": "514c1a97da99f58cba2ca6a78569ce7c",
+    "mtime": 1782107701.5387628,
+    "ast_hash": "ee9c58ea8b7b560de24ac3aa2cdddd8f",
     "semantic_hash": ""
   },
   "nura_app/requirements.txt": {
-    "mtime": 1781022755.7409198,
-    "ast_hash": "6f61cc46734600d0450fdbbba5addc3b",
+    "mtime": 1782107986.1489892,
+    "ast_hash": "8d5a9e568eec58a985aef52153370ddf",
     "semantic_hash": ""
   },
   "nura_app/templates/carousel/_slide_base.html": {
@@ -1115,8 +1105,8 @@
     "semantic_hash": ""
   },
   "nura_app/templates/profile.html": {
-    "mtime": 1781691911.8053658,
-    "ast_hash": "4fa51617dc2a3a1bd1f8fa5bf568f994",
+    "mtime": 1782106437.3156917,
+    "ast_hash": "3431f339824d7e01d23553cc21c5c261",
     "semantic_hash": ""
   },
   "nura_app/templates/reports/_base.html": {
@@ -1255,8 +1245,8 @@
     "semantic_hash": ""
   },
   "success.html": {
-    "mtime": 1781798660.1135142,
-    "ast_hash": "e73ba796569aaa38eba4a01e77f92885",
+    "mtime": 1782104840.2261443,
+    "ast_hash": "9ede05e2404fa16b51d9a33a70ae6aa7",
     "semantic_hash": ""
   },
   "docs/\u041a\u0430\u0440\u0442\u0430 \u0432\u0435\u0447\u043d\u043e\u0437\u0435\u043b\u0451\u043d\u043e\u0433\u043e \u0441\u043f\u0440\u043e\u0441\u0430 \u0434\u043b\u044f Nura_ \u041a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u044f Viral Screening Radar \u0432 \u043d\u0438\u0448\u0435 \u0441\u0430\u043c\u043e\u043f\u043e\u0437\u043d\u0430\u043d\u0438\u044f \u043d\u0430 TikTok.pdf": {
@@ -1272,11 +1262,6 @@
   "favicon.png": {
     "mtime": 1781236653.385208,
     "ast_hash": "0e936f9721b50570682382f850bb4f39",
-    "semantic_hash": ""
-  },
-  "nura-hero.webp": {
-    "mtime": 1781794278.6076884,
-    "ast_hash": "b48c88e20af08cb2e9fbcb265c2bdb1e",
     "semantic_hash": ""
   },
   "nura_app/templates/carousel/output/random_test_slide_01.png": {
@@ -1305,13 +1290,123 @@
     "semantic_hash": ""
   },
   "frontend/nura-hero.webp": {
-    "mtime": 1781794278.6076884,
-    "ast_hash": "b48c88e20af08cb2e9fbcb265c2bdb1e",
+    "mtime": 1782125694.8420753,
+    "ast_hash": "f635d3ee223a85508e9f4eecf555b4d5",
     "semantic_hash": ""
   },
   "STATE.md": {
     "mtime": 1781797971.8665335,
     "ast_hash": "042b1be7368ce869c826a3d58b3f2fba",
+    "semantic_hash": ""
+  },
+  "frontend/manifest.json": {
+    "mtime": 1782107634.2495084,
+    "ast_hash": "721412d3007d04ba6f03bd1446943c2d",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/nura-pwa.js": {
+    "mtime": 1782283459.4809322,
+    "ast_hash": "bb49c605938cd6ce5a2caad852b47a01",
+    "semantic_hash": ""
+  },
+  "nura_pwa_product_logic_v3_logo/chat.html": {
+    "mtime": 1781849276.4039063,
+    "ast_hash": "d2d10c0df24aae8af286f8ccb88ce2b4",
+    "semantic_hash": ""
+  },
+  "nura_pwa_product_logic_v3_logo/index.html": {
+    "mtime": 1781849276.3629577,
+    "ast_hash": "492af3b2d11d01f39a2c11d8076238b3",
+    "semantic_hash": ""
+  },
+  "nura_pwa_product_logic_v3_logo/mini.html": {
+    "mtime": 1781849276.379541,
+    "ast_hash": "a95d525861ce7edbade5b41f625a4f7c",
+    "semantic_hash": ""
+  },
+  "nura_pwa_product_logic_v3_logo/profile.html": {
+    "mtime": 1781849276.4144874,
+    "ast_hash": "21281c1ee71dc24e39ff9f22c912299a",
+    "semantic_hash": ""
+  },
+  "nura_pwa_product_logic_v3_logo/success.html": {
+    "mtime": 1781849276.38826,
+    "ast_hash": "615bfd0ba246139caf3b5dd77c85dd20",
+    "semantic_hash": ""
+  },
+  "nura_pwa_product_logic_v3_logo/tarot.html": {
+    "mtime": 1781849276.3957894,
+    "ast_hash": "989c3eba96e4d457bf29222ac8cd61a5",
+    "semantic_hash": ""
+  },
+  "docs/audit-astro-insight-contamination.md": {
+    "mtime": 1782049918.911688,
+    "ast_hash": "f4771c21c847f58f1ee5d6790e103348",
+    "semantic_hash": ""
+  },
+  "hero.png": {
+    "mtime": 1782061533.582499,
+    "ast_hash": "8d4696b68d7a166fdf3ee96f3ed7c664",
+    "semantic_hash": ""
+  },
+  "frontend/service-worker.js": {
+    "mtime": 1782284980.5166392,
+    "ast_hash": "5e3f6bce1e403b8f553ce9603a55c04b",
+    "semantic_hash": ""
+  },
+  "nura_app/alembic/versions/c3d4e5f6a7b8_add_notification_prefs.py": {
+    "mtime": 1782100332.4847195,
+    "ast_hash": "e8801d7bb40c7cef87102870b7f0ae75",
+    "semantic_hash": ""
+  },
+  "REPORT.md": {
+    "mtime": 1782098918.0121095,
+    "ast_hash": "f0b55abd2485030f2829452276954efa",
+    "semantic_hash": ""
+  },
+  "frontend/offline.html": {
+    "mtime": 1782099911.7745652,
+    "ast_hash": "53d0a7122882a4a5066c9886f9ba77e0",
+    "semantic_hash": ""
+  },
+  "frontend/icons/apple-touch-icon.png": {
+    "mtime": 1782099953.2458146,
+    "ast_hash": "40c804bdf51c2846aa040692257d7767",
+    "semantic_hash": ""
+  },
+  "frontend/icons/icon-192.png": {
+    "mtime": 1782099953.2261374,
+    "ast_hash": "d99fed624498665520a872f42c91c267",
+    "semantic_hash": ""
+  },
+  "frontend/icons/icon-512.png": {
+    "mtime": 1782099953.242818,
+    "ast_hash": "067f67fc9780c8f8df36508f4881ba43",
+    "semantic_hash": ""
+  },
+  "privacy.html": {
+    "mtime": 1782104788.6452284,
+    "ast_hash": "4d9af10abe47b4857b6dd9c48773745a",
+    "semantic_hash": ""
+  },
+  "nura_app/api/dependencies.py": {
+    "mtime": 1782107932.4124048,
+    "ast_hash": "237c358b883fc82fc0cd7464d82c7297",
+    "semantic_hash": ""
+  },
+  "DEPLOY.md": {
+    "mtime": 1782117558.9347012,
+    "ast_hash": "3117abbd8f6f0af674935321f139eb5e",
+    "semantic_hash": ""
+  },
+  "frontend/test_pwa_detect.mjs": {
+    "mtime": 1782120452.7548475,
+    "ast_hash": "cfe72d085fece880b222f81e1d52c5c8",
+    "semantic_hash": ""
+  },
+  "SMART_INSTALL_BANNER_REPORT.md": {
+    "mtime": 1782120523.63322,
+    "ast_hash": "6e7c244d29932fbe576fda1071302682",
     "semantic_hash": ""
   }
 }
