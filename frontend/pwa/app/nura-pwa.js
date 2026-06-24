@@ -33,11 +33,12 @@
       });
     });
 
-    var refreshing = false;
+    var shouldReload = false;
     navigator.serviceWorker.addEventListener('controllerchange', function() {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
+      if (shouldReload) {
+        shouldReload = false;
+        window.location.reload();
+      }
     });
 
     function showUpdateToast(newSW) {
@@ -50,6 +51,7 @@
         '<button id="nura-update-btn" style="background:var(--terra-d);color:#fff;border:0;border-radius:var(--r-sm);padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">Обновить</button>';
       document.body.appendChild(toast);
       document.getElementById('nura-update-btn').addEventListener('click', function() {
+        shouldReload = true;
         newSW.postMessage({ type: 'SKIP_WAITING' });
       });
     }
