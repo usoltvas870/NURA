@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,8 +15,8 @@
   --terra: #B8743F;
   --terra-d: #9C5F30;
   --text: #F0EDE7;
-  --text-m: rgba(240,237,231,.65);
-  --text-s: rgba(240,237,231,.38);
+  --text-m: rgba(var(--border-light-rgb),.65);
+  --text-s: rgba(var(--border-light-rgb),.38);
   --green: #4CAF50;
   --red: #E53935;
   --yellow: #FFB300;
@@ -27,6 +27,26 @@
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-sans: 'Manrope', system-ui, sans-serif;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --border-light-rgb: 240, 237, 231;
+}
+
+[data-theme="light"] {
+  --bg: #F5F3EF;
+  --bg-card: #FFFFFF;
+  --text: #1A1815;
+  --text-m: rgba(26,24,21,.65);
+  --text-s: rgba(26,24,21,.45);
+  --border-light-rgb: 0, 0, 0;
+}
+
+[data-theme="light"] .card,
+[data-theme="light"] .kpi-card,
+[data-theme="light"] .spark-card,
+[data-theme="light"] .table-wrap,
+[data-theme="light"] .finance-card,
+[data-theme="light"] .health-item,
+[data-theme="light"] .login-card {
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -70,7 +90,7 @@ body {
   width: 100%;
   padding: 12px 16px;
   background: var(--bg);
-  border: 1px solid rgba(240,237,231,.12);
+  border: 1px solid rgba(var(--border-light-rgb),.12);
   border-radius: var(--r-md);
   color: var(--text);
   font-family: monospace;
@@ -112,7 +132,7 @@ body {
   justify-content: space-between;
   padding: 16px 24px;
   background: var(--bg-card);
-  border-bottom: 1px solid rgba(240,237,231,.06);
+  border-bottom: 1px solid rgba(var(--border-light-rgb),.06);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -126,7 +146,7 @@ body {
 .header-actions { display: flex; gap: 12px; align-items: center; }
 .btn-logout {
   background: transparent;
-  border: 1px solid rgba(240,237,231,.15);
+  border: 1px solid rgba(var(--border-light-rgb),.15);
   color: var(--text-m);
   padding: 6px 16px;
   border-radius: var(--r-sm);
@@ -138,13 +158,31 @@ body {
 }
 .btn-logout:hover { border-color: var(--red); color: var(--red); }
 
+.theme-btn {
+  background: transparent;
+  border: 1px solid rgba(var(--border-light-rgb),.15);
+  color: var(--text-m);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+.theme-btn:hover { border-color: var(--terra); color: var(--terra); }
+
 /* Tabs */
 .tabs {
   display: flex;
   gap: 4px;
   padding: 12px 24px;
   background: var(--bg-card);
-  border-bottom: 1px solid rgba(240,237,231,.06);
+  border-bottom: 1px solid rgba(var(--border-light-rgb),.06);
   position: sticky;
   top: 59px;
   z-index: 99;
@@ -268,12 +306,12 @@ th {
   text-transform: uppercase;
   letter-spacing: .08em;
   color: var(--text-s);
-  border-bottom: 1px solid rgba(240,237,231,.06);
+  border-bottom: 1px solid rgba(var(--border-light-rgb),.06);
   white-space: nowrap;
 }
 td {
   padding: 10px 16px;
-  border-bottom: 1px solid rgba(240,237,231,.04);
+  border-bottom: 1px solid rgba(var(--border-light-rgb),.04);
   color: var(--text-m);
   white-space: nowrap;
 }
@@ -287,7 +325,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
   font-weight: 700;
 }
 .badge-premium { background: rgba(184,116,63,.15); color: var(--terra); }
-.badge-free { background: rgba(240,237,231,.08); color: var(--text-m); }
+.badge-free { background: rgba(128,128,128,.15); color: var(--text-m); }
 .badge-success { background: rgba(76,175,80,.12); color: var(--green); }
 .badge-error { background: rgba(229,57,53,.12); color: var(--red); }
 .badge-warn { background: rgba(255,179,0,.12); color: var(--yellow); }
@@ -303,7 +341,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
 .search-input {
   padding: 8px 14px;
   background: var(--bg-card);
-  border: 1px solid rgba(240,237,231,.1);
+  border: 1px solid rgba(var(--border-light-rgb),.1);
   border-radius: var(--r-sm);
   color: var(--text);
   font-family: var(--font-sans);
@@ -318,7 +356,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
 .filter-btn {
   padding: 6px 14px;
   background: transparent;
-  border: 1px solid rgba(240,237,231,.1);
+  border: 1px solid rgba(var(--border-light-rgb),.1);
   border-radius: 999px;
   color: var(--text-m);
   font-family: var(--font-sans);
@@ -341,7 +379,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
 .page-btn {
   padding: 6px 16px;
   background: var(--bg-card);
-  border: 1px solid rgba(240,237,231,.1);
+  border: 1px solid rgba(var(--border-light-rgb),.1);
   border-radius: var(--r-sm);
   color: var(--text);
   font-family: var(--font-sans);
@@ -450,7 +488,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(240,237,231,.15);
+  border: 2px solid rgba(var(--border-light-rgb),.15);
   border-top-color: var(--terra);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
@@ -464,7 +502,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
   width: 100%;
   padding: 12px 16px;
   background: var(--bg);
-  border: 1px solid rgba(240,237,231,.12);
+  border: 1px solid rgba(var(--border-light-rgb),.12);
   border-radius: var(--r-md);
   color: var(--text);
   font-family: var(--font-sans);
@@ -501,7 +539,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
   width: 100%;
   padding: 10px 14px;
   background: var(--bg);
-  border: 1px solid rgba(240,237,231,.12);
+  border: 1px solid rgba(var(--border-light-rgb),.12);
   border-radius: var(--r-md);
   color: var(--text);
   font-family: var(--font-sans);
@@ -586,6 +624,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
   <header class="header">
     <div class="header-logo">NURA · Admin</div>
     <div class="header-actions">
+      <button class="theme-btn" id="themeBtn" title="Сменить тему">&#9788;</button>
       <button class="btn-logout" id="logoutBtn">Выход</button>
     </div>
   </header>
@@ -767,6 +806,25 @@ tr:hover td { background: rgba(184,116,63,.05); }
   var loginError = document.getElementById('loginError');
   var loginBtn = document.getElementById('loginBtn');
   var logoutBtn = document.getElementById('logoutBtn');
+  var themeBtn = document.getElementById('themeBtn');
+  var html = document.documentElement;
+
+  /* ── Theme ── */
+  var THEME_KEY = 'nura-admin-theme';
+
+  function getTheme() { return localStorage.getItem(THEME_KEY) || 'dark'; }
+  function setTheme(t) {
+    localStorage.setItem(THEME_KEY, t);
+    html.setAttribute('data-theme', t);
+    themeBtn.innerHTML = t === 'dark' ? '&#9788;' : '&#9790;';
+    themeBtn.title = t === 'dark' ? 'Светлая тема' : 'Тёмная тема';
+  }
+
+  setTheme(getTheme());
+
+  themeBtn.addEventListener('click', function () {
+    setTheme(getTheme() === 'dark' ? 'light' : 'dark');
+  });
 
   /* ── API wrapper ── */
   function apiFetch(path) {
