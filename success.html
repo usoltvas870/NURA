@@ -108,7 +108,8 @@ function checkReport(){
   attempts++;updateAttempt();
   fetch('/report/'+token,{method:'GET'})
     .then(function(res){
-      if(res.ok){stopPolling();clearInterval(stepTimer);window.location.href='/report/'+token;return;}
+      if(res.status===200){stopPolling();clearInterval(stepTimer);window.location.href='/report/'+token;return;}
+      if(res.status===404){showTimeout();return;}
       if(attempts>=MAX_ATTEMPTS){showTimeout();return;}
       timer=setTimeout(checkReport,INTERVAL_MS);
     })

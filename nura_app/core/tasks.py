@@ -5,6 +5,7 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 
 from celery import Celery
+from celery.exceptions import SoftTimeLimitExceeded
 from celery.schedules import crontab
 from sqlalchemy import select
 from sqlalchemy.orm import load_only
@@ -20,6 +21,8 @@ from core.services.matrix import ARCANA, MatrixService
 from core.services.report import ReportService
 from core.services.web_push import PushSubscriptionExpired, send_web_push
 
+MSK = timezone(timedelta(hours=3))
+
 logger = logging.getLogger(__name__)
 
 celery_app = Celery("nura")
@@ -32,8 +35,8 @@ celery_app.conf.update(
     timezone="Europe/Moscow",
     enable_utc=True,
     task_track_started=True,
-    task_time_limit=300,
-    task_soft_time_limit=240,
+    task_time_limit=480,
+    task_soft_time_limit=360,
 )
 
 celery_app.conf.beat_schedule = {
@@ -202,7 +205,14 @@ async def _get_user_telegram_id(user_id: str) -> int | None:
     return user.telegram_id
 
 
-@celery_app.task(name="core.tasks.generate_mini_report")
+@celery_app.task(
+    name="core.tasks.generate_mini_report",
+    autoretry_on=(SoftTimeLimitExceeded, TimeoutError, ConnectionError),
+    max_retries=2,
+    retry_backoff=20,
+    retry_backoff_max=120,
+    retry_jitter=True,
+)
 def generate_mini_report(user_id: str, birth_date: str, username: str) -> dict:
     async def _run_all():
         result = await _process_mini_report(user_id, birth_date)
@@ -271,7 +281,14 @@ async def _process_full_report(
     }
 
 
-@celery_app.task(name="core.tasks.generate_full_report")
+@celery_app.task(
+    name="core.tasks.generate_full_report",
+    autoretry_on=(SoftTimeLimitExceeded, TimeoutError, ConnectionError),
+    max_retries=2,
+    retry_backoff=30,
+    retry_backoff_max=180,
+    retry_jitter=True,
+)
 def generate_full_report(user_id: str, birth_date: str, report_token: str) -> dict:
     async def _run_all():
         result = await _process_full_report(user_id, birth_date, report_token)
@@ -454,7 +471,7 @@ def send_daily_card() -> dict:
 
 
 # Cache daily-card AI text by arcana number so each archetype calls AI once
-ARCANE_CACHE: dict[int, str] = {}
+ARCANE_CACHE: dict[tuple[date, int], str] = {}
 
 
 async def _send_daily_card_async() -> dict:
@@ -483,7 +500,7 @@ async def _send_daily_card_async() -> dict:
         )
         users = result.scalars().all()
 
-    today = date.today()
+    today = datetime.now(MSK).date()
     send_semaphore = asyncio.Semaphore(5)
     sent = 0
     failed = 0
@@ -499,7 +516,7 @@ async def _send_daily_card_async() -> dict:
         arcana_name = ARCANA.get(daily_arcana, f"Аркан {daily_arcana}")
 
         # Cache AI-generated card text by daily arcana number
-        if daily_arcana not in ARCANE_CACHE:
+        if (today, daily_arcana) not in ARCANE_CACHE:
             user_name = user.first_name or user.username or "друг"
             try:
                 card_text = await AIService().generate_tarot_daily_card(
@@ -510,18 +527,18 @@ async def _send_daily_card_async() -> dict:
                     user_archetype_number=arcana_num or daily_arcana,
                     user_archetype_name=user.main_archetype or arcana_name,
                 )
-                ARCANE_CACHE[daily_arcana] = card_text
+                ARCANE_CACHE[(today, daily_arcana)] = card_text
             except Exception:
                 logger.exception(
                     "Daily card AI failed for arcana %s, using fallback",
                     daily_arcana,
                 )
-                ARCANE_CACHE[daily_arcana] = (
+                ARCANE_CACHE[(today, daily_arcana)] = (
                     f"🌒 Карта дня — {arcana_name} ({daily_arcana})\n\n"
                     f"{FALLBACK_TAROT_DAILY['interpretation']}"
                 )
 
-        cached = ARCANE_CACHE[daily_arcana]
+        cached = ARCANE_CACHE[(today, daily_arcana)]
         user_name = user.first_name or user.username or "друг"
         text = f"🌒 {user_name}, твоя карта дня\n\n{cached}"
 
@@ -545,6 +562,10 @@ async def _send_daily_card_async() -> dict:
                 failed += 1
                 return False
 
+    stale_keys = [k for k in ARCANE_CACHE if k[0] != today]
+    for k in stale_keys:
+        ARCANE_CACHE.pop(k, None)
+
     await asyncio.gather(*[_send_one(u) for u in users])
     logger.info("send_daily_card: sent=%d failed=%d total=%d", sent, failed, len(users))
     return {"sent": sent, "failed": failed, "total": len(users)}
@@ -562,7 +583,7 @@ async def _send_daily_tarot_card_async() -> dict:
 
     sent = 0
     failed = 0
-    today = date.today()
+    today = datetime.now(MSK).date()
     for i, user in enumerate(users):
         if i > 0 and len(users) > 50 and user.telegram_id:
             await asyncio.sleep(0.05)
@@ -635,6 +656,7 @@ async def _check_expiring_subscriptions_async() -> dict:
         result = await session.execute(
             select(User).where(
                 User.subscription_status == "premium",
+                User.telegram_id.isnot(None),
                 User.subscription_until <= three_days,
                 User.subscription_until > now,
             )
@@ -643,6 +665,8 @@ async def _check_expiring_subscriptions_async() -> dict:
 
     notified = 0
     for user in users:
+        if user.telegram_id is None:
+            continue
         first_name = user.first_name or user.username or "пользователь"
         text = (
             f"🌒 NURA\n\n"

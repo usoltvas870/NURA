@@ -182,8 +182,8 @@ form.addEventListener('submit',function(e){
     document.getElementById('val-conflict').textContent=data.emotional_conflict||'…';
     document.getElementById('val-relations').textContent=data.relationship_pattern||'…';
     document.getElementById('val-finance').textContent=data.financial_block||'…';
-    document.getElementById('val-extra-1').textContent=data.destiny||'…';
-    document.getElementById('val-extra-2').textContent=data.karmic_tail||'…';
+    document.getElementById('val-extra-1').textContent='';
+    document.getElementById('val-extra-2').textContent='';
     document.getElementById('request-line').textContent='Запрос: '+labels[req]+'. Полный отчёт раскрывает именно эту линию глубже.';
     showStage('result');
     window.scrollTo({top:0,behavior:'smooth'});

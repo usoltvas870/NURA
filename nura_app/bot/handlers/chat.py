@@ -18,7 +18,7 @@ from bot.texts.chat import (
 )
 from bot.texts.start import help_text
 from core.config import settings
-from core.database import get_async_sessionmaker
+from core.database import get_async_sessionmaker, get_redis
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.services.ai import AIService
@@ -52,15 +52,13 @@ def _has_chat_access(user) -> bool:
     return True
 
 
-def _has_unlimited_chat(user, reports: list | None = None) -> bool:
+def _has_unlimited_chat(user, reports: list | None = None) -> bool:  # noqa: ARG001
     if settings.test_mode:
         return True
     if user.subscription_status == "premium":
         return True
-    if reports:
-        for r in reports:
-            if r.report_type == "full" and r.payment_status == "paid":
-                return True
+    if user.has_matrix:
+        return True
     return False
 
 
@@ -95,7 +93,12 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(chat_messages_left=-1)
         text = greeting_text_unlimited(name, archetype_name)
     else:
-        await state.update_data(chat_messages_left=FREE_MESSAGES_LIMIT)
+        redis = get_redis()
+        counter_key = f"bot_chat_count:{callback.from_user.id}"
+        raw = await redis.get(counter_key)
+        used = int(raw) if raw else 0
+        messages_left = max(0, FREE_MESSAGES_LIMIT - used)
+        await state.update_data(chat_messages_left=messages_left)
         text = greeting_text_free(name, archetype_name)
 
     await callback.message.edit_text(text)
@@ -152,7 +155,12 @@ async def chat_message(message: Message, state: FSMContext) -> None:
     await state.update_data(chat_history=chat_history)
 
     if messages_left > 0:
-        messages_left -= 1
+        redis = get_redis()
+        counter_key = f"bot_chat_count:{message.from_user.id}"
+        new_count = await redis.incr(counter_key)
+        if new_count == 1:
+            await redis.expire(counter_key, 86400)
+        messages_left = max(0, FREE_MESSAGES_LIMIT - new_count)
         await state.update_data(chat_messages_left=messages_left)
 
     if messages_left == 0:

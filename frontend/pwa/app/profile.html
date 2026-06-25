@@ -127,6 +127,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   if (session_id) {
     N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
       .then(function(d) {
+        if (!d && N.sessionId) { location.href = '/mini.html'; return; }
         if (!d) { $('profile-archetype').textContent = 'Ошибка загрузки'; return; }
         if (d.name) {
           $('profile-name').textContent = d.name;
@@ -140,7 +141,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
           $('tg-link-status').textContent = 'подключён';
           $('tg-link-item').style.opacity = '0.6';
         }
-        if (d.matrix_arcane_num) {
+        if (d.has_matrix) {
           var rs = $('matrix-report-status'); if (rs) { rs.textContent = '✓ Куплена'; rs.className = 'report-status ok'; }
           var ob = $('matrix-open-btn'); if (ob) ob.style.display = '';
           var bb = $('matrix-buy-btn'); if (bb) bb.style.display = 'none';

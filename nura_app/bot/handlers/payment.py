@@ -96,7 +96,7 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
             "⚠️ Не закрывай это окно, пока платёж не завершится.",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="🌐 Оформить в NURA", url="https://nura-ai.ru/app/profile?action=subscribe")],
+                    [InlineKeyboardButton(text="🌐 Оформить в NURA", url="https://nura-ai.ru/app/profile.html#subscription")],
                     [InlineKeyboardButton(text="💎 Оплатить 390 ₽/мес", url=subscription["payment_url"])],
                     [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
                 ]
@@ -152,7 +152,7 @@ async def initiate_tarot_subscription(callback: CallbackQuery) -> None:
         return
 
     try:
-        subscription = await PaymentService.create_subscription(
+        subscription = await PaymentService.create_tarot_payment(
             telegram_id=user.telegram_id,
         )
 

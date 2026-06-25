@@ -365,19 +365,20 @@ class TestProcessWebhook:
         self, session_factory, test_user, matrix_payment_in_db,
     ):
         """Платеж типа matrix → has_matrix=True."""
-        await PaymentService.process_webhook(
-            session_factory,
-            {
-                "event": "payment.succeeded",
-                "object": {
-                    "id": "yo-matrix-001",
-                    "metadata": {
-                        "telegram_id": str(test_user.telegram_id),
-                        "payment_type": "matrix",
+        with patch("core.tasks.generate_full_report.delay"):
+            await PaymentService.process_webhook(
+                session_factory,
+                {
+                    "event": "payment.succeeded",
+                    "object": {
+                        "id": "yo-matrix-001",
+                        "metadata": {
+                            "telegram_id": str(test_user.telegram_id),
+                            "payment_type": "matrix",
+                        },
                     },
                 },
-            },
-        )
+            )
         repo = UserRepository(session_factory)
         user = await repo.get(test_user.id)
         assert user.has_matrix is True
@@ -409,19 +410,20 @@ class TestProcessWebhook:
         self, session_factory, test_user, web_matrix_payment_in_db,
     ):
         """web_matrix — активация has_matrix, статус succeeded."""
-        result = await PaymentService.process_webhook(
-            session_factory,
-            {
-                "event": "payment.succeeded",
-                "object": {
-                    "id": "yo-web-matrix-001",
-                    "metadata": {
-                        "user_id": str(test_user.id),
-                        "payment_type": "web_matrix",
+        with patch("core.tasks.generate_full_report.delay"):
+            result = await PaymentService.process_webhook(
+                session_factory,
+                {
+                    "event": "payment.succeeded",
+                    "object": {
+                        "id": "yo-web-matrix-001",
+                        "metadata": {
+                            "user_id": str(test_user.id),
+                            "payment_type": "web_matrix",
+                        },
                     },
                 },
-            },
-        )
+            )
         assert result["ok"] is True
 
         repo = UserRepository(session_factory)

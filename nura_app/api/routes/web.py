@@ -311,8 +311,10 @@ async def web_chat(request: Request, body: ChatRequest):
     if user is None:
         raise HTTPException(status_code=404, detail="Сессия не найдена")
 
-    has_unlimited = bool(user.tarot_subscription) or (
-        user.subscription_status == "premium"
+    has_unlimited = (
+        bool(user.tarot_subscription)
+        or user.subscription_status == "premium"
+        or user.has_matrix
     )
     redis = get_redis()
     counter_key = f"chat_count:{user.id}"

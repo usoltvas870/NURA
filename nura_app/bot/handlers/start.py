@@ -1,7 +1,6 @@
 import logging
 import uuid
 
-import httpx
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
@@ -74,14 +73,12 @@ async def _handle_link_token(message: Message, token: str) -> None:
     telegram_id = message.from_user.id
 
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                "http://127.0.0.1:8000/api/v1/web/check-link-token",
-                headers={"X-Link-Token": token},
-                timeout=5.0,
-            )
+        from core.database import get_redis
+        redis = get_redis()
+        key = f"link_token:{token}"
+        user_id = await redis.execute_command("GETDEL", key)
 
-        if resp.status_code == 404:
+        if not user_id:
             await message.answer(
                 "❌ Ссылка недействительна или истекла.\n\n"
                 "Вернись в приложение NURA и запроси новую ссылку.",
@@ -89,16 +86,13 @@ async def _handle_link_token(message: Message, token: str) -> None:
             )
             return
 
-        if resp.status_code != 200:
-            await message.answer("Что-то пошло не так. Попробуй ещё раз.")
-            return
-
-        user_id_str = resp.json()["user_id"]
+        if isinstance(user_id, bytes):
+            user_id = user_id.decode()
 
         session_factory = get_async_sessionmaker()
         user_repo = UserRepository(session_factory)
         updated = await user_repo.update_telegram_id(
-            uuid.UUID(user_id_str), telegram_id
+            uuid.UUID(user_id), telegram_id
         )
 
         if updated is None:
@@ -115,8 +109,6 @@ async def _handle_link_token(message: Message, token: str) -> None:
             reply_markup=open_pwa_keyboard(),
         )
 
-    except httpx.TimeoutException:
-        await message.answer("Сервер не отвечает. Попробуй через минуту.")
     except Exception:
         logger.exception("Link token error for telegram_id=%s", telegram_id)
         await message.answer("Что-то пошло не так. Попробуй ещё раз.")
@@ -139,7 +131,7 @@ async def cmd_menu(message: Message, state: FSMContext) -> None:
     await message.answer(
         welcome_back_text(name=name, archetype=archetype),
         reply_markup=main_menu_keyboard(
-            has_matrix=bool(user.birth_date),
+            has_matrix=bool(user.has_matrix),
             has_tarot=has_tarot,
             subscription_status=user.subscription_status,
         ),
@@ -169,7 +161,7 @@ async def callback_main_menu(callback: CallbackQuery, state: FSMContext) -> None
     await callback.message.edit_text(
         welcome_back_text(name=name, archetype=archetype),
         reply_markup=main_menu_keyboard(
-            has_matrix=bool(user.birth_date),
+            has_matrix=bool(user.has_matrix),
             has_tarot=has_tarot,
             subscription_status=user.subscription_status,
         ),

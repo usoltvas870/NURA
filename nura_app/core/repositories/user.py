@@ -106,8 +106,6 @@ class UserRepository(SQLAlchemyRepository[User]):
             if user is None:
                 return None
             user.has_matrix = has_matrix
-            if has_matrix:
-                user.subscription_status = "premium"
             await session.commit()
             await session.refresh(user)
             return user

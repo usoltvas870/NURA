@@ -8,8 +8,16 @@ def create_engine():
     return create_async_engine(settings.database_url, pool_size=5, max_overflow=0)
 
 
-def get_async_sessionmaker():
-    return async_sessionmaker(create_engine(), class_=AsyncSession, expire_on_commit=False)
+_engine = None
+_session_factory: async_sessionmaker | None = None
+
+
+def get_async_sessionmaker() -> async_sessionmaker:
+    global _engine, _session_factory
+    if _session_factory is None:
+        _engine = create_async_engine(settings.database_url, pool_size=10, max_overflow=20)
+        _session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+    return _session_factory
 
 
 _redis: Redis | None = None

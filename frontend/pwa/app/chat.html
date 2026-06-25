@@ -183,7 +183,7 @@ body{overflow:hidden;padding-bottom:0}
 
   if (session_id) {
     N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
-      .then(function(d) { if (d && d.has_tarot) { hasUnlimited = true; updateLimitNote(); } })
+      .then(function(d) { if (d && (d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active' || d.has_matrix)) { hasUnlimited = true; updateLimitNote(); } })
       .catch(function() {});
   }
 

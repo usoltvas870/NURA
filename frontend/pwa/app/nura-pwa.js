@@ -81,7 +81,7 @@
   };
 
   /* ── API ───────────────────────────────── */
-  window.NURA.BASE = 'https://nura-ai.ru/api/v1';
+  window.NURA.BASE = (location.origin === 'https://nura-ai.ru') ? 'https://nura-ai.ru/api/v1' : '/api/v1';
   window.NURA.sessionId = localStorage.getItem('nura_session_id');
 
   window.NURA.fetchJSON = function(url, options) {

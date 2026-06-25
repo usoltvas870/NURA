@@ -28,7 +28,7 @@ class PaymentService:
                 },
                 "confirmation": {
                     "type": "redirect",
-                    "return_url": f"{settings.report_base_url}/subscription/success",
+                    "return_url": f"{settings.report_base_url}/success",
                 },
                 "capture": True,
                 "save_payment_method": True,
@@ -58,7 +58,7 @@ class PaymentService:
                 },
                 "confirmation": {
                     "type": "redirect",
-                    "return_url": f"{settings.report_base_url}/subscription/success",
+                    "return_url": f"{settings.report_base_url}/success",
                 },
                 "capture": True,
                 "save_payment_method": True,
@@ -88,7 +88,7 @@ class PaymentService:
                 },
                 "confirmation": {
                     "type": "redirect",
-                    "return_url": f"{settings.report_base_url}/subscription/success",
+                    "return_url": f"{settings.report_base_url}/success",
                 },
                 "capture": True,
                 "save_payment_method": False,
@@ -151,7 +151,7 @@ class PaymentService:
                 },
                 "confirmation": {
                     "type": "redirect",
-                    "return_url": f"{settings.report_base_url}/app/profile?tab=subscription",
+                    "return_url": f"{settings.report_base_url}/app/profile.html#subscription",
                 },
                 "capture": True,
                 "save_payment_method": True,
@@ -308,7 +308,7 @@ class PaymentService:
                 try:
                     generate_full_report.delay(
                         str(user.id),
-                        user.birth_date.isoformat(),
+                        user.birth_date,
                         report_token,
                     )
                 except Exception:
@@ -533,7 +533,7 @@ class PaymentService:
                 try:
                     generate_full_report.delay(
                         str(user.id),
-                        user.birth_date.isoformat(),
+                        user.birth_date,
                         report_token,
                     )
                 except Exception:
