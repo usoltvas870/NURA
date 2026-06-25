@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nura-v14';
+const CACHE_NAME = 'nura-v15';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
@@ -22,7 +22,9 @@ const STATIC_ASSETS = [
 ];
 
 self.addEventListener('install', function(e) {
-  self.skipWaiting();
+  if (!self.registration.active) {
+    self.skipWaiting();
+  }
   e.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(STATIC_ASSETS).catch(function(err) {

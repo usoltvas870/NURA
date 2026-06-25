@@ -55,7 +55,7 @@
       card.style.cssText = 'width:min(100%,360px);background:#1A1814;border-radius:20px;padding:28px 24px 20px;box-shadow:0 24px 64px rgba(0,0,0,.55);text-align:center';
 
       card.innerHTML =
-        '<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;margin:0 auto 16px;font-size:24px">✦</div>' +
+        '<div style="width:52px;height:52px;border-radius:50%;background:rgba(184,116,63,.22);display:grid;place-items:center;margin:0 auto 16px;font-size:24px;color:#B8743F">✦</div>' +
         '<div style="font-family:var(--font-serif);font-size:22px;color:#fff;margin-bottom:8px">Новая версия NURA</div>' +
         '<div style="font-size:13px;color:rgba(255,255,255,.55);line-height:1.5;margin-bottom:24px">Обновление готово — нажми чтобы применить</div>' +
         '<button id="nura-update-btn" style="display:block;width:100%;min-height:50px;background:#fff;color:#12100E;border:0;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.01em;-webkit-tap-highlight-color:transparent;transition:opacity .15s,transform .15s">Обновить сейчас</button>' +
