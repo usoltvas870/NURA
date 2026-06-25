@@ -34,7 +34,7 @@
 
 ---
 
-## Секции панели (7 штук)
+## Секции панели (8 штук)
 
 1. **Dashboard** — KPI карточки + спарклайны (пользователи, выручка, подписки)
 2. **Пользователи** — таблица с поиском, фильтрами, пагинацией
@@ -42,6 +42,7 @@
 4. **Таро** — раскладов сделано, топ типов
 5. **Push** — подписчиков, отправлено уведомлений
 6. **Здоровье сервиса** — статус OK/Error + latency для PostgreSQL, Redis, DeepSeek, Yookassa, Telegram bot
+7. **Рассылка** — отправка сообщений в Telegram и/или Web Push всем пользователям (или по фильтру)
 
 ---
 
@@ -304,6 +305,129 @@ cp frontend/admin/index.html /var/www/nura-ai.ru/admin/index.html
 ADMIN_TOKEN=<сгенерировать 32+ случайных символа, например openssl rand -hex 32>
 ```
 
+### Шаг X. Рассылка — новый раздел панели
+
+#### Backend — два новых эндпоинта в `admin_api.py`
+
+**`POST /api/v1/admin/broadcast`** — запуск рассылки:
+
+```python
+class BroadcastRequest(BaseModel):
+    text: str                          # текст сообщения (Markdown для Telegram)
+    channels: list[str]                # ["telegram", "push"] — один или оба
+    filter: str = "all"                # "all" | "premium" | "free"
+    push_title: str | None = None      # заголовок push-уведомления
+    push_url: str | None = None        # URL для перехода по клику на push
+```
+
+Логика:
+1. Валидировать запрос (текст не пустой, каналы из допустимых значений)
+2. Поставить задачу в Celery: `send_broadcast.delay(text, channels, filter, push_title, push_url)`
+3. Вернуть `{"task_id": "...", "status": "queued"}`
+
+**`GET /api/v1/admin/broadcast/status/{task_id}`** — прогресс отправки:
+
+```json
+{
+  "task_id": "abc123",
+  "status": "running",
+  "sent": 847,
+  "total": 1500,
+  "failed": 3,
+  "finished_at": null
+}
+```
+
+#### Celery-задача `send_broadcast` (добавить в `nura_app/bot/tasks.py` или `core/tasks.py`)
+
+```python
+@celery_app.task(bind=True)
+def send_broadcast(self, text, channels, filter_type, push_title, push_url):
+    # 1. Получить список пользователей по фильтру из БД
+    # 2. Обновлять прогресс в Redis: redis.set(f"broadcast:{task_id}", json)
+    # 3. Telegram: цикл по telegram_id
+    #    - asyncio.run(bot.send_message(tg_id, text, parse_mode="Markdown"))
+    #    - Пауза 1/30 сек между сообщениями (лимит Telegram: 30 msg/s)
+    #    - При ошибке 403 (бот заблокирован) — пропустить, считать в failed
+    # 4. Web Push: цикл по пользователям с has_pwa_push=True
+    #    - Вызвать web_push.send(endpoint, p256dh, auth, title, text, url)
+    #    - При ошибке 410 (подписка устарела) — сбросить has_pwa_push=False в БД
+```
+
+**Важно по Telegram**: между сообщениями нужна задержка `time.sleep(1/25)` (~25 msg/s, с запасом от лимита 30/s). На 1000 пользователей — ~40 секунд.
+
+#### Frontend — секция "Рассылка" в `index.html`
+
+UI:
+```
+┌─────────────────────────────────────────────────┐
+│  Текст сообщения                                │
+│  ┌───────────────────────────────────────────┐  │
+│  │                                           │  │
+│  │  (textarea, 5 строк, поддержка Markdown)  │  │
+│  │                                           │  │
+│  └───────────────────────────────────────────┘  │
+│                                                 │
+│  Каналы:  [✓] Telegram    [✓] Web Push          │
+│                                                 │
+│  Push-заголовок: [________________]             │
+│  Push-ссылка:    [________________]             │
+│                                                 │
+│  Получатели:  (●) Все  ( ) Premium  ( ) Free    │
+│                                                 │
+│  [  Отправить рассылку  ]                       │
+│                                                 │
+│  Статус: ████████░░░░░░  847 / 1500 отправлено  │
+│  Ошибок: 3                                      │
+└─────────────────────────────────────────────────┘
+```
+
+JS-логика:
+```javascript
+// Запуск рассылки
+function startBroadcast() {
+  var payload = {
+    text: document.getElementById('broadcastText').value.trim(),
+    channels: getCheckedChannels(),    // ['telegram', 'push']
+    filter: getSelectedFilter(),       // 'all' | 'premium' | 'free'
+    push_title: document.getElementById('pushTitle').value || null,
+    push_url: document.getElementById('pushUrl').value || null
+  };
+  if (!payload.text) return showError('Текст не может быть пустым');
+  if (!payload.channels.length) return showError('Выберите хотя бы один канал');
+
+  apiFetch('/broadcast', { method: 'POST', body: JSON.stringify(payload) })
+    .then(function(r) {
+      broadcastTaskId = r.task_id;
+      pollBroadcastStatus();
+    });
+}
+
+// Опрос статуса каждые 2 секунды
+var broadcastTaskId = null;
+var broadcastPollTimer = null;
+
+function pollBroadcastStatus() {
+  if (!broadcastTaskId) return;
+  apiFetch('/broadcast/status/' + broadcastTaskId)
+    .then(function(r) {
+      renderBroadcastProgress(r);
+      if (r.status === 'running') {
+        broadcastPollTimer = setTimeout(pollBroadcastStatus, 2000);
+      } else {
+        broadcastTaskId = null;
+      }
+    });
+}
+
+function renderBroadcastProgress(r) {
+  var pct = r.total ? Math.round(r.sent / r.total * 100) : 0;
+  document.getElementById('broadcastProgress').style.width = pct + '%';
+  document.getElementById('broadcastSent').textContent = r.sent + ' / ' + r.total + ' отправлено';
+  document.getElementById('broadcastFailed').textContent = 'Ошибок: ' + r.failed;
+}
+```
+
 ---
 
 ## Порядок выполнения
@@ -311,11 +435,12 @@ ADMIN_TOKEN=<сгенерировать 32+ случайных символа, �
 1. Прочитать `nura_app/core/config.py` → добавить `admin_token: str | None = None`
 2. Прочитать `nura_app/api/routes/web.py` (для понимания паттерна) → создать `nura_app/api/routes/admin_api.py`
 3. Прочитать `nura_app/api/main.py` → добавить `include_router(admin_api_router)`
-4. Создать `frontend/admin/index.html`
-5. Обновить `nura_app/nginx/nura-ai.ru.conf`
-6. Обновить `deploy.sh`
-7. Коммит + пуш в `main` → GitHub Actions запускает деплой (~1 мин)
-8. **Вручную на VPS**: добавить `ADMIN_TOKEN` в `.env`, перезапустить backend (`systemctl restart nura` или аналог), перезагрузить nginx (`nginx -t && systemctl reload nginx`), **заменить `ADMIN_IP`** в nginx конфиге на реальный IP
+4. Найти существующие Celery-задачи (поискать `celery` в `nura_app/`) → добавить задачу `send_broadcast`
+5. Создать `frontend/admin/index.html`
+6. Обновить `nura_app/nginx/nura-ai.ru.conf`
+7. Обновить `deploy.sh`
+8. Коммит + пуш в `main` → GitHub Actions запускает деплой (~1 мин)
+9. **Вручную на VPS**: добавить `ADMIN_TOKEN` в `.env`, перезапустить backend (`systemctl restart nura` или аналог), перезагрузить nginx (`nginx -t && systemctl reload nginx`), **заменить `ADMIN_IP`** в nginx конфиге на реальный IP
 
 ---
 
@@ -328,3 +453,4 @@ ADMIN_TOKEN=<сгенерировать 32+ случайных символа, �
 5. Вкладка Здоровье → все компоненты зелёные (или видна реальная проблема)
 6. Подождать 30 сек → Dashboard обновился автоматически
 7. Зайти с другого IP → nginx вернёт 403
+8. Раздел Рассылка: написать тестовый текст, выбрать Telegram, фильтр "Premium", нажать отправить → прогресс-бар двигается, статус обновляется каждые 2 сек
