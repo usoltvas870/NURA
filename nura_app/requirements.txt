@@ -18,6 +18,7 @@ aiofiles==24.1.0
 python-multipart==0.0.19
 yookassa==3.1.0
 slowapi==0.1.9
+sentry-sdk[fastapi]>=2.0
 sqladmin>=0.23,<1
 itsdangerous==2.2.0
 

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import time
 from datetime import datetime, timezone
 
@@ -10,6 +11,8 @@ from sqlalchemy import func, or_, select, text
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
 from core.models import Payment, User
+
+DOCKER_SOCK = "/var/run/docker.sock"
 
 
 async def verify_admin_token(x_admin_token: str = Header(..., alias="X-Admin-Token")) -> None:
@@ -535,10 +538,129 @@ async def start_broadcast(body: BroadcastRequest):
 
 @router.get("/broadcast/status/{task_id}")
 async def get_broadcast_status(task_id: str):
-    import json
 
     redis = get_redis()
     raw = await redis.get(f"broadcast:{task_id}")
     if not raw:
         raise HTTPException(status_code=404, detail="Task not found")
     return json.loads(raw)
+
+
+ALLOWED_CONTAINERS = {"api", "bot", "celery-worker", "celery-beat", "postgres", "redis", "nginx"}
+
+
+@router.get("/logs")
+async def get_logs(
+    container: str = Query("api", description="Container name"),
+    lines: int = Query(100, ge=10, le=1000),
+    level: str = Query("all", description="ERROR|WARNING|INFO|all"),
+):
+    if container not in ALLOWED_CONTAINERS:
+        raise HTTPException(status_code=400, detail=f"Unknown container: {container}")
+
+    import os
+
+    if container == "nginx":
+        return await _read_nginx_logs(lines, level)
+
+    if not os.path.exists(DOCKER_SOCK):
+        return {"lines": [], "container": container, "total": 0,
+                "error": "Docker socket not available"}
+
+    try:
+        transport = httpx.HTTPTransport(uds=DOCKER_SOCK)
+        async with httpx.AsyncClient(transport=transport, timeout=10.0) as client:
+            list_resp = await client.get("http://localhost/containers/json")
+            list_resp.raise_for_status()
+            containers = list_resp.json()
+
+            project = "nura_app"
+            target_id = None
+            for c in containers:
+                names = c.get("Names", [])
+                expected = f"/{project}-{container}-1"
+                if expected in names:
+                    target_id = c["Id"]
+                    break
+
+            if not target_id:
+                return {"lines": [], "container": container, "total": 0,
+                        "error": f"Container {project}-{container}-1 not found"}
+
+            log_resp = await client.get(
+                f"http://localhost/containers/{target_id}/logs",
+                params={"stdout": "true", "stderr": "true", "tail": lines, "timestamps": "false"},
+            )
+            log_resp.raise_for_status()
+            raw = log_resp.text
+
+    except Exception as e:
+        return {"lines": [], "container": container, "total": 0, "error": str(e)}
+
+    parsed = _parse_docker_logs(raw, level)
+    return {"lines": parsed, "container": container, "total": len(parsed)}
+
+
+def _parse_docker_logs(raw: str, level: str) -> list[str]:
+    out: list[str] = []
+    for line in raw.split("\n"):
+        clean = line
+        if len(clean) >= 8:
+            try:
+                _ = int(clean[:8].strip(), 16)
+                clean = clean[8:]
+            except ValueError:
+                pass
+        clean = clean.strip()
+        if not clean:
+            continue
+        if level != "all":
+            upper = clean.upper()
+            if level == "ERROR" and "ERROR" not in upper:
+                continue
+            if level == "WARNING" and "WARNING" not in upper and "WARN" not in upper:
+                continue
+            if level == "INFO" and ("ERROR" in upper or "WARNING" in upper or "WARN" in upper):
+                continue
+        out.append(clean)
+    return out
+
+
+async def _read_nginx_logs(lines: int, level: str) -> dict:
+    import os
+    candidates = ["/var/log/nginx/error.log", "/var/log/nginx/access.log"]
+    all_lines: list[str] = []
+    for path in candidates:
+        if not os.path.exists(path):
+            continue
+        content = await asyncio.to_thread(_tail_file, path, lines)
+        for line in content:
+            line = line.strip()
+            if not line:
+                continue
+            if level != "all":
+                upper = line.upper()
+                if level == "ERROR" and "ERROR" not in upper:
+                    continue
+                if level == "WARNING" and "WARNING" not in upper:
+                    continue
+            all_lines.append(f"[nginx:error] {line}" if "error" in path else f"[nginx:access] {line}")
+    all_lines = all_lines[-lines:]
+    return {"lines": all_lines, "container": "nginx", "total": len(all_lines)}
+
+
+def _tail_file(path: str, n: int) -> list[str]:
+    with open(path, "r", errors="replace") as f:
+        f.seek(0, 2)
+        size = f.tell()
+        buf = ""
+        chunk_size = 4096
+        pos = size
+        count = 0
+        while pos > 0 and count <= n:
+            read_size = min(chunk_size, pos)
+            pos -= read_size
+            f.seek(pos)
+            buf = f.read(read_size) + buf
+            count = buf.count("\n")
+        return buf.splitlines()[-n:]

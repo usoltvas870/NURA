@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     # Admin Panel
     admin_token: str | None = None
 
+    # Sentry
+    sentry_dsn: str | None = None
+
     # Test mode bypass (WARNING: only for dev)
     test_mode: bool = False
 

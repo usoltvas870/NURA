@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -13,6 +14,15 @@ from api.routes.payment import router as payment_router
 from api.routes.push import router as push_router
 from api.routes.admin_api import router as admin_api_router
 from api.routes.tarot_pwa import router as tarot_pwa_router
+
+from core.config import settings
+
+sentry_sdk.init(
+    dsn=settings.sentry_dsn,
+    traces_sample_rate=0.3,
+    environment=settings.app_env,
+    send_default_pii=False,
+)
 
 app = FastAPI(title="NURA API", version="1.0.0", docs_url=None, redoc_url=None)
 app.state.limiter = limiter

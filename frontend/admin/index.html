@@ -587,6 +587,49 @@ tr:hover td { background: rgba(184,116,63,.05); }
 /* Push extra fields (hidden by default) */
 .push-extra { display: none; margin-bottom: 12px; }
 
+/* Logs viewer */
+.log-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.log-filters select,
+.log-filters input {
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid rgba(var(--border-light-rgb),.12);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+}
+.log-filters select:focus,
+.log-filters input:focus { border-color: var(--terra); }
+.log-viewer {
+  background: #0D0B09;
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  max-height: 65vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--text-m);
+}
+[data-theme="light"] .log-viewer {
+  background: #F0ECE7;
+  color: rgba(26,24,21,.75);
+}
+.log-line { margin: 0; padding: 1px 0; }
+.log-line.error { color: var(--red); font-weight: 600; }
+.log-line.warning { color: var(--yellow); }
+.log-error-msg { margin-top: 10px; font-size: 12px; color: var(--red); }
+
 /* Responsive */
 @media (max-width: 768px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -637,6 +680,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
     <button class="tab-btn" data-tab="push">Push</button>
     <button class="tab-btn" data-tab="health">Здоровье</button>
     <button class="tab-btn" data-tab="broadcast">Рассылка</button>
+    <button class="tab-btn" data-tab="logs">Логи</button>
   </nav>
 
   <main class="content">
@@ -787,6 +831,35 @@ tr:hover td { background: rgba(184,116,63,.05); }
       </div>
     </section>
 
+    <!-- Logs -->
+    <section id="section-logs" class="section">
+      <div id="logsLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
+      <div id="logsContent" style="display:none">
+        <div class="log-filters">
+          <select id="logContainer">
+            <option value="api">api</option>
+            <option value="bot">bot</option>
+            <option value="celery-worker">celery-worker</option>
+            <option value="celery-beat">celery-beat</option>
+            <option value="postgres">postgres</option>
+            <option value="redis">redis</option>
+            <option value="nginx">nginx</option>
+          </select>
+          <select id="logLevel">
+            <option value="all">Все уровни</option>
+            <option value="ERROR">ERROR</option>
+            <option value="WARNING">WARNING</option>
+            <option value="INFO">INFO</option>
+          </select>
+          <input type="number" id="logLines" value="150" min="10" max="1000" style="width:80px">
+          <button class="btn-refresh" id="logsRefresh">Обновить</button>
+        </div>
+        <div class="log-viewer" id="logViewer"></div>
+        <div class="log-error-msg" id="logError"></div>
+        <div class="health-checked" id="logsChecked"></div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -929,6 +1002,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
       case 'push': loadPush(); break;
       case 'health': loadHealth(); break;
       case 'broadcast': break; // no auto-load
+      case 'logs': loadLogs(); break;
     }
   }
 
@@ -938,6 +1012,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
     autoRefreshTimer = setInterval(function () {
       if (activeTab === 'dashboard') loadDashboard();
       else if (activeTab === 'health') loadHealth();
+      else if (activeTab === 'logs') loadLogs();
     }, 30000);
   }
   function stopAutoRefresh() {
@@ -1465,6 +1540,62 @@ tr:hover td { background: rgba(184,116,63,.05); }
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
+
+  /* ── Logs ── */
+  function loadLogs() {
+    var container = document.getElementById('logContainer').value;
+    var level = document.getElementById('logLevel').value;
+    var lines = document.getElementById('logLines').value || 150;
+    document.getElementById('logsLoading').style.display = '';
+    document.getElementById('logsContent').style.display = 'none';
+    apiFetch('/logs?container=' + container + '&level=' + level + '&lines=' + lines)
+      .then(function (data) {
+        document.getElementById('logsLoading').style.display = 'none';
+        document.getElementById('logsContent').style.display = '';
+        document.getElementById('logError').textContent = data.error || '';
+        renderLogs(data.lines || []);
+        document.getElementById('logsChecked').textContent =
+          'Обновлено: ' + new Date().toLocaleTimeString('ru-RU') +
+          ' (' + data.total + ' строк)';
+      })
+      .catch(function (err) {
+        document.getElementById('logsLoading').style.display = 'none';
+        document.getElementById('logsContent').style.display = '';
+        document.getElementById('logError').textContent = 'Ошибка: ' + err.message;
+      });
+  }
+
+  function renderLogs(lines) {
+    var viewer = document.getElementById('logViewer');
+    if (!lines.length) {
+      viewer.innerHTML = '<div class="log-line" style="color:var(--text-s)">Нет записей</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < lines.length; i++) {
+      var line = escapeHtml(lines[i]);
+      var cls = '';
+      var upper = line.toUpperCase();
+      if (upper.indexOf('ERROR') !== -1 || upper.indexOf('CRITICAL') !== -1 || upper.indexOf('FATAL') !== -1 || upper.indexOf('EXCEPTION') !== -1 || upper.indexOf('TRACEBACK') !== -1) {
+        cls = 'error';
+      } else if (upper.indexOf('WARNING') !== -1 || upper.indexOf('WARN') !== -1) {
+        cls = 'warning';
+      }
+      html += '<div class="log-line' + (cls ? ' ' + cls : '') + '">' + line + '</div>';
+    }
+    viewer.innerHTML = html;
+    viewer.scrollTop = viewer.scrollHeight;
+  }
+
+  document.getElementById('logsRefresh').addEventListener('click', loadLogs);
+  document.getElementById('logContainer').addEventListener('change', loadLogs);
+  document.getElementById('logLevel').addEventListener('change', loadLogs);
+  document.getElementById('logLines').addEventListener('change', function () {
+    var v = parseInt(this.value, 10);
+    if (isNaN(v) || v < 10) this.value = 10;
+    if (v > 1000) this.value = 1000;
+    loadLogs();
+  });
 
   /* ── Init ── */
   if (getToken()) {
