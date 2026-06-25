@@ -6,7 +6,7 @@
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#12100E">
+  <meta name="theme-color" content="#EFEEE9">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="NURA">
@@ -17,23 +17,23 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,600&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:           #12100E;
-    --bg-page:      #12100E;
-    --bg-soft:      #1A1713;
-    --bg-card:      #1E1A16;
-    --ink:          #F2EFE7;
-    --ink-soft:     rgba(242, 239, 231, 0.72);
-    --ink-mute:     rgba(242, 239, 231, 0.48);
-    --ink-faint:    rgba(242, 239, 231, 0.32);
-    --line:         rgba(242, 239, 231, 0.10);
-    --line-strong:  rgba(242, 239, 231, 0.18);
+    --bg:           #EFEEE9;
+    --bg-page:      #EFEEE9;
+    --bg-soft:      #F7F4EE;
+    --bg-card:      #FFFFFF;
+    --ink:          #1A1A1A;
+    --ink-soft:     rgba(26, 26, 26, 0.72);
+    --ink-mute:     rgba(26, 26, 26, 0.48);
+    --ink-faint:    rgba(26, 26, 26, 0.32);
+    --line:         rgba(44, 42, 30, 0.10);
+    --line-strong:  rgba(44, 42, 30, 0.18);
 
-    --m-bg:         #1E1A16;
-    --m-bg-soft:    #242018;
-    --m-line:       rgba(201, 135, 74, 0.18);
-    --m-accent:     #C9874A;
-    --m-accent-soft: rgba(201, 135, 74, 0.16);
-    --m-leaf:       #7A9275;
+    --m-bg:         #F7F4EE;
+    --m-bg-soft:    #EFEEE9;
+    --m-line:       rgba(184, 116, 63, 0.18);
+    --m-accent:     #B8743F;
+    --m-accent-soft: rgba(184, 116, 63, 0.16);
+    --m-leaf:       #6B8068;
 
     --t-bg:         #0F1830;
     --t-accent:     #D8B36A;
@@ -93,7 +93,7 @@
     height: 100vh;
     padding: 32px 24px 24px 32px;
     border-right: 1px solid var(--line);
-    background: linear-gradient(180deg, #1A1713 0%, #12100E 100%);
+    background: linear-gradient(180deg, #F7F4EE 0%, #EFEEE9 100%);
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--line-strong) transparent;
@@ -173,7 +173,7 @@
     color: var(--ink-faint);
     font-variant-numeric: tabular-nums;
   }
-  .sb-nav a:hover { color: var(--ink-soft); background: rgba(242, 239, 231, 0.03); }
+  .sb-nav a:hover { color: var(--ink-soft); background: rgba(44, 42, 30, 0.05); }
   .sb-nav a.active {
     color: var(--m-accent);
     border-left-color: var(--m-accent);
@@ -381,7 +381,7 @@
     gap: 12px;
   }
   .dash-card {
-    background: linear-gradient(160deg, rgba(20, 53, 39, 0.6), rgba(14, 36, 25, 0.3));
+    background: linear-gradient(160deg, rgba(184, 116, 63, 0.07), rgba(107, 128, 104, 0.06));
     border: 1px solid var(--m-line);
     border-radius: var(--radius-md);
     padding: 22px 18px;
@@ -546,7 +546,7 @@
   .karmic-body {
     margin-top: 28px;
     padding: 28px 32px;
-    background: rgba(20, 53, 39, 0.2);
+    background: rgba(107, 128, 104, 0.08);
     border: 1px solid var(--m-line);
     border-radius: var(--radius-lg);
   }
@@ -562,7 +562,7 @@
     margin-top: 12px;
   }
   .rod-col {
-    background: rgba(20, 53, 39, 0.32);
+    background: rgba(107, 128, 104, 0.10);
     border: 1px solid var(--m-line);
     border-radius: var(--radius-lg);
     padding: 32px 28px;
@@ -583,7 +583,7 @@
   .rod-col .prose p { font-size: 15.5px; }
   .rod-info {
     grid-column: 1 / -1;
-    background: rgba(20, 53, 39, 0.32);
+    background: rgba(107, 128, 104, 0.10);
     border: 1px solid var(--m-line);
     border-radius: var(--radius-lg);
     padding: 32px 28px;
@@ -692,7 +692,7 @@
     margin-top: 28px;
   }
   .compat {
-    background: rgba(20, 53, 39, 0.32);
+    background: rgba(107, 128, 104, 0.10);
     border: 1px solid var(--m-line);
     border-radius: var(--radius-md);
     padding: 22px 20px;
@@ -730,7 +730,7 @@
     grid-template-columns: 80px 1fr;
     gap: 24px;
     padding: 24px;
-    background: rgba(20, 53, 39, 0.32);
+    background: rgba(107, 128, 104, 0.10);
     border: 1px solid var(--m-line);
     border-radius: var(--radius-md);
     align-items: start;
@@ -786,7 +786,7 @@
   .pattern {
     margin: 0 0 28px;
     padding: 28px 30px;
-    background: rgba(20, 53, 39, 0.28);
+    background: rgba(107, 128, 104, 0.09);
     border: 1px solid var(--m-line);
     border-radius: var(--radius-md);
     position: relative;
@@ -839,7 +839,7 @@
   .conflict {
     margin-bottom: 28px;
     padding: 32px;
-    background: rgba(20, 53, 39, 0.32);
+    background: rgba(107, 128, 104, 0.10);
     border: 1px solid var(--m-line);
     border-radius: var(--radius-lg);
   }
@@ -971,7 +971,7 @@
   }
   .fcast {
     padding: 22px 20px;
-    background: rgba(20, 53, 39, 0.32);
+    background: rgba(107, 128, 104, 0.10);
     border: 1px solid var(--m-line);
     border-radius: var(--radius-md);
   }
@@ -1009,7 +1009,7 @@
     grid-template-columns: 24px 100px 1fr;
     gap: 18px;
     padding: 20px 22px;
-    background: rgba(20, 53, 39, 0.28);
+    background: rgba(107, 128, 104, 0.09);
     border: 1px solid var(--m-line);
     border-radius: var(--radius-md);
     align-items: start;
@@ -1044,7 +1044,7 @@
     position: absolute;
     left: 6px; top: 2px;
     width: 6px; height: 11px;
-    border: solid #12100E;
+    border: solid #EFEEE9;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
@@ -1163,7 +1163,7 @@
   .tt-text p {
     margin: 0 0 22px;
     font-size: 15.5px;
-    color: rgba(242, 239, 231, 0.82);
+    color: rgba(26, 26, 26, 0.72);
     line-height: 1.65;
   }
   .tt-cta {
@@ -2261,7 +2261,7 @@
   .money-karma {
     margin: 0 0 36px;
     padding: 26px 28px;
-    background: linear-gradient(160deg, rgba(20, 53, 39, 0.45), rgba(14, 36, 25, 0.25));
+    background: linear-gradient(160deg, rgba(184, 116, 63, 0.07), rgba(107, 128, 104, 0.05));
     border: 1px solid var(--m-line);
     border-radius: var(--radius-md);
   }
@@ -2278,7 +2278,7 @@
   .mk-belief {
     display: flex; align-items: flex-start; gap: 14px;
     padding: 14px 16px;
-    background: rgba(0,0,0,0.18);
+    background: rgba(44, 42, 30, 0.06);
     border-radius: var(--radius-sm);
     border-left: 2px solid rgba(201, 135, 74, 0.35);
   }
@@ -2300,7 +2300,7 @@
 </head>
 <body>
 
-<div style="background:#C9874A;color:#0A0E0C;text-align:center;padding:10px 16px;font-family:'Manrope',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.06em;position:sticky;top:0;z-index:9999;">
+<div style="background:#B8743F;color:#FFFFFF;text-align:center;padding:10px 16px;font-family:'Manrope',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.06em;position:sticky;top:0;z-index:9999;">
   ОБРАЗЕЦ ОТЧЁТА · МАТРИЦА СУДЬБЫ · АННА 01.06.1995 · nura-ai.ru
 </div>
 
@@ -2468,7 +2468,7 @@
               
               
               
-              <rect x="72" y="72" width="36" height="36" rx="3" fill="#1E1A16" stroke="#C9874A" stroke-opacity="0.45"/>
+              <rect x="72" y="72" width="36" height="36" rx="3" fill="#FFFFFF" stroke="#B8743F" stroke-opacity="0.45"/>
               <text x="90" y="90" fill="#C9874A" font-size="22" font-style="italic">7</text>
               
               
@@ -2477,7 +2477,7 @@
               
               
               
-              <rect x="162" y="72" width="36" height="36" rx="3" fill="#1E1A16" stroke="#C9874A" stroke-opacity="0.45"/>
+              <rect x="162" y="72" width="36" height="36" rx="3" fill="#FFFFFF" stroke="#B8743F" stroke-opacity="0.45"/>
               <text x="180" y="90" fill="#C9874A" font-size="22" font-style="italic">3</text>
               
               
@@ -2486,7 +2486,7 @@
               
               
               
-              <rect x="252" y="72" width="36" height="36" rx="3" fill="#1E1A16" stroke="#C9874A" stroke-opacity="0.45"/>
+              <rect x="252" y="72" width="36" height="36" rx="3" fill="#FFFFFF" stroke="#B8743F" stroke-opacity="0.45"/>
               <text x="270" y="90" fill="#C9874A" font-size="22" font-style="italic">10</text>
               
               
@@ -2495,7 +2495,7 @@
               
               
               
-              <rect x="72" y="162" width="36" height="36" rx="3" fill="#1E1A16" stroke="#C9874A" stroke-opacity="0.45"/>
+              <rect x="72" y="162" width="36" height="36" rx="3" fill="#FFFFFF" stroke="#B8743F" stroke-opacity="0.45"/>
               <text x="90" y="180" fill="#C9874A" font-size="22" font-style="italic">22</text>
               
               
@@ -2504,8 +2504,8 @@
               
               
               
-              <rect x="154" y="154" width="52" height="52" rx="4" fill="#242018" stroke="#C9874A" stroke-opacity="0.95" stroke-width="1.5"/>
-              <text x="180" y="180" fill="#F5D78A" font-size="34" font-weight="500">10</text>
+              <rect x="154" y="154" width="52" height="52" rx="4" fill="#B8743F" stroke="#B8743F" stroke-opacity="0.95" stroke-width="1.5"/>
+              <text x="180" y="180" fill="#FFFFFF" font-size="34" font-weight="500">10</text>
               
               
               
@@ -2513,7 +2513,7 @@
               
               
               
-              <rect x="252" y="162" width="36" height="36" rx="3" fill="#1E1A16" stroke="#C9874A" stroke-opacity="0.45"/>
+              <rect x="252" y="162" width="36" height="36" rx="3" fill="#FFFFFF" stroke="#B8743F" stroke-opacity="0.45"/>
               <text x="270" y="180" fill="#C9874A" font-size="22" font-style="italic">7</text>
               
               
@@ -2522,7 +2522,7 @@
               
               
               
-              <rect x="72" y="252" width="36" height="36" rx="3" fill="#1E1A16" stroke="#C9874A" stroke-opacity="0.45"/>
+              <rect x="72" y="252" width="36" height="36" rx="3" fill="#FFFFFF" stroke="#B8743F" stroke-opacity="0.45"/>
               <text x="90" y="270" fill="#C9874A" font-size="22" font-style="italic">5</text>
               
               
@@ -2531,7 +2531,7 @@
               
               
               
-              <rect x="162" y="252" width="36" height="36" rx="3" fill="#1E1A16" stroke="#C9874A" stroke-opacity="0.45"/>
+              <rect x="162" y="252" width="36" height="36" rx="3" fill="#FFFFFF" stroke="#B8743F" stroke-opacity="0.45"/>
               <text x="180" y="270" fill="#C9874A" font-size="22" font-style="italic">5</text>
               
               
@@ -2540,7 +2540,7 @@
               
               
               
-              <rect x="252" y="252" width="36" height="36" rx="3" fill="#1E1A16" stroke="#C9874A" stroke-opacity="0.45"/>
+              <rect x="252" y="252" width="36" height="36" rx="3" fill="#FFFFFF" stroke="#B8743F" stroke-opacity="0.45"/>
               <text x="270" y="270" fill="#C9874A" font-size="22" font-style="italic">17</text>
               
               
