@@ -19,6 +19,10 @@ echo "→ Copying PWA app..."
 cp -r frontend/pwa/app/* /var/www/nura-ai.ru/app/ 2>/dev/null || true
 cp -r frontend/pwa/*.js /var/www/nura-ai.ru/ 2>/dev/null || true
 
+echo "→ Copying admin panel..."
+mkdir -p /var/www/nura-ai.ru/admin
+cp frontend/admin/index.html /var/www/nura-ai.ru/admin/index.html
+
 echo "→ Copying PWA root files..."
 cp frontend/manifest.json /var/www/nura-ai.ru/manifest.json 2>/dev/null || true
 cp frontend/service-worker.js /var/www/nura-ai.ru/service-worker.js 2>/dev/null || true

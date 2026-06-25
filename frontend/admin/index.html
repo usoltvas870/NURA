@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NURA · Admin Panel</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #12100E;
+  --bg-card: #1C1A17;
+  --terra: #B8743F;
+  --terra-d: #9C5F30;
+  --text: #F0EDE7;
+  --text-m: rgba(240,237,231,.65);
+  --text-s: rgba(240,237,231,.38);
+  --green: #4CAF50;
+  --red: #E53935;
+  --yellow: #FFB300;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Manrope', system-ui, sans-serif;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Login screen ── */
+.login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+.login-card {
+  background: var(--bg-card);
+  border-radius: var(--r-xl);
+  padding: 40px 32px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+.login-logo {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  color: var(--terra);
+  margin-bottom: 8px;
+}
+.login-subtitle {
+  font-size: 13px;
+  color: var(--text-s);
+  margin-bottom: 32px;
+}
+.login-field {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg);
+  border: 1px solid rgba(240,237,231,.12);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-family: monospace;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 16px;
+}
+.login-field:focus { border-color: var(--terra); }
+.login-error {
+  font-size: 12px;
+  color: var(--red);
+  margin-bottom: 12px;
+  min-height: 18px;
+}
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--terra);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-md);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.login-btn:hover { background: var(--terra-d); }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Panel ── */
+.panel { display: none; flex-direction: column; min-height: 100vh; }
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--bg-card);
+  border-bottom: 1px solid rgba(240,237,231,.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-logo {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  color: var(--terra);
+  letter-spacing: .04em;
+}
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.btn-logout {
+  background: transparent;
+  border: 1px solid rgba(240,237,231,.15);
+  color: var(--text-m);
+  padding: 6px 16px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 24px;
+  background: var(--bg-card);
+  border-bottom: 1px solid rgba(240,237,231,.06);
+  position: sticky;
+  top: 59px;
+  z-index: 99;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-btn {
+  padding: 8px 18px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  color: var(--text-s);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  background: var(--terra);
+  color: #fff;
+}
+
+/* Content */
+.content { flex: 1; padding: 24px; max-width: 1280px; margin: 0 auto; width: 100%; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: 20px;
+}
+.card-header {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+/* KPI grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.kpi-card {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+}
+.kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-s);
+  margin-bottom: 6px;
+}
+.kpi-value {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  line-height: 1;
+  color: var(--text);
+}
+.kpi-delta {
+  font-size: 11px;
+  color: var(--green);
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* Sparkline row */
+.spark-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.spark-card {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: 16px 20px;
+}
+.spark-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-s);
+  margin-bottom: 8px;
+}
+.spark-chart { margin-bottom: 8px; }
+.spark-total {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  color: var(--text);
+}
+
+/* Table */
+.table-wrap {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-s);
+  border-bottom: 1px solid rgba(240,237,231,.06);
+  white-space: nowrap;
+}
+td {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(240,237,231,.04);
+  color: var(--text-m);
+  white-space: nowrap;
+}
+tr:hover td { background: rgba(184,116,63,.05); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.badge-premium { background: rgba(184,116,63,.15); color: var(--terra); }
+.badge-free { background: rgba(240,237,231,.08); color: var(--text-m); }
+.badge-success { background: rgba(76,175,80,.12); color: var(--green); }
+.badge-error { background: rgba(229,57,53,.12); color: var(--red); }
+.badge-warn { background: rgba(255,179,0,.12); color: var(--yellow); }
+
+/* Filters bar */
+.filters-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.search-input {
+  padding: 8px 14px;
+  background: var(--bg-card);
+  border: 1px solid rgba(240,237,231,.1);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  width: 240px;
+  transition: border-color 0.2s;
+}
+.search-input:focus { border-color: var(--terra); }
+.search-input::placeholder { color: var(--text-s); }
+
+.filter-btn {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid rgba(240,237,231,.1);
+  border-radius: 999px;
+  color: var(--text-m);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-btn:hover { border-color: var(--terra); color: var(--text); }
+.filter-btn.active { background: var(--terra); border-color: var(--terra); color: #fff; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+.page-btn {
+  padding: 6px 16px;
+  background: var(--bg-card);
+  border: 1px solid rgba(240,237,231,.1);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.page-btn:hover:not(:disabled) { border-color: var(--terra); }
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.page-info { font-size: 12px; color: var(--text-s); }
+
+/* Finance cards */
+.finance-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.finance-card {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: 20px;
+}
+.finance-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-s);
+  margin-bottom: 6px;
+}
+.finance-value {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  color: var(--terra);
+}
+
+/* Health list */
+.health-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.health-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--bg-card);
+  border-radius: var(--r-md);
+}
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.health-dot.ok { background: var(--green); }
+.health-dot.error { background: var(--red); }
+.health-dot.degraded { background: var(--yellow); }
+.health-name { flex: 1; font-weight: 600; font-size: 14px; }
+.health-latency { font-size: 12px; color: var(--text-s); }
+.health-detail { font-size: 11px; color: var(--red); }
+
+.health-checked {
+  font-size: 11px;
+  color: var(--text-s);
+  margin-bottom: 12px;
+}
+
+.btn-refresh {
+  padding: 8px 20px;
+  background: var(--terra);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-sm);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-refresh:hover { background: var(--terra-d); }
+.btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Overall status badge */
+.overall-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+.overall-badge.ok { background: rgba(76,175,80,.1); color: var(--green); }
+.overall-badge.error { background: rgba(229,57,53,.1); color: var(--red); }
+.overall-badge.degraded { background: rgba(255,179,0,.1); color: var(--yellow); }
+
+/* Loading */
+.loading { text-align: center; padding: 40px; color: var(--text-s); font-size: 14px; }
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(240,237,231,.15);
+  border-top-color: var(--terra);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Broadcast section — Этап 3 */
+.broadcast-form { max-width: 600px; }
+.broadcast-field {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg);
+  border: 1px solid rgba(240,237,231,.12);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+  margin-bottom: 16px;
+  min-height: 100px;
+  transition: border-color 0.2s;
+}
+.broadcast-field:focus { border-color: var(--terra); }
+.broadcast-field::placeholder { color: var(--text-s); }
+.check-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-m);
+  cursor: pointer;
+}
+.radio-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.broadcast-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid rgba(240,237,231,.12);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+.broadcast-input:focus { border-color: var(--terra); }
+.broadcast-input::placeholder { color: var(--text-s); }
+.broadcast-submit {
+  padding: 10px 24px;
+  background: var(--terra);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-sm);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.broadcast-submit:hover { background: var(--terra-d); }
+.broadcast-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.broadcast-progress {
+  margin-top: 16px;
+}
+.progress-bar-bg {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--terra);
+  border-radius: 4px;
+  transition: width 0.3s;
+  width: 0%;
+}
+.progress-text { font-size: 12px; color: var(--text-m); }
+.progress-failed { font-size: 12px; color: var(--red); margin-top: 4px; }
+
+/* Push extra fields (hidden by default) */
+.push-extra { display: none; margin-bottom: 12px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .spark-row { grid-template-columns: 1fr; }
+  .finance-summary { grid-template-columns: 1fr; }
+  .content { padding: 16px; }
+  .search-input { width: 100%; }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">NURA</div>
+    <div class="login-subtitle">Панель администратора</div>
+    <input
+      type="password"
+      id="tokenInput"
+      class="login-field"
+      placeholder="Введите токен доступа"
+      autocomplete="off"
+    >
+    <div id="loginError" class="login-error"></div>
+    <button id="loginBtn" class="login-btn">Войти</button>
+  </div>
+</div>
+
+<!-- Admin panel -->
+<div id="panel" class="panel">
+  <header class="header">
+    <div class="header-logo">NURA · Admin</div>
+    <div class="header-actions">
+      <button class="btn-logout" id="logoutBtn">Выход</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="users">Пользователи</button>
+    <button class="tab-btn" data-tab="finance">Финансы</button>
+    <button class="tab-btn" data-tab="tarot">Таро</button>
+    <button class="tab-btn" data-tab="push">Push</button>
+    <button class="tab-btn" data-tab="health">Здоровье</button>
+    <button class="tab-btn" data-tab="broadcast">Рассылка</button>
+  </nav>
+
+  <main class="content">
+
+    <!-- Dashboard -->
+    <section id="section-dashboard" class="section active">
+      <div id="dashLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
+      <div id="dashContent" style="display:none">
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="spark-row">
+          <div class="spark-card">
+            <div class="spark-title">Регистрации за 14 дней</div>
+            <div class="spark-chart" id="sparkRegistrations"></div>
+            <div class="spark-total" id="sparkRegTotal">-</div>
+          </div>
+          <div class="spark-card">
+            <div class="spark-title">Выручка за 14 дней</div>
+            <div class="spark-chart" id="sparkRevenue"></div>
+            <div class="spark-total" id="sparkRevTotal">-</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Users -->
+    <section id="section-users" class="section">
+      <div class="filters-bar">
+        <input
+          type="text"
+          class="search-input"
+          id="userSearch"
+          placeholder="Поиск по имени..."
+        >
+        <button class="filter-btn active" data-filter="">Все</button>
+        <button class="filter-btn" data-filter="premium">Premium</button>
+        <button class="filter-btn" data-filter="tarot">Таро</button>
+        <button class="filter-btn" data-filter="telegram">Telegram</button>
+        <button class="filter-btn" data-filter="push">Push</button>
+      </div>
+      <div id="usersLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
+      <div id="usersContent" style="display:none">
+        <div class="table-wrap" id="usersTableWrap"></div>
+        <div class="pagination" id="usersPagination"></div>
+      </div>
+    </section>
+
+    <!-- Finance -->
+    <section id="section-finance" class="section">
+      <div id="financeLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
+      <div id="financeContent" style="display:none">
+        <div class="finance-summary" id="financeSummary"></div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">Распределение по типам</div>
+          <div class="table-wrap" id="breakdownTableWrap"></div>
+        </div>
+        <div class="filters-bar">
+          <select id="paymentStatusFilter" class="search-input" style="width:auto">
+            <option value="">Все статусы</option>
+            <option value="succeeded">succeeded</option>
+            <option value="pending">pending</option>
+            <option value="canceled">canceled</option>
+          </select>
+          <select id="paymentTypeFilter" class="search-input" style="width:auto">
+            <option value="">Все типы</option>
+            <option value="premium_subscription">premium_subscription</option>
+            <option value="tarot_subscription">tarot_subscription</option>
+            <option value="full_report">full_report</option>
+            <option value="mini_report">mini_report</option>
+            <option value="compatibility_report">compatibility_report</option>
+          </select>
+        </div>
+        <div class="table-wrap" id="paymentsTableWrap"></div>
+        <div class="pagination" id="paymentsPagination"></div>
+      </div>
+    </section>
+
+    <!-- Tarot -->
+    <section id="section-tarot" class="section">
+      <div id="tarotLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
+      <div id="tarotContent" style="display:none">
+        <div class="kpi-grid" id="tarotKpiGrid"></div>
+        <div class="card">
+          <div class="card-header">Отчёты по типам</div>
+          <div class="table-wrap" id="reportsTableWrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Push -->
+    <section id="section-push" class="section">
+      <div id="pushLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
+      <div id="pushContent" style="display:none">
+        <div class="kpi-grid" id="pushKpiGrid"></div>
+      </div>
+    </section>
+
+    <!-- Health -->
+    <section id="section-health" class="section">
+      <div id="healthLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
+      <div id="healthContent" style="display:none">
+        <div id="overallBadge"></div>
+        <div class="health-list" id="healthList"></div>
+        <div class="health-checked" id="healthChecked"></div>
+        <button class="btn-refresh" id="healthRefresh">Обновить сейчас</button>
+      </div>
+    </section>
+
+    <!-- Broadcast -->
+    <section id="section-broadcast" class="section">
+      <div class="broadcast-form">
+        <textarea
+          class="broadcast-field"
+          id="broadcastText"
+          placeholder="Текст сообщения (HTML поддерживается)"
+          maxlength="4000"
+        ></textarea>
+        <div class="check-row">
+          <label class="check-label">
+            <input type="checkbox" value="telegram" class="broadcast-channel" checked> Telegram
+          </label>
+          <label class="check-label">
+            <input type="checkbox" value="push" class="broadcast-channel"> Web Push
+          </label>
+        </div>
+        <div class="radio-row">
+          <label class="check-label">
+            <input type="radio" name="broadcastFilter" value="all" checked> Все
+          </label>
+          <label class="check-label">
+            <input type="radio" name="broadcastFilter" value="premium"> Premium
+          </label>
+          <label class="check-label">
+            <input type="radio" name="broadcastFilter" value="free"> Free
+          </label>
+        </div>
+        <div class="push-extra" id="pushExtra">
+          <input type="text" class="broadcast-input" id="pushTitle" placeholder="Push-заголовок">
+          <input type="text" class="broadcast-input" id="pushUrl" placeholder="Push-ссылка (по умолчанию /app)" value="/app">
+        </div>
+        <button class="broadcast-submit" id="broadcastSubmit">Отправить рассылку</button>
+        <div class="broadcast-progress" id="broadcastProgress" style="display:none">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-text" id="progressText"></div>
+          <div class="progress-failed" id="progressFailed"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var API_BASE = '/api/v1/admin';
+  var TOKEN_KEY = 'nura-admin-token';
+  var activeTab = 'dashboard';
+  var autoRefreshTimer = null;
+
+  /* ── DOM refs ── */
+  var loginScreen = document.getElementById('loginScreen');
+  var panel = document.getElementById('panel');
+  var tokenInput = document.getElementById('tokenInput');
+  var loginError = document.getElementById('loginError');
+  var loginBtn = document.getElementById('loginBtn');
+  var logoutBtn = document.getElementById('logoutBtn');
+
+  /* ── API wrapper ── */
+  function apiFetch(path) {
+    return fetch(API_BASE + path, {
+      headers: { 'X-Admin-Token': getToken() }
+    }).then(function (r) {
+      if (r.status === 401) {
+        clearToken();
+        showLogin();
+        throw new Error('Unauthorized');
+      }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  /* ── Token ── */
+  function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+  function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+  function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+  /* ── Auth flow ── */
+  function showLogin() {
+    loginScreen.style.display = 'flex';
+    panel.style.display = 'none';
+    clearToken();
+    stopAutoRefresh();
+  }
+
+  function showPanel() {
+    loginScreen.style.display = 'none';
+    panel.style.display = 'flex';
+    loadTabContent(activeTab);
+    startAutoRefresh();
+  }
+
+  function tryLogin(token) {
+    loginBtn.disabled = true;
+    loginError.textContent = '';
+    fetch(API_BASE + '/stats', {
+      headers: { 'X-Admin-Token': token }
+    }).then(function (r) {
+      if (r.status === 401) {
+        loginError.textContent = 'Неверный токен';
+        clearToken();
+        loginBtn.disabled = false;
+        return;
+      }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (data) {
+      if (data) {
+        setToken(token);
+        showPanel();
+      }
+    }).catch(function (err) {
+      if (err.message !== 'Unauthorized') {
+        loginError.textContent = 'Ошибка соединения: ' + err.message;
+      }
+      loginBtn.disabled = false;
+    });
+  }
+
+  loginBtn.addEventListener('click', function () {
+    tryLogin(tokenInput.value.trim());
+  });
+  tokenInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') tryLogin(tokenInput.value.trim());
+  });
+  logoutBtn.addEventListener('click', showLogin);
+
+  /* ── Tabs ── */
+  var tabButtons = document.querySelectorAll('.tab-btn');
+  tabButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var tab = this.getAttribute('data-tab');
+      if (tab === activeTab) return;
+      setActiveTab(tab);
+    });
+  });
+
+  function setActiveTab(tab) {
+    activeTab = tab;
+    tabButtons.forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-tab') === tab);
+    });
+    document.querySelectorAll('.section').forEach(function (s) {
+      s.classList.toggle('active', s.id === 'section-' + tab);
+    });
+    loadTabContent(tab);
+    stopAutoRefresh();
+    startAutoRefresh();
+  }
+
+  /* ── Load tab content ── */
+  function loadTabContent(tab) {
+    switch (tab) {
+      case 'dashboard': loadDashboard(); break;
+      case 'users': loadUsers(); break;
+      case 'finance': loadFinance(); break;
+      case 'tarot': loadTarot(); break;
+      case 'push': loadPush(); break;
+      case 'health': loadHealth(); break;
+      case 'broadcast': break; // no auto-load
+    }
+  }
+
+  /* ── Auto-refresh (Dashboard + Health) ── */
+  function startAutoRefresh() {
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(function () {
+      if (activeTab === 'dashboard') loadDashboard();
+      else if (activeTab === 'health') loadHealth();
+    }, 30000);
+  }
+  function stopAutoRefresh() {
+    if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+  }
+
+  /* ── Helpers ── */
+  function formatNumber(n) {
+    if (n == null) return '-';
+    return Number(n).toLocaleString('ru-RU');
+  }
+  function formatRubles(kopecks) {
+    if (kopecks == null) return '-';
+    return (Number(kopecks) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ₽';
+  }
+  function formatDate(iso) {
+    if (!iso) return '-';
+    var d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  function formatDateTime(iso) {
+    if (!iso) return '-';
+    var d = new Date(iso);
+    return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  /* ── Sparkline ── */
+  function renderSparkline(container, points, color) {
+    if (!points || points.length === 0) {
+      container.innerHTML = '<span style="color:var(--text-s);font-size:12px">Нет данных</span>';
+      return;
+    }
+    var max = 1;
+    points.forEach(function (p) { if (p.value > max) max = p.value; });
+    var w = 200, h = 40;
+    var pts = points.map(function (p, i) {
+      return [(i / (points.length - 1)) * w, h - (p.value / max) * (h - 4) - 2].join(',');
+    }).join(' ');
+    container.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" style="width:100%;height:40px">'
+      + '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" vector-effect="non-scaling-stroke"/>'
+      + '</svg>';
+  }
+
+  /* ── Dashboard ── */
+  function loadDashboard() {
+    apiFetch('/stats').then(function (d) {
+      document.getElementById('dashLoading').style.display = 'none';
+      document.getElementById('dashContent').style.display = '';
+      renderKpi(d);
+      renderSparklines(d);
+    }).catch(function (err) {
+      document.getElementById('dashLoading').textContent = 'Ошибка: ' + err.message;
+    });
+  }
+
+  function renderKpi(d) {
+    var cards = [
+      { label: 'Всего пользователей', value: d.users_total },
+      { label: 'Новых за 24ч', value: d.users_new_24h },
+      { label: 'Новых за 7д', value: d.users_new_7d },
+      { label: 'Премиум активных', value: d.subscriptions_premium_active },
+      { label: 'Таро активных', value: d.subscriptions_tarot_active },
+      { label: 'Telegram-linked', value: d.users_telegram_linked },
+      { label: 'Push-подписчиков', value: d.users_push_subscribed },
+      { label: 'Выручка всего', value: formatRubles(d.revenue_total) },
+      { label: 'Выручка 30д', value: formatRubles(d.revenue_30d) },
+      { label: 'Выручка 7д', value: formatRubles(d.revenue_7d) },
+      { label: 'Платящих пользователей', value: d.unique_paying_users }
+    ];
+    var html = '';
+    cards.forEach(function (c) {
+      html += '<div class="kpi-card">'
+        + '<div class="kpi-label">' + escapeHtml(c.label) + '</div>'
+        + '<div class="kpi-value">' + formatNumber(c.value) + '</div>'
+        + '</div>';
+    });
+    document.getElementById('kpiGrid').innerHTML = html;
+  }
+
+  function renderSparklines(d) {
+    renderSparkline(document.getElementById('sparkRegistrations'), d.registrations_by_day || [], 'var(--terra)');
+    var regTotal = (d.registrations_by_day || []).reduce(function (s, p) { return s + p.value; }, 0);
+    document.getElementById('sparkRegTotal').textContent = formatNumber(regTotal);
+
+    renderSparkline(document.getElementById('sparkRevenue'), d.revenue_by_day || [], 'var(--green)');
+    var revTotal = (d.revenue_by_day || []).reduce(function (s, p) { return s + p.value; }, 0);
+    document.getElementById('sparkRevTotal').textContent = formatRubles(revTotal);
+  }
+
+  /* ── Users ── */
+  var usersPage = 1;
+  var usersFilter = '';
+  var usersSearch = '';
+  var usersDebounce = null;
+
+  document.getElementById('userSearch').addEventListener('input', function () {
+    clearTimeout(usersDebounce);
+    var self = this;
+    usersDebounce = setTimeout(function () {
+      usersSearch = self.value.trim();
+      usersPage = 1;
+      loadUsers();
+    }, 400);
+  });
+
+  document.querySelectorAll('#section-users .filter-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('#section-users .filter-btn').forEach(function (b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      usersFilter = this.getAttribute('data-filter') || '';
+      usersPage = 1;
+      loadUsers();
+    });
+  });
+
+  function loadUsers() {
+    document.getElementById('usersLoading').style.display = '';
+    document.getElementById('usersContent').style.display = 'none';
+    var params = '?page=' + usersPage + '&per_page=50';
+    if (usersSearch) params += '&search=' + encodeURIComponent(usersSearch);
+    if (usersFilter) params += '&filter=' + encodeURIComponent(usersFilter);
+
+    apiFetch('/users' + params).then(function (d) {
+      document.getElementById('usersLoading').style.display = 'none';
+      document.getElementById('usersContent').style.display = '';
+      renderUsersTable(d.users);
+      renderPagination('usersPagination', d.page, d.pages, function (p) { usersPage = p; loadUsers(); });
+    }).catch(function (err) {
+      document.getElementById('usersLoading').textContent = 'Ошибка: ' + err.message;
+    });
+  }
+
+  function renderUsersTable(users) {
+    if (!users || users.length === 0) {
+      document.getElementById('usersTableWrap').innerHTML = '<div style="padding:20px;color:var(--text-s)">Пользователи не найдены</div>';
+      return;
+    }
+    var html = '<table><thead><tr>'
+      + '<th>Имя</th><th>Telegram</th><th>Архетип</th><th>Статус</th>'
+      + '<th>Таро</th><th>Создан</th><th>Платежей</th><th>Сумма</th>'
+      + '</tr></thead><tbody>';
+
+    users.forEach(function (u) {
+      var name = u.name || u.first_name || '-';
+      var tg = u.username ? '@' + u.username : (u.telegram_id ? 'ID:' + u.telegram_id : '-');
+      var statusBadge = u.subscription_status === 'premium'
+        ? '<span class="badge badge-premium">Premium</span>'
+        : '<span class="badge badge-free">Free</span>';
+      var tarotBadge = u.tarot_subscription
+        ? '<span class="badge badge-premium">Активна</span>'
+        : '<span class="badge badge-free">Нет</span>';
+
+      html += '<tr>'
+        + '<td>' + escapeHtml(name) + '</td>'
+        + '<td>' + escapeHtml(tg) + '</td>'
+        + '<td>' + escapeHtml(u.main_archetype || '-') + '</td>'
+        + '<td>' + statusBadge + '</td>'
+        + '<td>' + tarotBadge + '</td>'
+        + '<td>' + formatDate(u.created_at) + '</td>'
+        + '<td>' + (u.payments_count || 0) + '</td>'
+        + '<td>' + formatRubles(u.total_paid) + '</td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('usersTableWrap').innerHTML = html;
+  }
+
+  /* ── Finance ── */
+  var paymentsPage = 1;
+  var paymentsStatus = '';
+  var paymentsType = '';
+
+  function loadFinance() {
+    document.getElementById('financeLoading').style.display = '';
+    document.getElementById('financeContent').style.display = 'none';
+
+    apiFetch('/stats').then(function (d) {
+      // Summary cards
+      var html = '';
+      html += '<div class="finance-card"><div class="finance-label">Выручка 7д</div><div class="finance-value">' + formatRubles(d.revenue_7d) + '</div></div>';
+      html += '<div class="finance-card"><div class="finance-label">Выручка 30д</div><div class="finance-value">' + formatRubles(d.revenue_30d) + '</div></div>';
+      html += '<div class="finance-card"><div class="finance-label">Выручка всего</div><div class="finance-value">' + formatRubles(d.revenue_total) + '</div></div>';
+      document.getElementById('financeSummary').innerHTML = html;
+
+      // Breakdown
+      renderBreakdown(d.payment_breakdown || []);
+      // Load payments
+      loadPayments();
+    }).catch(function (err) {
+      document.getElementById('financeLoading').textContent = 'Ошибка: ' + err.message;
+    });
+  }
+
+  function renderBreakdown(breakdown) {
+    if (!breakdown || breakdown.length === 0) {
+      document.getElementById('breakdownTableWrap').innerHTML = '<div style="padding:12px;color:var(--text-s)">Нет данных</div>';
+      return;
+    }
+    var html = '<table><thead><tr><th>Тип</th><th>Количество</th><th>Сумма</th></tr></thead><tbody>';
+    breakdown.forEach(function (b) {
+      html += '<tr>'
+        + '<td>' + escapeHtml(b.payment_type || '-') + '</td>'
+        + '<td>' + formatNumber(b.count) + '</td>'
+        + '<td>' + formatRubles(b.total_amount) + '</td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('breakdownTableWrap').innerHTML = html;
+  }
+
+  function loadPayments() {
+    paymentsPage = 1;
+    paymentsStatus = document.getElementById('paymentStatusFilter').value;
+    paymentsType = document.getElementById('paymentTypeFilter').value;
+
+    var params = '?page=' + paymentsPage + '&per_page=50';
+    if (paymentsStatus) params += '&status=' + encodeURIComponent(paymentsStatus);
+    if (paymentsType) params += '&payment_type=' + encodeURIComponent(paymentsType);
+
+    apiFetch('/payments' + params).then(function (d) {
+      document.getElementById('financeLoading').style.display = 'none';
+      document.getElementById('financeContent').style.display = '';
+      renderPaymentsTable(d.payments);
+      renderPagination('paymentsPagination', d.page, d.pages, function (p) { paymentsPage = p; loadPaymentsPage(); });
+    }).catch(function (err) {
+      document.getElementById('financeLoading').textContent = 'Ошибка: ' + err.message;
+    });
+  }
+
+  function loadPaymentsPage() {
+    var params = '?page=' + paymentsPage + '&per_page=50';
+    if (paymentsStatus) params += '&status=' + encodeURIComponent(paymentsStatus);
+    if (paymentsType) params += '&payment_type=' + encodeURIComponent(paymentsType);
+
+    apiFetch('/payments' + params).then(function (d) {
+      renderPaymentsTable(d.payments);
+      renderPagination('paymentsPagination', d.page, d.pages, function (p) { paymentsPage = p; loadPaymentsPage(); });
+    });
+  }
+
+  document.getElementById('paymentStatusFilter').addEventListener('change', function () {
+    paymentsStatus = this.value;
+    paymentsPage = 1;
+    loadPaymentsPage();
+  });
+  document.getElementById('paymentTypeFilter').addEventListener('change', function () {
+    paymentsType = this.value;
+    paymentsPage = 1;
+    loadPaymentsPage();
+  });
+
+  function renderPaymentsTable(payments) {
+    if (!payments || payments.length === 0) {
+      document.getElementById('paymentsTableWrap').innerHTML = '<div style="padding:20px;color:var(--text-s)">Платежи не найдены</div>';
+      return;
+    }
+    var html = '<table><thead><tr>'
+      + '<th>Пользователь</th><th>Тип</th><th>Сумма</th><th>Статус</th><th>Дата</th>'
+      + '</tr></thead><tbody>';
+
+    payments.forEach(function (p) {
+      var statusBadge = '';
+      if (p.status === 'succeeded') statusBadge = '<span class="badge badge-success">succeeded</span>';
+      else if (p.status === 'pending') statusBadge = '<span class="badge badge-warn">pending</span>';
+      else statusBadge = '<span class="badge badge-error">' + escapeHtml(p.status) + '</span>';
+
+      html += '<tr>'
+        + '<td>' + escapeHtml(p.user_name || '-') + '</td>'
+        + '<td>' + escapeHtml(p.payment_type || '-') + '</td>'
+        + '<td>' + formatRubles(p.amount) + '</td>'
+        + '<td>' + statusBadge + '</td>'
+        + '<td>' + formatDate(p.created_at) + '</td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('paymentsTableWrap').innerHTML = html;
+  }
+
+  /* ── Pagination ── */
+  function renderPagination(containerId, page, pages, onPage) {
+    var container = document.getElementById(containerId);
+    if (pages <= 1) { container.innerHTML = ''; return; }
+
+    var html = '';
+    html += '<button class="page-btn" ' + (page > 1 ? '' : 'disabled') + ' data-p="' + (page - 1) + '">Назад</button>';
+    html += '<span class="page-info">Страница ' + page + ' из ' + pages + '</span>';
+    html += '<button class="page-btn" ' + (page < pages ? '' : 'disabled') + ' data-p="' + (page + 1) + '">Вперёд</button>';
+    container.innerHTML = html;
+
+    container.querySelectorAll('.page-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (this.disabled) return;
+        var p = parseInt(this.getAttribute('data-p'));
+        if (p > 0 && p <= pages) onPage(p);
+      });
+    });
+  }
+
+  /* ── Tarot ── */
+  function loadTarot() {
+    apiFetch('/stats').then(function (d) {
+      document.getElementById('tarotLoading').style.display = 'none';
+      document.getElementById('tarotContent').style.display = '';
+
+      var reports = d.reports_by_type || {};
+      var kpiHtml = '';
+      kpiHtml += '<div class="kpi-card"><div class="kpi-label">Мини-отчётов</div><div class="kpi-value">' + formatNumber(reports.mini || 0) + '</div></div>';
+      kpiHtml += '<div class="kpi-card"><div class="kpi-label">Полных отчётов</div><div class="kpi-value">' + formatNumber(reports.full || 0) + '</div></div>';
+      kpiHtml += '<div class="kpi-card"><div class="kpi-label">Совместимость</div><div class="kpi-value">' + formatNumber(reports.compatibility || 0) + '</div></div>';
+      kpiHtml += '<div class="kpi-card"><div class="kpi-label">Таро подписок активно</div><div class="kpi-value">' + formatNumber(d.subscriptions_tarot_active) + '</div></div>';
+      document.getElementById('tarotKpiGrid').innerHTML = kpiHtml;
+
+      // Reports table
+      var reportTypes = ['mini', 'full', 'compatibility'];
+      var reportLabels = { 'mini': 'Мини', 'full': 'Полный', 'compatibility': 'Совместимость' };
+      var tbl = '<table><thead><tr><th>Тип отчёта</th><th>Количество</th></tr></thead><tbody>';
+      reportTypes.forEach(function (t) {
+        tbl += '<tr><td>' + (reportLabels[t] || t) + '</td><td>' + formatNumber(reports[t] || 0) + '</td></tr>';
+      });
+      tbl += '</tbody></table>';
+      document.getElementById('reportsTableWrap').innerHTML = tbl;
+    }).catch(function (err) {
+      document.getElementById('tarotLoading').textContent = 'Ошибка: ' + err.message;
+    });
+  }
+
+  /* ── Push ── */
+  function loadPush() {
+    apiFetch('/stats').then(function (d) {
+      document.getElementById('pushLoading').style.display = 'none';
+      document.getElementById('pushContent').style.display = '';
+
+      var total = d.users_total || 0;
+      var pushSub = d.users_push_subscribed || 0;
+      var pct = total > 0 ? ((pushSub / total) * 100).toFixed(1) : '0';
+
+      var html = '';
+      html += '<div class="kpi-card"><div class="kpi-label">Push-подписчиков</div><div class="kpi-value">' + formatNumber(pushSub) + '</div></div>';
+      html += '<div class="kpi-card"><div class="kpi-label">Всего пользователей</div><div class="kpi-value">' + formatNumber(total) + '</div></div>';
+      html += '<div class="kpi-card"><div class="kpi-label">% от всех</div><div class="kpi-value">' + pct + '%</div></div>';
+      document.getElementById('pushKpiGrid').innerHTML = html;
+    }).catch(function (err) {
+      document.getElementById('pushLoading').textContent = 'Ошибка: ' + err.message;
+    });
+  }
+
+  /* ── Health ── */
+  function loadHealth() {
+    document.getElementById('healthLoading').style.display = '';
+    document.getElementById('healthContent').style.display = 'none';
+    document.getElementById('healthRefresh').disabled = true;
+
+    apiFetch('/health').then(function (d) {
+      document.getElementById('healthLoading').style.display = 'none';
+      document.getElementById('healthContent').style.display = '';
+      document.getElementById('healthRefresh').disabled = false;
+
+      var overall = d.overall || 'ok';
+      var overallLabels = { ok: 'OK', error: 'Ошибка', degraded: 'Деградация' };
+      var overallLabel = overallLabels[overall] || overall;
+
+      var badge = document.getElementById('overallBadge');
+      badge.className = 'overall-badge ' + overall;
+      badge.textContent = 'Статус: ' + overallLabel;
+
+      var listHtml = '';
+      (d.components || []).forEach(function (c) {
+        var dotClass = c.status === 'ok' ? 'ok' : (c.status === 'degraded' ? 'degraded' : 'error');
+        var latency = c.latency_ms != null ? c.latency_ms.toFixed(1) + ' ms' : '—';
+        var detail = c.detail ? '<div class="health-detail">' + escapeHtml(c.detail) + '</div>' : '';
+
+        listHtml += '<div class="health-item">'
+          + '<div class="health-dot ' + dotClass + '"></div>'
+          + '<div class="health-name">' + escapeHtml(c.name) + detail + '</div>'
+          + '<div class="health-latency">' + latency + '</div>'
+          + '</div>';
+      });
+      document.getElementById('healthList').innerHTML = listHtml;
+
+      document.getElementById('healthChecked').textContent = 'Проверено: ' + formatDateTime(d.checked_at);
+    }).catch(function (err) {
+      document.getElementById('healthLoading').textContent = 'Ошибка: ' + err.message;
+      document.getElementById('healthRefresh').disabled = false;
+    });
+  }
+
+  document.getElementById('healthRefresh').addEventListener('click', function () {
+    this.disabled = true;
+    document.getElementById('healthLoading').style.display = '';
+    document.getElementById('healthContent').style.display = 'none';
+    loadHealth();
+  });
+
+  /* ── Broadcast ── */
+  var broadcastRunning = false;
+  var broadcastPollTimer = null;
+
+  document.querySelectorAll('.broadcast-channel').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var hasPush = false;
+      document.querySelectorAll('.broadcast-channel').forEach(function (c) {
+        if (c.checked && c.value === 'push') hasPush = true;
+      });
+      document.getElementById('pushExtra').style.display = hasPush ? 'block' : 'none';
+    });
+  });
+
+  document.getElementById('broadcastSubmit').addEventListener('click', function () {
+    if (broadcastRunning) return;
+
+    var text = document.getElementById('broadcastText').value.trim();
+    if (!text) { alert('Введите текст сообщения'); return; }
+
+    var channels = [];
+    document.querySelectorAll('.broadcast-channel').forEach(function (c) {
+      if (c.checked) channels.push(c.value);
+    });
+    if (channels.length === 0) { alert('Выберите хотя бы один канал'); return; }
+
+    var filter = 'all';
+    var radios = document.getElementsByName('broadcastFilter');
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].checked) filter = radios[i].value;
+    }
+
+    var pushTitle = document.getElementById('pushTitle').value.trim() || null;
+    var pushUrl = document.getElementById('pushUrl').value.trim() || '/app';
+
+    var payload = { text: text, channels: channels, filter: filter };
+    if (channels.indexOf('push') !== -1) {
+      payload.push_title = pushTitle;
+      payload.push_url = pushUrl;
+    }
+
+    broadcastRunning = true;
+    var submitBtn = document.getElementById('broadcastSubmit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Отправка...';
+    document.getElementById('broadcastProgress').style.display = '';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressText').textContent = 'Запуск...';
+    document.getElementById('progressFailed').textContent = '';
+
+    apiPost('/broadcast', payload).then(function (data) {
+      if (data && data.task_id) {
+        pollBroadcast(data.task_id);
+      } else {
+        broadcastRunning = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Отправить рассылку';
+        document.getElementById('progressText').textContent = 'Ошибка: не получен task_id';
+      }
+    }).catch(function (err) {
+      broadcastRunning = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Отправить рассылку';
+      document.getElementById('progressText').textContent = 'Ошибка: ' + err.message;
+    });
+  });
+
+  function apiPost(path, body) {
+    return fetch(API_BASE + path, {
+      method: 'POST',
+      headers: {
+        'X-Admin-Token': getToken(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (r.status === 401) {
+        clearToken();
+        showLogin();
+        throw new Error('Unauthorized');
+      }
+      if (!r.ok) return r.json().then(function (e) { throw new Error(e.detail || 'HTTP ' + r.status); });
+      return r.json();
+    });
+  }
+
+  function pollBroadcast(taskId) {
+    stopPolling();
+
+    broadcastPollTimer = setInterval(function () {
+      apiFetch('/broadcast/status/' + taskId).then(function (r) {
+        renderBroadcastProgress(r);
+        if (r.status === 'completed' || r.status === 'failed') {
+          stopPolling();
+          broadcastRunning = false;
+          var submitBtn = document.getElementById('broadcastSubmit');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Отправить рассылку';
+        }
+      }).catch(function () {
+        // retry next tick
+      });
+    }, 2000);
+  }
+
+  function stopPolling() {
+    if (broadcastPollTimer) { clearInterval(broadcastPollTimer); broadcastPollTimer = null; }
+  }
+
+  function renderBroadcastProgress(r) {
+    var total = r.total || 0;
+    var sent = r.sent || 0;
+    var failed = r.failed || 0;
+    var pct = total > 0 ? Math.round((sent / total) * 100) : 0;
+
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressText').textContent = sent + ' / ' + total + ' отправлено';
+    if (failed > 0) {
+      document.getElementById('progressFailed').textContent = 'Ошибок: ' + failed;
+    }
+  }
+
+  /* ── Escape HTML ── */
+  function escapeHtml(str) {
+    if (!str) return '';
+    str = String(str);
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  /* ── Init ── */
+  if (getToken()) {
+    tryLogin(getToken());
+  }
+})();
+</script>
+
+</body>
+</html>

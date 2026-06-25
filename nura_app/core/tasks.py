@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import uuid
 from datetime import date, datetime, timedelta, timezone
@@ -9,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import load_only
 
 from core.config import settings
-from core.database import get_async_sessionmaker
+from core.database import get_async_sessionmaker, get_redis
 from core.models import ReportType, User
 from core.repositories import ReportRepository, UserRepository
 from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
@@ -801,3 +802,130 @@ def assemble_carousel_job(job_dir: str) -> dict:
     logger.info("Carousel QA:\n%s", format_qa_result(qa, "Carousel"))
 
     return {"output": [str(p) for p in paths], "count": len(paths), "qa_passed": qa.passed}
+
+
+@celery_app.task(name="core.tasks.send_broadcast", bind=True)
+def send_broadcast(self, text: str, channels: list[str], filter_type: str,
+                   push_title: str | None = None, push_url: str | None = None):
+    return _run_async(_send_broadcast_async(
+        self.request.id, text, channels, filter_type, push_title, push_url
+    ))
+
+
+async def _send_broadcast_async(
+    task_id: str,
+    text: str,
+    channels: list[str],
+    filter_type: str,
+    push_title: str | None,
+    push_url: str | None,
+) -> dict:
+    from aiogram import Bot
+    from aiogram.client.default import DefaultBotProperties
+    from aiogram.enums import ParseMode
+    from aiogram.exceptions import TelegramForbiddenError
+
+    redis = get_redis()
+    session_factory = get_async_sessionmaker()
+
+    async with session_factory() as session:
+        stmt = select(User)
+        if filter_type == "premium":
+            stmt = stmt.where(User.subscription_status == "premium")
+        elif filter_type == "free":
+            stmt = stmt.where(User.subscription_status == "free")
+        result = await session.execute(stmt)
+        users = result.scalars().all()
+
+    total = len(users)
+    if total == 0:
+        await redis.set(f"broadcast:{task_id}", json.dumps({
+            "status": "completed", "sent": 0, "total": 0, "failed": 0,
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+        }))
+        return {"sent": 0, "total": 0, "failed": 0}
+
+    await redis.set(f"broadcast:{task_id}", json.dumps({
+        "status": "running", "sent": 0, "total": total, "failed": 0, "finished_at": None,
+    }))
+
+    send_telegram = "telegram" in channels
+    send_push = "push" in channels
+
+    bot = None
+    if send_telegram and settings.telegram_bot_token:
+        bot = Bot(
+            token=settings.telegram_bot_token,
+            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        )
+
+    failed = 0
+    try:
+        for i, user in enumerate(users):
+            tg_sent = False
+
+            if send_telegram and user.telegram_id and bot:
+                try:
+                    await bot.send_message(chat_id=user.telegram_id, text=text)
+                    tg_sent = True
+                except TelegramForbiddenError:
+                    failed += 1
+                except Exception:
+                    logger.exception("Broadcast TG failed for user %s", user.id)
+                    failed += 1
+
+            if send_push and user.has_pwa_push and user.push_endpoint and user.push_p256dh and user.push_auth:
+                try:
+                    ok = await send_web_push(
+                        endpoint=user.push_endpoint,
+                        p256dh=user.push_p256dh,
+                        auth=user.push_auth,
+                        title=push_title or "NURA",
+                        body=text[:200],
+                        url=push_url or "/app",
+                        tag="broadcast",
+                    )
+                    if not ok:
+                        failed += 1
+                except PushSubscriptionExpired:
+                    user_repo = UserRepository(session_factory)
+                    try:
+                        await user_repo.update_push_subscription(
+                            user_id=user.id,
+                            endpoint=None,
+                            p256dh=None,
+                            auth=None,
+                            has_pwa_push=False,
+                        )
+                    except Exception:
+                        logger.exception("Failed to clear push sub for user %s", user.id)
+                    failed += 1
+                except Exception:
+                    logger.exception("Broadcast push failed for user %s", user.id)
+                    failed += 1
+
+            if tg_sent:
+                await asyncio.sleep(1 / 25)
+
+            processed = i + 1
+            await redis.set(f"broadcast:{task_id}", json.dumps({
+                "status": "running",
+                "sent": processed,
+                "total": total,
+                "failed": failed,
+                "finished_at": None,
+            }))
+
+        await redis.set(f"broadcast:{task_id}", json.dumps({
+            "status": "completed",
+            "sent": total,
+            "total": total,
+            "failed": failed,
+            "finished_at": datetime.now(timezone.utc).isoformat(),
+        }))
+
+    finally:
+        if bot:
+            await bot.session.close()
+
+    return {"sent": total, "total": total, "failed": failed}
