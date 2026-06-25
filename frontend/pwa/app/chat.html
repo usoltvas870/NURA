@@ -221,6 +221,7 @@ body{overflow:hidden;padding-bottom:0}
   window.sendMessage = function(retryText) {
     var text = retryText || inputEl.value.trim();
     if (!text) return;
+    if (!session_id) { location.href = '/mini.html'; return; }
     if (!retryText) { inputEl.value = ''; inputEl.style.height = 'auto'; sendBtn.disabled = true; }
     emptyState.style.display = 'none';
     var t = N.now();
@@ -232,24 +233,28 @@ body{overflow:hidden;padding-bottom:0}
     });
     fetch(BASE + '/web/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Session-Id': session_id || '' },
+      headers: { 'Content-Type': 'application/json', 'X-Session-Id': session_id },
       body: JSON.stringify({ message: text, session_id: session_id, history: history })
     })
     .then(function(r) {
-      if (r.status === 429) return { _limit: true };
+      if (r.status === 402 || r.status === 429) return { _limit: true };
+      if (r.status === 404) { location.href = '/mini.html'; return { _gone: true }; }
       return r.json().then(function(j) { return r.ok ? j : Object.assign({ _status: r.status }, j); }).catch(function() { return { _status: r.status }; });
     })
     .then(function(d) {
+      if (!d || d._gone) return;
       hideTyping();
       if (d && d.reply) {
         addBubble('nura', d.reply, N.now(), true);
         saveMsg('nura', d.reply, N.now());
         if (!hasUnlimited) { qUsed++; localStorage.setItem('nura_q_' + today, qUsed); updateLimitNote(); }
-      } else if (d && (d._limit || (d.detail && /limit|quota|exceed/i.test(d.detail)))) {
+      } else if (d && d._limit) {
         var limitMsg = 'Бесплатный лимит на сегодня исчерпан. Подключи подписку — доступ безлимитный.';
         addBubble('nura', limitMsg, N.now(), true, false, 'profile.html#subscription', 'Подключить подписку');
         saveMsg('nura', limitMsg, N.now());
         updateLimitNote(true);
+      } else if (d && d._status === 503) {
+        addBubble('nura', 'AI временно недоступен. Попробуй через минуту.', N.now(), true, true, null, null, text);
       } else {
         addBubble('nura', 'Что-то пошло не так. Повтори вопрос.', N.now(), true, true, null, null, text);
       }
