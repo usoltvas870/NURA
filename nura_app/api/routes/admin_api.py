@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import time
 from datetime import datetime, timezone
 
@@ -558,8 +559,6 @@ async def get_logs(
     if container not in ALLOWED_CONTAINERS:
         raise HTTPException(status_code=400, detail=f"Unknown container: {container}")
 
-    import os
-
     if container == "nginx":
         return await _read_nginx_logs(lines, level)
 
@@ -627,7 +626,6 @@ def _parse_docker_logs(raw: str, level: str) -> list[str]:
 
 
 async def _read_nginx_logs(lines: int, level: str) -> dict:
-    import os
     candidates = ["/var/log/nginx/error.log", "/var/log/nginx/access.log"]
     all_lines: list[str] = []
     for path in candidates:

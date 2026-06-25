@@ -17,12 +17,13 @@ from api.routes.tarot_pwa import router as tarot_pwa_router
 
 from core.config import settings
 
-sentry_sdk.init(
-    dsn=settings.sentry_dsn,
-    traces_sample_rate=0.3,
-    environment=settings.app_env,
-    send_default_pii=False,
-)
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        traces_sample_rate=0.3,
+        environment=settings.app_env,
+        send_default_pii=False,
+    )
 
 app = FastAPI(title="NURA API", version="1.0.0", docs_url=None, redoc_url=None)
 app.state.limiter = limiter
