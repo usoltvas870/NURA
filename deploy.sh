@@ -48,7 +48,7 @@ nginx -t && systemctl reload nginx
 
 echo "→ Rebuilding API container..."
 cd /opt/nura/nura_app
-docker compose up -d --build api
+docker compose up -d --build api --no-deps
 cd /opt/nura
 
 echo "✓ Deploy complete"

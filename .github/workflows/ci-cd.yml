@@ -99,6 +99,6 @@ jobs:
             cd /opt/nura
             git pull origin main
             cd nura_app
-            docker compose up -d --build api
-            docker compose up -d --build bot
-            docker compose up -d --build celery-worker celery-beat
+            docker compose up -d --build api --no-deps
+            docker compose up -d --build bot --no-deps
+            docker compose up -d --build celery-worker celery-beat --no-deps
