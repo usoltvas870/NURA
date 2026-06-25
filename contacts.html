@@ -1,0 +1,124 @@
+<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>
+  (function(){
+    var t = localStorage.getItem('nura-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/theme.css">
+<title>NURA · Контакты и реквизиты</title>
+<meta name="description" content="Контакты и реквизиты сервиса NURA.">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{
+  min-height:100dvh;
+  background:var(--bg);
+  color:var(--text);font-family:var(--font-sans);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  display:flex;align-items:flex-start;justify-content:center;
+}
+a{color:var(--terra);text-decoration:none}
+.wrap{width:min(100%,560px);padding:40px 16px 60px}
+.back{display:inline-flex;align-items:center;gap:6px;color:var(--text-m);font-size:14px;font-weight:500;margin-bottom:28px;transition:color .2s}
+.back:hover{color:var(--terra)}
+.back svg{width:16px;height:16px;flex-shrink:0}
+.logo{font-family:var(--font-serif);font-size:20px;color:var(--terra);margin-bottom:8px}
+h1{font-family:var(--font-serif);font-size:clamp(26px,6vw,36px);line-height:1.15;font-weight:400;letter-spacing:-.02em;margin-bottom:6px}
+.subtitle{color:var(--text-s);font-size:13.5px;margin-bottom:36px;padding-bottom:24px;border-bottom:1px solid var(--line)}
+.card{background:var(--bg-card);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;margin-bottom:16px}
+[data-theme="light"] .card{border-color:rgba(255,255,255,.64);box-shadow:0 4px 16px rgba(44,42,30,.08),0 1px 3px rgba(44,42,30,.06)}
+.card-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-s);padding:16px 20px 0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row-label{color:var(--text-s);font-size:14px;white-space:nowrap}
+.row-value{color:var(--text);font-size:14.5px;font-weight:600;text-align:right;word-break:break-all}
+.row-value a{color:var(--terra);font-weight:600}
+.note{color:var(--text-s);font-size:13px;line-height:1.6;text-align:center;margin-top:24px}
+.docs-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}
+.doc-link{flex:1;min-width:140px;background:var(--bg-card);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;text-align:center;color:var(--text-m);font-size:14px;font-weight:500;transition:border-color .2s,color .2s}
+[data-theme="light"] .doc-link{box-shadow:0 2px 8px rgba(44,42,30,.06)}
+.doc-link:hover{border-color:var(--terra);color:var(--terra)}
+.doc-link svg{display:block;margin:0 auto 8px;width:20px;height:20px;stroke:currentColor;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head><body>
+<div class="wrap">
+
+  <a href="/" class="back">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 3L5 8l5 5"/>
+    </svg>
+    На главную
+  </a>
+
+  <div class="logo">NURA</div>
+  <h1>Контакты и реквизиты</h1>
+  <p class="subtitle">Информация об исполнителе услуг сервиса nura-ai.ru</p>
+
+  <div class="card">
+    <div class="card-title">Исполнитель</div>
+    <div class="row">
+      <span class="row-label">ФИО</span>
+      <span class="row-value">[ФИО]</span>
+    </div>
+    <div class="row">
+      <span class="row-label">Статус</span>
+      <span class="row-value">Самозанятый (НПД)</span>
+    </div>
+    <div class="row">
+      <span class="row-label">ИНН</span>
+      <span class="row-value">[ИНН]</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Контакты</div>
+    <div class="row">
+      <span class="row-label">Email</span>
+      <span class="row-value"><a href="mailto:bayzelai87@gmail.com">bayzelai87@gmail.com</a></span>
+    </div>
+    <div class="row">
+      <span class="row-label">Сайт</span>
+      <span class="row-value"><a href="https://nura-ai.ru">nura-ai.ru</a></span>
+    </div>
+    <div class="row">
+      <span class="row-label">Telegram</span>
+      <span class="row-value"><a href="https://t.me/ai_nura_bot">@ai_nura_bot</a></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Оплата услуг</div>
+    <div class="row">
+      <span class="row-label">Платёжный сервис</span>
+      <span class="row-value">ЮKassa</span>
+    </div>
+    <div class="row">
+      <span class="row-label">Способы оплаты</span>
+      <span class="row-value">Карты Visa, MС, МИР · СБП</span>
+    </div>
+    <div class="row">
+      <span class="row-label">Валюта</span>
+      <span class="row-value">Рубли РФ (₽)</span>
+    </div>
+  </div>
+
+  <div class="docs-row">
+    <a href="/offer.html" class="doc-link">
+      <svg viewBox="0 0 20 20"><path d="M6 2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2z"/><path d="M7 7h6M7 10h6M7 13h4"/></svg>
+      Публичная оферта
+    </a>
+    <a href="/privacy.html" class="doc-link">
+      <svg viewBox="0 0 20 20"><path d="M10 2l6 3v5c0 4-3 7-6 8-3-1-6-4-6-8V5l6-3z"/></svg>
+      Политика конфиденциальности
+    </a>
+  </div>
+
+  <p class="note">По вопросам возврата и поддержки пишите на&nbsp;<a href="mailto:bayzelai87@gmail.com">bayzelai87@gmail.com</a></p>
+
+</div>
+</body></html>
