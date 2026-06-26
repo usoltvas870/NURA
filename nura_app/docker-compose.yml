@@ -47,6 +47,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      RUN_MIGRATIONS: "1"
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,8 +59,6 @@ services:
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'
     volumes:
       - reports_output:/app/templates/reports/output
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/log/nginx:/var/log/nginx:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
@@ -84,6 +84,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      api:
+        condition: service_healthy
     command: python -m bot.main
     logging:
       driver: "json-file"
@@ -104,6 +106,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      api:
         condition: service_healthy
     command: celery -A core.tasks worker --loglevel=info --concurrency=2
     volumes:
@@ -127,6 +131,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      api:
         condition: service_healthy
     command: celery -A core.tasks beat --loglevel=info
     logging:

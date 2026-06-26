@@ -19,7 +19,7 @@ from bot.handlers.tarot import router as tarot_router
 from bot.middlewares import UserRegistrationMiddleware, ThrottlingMiddleware, AntiFloodMiddleware
 from core.config import settings
 from core.database import create_engine
-from core.models import Base
+from sqlalchemy import text
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,12 +67,12 @@ async def main():
 
     max_db_retries = 10
     for attempt in range(max_db_retries):
+        engine = create_engine()
         try:
-            engine = create_engine()
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
+            async with engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
             await engine.dispose()
-            logger.info("Database tables ensured")
+            logger.info("Database ready")
             break
         except Exception as e:
             logger.warning(
@@ -91,6 +91,7 @@ async def main():
     commands = [
         BotCommand(command="start", description="🚀 Главное меню"),
         BotCommand(command="profile", description="👤 Мой профиль"),
+        BotCommand(command="delete_account", description="🗑 Удалить аккаунт"),
         BotCommand(command="help", description="❓ Помощь"),
     ]
     await bot.set_my_commands(commands, BotCommandScopeDefault())

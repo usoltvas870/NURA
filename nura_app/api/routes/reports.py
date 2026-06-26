@@ -1,9 +1,11 @@
 import logging
 import os
+from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 
+from api.deps import limiter
 from core.database import get_async_sessionmaker
 from core.services.report import ReportService
 
@@ -76,6 +78,38 @@ GENERATING_HTML = """<!DOCTYPE html>
 </body>
 </html>"""
 
+EXPIRED_HTML = """<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NURA — Срок действия истёк</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    .box { padding: 40px; max-width: 480px; }
+    h1 { font-size: 24px; color: #C9A55C; font-weight: 300; letter-spacing: 4px; margin-bottom: 20px; }
+    p { color: #8a8a8a; font-size: 15px; line-height: 1.6; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>N U R A</h1>
+    <p>Срок действия ссылки истёк.</p>
+    <p>Вернись в бот и запроси отчёт заново.</p>
+  </div>
+</body>
+</html>"""
+
 
 @router.get("/sample")
 async def serve_sample_report():
@@ -90,12 +124,16 @@ async def serve_sample_report():
 
 
 @router.get("/{token}")
-async def serve_report(token: str):
+@limiter.limit("30/minute")
+async def serve_report(request: Request, token: str):
     session_factory = get_async_sessionmaker()
     report = await ReportService.get_report_by_token(session_factory, token)
 
     if report is None:
         return HTMLResponse(content=NOT_FOUND_HTML, status_code=404)
+
+    if _is_expired(report):
+        return HTMLResponse(content=EXPIRED_HTML, status_code=410)
 
     paths = ReportService.get_report_path(token)
     if os.path.exists(paths["html"]):
@@ -109,12 +147,16 @@ async def serve_report(token: str):
 
 
 @router.get("/{token}/pdf")
-async def serve_report_pdf(token: str):
+@limiter.limit("30/minute")
+async def serve_report_pdf(request: Request, token: str):
     session_factory = get_async_sessionmaker()
     report = await ReportService.get_report_by_token(session_factory, token)
 
     if report is None:
         return PlainTextResponse("Report not found", status_code=404)
+
+    if _is_expired(report):
+        return PlainTextResponse("Срок действия ссылки истёк", status_code=410)
 
     paths = ReportService.get_report_path(token)
     if os.path.exists(paths["pdf"]):
@@ -136,6 +178,15 @@ async def serve_report_pdf(token: str):
         return PlainTextResponse("PDF generation failed: CSS complexity too high. Please try again later.", status_code=500)
     return Response(content=pdf_bytes, media_type="application/pdf",
                     headers={"Content-Disposition": f"inline; filename=nura-report-{token[:8]}.pdf"})
+
+
+def _is_expired(report) -> bool:
+    expires_at = getattr(report, "expires_at", None)
+    if expires_at is None:
+        return False
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return expires_at < datetime.now(timezone.utc)
 
 
 async def _render_report_by_type(report, session_factory) -> str | None:
@@ -163,11 +214,15 @@ async def _render_report_by_type(report, session_factory) -> str | None:
 
 
 @router.get("/{token}/kitchen")
-async def serve_kitchen_analysis(token: str):
+@limiter.limit("30/minute")
+async def serve_kitchen_analysis(request: Request, token: str):
     session_factory = get_async_sessionmaker()
     report = await ReportService.get_report_by_token(session_factory, token)
 
     if report is None or report.kitchen_analysis is None:
         return PlainTextResponse("Kitchen analysis not found", status_code=404)
+
+    if _is_expired(report):
+        return PlainTextResponse("Срок действия ссылки истёк", status_code=410)
 
     return report.kitchen_analysis

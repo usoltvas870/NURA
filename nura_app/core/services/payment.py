@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 import uuid
@@ -212,6 +213,28 @@ class PaymentService:
         metadata = payment_obj.get("metadata") or {}
         telegram_id = metadata.get("telegram_id")
         payment_type = metadata.get("payment_type", "subscription")
+
+        if settings.yookassa_verify_on_webhook and yookassa_id:
+            try:
+                remote = await asyncio.to_thread(
+                    YooPayment.find_one, yookassa_id
+                )
+            except Exception:
+                logger.warning(
+                    "yookassa verification failed for payment %s, "
+                    "ignoring webhook",
+                    yookassa_id, exc_info=True,
+                )
+                return {"status": "ignored", "reason": "verification_unavailable"}
+            remote_status = getattr(remote, "status", None)
+            remote_paid = getattr(remote, "paid", None)
+            if remote_status != "succeeded" or remote_paid is not True:
+                logger.warning(
+                    "yookassa verification mismatch for payment %s: "
+                    "remote status=%r paid=%r, ignoring webhook",
+                    yookassa_id, remote_status, remote_paid,
+                )
+                return {"status": "ignored", "reason": "not_succeeded"}
 
         if payment_type == "web_matrix":
             if not yookassa_id:

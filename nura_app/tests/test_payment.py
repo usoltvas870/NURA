@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from core.config import settings
 from core.repositories.payment import PaymentRepository
 from core.repositories.user import UserRepository
 from core.services.access import can_access_full_report
@@ -237,6 +238,17 @@ class TestPaymentCreate:
 @pytest.mark.asyncio
 class TestProcessWebhook:
     """Проверка логики webhook через PaymentService.process_webhook."""
+
+    @pytest.fixture(autouse=True)
+    def _mock_yookassa_find_one(self):
+        remote = MagicMock()
+        remote.status = "succeeded"
+        remote.paid = True
+        with patch(
+            "core.services.payment.YooPayment.find_one",
+            return_value=remote,
+        ):
+            yield
 
     async def test_ignores_non_succeeded_event(self, session_factory):
         """Любой event кроме payment.succeeded → ignored."""
@@ -589,9 +601,97 @@ class TestPaymentWebhookEndpoint:
             assert resp.status_code == 200
             assert resp.json() == {"status": "ignored"}
 
+    def test_ip_not_in_whitelist_returns_403(self, client):
+        """IP не в whitelist → 403, сервис не вызывается."""
+        with patch.object(settings, "yookassa_ip_whitelist", "10.0.0.0/8"):
+            with patch.object(
+                PaymentService, "process_webhook", new_callable=AsyncMock
+            ) as mock_service:
+                resp = client.post(
+                    "/api/v1/payment/webhook",
+                    json={"event": "payment.succeeded", "object": {"id": "yo-1"}},
+                )
+        assert resp.status_code == 403
+        assert resp.json()["detail"] == "Forbidden"
+        mock_service.assert_not_called()
+
 
 # ═══════════════════════════════════════════════════════════════════════
-# 4. TestReportAccess (был, оставляем для совместимости)
+# 4. TestWebhookVerification — обратная проверка через YooKassa (defense in depth)
+# ═══════════════════════════════════════════════════════════════════════
+
+@pytest.mark.asyncio
+class TestWebhookVerification:
+    """Подделанный webhook не должен что-либо выдавать."""
+
+    async def test_forged_non_succeeded_no_privilege(
+        self, session_factory, test_user, payment_in_db,
+    ):
+        """find_one вернул статус != succeeded → ничего не активируется."""
+        remote = MagicMock()
+        remote.status = "pending"
+        remote.paid = False
+        with patch(
+            "core.services.payment.YooPayment.find_one",
+            return_value=remote,
+        ):
+            result = await PaymentService.process_webhook(
+                session_factory,
+                {
+                    "event": "payment.succeeded",
+                    "object": {
+                        "id": "yo-tg-001",
+                        "metadata": {
+                            "telegram_id": str(test_user.telegram_id),
+                        },
+                    },
+                },
+            )
+        assert result == {"status": "ignored", "reason": "not_succeeded"}
+
+        user_repo = UserRepository(session_factory)
+        user = await user_repo.get(test_user.id)
+        assert user.subscription_status == "free"
+
+        pay_repo = PaymentRepository(session_factory)
+        payment = await pay_repo.get_by_yookassa_id("yo-tg-001")
+        assert payment is not None
+        assert payment.status == "pending"
+
+    async def test_find_one_error_no_privilege(
+        self, session_factory, test_user, payment_in_db,
+    ):
+        """find_one бросает исключение → verification_unavailable, ничего не активируется."""
+        with patch(
+            "core.services.payment.YooPayment.find_one",
+            side_effect=RuntimeError("network error"),
+        ):
+            result = await PaymentService.process_webhook(
+                session_factory,
+                {
+                    "event": "payment.succeeded",
+                    "object": {
+                        "id": "yo-tg-001",
+                        "metadata": {
+                            "telegram_id": str(test_user.telegram_id),
+                        },
+                    },
+                },
+            )
+        assert result == {"status": "ignored", "reason": "verification_unavailable"}
+
+        user_repo = UserRepository(session_factory)
+        user = await user_repo.get(test_user.id)
+        assert user.subscription_status == "free"
+
+        pay_repo = PaymentRepository(session_factory)
+        payment = await pay_repo.get_by_yookassa_id("yo-tg-001")
+        assert payment is not None
+        assert payment.status == "pending"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 4b. TestReportAccess (был, оставляем для совместимости)
 # ═══════════════════════════════════════════════════════════════════════
 
 @pytest.mark.asyncio

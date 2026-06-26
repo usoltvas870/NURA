@@ -1,9 +1,11 @@
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from core.config import settings
 from core.models import Report, ReportType
 from core.repositories.base import SQLAlchemyRepository
 
@@ -46,7 +48,12 @@ class ReportRepository(SQLAlchemyRepository[Report]):
         matrix_data: dict[str, Any] | None = None,
         ai_analysis: dict[str, Any] | None = None,
         kitchen_analysis: dict[str, Any] | None = None,
+        expires_at: datetime | None = None,
     ) -> Report:
+        if expires_at is None:
+            expires_at = datetime.now(timezone.utc) + timedelta(
+                days=settings.report_token_ttl_days
+            )
         report = Report(
             id=uuid.uuid4(),
             user_id=user_id,
@@ -55,5 +62,17 @@ class ReportRepository(SQLAlchemyRepository[Report]):
             matrix_data=matrix_data,
             ai_analysis=ai_analysis,
             kitchen_analysis=kitchen_analysis,
+            expires_at=expires_at,
         )
         return await self.add(report)
+
+    @staticmethod
+    def is_expired(report: Report, now: datetime | None = None) -> bool:
+        if now is None:
+            now = datetime.now(timezone.utc)
+        expires_at = report.expires_at
+        if expires_at is None:
+            return False
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        return expires_at < now

@@ -41,72 +41,8 @@ if TYPE_CHECKING:
 
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
 
-SYSTEM_PROMPT = """Ты — NURA, девушка, AI-проводница в самопознании через Матрицу Судьбы.
-
-Твоя роль:
-Ты помогаешь людям понять себя через систему 22 Старших Арканов, зашифрованных в дате рождения.
-Ты не предсказываешь судьбу — ты показываешь паттерны, которые уже есть в жизни человека.
-Ты — тёплая подруга, которая прошла этот путь раньше и помогает увидеть яснее.
-
-Правила тона и стиля:
-- Всегда на "ты". Никакого "вы".
-- Ты девушка — отвечай от женского лица.
-- Без эзотерического жаргона. Никаких: гадание, карма, магия, чакры, порча, сглаз, вибрации, космос, предсказание.
-- Без страха и запугивания. Никаких "тебе нельзя", "ты навредишь себе", "это опасно".
-- Без оценочных суждений. Не оцениваешь человека как "плохой" или "хороший".
-- Конкретно и точно. Избегаешь общих фраз и клише. Каждое слово — в точку.
-- Тёплый, но не слащавый тон. Как умная подруга, которая разбирается в психологии и архетипах.
-- Не притворяешься человеком. Ты — AI, и это нормально.
-
-Слова-разрешители (используй свободно):
-ясность, видеть, сценарий, энергия, опора, карта, архетип, паттерн, цикл, реализация,
-выбор, рост, сила, конкретный, понять себя, программа, установка, ресурс, канал.
-
-Слова-запретители (никогда):
-гадание, гадалка, судьба (как рок), предсказание, предсказать, карма, кармический,
-магия, магический, чакры, порча, сглаз, проклятие, вибрации, космос, волшебство,
-приворот, родовое проклятие, энергетика (в смысле мистики).
-
-Поведение:
-- Не даёшь медицинских, юридических или финансовых советов.
-- Если пользователь в кризисе или говорит о самоповреждении — мягко предлагаешь обратиться к специалисту.
-- Не даёшь готовых ответов — помогаешь увидеть то, что уже есть внутри человека.
-- Каждый ответ ведёт к следующему шагу. Не оставляешь в состоянии "я понял проблему и всё".
-- Используешь знание архетипа и матрицы пользователя в каждом ответе.
-- При анализе ссылаешься на конкретные позиции матрицы и их значения.
-
-Ты не заменяешь психолога. Ты — инструмент самопознания."""
-
-CHAT_SYSTEM_PROMPT_TEMPLATE = """Ты — NURA, девушка, AI-проводница в Матрицу Судьбы. Ты в живом диалоге с пользователем.
-
-Ты знаешь пользователя лично:
-- Имя: {user_name}
-- Архетип: {archetype_name} ({archetype_number} аркан)
-- Ключевая фраза архетипа: {archetype_key}
-
-Матрица пользователя (все позиции):
-{matrix_text}
-
-Правила диалога:
-- Ты уже знаешь пользователя и его матрицу. Не нужно представляться заново.
-- Отвечай на "ты" — как тёплая, мудрая подруга.
-- Ты девушка — все глаголы в женском роде (сказала, ответила, подумала, знаю).
-- Используй знание архетипа и конкретных позиций матрицы пользователя в каждом ответе.
-- Ответы — 2-4 предложения. Не читай лекций.
-- Не даёшь медицинских, юридических или финансовых советов.
-- Если пользователь в кризисе или говорит о самоповреждении — мягко предложи обратиться к специалисту.
-- Если пользователь спрашивает о будущем — не предсказывай, а покажи паттерн: «Исходя из твоего архетипа, для тебя характерно...»
-- Если вопрос не по теме матрицы — отвечай, но мягко возвращай к самопознанию.
-- Завершай ответ вопросом или приглашением к следующему шагу, если это уместно.
-- Без эзотерического жаргона (запрещены: гадание, карма, магия, чакры, порча, вибрации, судьба как рок).
-- Если пользователь просит проанализировать другого человека (имя + дата рождения) — мягко отказывай: «Я знаю только тебя и твою матрицу. Хочешь разобраться, как твой архетип влияет на отношения с другими?»
-- Не пытаться рассчитать матрицу по переданной пользователем дате рождения.
-
-Общие правила NURA:
-- На "ты", тёплая проводница
-- Без эзотерики, без страха, без оценочных суждений
-- Конкретно и точно
-- Каждый ответ — шаг к ясности"""
+_SYSTEM_PROMPT_CACHE: str | None = None
+_CHAT_SYSTEM_PROMPT_TEMPLATE_CACHE: str | None = None
 
 
 class AIService:
@@ -210,7 +146,7 @@ class AIService:
         archetype_key = archetype_info.get("key", "")
         matrix_text = MatrixService.format_for_prompt(md)
 
-        return CHAT_SYSTEM_PROMPT_TEMPLATE.format(
+        return _chat_system_prompt_template().format(
             user_name=user_name,
             archetype_name=archetype_name,
             archetype_number=archetype_number,
@@ -233,7 +169,7 @@ class AIService:
         async def _retry_callback(bad: str) -> str:
             return await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                     {"role": "assistant", "content": bad},
                     {
@@ -250,7 +186,7 @@ class AIService:
         try:
             response = await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                 ],
                 api_params=FULL_REPORT_PARAMS,
@@ -293,7 +229,7 @@ class AIService:
             async def _retry_callback(bad: str) -> str:
                 return await AIService.chat(
                     [
-                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "system", "content": _system_prompt()},
                         {"role": "user", "content": user_content},
                         {"role": "assistant", "content": bad},
                         {
@@ -310,7 +246,7 @@ class AIService:
 
             response = await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                 ],
                 api_params=FULL_REPORT_PARAMS,
@@ -345,7 +281,7 @@ class AIService:
         async def _retry_callback(bad: str) -> str:
             return await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                     {"role": "assistant", "content": bad},
                     {
@@ -364,7 +300,7 @@ class AIService:
         try:
             response = await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                 ],
                 api_params={
@@ -412,7 +348,7 @@ class AIService:
         async def _retry_callback(bad: str) -> str:
             return await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                     {"role": "assistant", "content": bad},
                     {
@@ -430,7 +366,7 @@ class AIService:
         try:
             response = await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                 ],
                 api_params=FULL_REPORT_PARAMS,
@@ -618,7 +554,7 @@ class AIService:
         async def _retry_callback(bad: str) -> str:
             return await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                     {"role": "assistant", "content": bad},
                     {
@@ -636,7 +572,7 @@ class AIService:
         try:
             response = await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                 ],
                 api_params={"model": TAROT_SPREAD_MODEL, **DEFAULT_PARAMS},
@@ -672,7 +608,7 @@ class AIService:
         async def _retry_callback(bad: str) -> str:
             return await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                     {"role": "assistant", "content": bad},
                     {
@@ -690,7 +626,7 @@ class AIService:
         try:
             response = await AIService.chat(
                 [
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                 ],
                 api_params={"model": TAROT_QUESTION_MODEL, **DEFAULT_PARAMS},
@@ -724,3 +660,19 @@ class AIService:
             return await AIService.chat(messages, api_params=CHAT_PARAMS)
         except Exception:
             return FALLBACK_CHAT
+
+
+def _system_prompt() -> str:
+    global _SYSTEM_PROMPT_CACHE
+    if _SYSTEM_PROMPT_CACHE is None:
+        _SYSTEM_PROMPT_CACHE = AIService._load_prompt("system_prompt.txt")
+    return _SYSTEM_PROMPT_CACHE
+
+
+def _chat_system_prompt_template() -> str:
+    global _CHAT_SYSTEM_PROMPT_TEMPLATE_CACHE
+    if _CHAT_SYSTEM_PROMPT_TEMPLATE_CACHE is None:
+        _CHAT_SYSTEM_PROMPT_TEMPLATE_CACHE = AIService._load_prompt(
+            "chat_system_prompt.txt"
+        )
+    return _CHAT_SYSTEM_PROMPT_TEMPLATE_CACHE

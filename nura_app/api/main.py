@@ -1,5 +1,3 @@
-import logging
-
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,7 +31,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://nura-ai.ru", "https://www.nura-ai.ru"],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -45,18 +43,6 @@ app.include_router(admin_api_router)
 app.include_router(tarot_pwa_router)
 
 setup_admin(app)
-
-
-@app.on_event("startup")
-async def startup():
-    from core.database import create_engine
-    from core.models import Base
-    engine = create_engine()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    await engine.dispose()
-    logger = logging.getLogger(__name__)
-    logger.info("Database tables ensured")
 
 
 @app.get("/health")

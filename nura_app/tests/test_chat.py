@@ -4,15 +4,16 @@ from unittest.mock import AsyncMock, patch
 from core.fallbacks import FALLBACK_CHAT
 from core.services.ai import (
     AIService,
-    CHAT_SYSTEM_PROMPT_TEMPLATE,
+    _chat_system_prompt_template,
 )
 
 
 class TestChatRestrictions:
 
     def test_template_contains_refusal_instruction(self):
-        assert "проанализировать другого человека" in CHAT_SYSTEM_PROMPT_TEMPLATE
-        assert "Не пытаться рассчитать матрицу" in CHAT_SYSTEM_PROMPT_TEMPLATE
+        template = _chat_system_prompt_template()
+        assert "проанализировать другого человека" in template
+        assert "Не пытаться рассчитать матрицу" in template
 
     def test_build_chat_prompt_contains_refusal(self, sample_matrix):
         prompt = AIService._build_chat_system_prompt(sample_matrix, "Тест")

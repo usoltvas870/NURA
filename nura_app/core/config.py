@@ -48,9 +48,20 @@ class Settings(BaseSettings):
     # YooKassa
     yookassa_shop_id: str | None = None
     yookassa_secret_key: str | None = None
+    yookassa_verify_on_webhook: bool = True
+    yookassa_ip_whitelist: str = ""
+
+    @property
+    def yookassa_ip_whitelist_list(self) -> list[str]:
+        return [
+            s.strip()
+            for s in self.yookassa_ip_whitelist.split(",")
+            if s.strip()
+        ]
 
     # Report
     report_base_url: str = "https://nura-ai.ru"
+    report_token_ttl_days: int = 90
 
     # Pricing
     subscription_price_rub: int = 590
@@ -61,6 +72,9 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_public_key: str = ""
     vapid_claims_email: str = "admin@nura-ai.ru"
+
+    # Web session
+    web_session_ttl_seconds: int = 7776000  # 90 days
 
     # Admin Panel
     admin_token: str | None = None
