@@ -1,10 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import load_only
 
+from core.config import settings
 from core.models import Report, ReportType, User
 from core.repositories.base import SQLAlchemyRepository
 
@@ -168,12 +169,14 @@ class UserRepository(SQLAlchemyRepository[User]):
         web_session_id: str,
         email: str | None = None,
     ) -> User:
+        now = datetime.now(timezone.utc)
         user = User(
             id=uuid.uuid4(),
             name=name,
             birth_date=birth_date,
             web_session_id=web_session_id,
             email=email,
+            web_session_expires_at=now + timedelta(seconds=settings.web_session_ttl_seconds),
         )
         return await self.add(user)
 
@@ -260,3 +263,43 @@ class UserRepository(SQLAlchemyRepository[User]):
             if user is None:
                 return {}
             return dict(user.notification_prefs or {})
+
+    async def renew_session_expiry(self, user_id: uuid.UUID) -> None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return
+            user.web_session_expires_at = (
+                datetime.now(timezone.utc)
+                + timedelta(seconds=settings.web_session_ttl_seconds)
+            )
+            await session.commit()
+
+    async def set_pd_consent(self, user_id: uuid.UUID) -> None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None or user.pd_consent_at is not None:
+                return
+            user.pd_consent_at = datetime.now(timezone.utc)
+            await session.commit()
+
+    async def ensure_web_session(
+        self,
+        telegram_id: int,
+        web_session_id: str,
+    ) -> User | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = result.scalar_one_or_none()
+            if user is None:
+                return None
+            user.web_session_id = web_session_id
+            user.web_session_expires_at = (
+                datetime.now(timezone.utc)
+                + timedelta(seconds=settings.web_session_ttl_seconds)
+            )
+            await session.commit()
+            await session.refresh(user)
+            return user

@@ -1,0 +1,40 @@
+<!-- @dsCard group="Cards" name="Card" viewport.width="400" viewport.height="340" -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../../styles.css">
+<style>
+  body { background: var(--bg); padding: 16px; font-family: var(--font-sans); display: grid; gap: 12px; }
+</style>
+</head>
+<body>
+<!-- Plain card -->
+<div class="card card-pad">
+  <div class="eyebrow" style="margin-bottom:8px">Профиль</div>
+  <div style="font-family:var(--font-serif);font-size:22px;margin-bottom:6px">Алина Соколова</div>
+  <div class="lead">24 апреля 1992 · Весы · Архетип: Исследователь</div>
+</div>
+
+<!-- Sage accent-top card -->
+<div class="card accent-top card-pad">
+  <div class="eyebrow" style="color:var(--sage);margin-bottom:8px">Рекомендация</div>
+  <p style="font-size:14px;color:var(--text-m);line-height:1.6">Сегодня благоприятный день для важных разговоров. Твой архетип усиливает интуицию.</p>
+</div>
+
+<!-- Quick grid inside card -->
+<div class="quick-grid">
+  <div class="card quick-card">
+    <div class="quick-num">01</div>
+    <div class="quick-title">Матрица</div>
+    <div class="quick-sub">Число судьбы · разбор</div>
+  </div>
+  <div class="card quick-card">
+    <div class="quick-num">02</div>
+    <div class="quick-title">Карта дня</div>
+    <div class="quick-sub">Аркан · практика</div>
+  </div>
+</div>
+</body>
+</html>

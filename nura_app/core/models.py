@@ -76,6 +76,12 @@ class User(Base):
     push_p256dh: Mapped[str | None] = mapped_column(Text, nullable=True)
     push_auth: Mapped[str | None] = mapped_column(Text, nullable=True)
     notification_prefs: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    web_session_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    pd_consent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

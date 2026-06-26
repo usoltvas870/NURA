@@ -1,0 +1,36 @@
+<!-- @dsCard group="Layout" name="TabBar" viewport.width="400" viewport.height="70" -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../../styles.css">
+<style>
+  body { background: var(--bg); font-family: var(--font-sans); min-height: 70px; }
+  .tabbar { position: relative; bottom: auto; left: auto; right: auto; height: 64px; padding: 6px 10px; }
+  .tabbar-inner { height: 52px; }
+</style>
+</head>
+<body>
+<nav class="tabbar">
+  <div class="tabbar-inner">
+    <a class="tab-item active" href="#">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Главная</span>
+    </a>
+    <a class="tab-item tab-chat" href="#">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>NURA</span>
+    </a>
+    <a class="tab-item" href="#">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9"/><rect x="13" y="2" width="9" height="9"/><rect x="2" y="13" width="9" height="9"/><rect x="13" y="13" width="9" height="9"/></svg>
+      <span>Практики</span>
+    </a>
+    <a class="tab-item" href="#">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Профиль</span>
+    </a>
+  </div>
+</nav>
+</body>
+</html>

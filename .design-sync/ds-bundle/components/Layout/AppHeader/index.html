@@ -1,0 +1,43 @@
+<!-- @dsCard group="Layout" name="AppHeader" viewport.width="400" viewport.height="120" -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../../styles.css">
+<style>
+  body { background: var(--bg); font-family: var(--font-sans); display: grid; gap: 0; }
+  .header { position: relative; }
+</style>
+</head>
+<body>
+<!-- Home page header (logo only) -->
+<header class="header">
+  <a class="nura-text-logo" aria-label="NURA">
+    <span class="nura-star">✦</span>
+    <span class="nura-sep"></span>
+    <span class="nura-word">NURA</span>
+  </a>
+  <div class="header-actions">
+    <button class="icon-btn" aria-label="Сменить тему">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- Section page header (centered title) -->
+<header class="header" style="border-top:1px solid var(--line)">
+  <a class="nura-text-logo" aria-label="NURA">
+    <span class="nura-star">✦</span>
+    <span class="nura-sep"></span>
+    <span class="nura-word">NURA</span>
+  </a>
+  <span class="header-title">Практики</span>
+  <div class="header-actions">
+    <button class="icon-btn" aria-label="Сменить тему">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </button>
+  </div>
+</header>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "shape": "package",
+  "version": "1.0.0",
+  "components": [
+    "Cards/PhotoCard",
+    "Cards/ArcaneDisplay",
+    "Cards/Card",
+    "Cards/DayCard",
+    "Actions/Button",
+    "Layout/AppHeader",
+    "Layout/TabBar"
+  ]
+}
