@@ -69,8 +69,8 @@ class Settings(BaseSettings):
     matrix_one_time_price_rub: int = 890
 
     # Web Push (VAPID)
-    vapid_private_key: str = ""
-    vapid_public_key: str = ""
+    vapid_private_key: str | None = None
+    vapid_public_key: str | None = None
     vapid_claims_email: str = "admin@nura-ai.ru"
 
     # Web session
@@ -91,6 +91,14 @@ class Settings(BaseSettings):
         """Принудительно False в production, что бы ни было в .env."""
         if info.data.get("app_env") == "production":
             return False
+        return v
+
+    @field_validator("vapid_private_key", "vapid_public_key", mode="before")
+    @classmethod
+    def _empty_str_to_none(cls, v):
+        """Convert empty string from .env to None."""
+        if isinstance(v, str) and v.strip() == "":
+            return None
         return v
 
     model_config = {
