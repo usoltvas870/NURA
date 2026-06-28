@@ -84,16 +84,3 @@ class PaymentRepository(SQLAlchemyRepository[Payment]):
             await session.commit()
             await session.refresh(payment)
             return payment
-
-    async def delete_by_user_id(self, user_id: uuid.UUID) -> None:
-        async with self._session_factory() as session:
-            await session.execute(
-                delete(ReferralReward).where(
-                    (ReferralReward.referrer_id == user_id)
-                    | (ReferralReward.referred_id == user_id)
-                )
-            )
-            await session.execute(
-                delete(Payment).where(Payment.user_id == user_id)
-            )
-            await session.commit()
