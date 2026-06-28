@@ -1,10 +1,17 @@
 import uuid
+from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from api.deps import limiter
-from api.dependencies import get_current_web_user
+from api.dependencies import (
+    SESSION_COOKIE_NAME,
+    clear_session_cookie,
+    get_current_web_user,
+    get_optional_web_user,
+    set_session_cookie,
+)
 from core.arcana_data import ARCANA
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
@@ -49,10 +56,10 @@ router = APIRouter(prefix="/api/v1/web")
 class MiniAnalysisRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
     birth_date: str = Field(..., pattern=r"^\d{2}\.\d{2}\.\d{4}$")
+    pd_consent: bool = Field(..., description="Согласие на обработку ПД")
 
 
 class MiniAnalysisResponse(BaseModel):
-    session_id: str
     main_archetype: str
     core_strength: str
     emotional_conflict: str
@@ -61,7 +68,6 @@ class MiniAnalysisResponse(BaseModel):
 
 
 class CreatePaymentRequest(BaseModel):
-    session_id: str
     email: str | None = None
 
 
@@ -69,9 +75,21 @@ class CreatePaymentResponse(BaseModel):
     payment_url: str
 
 
+class AuthStartResponse(BaseModel):
+    token: str
+    tg_url: str
+
+
+class AuthCheckResponse(BaseModel):
+    status: str
+
+
 @router.post("/mini-analysis", response_model=MiniAnalysisResponse)
-@limiter.limit("10/minute")
-async def mini_analysis(request: Request, body: MiniAnalysisRequest):
+@limiter.limit("3/hour")
+async def mini_analysis(request: Request, body: MiniAnalysisRequest, response: Response):
+    if not body.pd_consent:
+        raise HTTPException(status_code=400, detail="Необходимо согласие на обработку персональных данных")
+
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
 
@@ -82,6 +100,8 @@ async def mini_analysis(request: Request, body: MiniAnalysisRequest):
         birth_date=body.birth_date,
         web_session_id=session_id,
     )
+
+    await user_repo.set_pd_consent(user.id)
 
     try:
         matrix_data = MatrixService.calculate(body.birth_date)
@@ -108,21 +128,19 @@ async def mini_analysis(request: Request, body: MiniAnalysisRequest):
     except Exception:
         raise HTTPException(status_code=503, detail="AI сервис временно недоступен")
 
-    return MiniAnalysisResponse(
-        session_id=session_id,
-        **analysis,
-    )
+    set_session_cookie(response, session_id)
+
+    return MiniAnalysisResponse(**analysis)
 
 
 @router.post("/create-payment", response_model=CreatePaymentResponse)
 @limiter.limit("5/minute")
-async def create_payment(request: Request, body: CreatePaymentRequest):
+async def create_payment(
+    request: Request,
+    body: CreatePaymentRequest,
+    user: User = Depends(get_current_web_user),
+):
     session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-
-    user = await user_repo.get_by_web_session_id(body.session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
 
     if body.email:
         async with session_factory() as session:
@@ -152,10 +170,6 @@ async def create_payment(request: Request, body: CreatePaymentRequest):
     return CreatePaymentResponse(payment_url=payment["payment_url"])
 
 
-class GenerateLinkTokenRequest(BaseModel):
-    session_id: str
-
-
 class GenerateLinkTokenResponse(BaseModel):
     token: str
     tg_url: str
@@ -167,13 +181,10 @@ class CheckLinkTokenResponse(BaseModel):
 
 @router.post("/generate-link-token", response_model=GenerateLinkTokenResponse)
 @limiter.limit("10/minute")
-async def generate_link_token(request: Request, body: GenerateLinkTokenRequest):
-    session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-    user = await user_repo.get_by_web_session_id(body.session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
-
+async def generate_link_token(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
     token = uuid.uuid4().hex
     redis = get_redis()
     await redis.setex(f"link_token:{token}", 900, str(user.id))
@@ -252,23 +263,17 @@ async def get_user_profile(
     )
 
 
-class SubscribeRequest(BaseModel):
-    session_id: str
-
-
 class SubscribeResponse(BaseModel):
     payment_url: str
 
 
 @router.post("/subscribe", response_model=SubscribeResponse)
 @limiter.limit("5/minute")
-async def subscribe_tarot(request: Request, body: SubscribeRequest):
+async def subscribe_tarot(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
     session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-
-    user = await user_repo.get_by_web_session_id(body.session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
 
     try:
         payment = await PaymentService.create_web_tarot_payment(user_id=user.id)
@@ -287,7 +292,6 @@ async def subscribe_tarot(request: Request, body: SubscribeRequest):
 
 
 class ChatRequest(BaseModel):
-    session_id: str
     message: str = Field(..., min_length=1, max_length=2000)
     history: list[dict] = Field(default_factory=list)
 
@@ -302,14 +306,13 @@ _WEB_CHAT_FREE_LIMIT = 5
 
 @router.post("/chat", response_model=ChatResponse)
 @limiter.limit("20/minute")
-async def web_chat(request: Request, body: ChatRequest):
+async def web_chat(
+    request: Request,
+    body: ChatRequest,
+    user: User = Depends(get_current_web_user),
+):
     session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
     report_repo = ReportRepository(session_factory)
-
-    user = await user_repo.get_by_web_session_id(body.session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
 
     has_unlimited = (
         bool(user.tarot_subscription)
@@ -359,17 +362,12 @@ async def web_chat(request: Request, body: ChatRequest):
     return ChatResponse(reply=reply, messages_left=messages_left)
 
 
-class TestSubscribeRequest(BaseModel):
-    session_id: str
-
-
 class TestSubscribeResponse(BaseModel):
     ok: bool
     subscription_until: str
 
 
 class NotificationPrefRequest(BaseModel):
-    session_id: str
     key: str = Field(..., min_length=1, max_length=64, pattern=r"^[a-z0-9_]+$")
     enabled: bool
 
@@ -383,14 +381,15 @@ _ALLOWED_NOTIF_KEYS = {"daily_card", "weekly_spread", "practices", "news"}
 
 @router.patch("/notifications", response_model=NotificationPrefsResponse)
 @limiter.limit("30/minute")
-async def update_notification_pref(request: Request, body: NotificationPrefRequest):
+async def update_notification_pref(
+    request: Request,
+    body: NotificationPrefRequest,
+    user: User = Depends(get_current_web_user),
+):
     if body.key not in _ALLOWED_NOTIF_KEYS:
         raise HTTPException(status_code=400, detail="Неизвестная настройка уведомлений")
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
-    user = await user_repo.get_by_web_session_id(body.session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
     await user_repo.update_notification_pref(user.id, body.key, body.enabled)
     prefs = await user_repo.get_notification_prefs(user.id)
     return NotificationPrefsResponse(prefs=prefs)
@@ -409,18 +408,15 @@ async def get_notification_prefs(
 
 
 @router.post("/test-subscribe", response_model=TestSubscribeResponse)
-async def test_subscribe(request: Request, body: TestSubscribeRequest):
+async def test_subscribe(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
     if not settings.test_mode:
         raise HTTPException(status_code=403, detail="Доступно только в тестовом режиме")
 
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
-
-    user = await user_repo.get_by_web_session_id(body.session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
-
-    from datetime import datetime, timedelta, timezone
 
     until_date = datetime.now(timezone.utc) + timedelta(days=30)
     await user_repo.update_subscription(user.id, "premium", until_date)
@@ -430,3 +426,62 @@ async def test_subscribe(request: Request, body: TestSubscribeRequest):
         ok=True,
         subscription_until=until_date.strftime("%d.%m.%Y"),
     )
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    clear_session_cookie(response)
+    return {"ok": True}
+
+
+@router.get("/session-check")
+async def session_check(user: User = Depends(get_current_web_user)):
+    return {"authenticated": True}
+
+
+@router.post("/auth/start", response_model=AuthStartResponse)
+@limiter.limit("10/hour")
+async def auth_start(request: Request):
+    token = str(uuid.uuid4())
+    redis = get_redis()
+    await redis.setex(f"auth_token:{token}", 300, "pending")
+    return AuthStartResponse(
+        token=token,
+        tg_url=f"https://t.me/{settings.bot_username}?start=tgauth_{token}",
+    )
+
+
+@router.get("/auth/check", response_model=AuthCheckResponse)
+@limiter.limit("60/minute")
+async def auth_check(request: Request, response: Response, token: str):
+    redis = get_redis()
+    value = await redis.get(f"auth_token:{token}")
+    if value is None:
+        return AuthCheckResponse(status="expired")
+    if isinstance(value, bytes):
+        value = value.decode()
+    if value == "pending":
+        return AuthCheckResponse(status="pending")
+    await redis.delete(f"auth_token:{token}")
+    set_session_cookie(response, value)
+    return AuthCheckResponse(status="ok")
+
+
+@router.delete("/account")
+@limiter.limit("3/hour")
+async def delete_account(
+    request: Request,
+    response: Response,
+    user: User = Depends(get_current_web_user),
+):
+    session_factory = get_async_sessionmaker()
+    report_repo = ReportRepository(session_factory)
+    payment_repo = PaymentRepository(session_factory)
+    user_repo = UserRepository(session_factory)
+
+    await report_repo.delete_by_user_id(user.id)
+    await payment_repo.delete_by_user_id(user.id)
+    await user_repo.delete(user.id)
+
+    clear_session_cookie(response)
+    return {"ok": True}
