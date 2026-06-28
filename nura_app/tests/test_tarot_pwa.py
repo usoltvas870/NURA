@@ -1,7 +1,7 @@
 """Tests for tarot_pwa.py — PWA Tarot API routes.
 
 CAVEMAN PROTOCOL:
-  ✓ Each endpoint tested: success, 402 (no subscription), 404 (not found),
+  ✓ Each endpoint tested: success, 402 (no subscription), 401 (not found),
     400 (bad request), 422 (validation), 503 (AI unavailable)
   ✓ AIService.chat mocked via class-level patch
   ✓ UserRepository.get_by_web_session_id mocked via class-level patch
@@ -116,6 +116,7 @@ def _build_mock_user(
     user.first_name = first_name
     user.name = name
     user.username = username
+    user.web_session_expires_at = None
     return user
 
 
@@ -192,7 +193,7 @@ def nonexistent_user():
 def mock_get_user(request):
     """Patch UserRepository.get_by_web_session_id (class-level).
 
-    Works for both Depends-based (daily-card) and direct-body (spread) routes.
+    Works for both Depends-based routes via cookie auth.
     By default returns *subscribed_user*. Override by setting
     a ``pytest.mark.mock_user(retval)`` marker on the test/node.
     """
@@ -205,7 +206,12 @@ def mock_get_user(request):
         new_callable=AsyncMock,
     ) as mock:
         mock.return_value = retval
-        yield mock
+        with patch(
+            "core.repositories.user.UserRepository.renew_session_expiry",
+            new_callable=AsyncMock,
+        ) as mock_renew:
+            mock_renew.return_value = None
+            yield mock
 
 
 @pytest.fixture
@@ -311,7 +317,7 @@ class TestDailyCard:
         # mock_arcana returns 3 → arcana 3 = Императрица
         response = client.get(
             "/api/v1/tarot/daily-card",
-            headers={"X-Session-Id": MOCK_SESSION_ID},
+            cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
         data = response.json()
@@ -333,7 +339,7 @@ class TestDailyCard:
         # mock_arcana always returns 3 regardless of birth_date
         response = client.get(
             "/api/v1/tarot/daily-card",
-            headers={"X-Session-Id": MOCK_SESSION_ID},
+            cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
         data = response.json()
@@ -354,7 +360,7 @@ class TestDailyCard:
         expected = f"{today.day} {months[today.month - 1]}"
         response = client.get(
             "/api/v1/tarot/daily-card",
-            headers={"X-Session-Id": MOCK_SESSION_ID},
+            cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
         assert response.json()["date_label"] == expected
@@ -364,12 +370,12 @@ class TestDailyCard:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(None)
     async def test_daily_card_user_not_found(self, client, mock_get_user):
-        """404 — сессия не найдена."""
+        """401 — сессия не найдена."""
         response = client.get(
             "/api/v1/tarot/daily-card",
-            headers={"X-Session-Id": "nonexistent-session"},
+            cookies={"nura_session_id": "nonexistent-session"},
         )
-        assert response.status_code == 404
+        assert response.status_code == 401
         assert "Сессия не найдена" in response.json()["detail"]
 
     # ── Error: no birth date ──────────────────────────────────────
@@ -382,19 +388,18 @@ class TestDailyCard:
         """400 — дата рождения не указана."""
         response = client.get(
             "/api/v1/tarot/daily-card",
-            headers={"X-Session-Id": MOCK_SESSION_ID},
+            cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert response.status_code == 400
         assert "Дата рождения не указана" in response.json()["detail"]
 
-    # ── Error: missing session_id param ───────────────────────────
+    # ── Error: missing cookie ─────────────────────────────────────
 
     @pytest.mark.asyncio
-    async def test_daily_card_missing_session_id(self, client):
-        """422 — session_id обязательный параметр."""
+    async def test_daily_card_missing_cookie(self, client):
+        """401 — отсутствие cookie возвращает 401."""
         response = client.get("/api/v1/tarot/daily-card")
-        assert response.status_code == 422
-        assert "X-Session-Id" in response.text
+        assert response.status_code == 401
 
     # ── Response schema ───────────────────────────────────────────
 
@@ -406,7 +411,7 @@ class TestDailyCard:
         """200 — ответ соответствует схеме DailyCardResponse."""
         response = client.get(
             "/api/v1/tarot/daily-card",
-            headers={"X-Session-Id": MOCK_SESSION_ID},
+            cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
         try:
@@ -428,7 +433,7 @@ class TestDailyCard:
         ):
             response = client.get(
                 "/api/v1/tarot/daily-card",
-                headers={"X-Session-Id": MOCK_SESSION_ID},
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -448,7 +453,7 @@ class TestDailyCard:
         ):
             response = client.get(
                 "/api/v1/tarot/daily-card",
-                headers={"X-Session-Id": MOCK_SESSION_ID},
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -466,7 +471,7 @@ class TestDailyCard:
         """200 — даже без имени/username не падает."""
         response = client.get(
             "/api/v1/tarot/daily-card",
-            headers={"X-Session-Id": MOCK_SESSION_ID},
+            cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
 
@@ -478,7 +483,7 @@ class TestDailyCard:
 class TestSpreadWeekly:
     """POST /api/v1/tarot/spread — weekly (расклад недели)."""
 
-    SPREAD_BODY = {"session_id": MOCK_SESSION_ID, "spread_type": "weekly"}
+    SPREAD_BODY = {"spread_type": "weekly"}
 
     # ── Happy path ────────────────────────────────────────────────
 
@@ -488,7 +493,11 @@ class TestSpreadWeekly:
         self, client, mock_get_user, mock_ai_weekly,
     ):
         """200 — недельный расклад успешно возвращается."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["spread_type"] == "weekly"
@@ -505,7 +514,11 @@ class TestSpreadWeekly:
         self, client, mock_get_user, mock_ai_weekly,
     ):
         """200 — каждая карта содержит practice как advice."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         for card in response.json()["cards"]:
             assert "advice" in card
@@ -516,7 +529,11 @@ class TestSpreadWeekly:
         self, client, mock_get_user, mock_ai_weekly,
     ):
         """200 — ответ проходит валидацию SpreadResponse."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         try:
             SpreadResponse(**response.json())
@@ -531,7 +548,11 @@ class TestSpreadWeekly:
         self, client, mock_get_user,
     ):
         """402 — требуется подписка Таро."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 402
         assert "Требуется подписка Таро" in response.json()["detail"]
 
@@ -543,7 +564,11 @@ class TestSpreadWeekly:
         self, client, mock_get_user, mock_ai_weekly_error,
     ):
         """503 — AI временно недоступен."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 503
         assert "AI временно недоступен" in response.json()["detail"]
 
@@ -556,7 +581,6 @@ class TestSpreadQuestion:
     """POST /api/v1/tarot/spread — question (по вопросу)."""
 
     SPREAD_BODY = {
-        "session_id": MOCK_SESSION_ID,
         "spread_type": "question",
         "question": "Стоит ли менять работу?",
     }
@@ -569,7 +593,11 @@ class TestSpreadQuestion:
         self, client, mock_get_user, mock_ai_question,
     ):
         """200 — расклад по вопросу успешно возвращается."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["spread_type"] == "question"
@@ -586,7 +614,11 @@ class TestSpreadQuestion:
         self, client, mock_get_user, mock_ai_question,
     ):
         """200 — ответ проходит валидацию SpreadResponse."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         try:
             SpreadResponse(**response.json())
@@ -601,8 +633,12 @@ class TestSpreadQuestion:
         self, client, mock_get_user,
     ):
         """400 — вопрос обязателен для spread_type=question."""
-        body = {"session_id": MOCK_SESSION_ID, "spread_type": "question"}
-        response = client.post("/api/v1/tarot/spread", json=body)
+        body = {"spread_type": "question"}
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=body,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 400
         assert "Вопрос обязателен" in response.json()["detail"]
 
@@ -614,7 +650,11 @@ class TestSpreadQuestion:
         self, client, mock_get_user,
     ):
         """402 — требуется подписка Таро."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 402
 
     # ── Error: 503 AI unavailable ─────────────────────────────────
@@ -625,7 +665,11 @@ class TestSpreadQuestion:
         self, client, mock_get_user, mock_ai_question_error,
     ):
         """503 — AI временно недоступен."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 503
 
     # ── Summary contains advice when present ──────────────────────
@@ -636,7 +680,11 @@ class TestSpreadQuestion:
         self, client, mock_get_user, mock_ai_question,
     ):
         """200 — summary содержит совет, если он есть в ответе AI."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         assert "Совет:" in response.json()["summary"]
 
@@ -648,7 +696,7 @@ class TestSpreadQuestion:
 class TestSpreadLife:
     """POST /api/v1/tarot/spread — life (сферы жизни)."""
 
-    SPREAD_BODY = {"session_id": MOCK_SESSION_ID, "spread_type": "life"}
+    SPREAD_BODY = {"spread_type": "life"}
 
     # ── Happy path ────────────────────────────────────────────────
 
@@ -658,7 +706,11 @@ class TestSpreadLife:
         self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """200 — сфера жизни успешно возвращается."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["spread_type"] == "life"
@@ -674,7 +726,11 @@ class TestSpreadLife:
         self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """200 — AIService.chat вызван с корректными параметрами."""
-        client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         mock_ai_chat.assert_awaited_once()
         call_kwargs = mock_ai_chat.call_args[1]
         assert "api_params" in call_kwargs
@@ -688,7 +744,11 @@ class TestSpreadLife:
         self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """200 — ответ проходит валидацию SpreadResponse."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         try:
             SpreadResponse(**response.json())
@@ -703,7 +763,11 @@ class TestSpreadLife:
         self, client, mock_get_user,
     ):
         """402 — требуется подписка Таро."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 402
 
     # ── Error: 503 AI unavailable ─────────────────────────────────
@@ -714,7 +778,11 @@ class TestSpreadLife:
         self, client, mock_get_user, mock_arcana, mock_ai_chat_error,
     ):
         """503 — AI временно недоступен."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 503
         assert "AI временно недоступен" in response.json()["detail"]
 
@@ -726,7 +794,7 @@ class TestSpreadLife:
 class TestSpreadDoubles:
     """POST /api/v1/tarot/spread — doubles (двойники)."""
 
-    SPREAD_BODY = {"session_id": MOCK_SESSION_ID, "spread_type": "doubles"}
+    SPREAD_BODY = {"spread_type": "doubles"}
 
     # ── Happy path ────────────────────────────────────────────────
 
@@ -736,7 +804,11 @@ class TestSpreadDoubles:
         self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """200 — расклад Двойники успешно возвращается."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["spread_type"] == "doubles"
@@ -753,7 +825,11 @@ class TestSpreadDoubles:
         """200 — арканы рассчитываются на основе daily arcana."""
         # mock_arcana returns 3
         # arcana_one = 3, arcana_two = 3 % 22 + 1 = 4
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["cards"][0]["arcana_number"] == 3
@@ -765,7 +841,11 @@ class TestSpreadDoubles:
         self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """200 — ответ проходит валидацию SpreadResponse."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         try:
             SpreadResponse(**response.json())
@@ -780,7 +860,11 @@ class TestSpreadDoubles:
         self, client, mock_get_user, mock_arcana, mock_ai_chat_error,
     ):
         """503 — AI временно недоступен."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 503
 
 
@@ -791,7 +875,7 @@ class TestSpreadDoubles:
 class TestSpreadPortal:
     """POST /api/v1/tarot/spread — portal (портал месяца)."""
 
-    SPREAD_BODY = {"session_id": MOCK_SESSION_ID, "spread_type": "portal"}
+    SPREAD_BODY = {"spread_type": "portal"}
 
     # ── Happy path ────────────────────────────────────────────────
 
@@ -801,7 +885,11 @@ class TestSpreadPortal:
         self, client, mock_get_user, mock_ai_chat,
     ):
         """200 — Портал месяца успешно возвращается."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["spread_type"] == "portal"
@@ -823,7 +911,11 @@ class TestSpreadPortal:
         release = (month_num * 7) % 22 + 1
         strengthen = (month_num * 11) % 22 + 1
 
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["cards"][0]["arcana_number"] == teach
@@ -836,7 +928,11 @@ class TestSpreadPortal:
         self, client, mock_get_user, mock_ai_chat,
     ):
         """200 — ответ проходит валидацию SpreadResponse."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         try:
             SpreadResponse(**response.json())
@@ -851,7 +947,11 @@ class TestSpreadPortal:
         self, client, mock_get_user, mock_ai_chat_error,
     ):
         """503 — AI временно недоступен."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 503
 
 
@@ -863,7 +963,6 @@ class TestSpreadYesNo:
     """POST /api/v1/tarot/spread — yesno (да/нет)."""
 
     SPREAD_BODY = {
-        "session_id": MOCK_SESSION_ID,
         "spread_type": "yesno",
         "question": "Стоит ли принять это предложение?",
     }
@@ -876,7 +975,11 @@ class TestSpreadYesNo:
         self, client, mock_get_user, mock_arcana, mock_ai_chat_yesno,
     ):
         """200 — да/нет успешно возвращается."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["spread_type"] == "yesno"
@@ -897,7 +1000,9 @@ class TestSpreadYesNo:
             return_value=4,  # even → "Нет"
         ):
             response = client.post(
-                "/api/v1/tarot/spread", json=self.SPREAD_BODY,
+                "/api/v1/tarot/spread",
+                json=self.SPREAD_BODY,
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -909,7 +1014,11 @@ class TestSpreadYesNo:
         self, client, mock_get_user, mock_arcana, mock_ai_chat_yesno,
     ):
         """200 — ответ проходит валидацию SpreadResponse."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 200
         try:
             SpreadResponse(**response.json())
@@ -924,8 +1033,12 @@ class TestSpreadYesNo:
         self, client, mock_get_user,
     ):
         """400 — вопрос обязателен для spread_type=yesno."""
-        body = {"session_id": MOCK_SESSION_ID, "spread_type": "yesno"}
-        response = client.post("/api/v1/tarot/spread", json=body)
+        body = {"spread_type": "yesno"}
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=body,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 400
         assert "Вопрос обязателен" in response.json()["detail"]
 
@@ -937,7 +1050,11 @@ class TestSpreadYesNo:
         self, client, mock_get_user, mock_arcana, mock_ai_chat_error,
     ):
         """503 — AI временно недоступен."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 503
 
     # ── Error: no subscription ────────────────────────────────────
@@ -948,7 +1065,11 @@ class TestSpreadYesNo:
         self, client, mock_get_user,
     ):
         """402 — требуется подписка Таро."""
-        response = client.post("/api/v1/tarot/spread", json=self.SPREAD_BODY)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 402
 
 
@@ -959,7 +1080,7 @@ class TestSpreadYesNo:
 class TestSpreadCommonErrors:
     """Error cases common to all spread endpoints."""
 
-    # ── 404 User not found ────────────────────────────────────────
+    # ── 401 User not found ────────────────────────────────────────
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("spread_type", ["weekly", "question", "life"])
@@ -967,12 +1088,16 @@ class TestSpreadCommonErrors:
     async def test_spread_user_not_found(
         self, client, mock_get_user, spread_type,
     ):
-        """404 — сессия не найдена для {spread_type}."""
-        body = {"session_id": "bad-session", "spread_type": spread_type}
+        """401 — сессия не найдена для {spread_type}."""
+        body = {"spread_type": spread_type}
         if spread_type in ("question", "yesno"):
             body["question"] = "Тестовый вопрос?"
-        response = client.post("/api/v1/tarot/spread", json=body)
-        assert response.status_code == 404
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=body,
+            cookies={"nura_session_id": "bad-session"},
+        )
+        assert response.status_code == 401
         assert "Сессия не найдена" in response.json()["detail"]
 
     # ── 400 No birth date ─────────────────────────────────────────
@@ -984,10 +1109,14 @@ class TestSpreadCommonErrors:
         self, client, mock_get_user, spread_type,
     ):
         """400 — дата рождения не указана для {spread_type}."""
-        body = {"session_id": MOCK_SESSION_ID, "spread_type": spread_type}
+        body = {"spread_type": spread_type}
         if spread_type in ("question", "yesno"):
             body["question"] = "Тестовый вопрос?"
-        response = client.post("/api/v1/tarot/spread", json=body)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=body,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 400
         assert "Дата рождения не указана" in response.json()["detail"]
 
@@ -997,15 +1126,18 @@ class TestSpreadCommonErrors:
     @pytest.mark.parametrize(
         "invalid_body",
         [
-            {},  # empty body — missing session_id and spread_type
-            {"session_id": MOCK_SESSION_ID},  # missing spread_type
-            {"session_id": MOCK_SESSION_ID, "spread_type": "invalid"},
-            {"spread_type": "weekly"},  # missing session_id
+            {},  # empty body — missing spread_type
+            {"spread_type": "invalid"},
         ],
     )
-    async def test_spread_validation_errors(self, client, invalid_body):
+    @pytest.mark.mock_user(_build_mock_user())
+    async def test_spread_validation_errors(self, client, mock_get_user, invalid_body):
         """422 — невалидные данные вызывают ValidationError."""
-        response = client.post("/api/v1/tarot/spread", json=invalid_body)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=invalid_body,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 422
 
     # ── 402 all spread types without subscription ─────────────────
@@ -1014,17 +1146,15 @@ class TestSpreadCommonErrors:
     @pytest.mark.parametrize(
         "body",
         [
-            {"session_id": MOCK_SESSION_ID, "spread_type": "weekly"},
+            {"spread_type": "weekly"},
             {
-                "session_id": MOCK_SESSION_ID,
                 "spread_type": "question",
                 "question": "Вопрос?",
             },
-            {"session_id": MOCK_SESSION_ID, "spread_type": "life"},
-            {"session_id": MOCK_SESSION_ID, "spread_type": "doubles"},
-            {"session_id": MOCK_SESSION_ID, "spread_type": "portal"},
+            {"spread_type": "life"},
+            {"spread_type": "doubles"},
+            {"spread_type": "portal"},
             {
-                "session_id": MOCK_SESSION_ID,
                 "spread_type": "yesno",
                 "question": "Вопрос?",
             },
@@ -1035,7 +1165,11 @@ class TestSpreadCommonErrors:
         self, client, mock_get_user, body,
     ):
         """402 — все типы раскладов требуют подписку."""
-        response = client.post("/api/v1/tarot/spread", json=body)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=body,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 402
 
     # ── 503 all spread types on AI error ──────────────────────────
@@ -1045,32 +1179,30 @@ class TestSpreadCommonErrors:
         ("body", "mock_fixture"),
         [
             (
-                {"session_id": MOCK_SESSION_ID, "spread_type": "weekly"},
+                {"spread_type": "weekly"},
                 "mock_ai_weekly_error",
             ),
             (
                 {
-                    "session_id": MOCK_SESSION_ID,
                     "spread_type": "question",
                     "question": "Вопрос?",
                 },
                 "mock_ai_question_error",
             ),
             (
-                {"session_id": MOCK_SESSION_ID, "spread_type": "life"},
+                {"spread_type": "life"},
                 "mock_ai_chat_error",
             ),
             (
-                {"session_id": MOCK_SESSION_ID, "spread_type": "doubles"},
+                {"spread_type": "doubles"},
                 "mock_ai_chat_error",
             ),
             (
-                {"session_id": MOCK_SESSION_ID, "spread_type": "portal"},
+                {"spread_type": "portal"},
                 "mock_ai_chat_error",
             ),
             (
                 {
-                    "session_id": MOCK_SESSION_ID,
                     "spread_type": "yesno",
                     "question": "Вопрос?",
                 },
@@ -1085,7 +1217,11 @@ class TestSpreadCommonErrors:
         """503 — все типы раскладов обрабатывают ошибку AI."""
         # Activate the appropriate mock fixture
         request.getfixturevalue(mock_fixture)
-        response = client.post("/api/v1/tarot/spread", json=body)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=body,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         assert response.status_code == 503
         assert "AI временно недоступен" in response.json()["detail"]
 
@@ -1100,19 +1236,18 @@ class TestSpreadRequestModel:
     def test_valid_spread_types(self):
         """Все допустимые spread_type проходят валидацию."""
         for st in ("weekly", "question", "life", "doubles", "portal", "yesno"):
-            req = SpreadRequest(session_id="sess-1", spread_type=st)
+            req = SpreadRequest(spread_type=st)
             assert req.spread_type == st
 
     def test_invalid_spread_type(self):
         """Недопустимый spread_type вызывает ValidationError."""
         with pytest.raises(ValidationError):
-            SpreadRequest(session_id="sess-1", spread_type="unknown")
+            SpreadRequest(spread_type="unknown")
 
     def test_question_max_length(self):
         """question длиннее 200 символов вызывает ValidationError."""
         with pytest.raises(ValidationError):
             SpreadRequest(
-                session_id="sess-1",
                 spread_type="question",
                 question="x" * 201,
             )
@@ -1120,25 +1255,19 @@ class TestSpreadRequestModel:
     def test_question_exactly_200_chars(self):
         """question ровно 200 символов — допустимо."""
         req = SpreadRequest(
-            session_id="sess-1",
             spread_type="question",
             question="x" * 200,
         )
         assert len(req.question) == 200
 
-    def test_session_id_required(self):
-        """session_id — обязательное поле."""
-        with pytest.raises(ValidationError):
-            SpreadRequest(spread_type="weekly")
-
     def test_spread_type_required(self):
         """spread_type — обязательное поле."""
         with pytest.raises(ValidationError):
-            SpreadRequest(session_id="sess-1")
+            SpreadRequest()
 
     def test_question_none_by_default(self):
         """question по умолчанию None."""
-        req = SpreadRequest(session_id="sess-1", spread_type="weekly")
+        req = SpreadRequest(spread_type="weekly")
         assert req.question is None
 
 
@@ -1228,7 +1357,7 @@ class TestResponseModels:
 class TestSpreadDoublesEdgeCases:
     """Edge cases for doubles spread."""
 
-    SPREAD_BODY = {"session_id": MOCK_SESSION_ID, "spread_type": "doubles"}
+    SPREAD_BODY = {"spread_type": "doubles"}
 
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
@@ -1241,7 +1370,9 @@ class TestSpreadDoublesEdgeCases:
             return_value=22,
         ):
             response = client.post(
-                "/api/v1/tarot/spread", json=self.SPREAD_BODY,
+                "/api/v1/tarot/spread",
+                json=self.SPREAD_BODY,
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -1259,7 +1390,9 @@ class TestSpreadDoublesEdgeCases:
             return_value=1,
         ):
             response = client.post(
-                "/api/v1/tarot/spread", json=self.SPREAD_BODY,
+                "/api/v1/tarot/spread",
+                json=self.SPREAD_BODY,
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -1278,7 +1411,9 @@ class TestSpreadDoublesEdgeCases:
             return_value=999,
         ):
             response = client.post(
-                "/api/v1/tarot/spread", json=self.SPREAD_BODY,
+                "/api/v1/tarot/spread",
+                json=self.SPREAD_BODY,
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -1296,7 +1431,7 @@ class TestSpreadDoublesEdgeCases:
 class TestSpreadPortalExtra:
     """Extra portal coverage."""
 
-    SPREAD_BODY = {"session_id": MOCK_SESSION_ID, "spread_type": "portal"}
+    SPREAD_BODY = {"spread_type": "portal"}
 
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
@@ -1306,10 +1441,10 @@ class TestSpreadPortalExtra:
         """200 — возвращает арканы для текущего месяца."""
         current_month = datetime.now().month
 
-        # We can't easily verify the prompt content from the response,
-        # but we can verify the request succeeds
         response = client.post(
-            "/api/v1/tarot/spread", json=self.SPREAD_BODY,
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert response.status_code == 200
         # Verify the arcana numbers match expectations for this month
@@ -1336,11 +1471,14 @@ class TestSpreadQuestionEdgeCases:
     ):
         """400 — пустая строка вопроса отвергается (question может быть None)."""
         body = {
-            "session_id": MOCK_SESSION_ID,
             "spread_type": "question",
             "question": "",
         }
-        response = client.post("/api/v1/tarot/spread", json=body)
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=body,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
         # Empty string is still a string value, not None
         # The check is `if not body.question` which will be True for ""
         assert response.status_code == 400
@@ -1373,11 +1511,14 @@ class TestSpreadQuestionEdgeCases:
                 "advice": "Сделай это.",
             }
             body = {
-                "session_id": MOCK_SESSION_ID,
                 "spread_type": "question",
                 "question": "Тестовый вопрос?",
             }
-            response = client.post("/api/v1/tarot/spread", json=body)
+            response = client.post(
+                "/api/v1/tarot/spread",
+                json=body,
+                cookies={"nura_session_id": MOCK_SESSION_ID},
+            )
         assert response.status_code == 200
         data = response.json()
         assert "Главный вывод." in data["summary"]
@@ -1410,11 +1551,14 @@ class TestSpreadQuestionEdgeCases:
                 # no "advice" key
             }
             body = {
-                "session_id": MOCK_SESSION_ID,
                 "spread_type": "question",
                 "question": "Тестовый вопрос?",
             }
-            response = client.post("/api/v1/tarot/spread", json=body)
+            response = client.post(
+                "/api/v1/tarot/spread",
+                json=body,
+                cookies={"nura_session_id": MOCK_SESSION_ID},
+            )
         assert response.status_code == 200
         data = response.json()
         assert data["summary"] == "Только вывод."
@@ -1427,7 +1571,7 @@ class TestSpreadQuestionEdgeCases:
 class TestSpreadLifeArcanaVariations:
     """Life spread with various arcana values."""
 
-    SPREAD_BODY = {"session_id": MOCK_SESSION_ID, "spread_type": "life"}
+    SPREAD_BODY = {"spread_type": "life"}
 
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
@@ -1440,7 +1584,9 @@ class TestSpreadLifeArcanaVariations:
             return_value=1,
         ):
             response = client.post(
-                "/api/v1/tarot/spread", json=self.SPREAD_BODY,
+                "/api/v1/tarot/spread",
+                json=self.SPREAD_BODY,
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -1458,7 +1604,9 @@ class TestSpreadLifeArcanaVariations:
             return_value=22,
         ):
             response = client.post(
-                "/api/v1/tarot/spread", json=self.SPREAD_BODY,
+                "/api/v1/tarot/spread",
+                json=self.SPREAD_BODY,
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert response.status_code == 200
         data = response.json()
@@ -1473,7 +1621,6 @@ class TestSpreadYesNoEdgeCases:
     """Yes/No polarity edge cases."""
 
     BASE_BODY = {
-        "session_id": MOCK_SESSION_ID,
         "spread_type": "yesno",
         "question": "Тестовый вопрос?",
     }
@@ -1490,7 +1637,9 @@ class TestSpreadYesNoEdgeCases:
                 return_value=odd_arcana,
             ):
                 resp = client.post(
-                    "/api/v1/tarot/spread", json=self.BASE_BODY,
+                    "/api/v1/tarot/spread",
+                    json=self.BASE_BODY,
+                    cookies={"nura_session_id": MOCK_SESSION_ID},
                 )
             assert resp.status_code == 200
             assert resp.json()["summary"] == "Да", f"Arcana {odd_arcana}"
@@ -1507,7 +1656,9 @@ class TestSpreadYesNoEdgeCases:
                 return_value=even_arcana,
             ):
                 resp = client.post(
-                    "/api/v1/tarot/spread", json=self.BASE_BODY,
+                    "/api/v1/tarot/spread",
+                    json=self.BASE_BODY,
+                    cookies={"nura_session_id": MOCK_SESSION_ID},
                 )
             assert resp.status_code == 200
             assert resp.json()["summary"] == "Нет", f"Arcana {even_arcana}"
@@ -1537,10 +1688,8 @@ class TestAIServiceMockVerification:
             ):
                 client.post(
                     "/api/v1/tarot/spread",
-                    json={
-                        "session_id": MOCK_SESSION_ID,
-                        "spread_type": "life",
-                    },
+                    json={"spread_type": "life"},
+                    cookies={"nura_session_id": MOCK_SESSION_ID},
                 )
         mock_load.assert_called_once_with("tarot_spheres.txt")
 
@@ -1561,10 +1710,8 @@ class TestAIServiceMockVerification:
             ):
                 client.post(
                     "/api/v1/tarot/spread",
-                    json={
-                        "session_id": MOCK_SESSION_ID,
-                        "spread_type": "doubles",
-                    },
+                    json={"spread_type": "doubles"},
+                    cookies={"nura_session_id": MOCK_SESSION_ID},
                 )
         mock_load.assert_called_once_with("tarot_doubles.txt")
 
@@ -1585,10 +1732,8 @@ class TestAIServiceMockVerification:
             ):
                 client.post(
                     "/api/v1/tarot/spread",
-                    json={
-                        "session_id": MOCK_SESSION_ID,
-                        "spread_type": "portal",
-                    },
+                    json={"spread_type": "portal"},
+                    cookies={"nura_session_id": MOCK_SESSION_ID},
                 )
         mock_load.assert_called_once_with("tarot_portal.txt")
 
@@ -1610,10 +1755,10 @@ class TestAIServiceMockVerification:
                 client.post(
                     "/api/v1/tarot/spread",
                     json={
-                        "session_id": MOCK_SESSION_ID,
                         "spread_type": "yesno",
                         "question": "Тестовый вопрос?",
                     },
+                    cookies={"nura_session_id": MOCK_SESSION_ID},
                 )
         mock_load.assert_called_once_with("tarot_yes_no.txt")
 
@@ -1630,10 +1775,8 @@ class TestAIServiceMockVerification:
         ) as mock_gen:
             client.post(
                 "/api/v1/tarot/spread",
-                json={
-                    "session_id": MOCK_SESSION_ID,
-                    "spread_type": "weekly",
-                },
+                json={"spread_type": "weekly"},
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         mock_gen.assert_awaited_once()
 
@@ -1651,10 +1794,10 @@ class TestAIServiceMockVerification:
             client.post(
                 "/api/v1/tarot/spread",
                 json={
-                    "session_id": MOCK_SESSION_ID,
                     "spread_type": "question",
                     "question": "Тестовый вопрос?",
                 },
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         mock_gen.assert_awaited_once()
 
@@ -1713,10 +1856,8 @@ class TestAIServiceChatTrimming:
         ):
             resp = client.post(
                 "/api/v1/tarot/spread",
-                json={
-                    "session_id": MOCK_SESSION_ID,
-                    "spread_type": "life",
-                },
+                json={"spread_type": "life"},
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert resp.status_code == 200
         # The response should have the quotes stripped
@@ -1735,10 +1876,8 @@ class TestAIServiceChatTrimming:
         ):
             resp = client.post(
                 "/api/v1/tarot/spread",
-                json={
-                    "session_id": MOCK_SESSION_ID,
-                    "spread_type": "doubles",
-                },
+                json={"spread_type": "doubles"},
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert resp.status_code == 200
         assert resp.json()["cards"][1]["interpretation"] == "Двойной ответ."
@@ -1756,10 +1895,8 @@ class TestAIServiceChatTrimming:
         ):
             resp = client.post(
                 "/api/v1/tarot/spread",
-                json={
-                    "session_id": MOCK_SESSION_ID,
-                    "spread_type": "life",
-                },
+                json={"spread_type": "life"},
+                cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert resp.status_code == 200
         assert resp.json()["cards"][0]["interpretation"] == "Текст без кавычек."
@@ -1780,7 +1917,8 @@ class TestSpreadAffirmation:
         """200 — weekly response does not include affirmation."""
         resp = client.post(
             "/api/v1/tarot/spread",
-            json={"session_id": MOCK_SESSION_ID, "spread_type": "weekly"},
+            json={"spread_type": "weekly"},
+            cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert resp.status_code == 200
         assert resp.json().get("affirmation") is None
@@ -1793,47 +1931,50 @@ class TestSpreadAffirmation:
         """200 — life response does not include affirmation."""
         resp = client.post(
             "/api/v1/tarot/spread",
-            json={"session_id": MOCK_SESSION_ID, "spread_type": "life"},
+            json={"spread_type": "life"},
+            cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert resp.status_code == 200
         assert resp.json().get("affirmation") is None
 
 
 # ═══════════════════════════════════════════════════════════════════
-# Test: daily-card — session_id in query string edge cases
+# Test: daily-card — cookie edge cases
 # ═══════════════════════════════════════════════════════════════════
 
 class TestDailyCardEdgeCases:
-    """Edge cases for daily-card query parameters."""
+    """Edge cases for daily-card cookie auth."""
 
     @pytest.mark.asyncio
     @pytest.mark.mock_user(None)
-    async def test_daily_card_empty_session_id(self, client, mock_get_user):
-        """404 — пустой session_id возвращает 404 (not found)."""
+    async def test_daily_card_empty_session_cookie(self, client, mock_get_user):
+        """401 — пустой cookie возвращает 401 (не найден)."""
         resp = client.get(
             "/api/v1/tarot/daily-card",
-            headers={"X-Session-Id": ""},
+            cookies={"nura_session_id": ""},
         )
-        # UserRepository.get_by_web_session_id will be called with ""
-        # and since mock returns None, we get 404
-        assert resp.status_code == 404
-        assert "Сессия не найдена" in resp.json()["detail"]
+        assert resp.status_code == 401
 
     @pytest.mark.asyncio
     async def test_daily_card_extra_query_params(self, client):
         """200 — лишние query-параметры игнорируются."""
         with patch(
-            "api.dependencies.UserRepository.get_by_web_session_id",
+            "core.repositories.user.UserRepository.get_by_web_session_id",
             new_callable=AsyncMock,
         ) as mock_get:
             mock_get.return_value = _build_mock_user()
             with patch(
-                "api.routes.tarot_pwa.calculate_daily_arcana",
-                return_value=3,
-            ):
-                resp = client.get(
-                    "/api/v1/tarot/daily-card",
-                    headers={"X-Session-Id": MOCK_SESSION_ID},
-                    params={"extra_param": "value"},
-                )
+                "core.repositories.user.UserRepository.renew_session_expiry",
+                new_callable=AsyncMock,
+            ) as mock_renew:
+                mock_renew.return_value = None
+                with patch(
+                    "api.routes.tarot_pwa.calculate_daily_arcana",
+                    return_value=3,
+                ):
+                    resp = client.get(
+                        "/api/v1/tarot/daily-card",
+                        cookies={"nura_session_id": MOCK_SESSION_ID},
+                        params={"extra_param": "value"},
+                    )
         assert resp.status_code == 200
