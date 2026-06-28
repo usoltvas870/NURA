@@ -6,10 +6,8 @@ from pydantic import BaseModel, Field
 
 from api.deps import limiter
 from api.dependencies import (
-    SESSION_COOKIE_NAME,
     clear_session_cookie,
     get_current_web_user,
-    get_optional_web_user,
     set_session_cookie,
 )
 from core.arcana_data import ARCANA
