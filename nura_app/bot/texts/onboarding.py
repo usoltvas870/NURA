@@ -44,6 +44,30 @@ def onboarding_done_text(archetype_name: str, archetype_number: int) -> str:
     )
 
 
+def pd_consent_text() -> str:
+    return "Для получения персонального анализа необходимо ваше согласие на обработку персональных данных (дата рождения). Вы согласны?"
+
+
+def pd_consent_declined_text() -> str:
+    return "Без согласия на обработку персональных данных мы не можем предоставить анализ. Вы можете вернуться позже."
+
+
+def tg_auth_success_text() -> str:
+    return "Вы успешно авторизованы. Вернитесь в приложение — страница обновится автоматически."
+
+
+def delete_account_warning_text() -> str:
+    return "Вы уверены, что хотите удалить аккаунт? Все данные, отчёты и история будут удалены безвозвратно."
+
+
+def delete_account_cancelled_text() -> str:
+    return "Удаление аккаунта отменено."
+
+
+def delete_account_done_text() -> str:
+    return "Аккаунт удалён. Все ваши данные были удалены из системы."
+
+
 def my_matrix_text(
     archetype_name: str,
     archetype_number: int,
