@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import delete, desc, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.config import settings
@@ -65,6 +65,11 @@ class ReportRepository(SQLAlchemyRepository[Report]):
             expires_at=expires_at,
         )
         return await self.add(report)
+
+    async def delete_by_user_id(self, user_id: uuid.UUID) -> None:
+        async with self._session_factory() as session:
+            await session.execute(delete(Report).where(Report.user_id == user_id))
+            await session.commit()
 
     @staticmethod
     def is_expired(report: Report, now: datetime | None = None) -> bool:
