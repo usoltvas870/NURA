@@ -8,9 +8,20 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from bot.keyboards.main_menu import main_menu_keyboard, open_pwa_keyboard
 from bot.states.onboarding_state import OnboardingStates
-from bot.texts.onboarding import ask_birth_date_onboarding_text, onboarding_greeting_text
+from bot.texts.onboarding import (
+    ask_birth_date_onboarding_text,
+    delete_account_cancelled_text,
+    delete_account_done_text,
+    delete_account_warning_text,
+    onboarding_greeting_text,
+    pd_consent_declined_text,
+    pd_consent_text,
+    tg_auth_success_text,
+)
 from bot.texts.start import help_text, welcome_back_text
-from core.database import get_async_sessionmaker
+from core.database import get_async_sessionmaker, get_redis
+from core.repositories.payment import PaymentRepository
+from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -18,11 +29,31 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
+def _pd_consent_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✅ Согласен", callback_data="pd_consent_yes"),
+        InlineKeyboardButton(text="❌ Не согласен", callback_data="pd_consent_no"),
+    ]])
+
+
+def _delete_account_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="Да, удалить всё", callback_data="delete_account_confirm"),
+        InlineKeyboardButton(text="Отмена", callback_data="delete_account_cancel"),
+    ]])
+
+
 @router.message(Command("start"))
 async def cmd_start(message: Message, state: FSMContext, command: CommandObject) -> None:
     await state.clear()
 
     args = command.args
+
+    if args and args.startswith("tgauth_"):
+        token = args[7:]
+        await _handle_tg_auth_token(message, token)
+        return
+
     if args and args.startswith("link_"):
         token = args[5:]
         await _handle_link_token(message, token)
@@ -50,9 +81,98 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
             first_name=message.from_user.first_name,
         )
 
+    if not user.pd_consent_at:
+        await message.answer(pd_consent_text(), reply_markup=_pd_consent_keyboard())
+        await state.set_state(OnboardingStates.waiting_for_pd_consent)
+        return
+
     await message.answer(onboarding_greeting_text(message.from_user.first_name or ""))
     await state.set_state(OnboardingStates.waiting_for_birth_date)
     await message.answer(ask_birth_date_onboarding_text())
+
+
+@router.callback_query(F.data == "pd_consent_yes")
+async def callback_pd_consent_yes(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    await state.clear()
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_telegram_id(callback.from_user.id)
+    if user:
+        await user_repo.set_pd_consent(user.id)
+    await state.set_state(OnboardingStates.waiting_for_birth_date)
+    await callback.message.answer(onboarding_greeting_text(callback.from_user.first_name or ""))
+    await callback.message.answer(ask_birth_date_onboarding_text())
+
+
+@router.callback_query(F.data == "pd_consent_no")
+async def callback_pd_consent_no(callback: CallbackQuery, state: FSMContext) -> None:
+    await callback.answer()
+    await state.clear()
+    await callback.message.answer(pd_consent_declined_text())
+
+
+@router.message(Command("delete_account"))
+async def cmd_delete_account(message: Message) -> None:
+    await message.answer(delete_account_warning_text(), reply_markup=_delete_account_keyboard())
+
+
+@router.callback_query(F.data == "delete_account_confirm")
+async def callback_delete_account_confirm(callback: CallbackQuery) -> None:
+    await callback.answer()
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    report_repo = ReportRepository(session_factory)
+    payment_repo = PaymentRepository(session_factory)
+    user = await user_repo.get_by_telegram_id(callback.from_user.id)
+    if user:
+        await report_repo.delete_by_user_id(user.id)
+        await payment_repo.delete_by_user_id(user.id)
+        await user_repo.delete(user.id)
+    await callback.message.answer(delete_account_done_text())
+
+
+@router.callback_query(F.data == "delete_account_cancel")
+async def callback_delete_account_cancel(callback: CallbackQuery) -> None:
+    await callback.answer()
+    await callback.message.answer(delete_account_cancelled_text())
+
+
+async def _handle_tg_auth_token(message: Message, token: str) -> None:
+    try:
+        redis = get_redis()
+        key = f"auth_token:{token}"
+        value = await redis.execute_command("GETDEL", key)
+
+        if value is None:
+            await message.answer("Ссылка недействительна или истекла.")
+            return
+
+        if isinstance(value, bytes):
+            value = value.decode()
+
+        if value != "pending":
+            await message.answer("Токен уже использован.")
+            return
+
+        session_factory = get_async_sessionmaker()
+        user_repo = UserRepository(session_factory)
+        user = await user_repo.get_by_telegram_id(message.from_user.id)
+        if user is None:
+            user = await user_repo.create(
+                telegram_id=message.from_user.id,
+                username=message.from_user.username,
+                first_name=message.from_user.first_name,
+            )
+
+        web_session_id = uuid.uuid4().hex
+        await user_repo.ensure_web_session(user.telegram_id, web_session_id)
+        await redis.setex(key, 300, web_session_id)
+        await message.answer(tg_auth_success_text(), reply_markup=open_pwa_keyboard())
+
+    except Exception:
+        logger.exception("TG auth token error for telegram_id=%s", message.from_user.id)
+        await message.answer("Что-то пошло не так. Попробуй ещё раз.")
 
 
 async def _show_authenticated_menu(message: Message, user) -> None:
@@ -73,7 +193,6 @@ async def _handle_link_token(message: Message, token: str) -> None:
     telegram_id = message.from_user.id
 
     try:
-        from core.database import get_redis
         redis = get_redis()
         key = f"link_token:{token}"
         user_id = await redis.execute_command("GETDEL", key)
@@ -194,7 +313,6 @@ async def callback_sample_report(callback: CallbackQuery) -> None:
 
 async def _handle_referral(message: Message, referrer_telegram_id: int) -> None:
     try:
-        from core.database import get_async_sessionmaker
         from core.repositories.referral import ReferralRepository
 
         session_factory = get_async_sessionmaker()
