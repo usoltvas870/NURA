@@ -1,11 +1,13 @@
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from api.deps import limiter
+from api.dependencies import get_optional_web_user
 from core.config import settings
 from core.database import get_async_sessionmaker
+from core.models import User
 from core.repositories.user import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -15,13 +17,11 @@ router = APIRouter(prefix="/api/v1/push")
 class PushSubscription(BaseModel):
     endpoint: str
     keys: dict
-    session_id: str | None = None
     telegram_id: int | None = None
 
 
 class PushUnsubscribe(BaseModel):
     endpoint: str
-    session_id: str | None = None
     telegram_id: int | None = None
 
 
@@ -35,15 +35,20 @@ async def get_vapid_public_key(request: Request):
 
 @router.post("/subscribe")
 @limiter.limit("5/minute")
-async def subscribe(request: Request, body: PushSubscription):
+async def subscribe(
+    request: Request,
+    body: PushSubscription,
+    web_user: User | None = Depends(get_optional_web_user),
+):
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
 
-    user = None
-    if body.session_id:
-        user = await user_repo.get_by_web_session_id(body.session_id)
+    if web_user is not None:
+        user = web_user
     elif body.telegram_id:
         user = await user_repo.get_by_telegram_id(body.telegram_id)
+    else:
+        user = None
 
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
@@ -61,17 +66,20 @@ async def subscribe(request: Request, body: PushSubscription):
 
 @router.post("/unsubscribe")
 @limiter.limit("5/minute")
-async def unsubscribe(request: Request, body: PushUnsubscribe):
-    if not body.session_id and not body.telegram_id:
-        raise HTTPException(status_code=401, detail="Требуется session_id или telegram_id")
+async def unsubscribe(
+    request: Request,
+    body: PushUnsubscribe,
+    web_user: User | None = Depends(get_optional_web_user),
+):
+    if web_user is None and not body.telegram_id:
+        raise HTTPException(status_code=401, detail="Не авторизован")
 
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
 
-    user = None
-    if body.session_id:
-        user = await user_repo.get_by_web_session_id(body.session_id)
-    elif body.telegram_id:
+    if web_user is not None:
+        user = web_user
+    else:
         user = await user_repo.get_by_telegram_id(body.telegram_id)
 
     if not user:

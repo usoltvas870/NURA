@@ -5,9 +5,7 @@ from pydantic import BaseModel, Field
 
 from api.deps import limiter
 from api.dependencies import get_current_web_user
-from core.database import get_async_sessionmaker
 from core.models import User
-from core.repositories.user import UserRepository
 from core.services.ai import AIService
 from core.arcana_data import ARCANA
 from core.services.daily_arcana import calculate_daily_arcana
@@ -29,7 +27,6 @@ class DailyCardResponse(BaseModel):
 
 
 class SpreadRequest(BaseModel):
-    session_id: str
     spread_type: str = Field(..., pattern=r"^(weekly|question|life|doubles|portal|yesno)$")
     question: str | None = Field(None, max_length=200)
 
@@ -92,13 +89,11 @@ async def get_daily_card(
 
 @router.post("/spread", response_model=SpreadResponse)
 @limiter.limit("10/minute")
-async def get_tarot_spread(request: Request, body: SpreadRequest):
-    session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-
-    user = await user_repo.get_by_web_session_id(body.session_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Сессия не найдена")
+async def get_tarot_spread(
+    request: Request,
+    body: SpreadRequest,
+    user: User = Depends(get_current_web_user),
+):
     if not user.tarot_subscription:
         raise HTTPException(status_code=402, detail="Требуется подписка Таро")
     if not user.birth_date:
