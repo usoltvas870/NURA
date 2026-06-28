@@ -1,9 +1,9 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from core.models import Payment
+from core.models import Payment, ReferralReward
 from core.repositories.base import SQLAlchemyRepository
 
 
@@ -71,3 +71,16 @@ class PaymentRepository(SQLAlchemyRepository[Payment]):
             await session.commit()
             await session.refresh(payment)
             return payment
+
+    async def delete_by_user_id(self, user_id: uuid.UUID) -> None:
+        async with self._session_factory() as session:
+            await session.execute(
+                delete(ReferralReward).where(
+                    (ReferralReward.referrer_id == user_id)
+                    | (ReferralReward.referred_id == user_id)
+                )
+            )
+            await session.execute(
+                delete(Payment).where(Payment.user_id == user_id)
+            )
+            await session.commit()
