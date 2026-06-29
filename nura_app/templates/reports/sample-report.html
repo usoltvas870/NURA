@@ -207,7 +207,7 @@
   main.content {
     padding: 0 56px 120px;
     max-width: 100%;
-    overflow: hidden;
+    overflow-x: clip;
   }
   section.chapter {
     max-width: var(--reading-w);
@@ -241,7 +241,13 @@
     line-height: 1.6;
   }
 
-  .prose { color: var(--ink-soft); }
+  .prose {
+    color: var(--ink-soft);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: 32px;
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
+  }
   .prose p {
     font-size: 17px;
     line-height: 1.75;
@@ -458,6 +464,7 @@
   .why.open .arrow { transform: rotate(90deg); }
   .why-body {
     max-height: 0;
+    max-width: var(--reading-w);
     overflow: hidden;
     transition: max-height 0.4s ease, margin 0.3s ease;
     margin-top: 0;
@@ -467,10 +474,10 @@
     margin-top: 18px;
   }
   .why-body .why-card {
-    padding: 0;
-    background: none;
-    border: none;
-    border-radius: 0;
+    padding: 20px 24px;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .why-code {
     display: flex;
@@ -546,9 +553,19 @@
   .karmic-body {
     margin-top: 28px;
     padding: 28px 32px;
-    background: rgba(107, 128, 104, 0.08);
-    border: 1px solid var(--m-line);
-    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
+  }
+  .karmic-body .prose:first-child { margin-top: 0; }
+
+  .karmic-body .prose,
+  .rod-col .prose,
+  .rod-info .prose {
+    background: none;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
   }
   .karmic-body .prose p:first-child { margin-top: 0; }
 
@@ -562,10 +579,10 @@
     margin-top: 12px;
   }
   .rod-col {
-    background: rgba(107, 128, 104, 0.10);
-    border: 1px solid var(--m-line);
-    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
     padding: 32px 28px;
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .rod-col h4 {
     font-size: 24px;
@@ -583,10 +600,10 @@
   .rod-col .prose p { font-size: 15.5px; }
   .rod-info {
     grid-column: 1 / -1;
-    background: rgba(107, 128, 104, 0.10);
-    border: 1px solid var(--m-line);
-    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
     padding: 32px 28px;
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .rod-lines {
     font-family: 'Courier New', monospace;
@@ -689,13 +706,13 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
-    margin-top: 28px;
+    margin-top: 24px;
   }
   .compat {
-    background: rgba(107, 128, 104, 0.10);
-    border: 1px solid var(--m-line);
+    background: var(--bg-card);
     border-radius: var(--radius-md);
     padding: 22px 20px;
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .compat .c-arc {
     font-family: 'Playfair Display', serif;
@@ -723,16 +740,16 @@
   .money-blocks {
     display: grid;
     gap: 14px;
-    margin-top: 28px;
+    margin-top: 24px;
   }
   .money-block {
     display: grid;
     grid-template-columns: 80px 1fr;
     gap: 24px;
     padding: 24px;
-    background: rgba(107, 128, 104, 0.10);
-    border: 1px solid var(--m-line);
+    background: var(--bg-card);
     border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
     align-items: start;
   }
   .money-block .mb-tag {
@@ -754,11 +771,12 @@
     line-height: 1.6;
   }
   .pros-list {
-    margin: 20px 0 28px;
+    margin: 24px 0;
     padding: 22px 26px;
-    background: rgba(201, 135, 74, 0.06);
+    background: var(--bg-card);
     border-left: 2px solid var(--m-accent);
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .pros-list .pl-label {
     font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
@@ -784,11 +802,11 @@
      SECTION 11 — PATTERNS
      =========================================================== */
   .pattern {
-    margin: 0 0 28px;
+    margin: 0 0 24px;
     padding: 28px 30px;
-    background: rgba(107, 128, 104, 0.09);
-    border: 1px solid var(--m-line);
+    background: var(--bg-card);
     border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
     position: relative;
   }
   .pattern:last-child { margin-bottom: 0; }
@@ -837,11 +855,11 @@
      SECTION 12 — CONFLICTS
      =========================================================== */
   .conflict {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
     padding: 32px;
-    background: rgba(107, 128, 104, 0.10);
-    border: 1px solid var(--m-line);
-    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .conflict:last-child { margin-bottom: 0; }
   .conflict .c-head {
@@ -971,9 +989,9 @@
   }
   .fcast {
     padding: 22px 20px;
-    background: rgba(107, 128, 104, 0.10);
-    border: 1px solid var(--m-line);
+    background: var(--bg-card);
     border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .fcast .yr {
     font-family: 'Courier New', monospace;
@@ -1009,17 +1027,17 @@
     grid-template-columns: 24px 100px 1fr;
     gap: 18px;
     padding: 20px 22px;
-    background: rgba(107, 128, 104, 0.09);
-    border: 1px solid var(--m-line);
+    background: var(--bg-card);
     border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
     align-items: start;
     cursor: pointer;
     transition: all 0.2s ease;
   }
-  .day:hover { border-color: rgba(201, 135, 74, 0.32); }
+  .day:hover { box-shadow: 0 4px 16px rgba(44,42,30,0.10); transform: translateY(-1px); }
   .day.done {
     background: rgba(107, 163, 122, 0.08);
-    border-color: rgba(107, 163, 122, 0.3);
+    box-shadow: 0 1px 6px rgba(107, 163, 122, 0.12);
   }
   .day.done .d-task { color: var(--ink-faint); text-decoration: line-through; }
   .day.done .d-name { color: var(--m-leaf); }
@@ -1440,7 +1458,13 @@
       max-width: none;
     }
 
-    .prose { color: #333; }
+    .prose {
+      color: #333;
+      background: none;
+      padding: 0;
+      box-shadow: none;
+      border-radius: 0;
+    }
     .prose p {
       font-size: 14px;
       line-height: 1.65;
@@ -1834,12 +1858,56 @@
     .money-block h4 { font-size: 17px; }
     .money-block p { font-size: 13px; }
     .pros-list {
-      background: rgba(139, 115, 50, 0.06);
-      border-left-color: #8B7332;
+      background: #fafafa;
+      border-left: 2px solid #8B7332;
+      box-shadow: none;
     }
     .pros-list .pl-label { font-size: 9px; color: #8B7332; }
     .pros-list li { font-size: 16px; color: #1a1a1a; }
     .pros-list li::before { color: #8B7332; }
+
+    /* --- Report cards (trait, soul, destiny, money-karma, etc.) --- */
+    .trait-col {
+      background: #fafafa;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    .soul-task {
+      background: #fafafa;
+      border-left: 3px solid #8B7332;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    .soul-task p { font-size: 17px; }
+    .dl-card {
+      background: #fafafa;
+      border-left: 3px solid #8B7332;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    .rel-role-card {
+      background: #fafafa;
+      box-shadow: none;
+    }
+    .rel-role-card .rrc-name { font-size: 20px; }
+    .rp-card {
+      background: #fafafa;
+      box-shadow: none;
+      border: 1px solid #ddd;
+    }
+    .money-karma {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    .money-karma .mk-title { font-size: 20px; }
+    .money-karma .mk-desc { font-size: 13px; }
+    .why-body .why-card {
+      background: #fafafa;
+      box-shadow: none;
+      border: 1px solid #ddd;
+    }
 
     /* --- CYCLES --- */
     .cycle-track { margin: 18px 0 20px; padding: 30px 0 20px; }
@@ -2147,15 +2215,16 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin: 36px 0 28px;
+    margin: 24px 0;
   }
   .trait-col {
     padding: 22px 24px;
     border-radius: var(--radius-md);
-    border: 1px solid var(--line);
+    background: var(--bg-card);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
-  .trait-plus { border-top: 3px solid var(--m-leaf); background: rgba(107, 163, 122, 0.06); }
-  .trait-minus { border-top: 3px solid rgba(184, 100, 80, 0.5); background: rgba(184, 100, 80, 0.04); }
+  .trait-plus { border-top: 3px solid var(--m-leaf); }
+  .trait-minus { border-top: 3px solid rgba(184, 100, 80, 0.5); }
   .trait-col-label {
     font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
     font-weight: 600; margin-bottom: 14px; display: block;
@@ -2169,11 +2238,12 @@
   }
   .trait-list li::before { content: "·"; color: var(--m-accent); flex-shrink: 0; font-weight: 700; }
   .soul-task {
-    margin: 28px 0 36px;
+    margin: 24px 0;
     padding: 24px 28px;
-    background: linear-gradient(135deg, rgba(201, 135, 74, 0.09), rgba(107, 163, 122, 0.05));
-    border: 1px solid rgba(201, 135, 74, 0.2);
+    background: var(--bg-card);
+    border-left: 3px solid var(--m-accent);
     border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .soul-task-label {
     font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
@@ -2189,10 +2259,10 @@
   .destiny-levels { display: grid; gap: 14px; margin: 0 0 36px; }
   .dl-card {
     padding: 22px 26px;
-    background: var(--bg-soft);
-    border: 1px solid var(--line);
+    background: var(--bg-card);
     border-radius: var(--radius-md);
     border-left: 3px solid var(--m-accent);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .dl-age {
     font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
@@ -2213,11 +2283,11 @@
 
   /* === Relationship role & patterns (s9) === */
   .rel-role-card {
-    margin: 0 0 28px;
+    margin: 0 0 24px;
     padding: 22px 26px;
-    background: var(--bg-soft);
-    border: 1px solid var(--line);
+    background: var(--bg-card);
     border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
     display: flex; align-items: center; gap: 22px;
   }
   .rrc-icon {
@@ -2242,13 +2312,13 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin: 0 0 28px;
+    margin: 0 0 24px;
   }
   .rp-card {
     padding: 18px 20px;
     background: var(--bg-card);
-    border: 1px solid var(--line);
     border-radius: var(--radius-sm);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .rp-label {
     font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
@@ -2259,11 +2329,11 @@
 
   /* === Money karma block (s10) === */
   .money-karma {
-    margin: 0 0 36px;
+    margin: 0 0 24px;
     padding: 26px 28px;
-    background: linear-gradient(160deg, rgba(184, 116, 63, 0.07), rgba(107, 128, 104, 0.05));
-    border: 1px solid var(--m-line);
+    background: var(--bg-card);
     border-radius: var(--radius-md);
+    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
   }
   .mk-label {
     font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;

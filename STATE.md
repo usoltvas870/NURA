@@ -1,8 +1,22 @@
 # NURA — State
 
-> Последнее обновление: **29.06.2026 — Сессия 45** — DeepSeek V4 Pro
+> Последнее обновление: **29.06.2026 — Сессия 46** — DeepSeek V4 Pro
 
 ---
+
+## Сессия 46 — 29.06.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: исправление вёрстки sample-report.html:
+  - **Sticky sidebar**: `main.content { overflow: hidden }` менял `min-height` грид-элемента на `0`, из-за чего `.shell` не рос выше 100vh — sidebar переставал sticky. Заменено на `overflow-x: clip`.
+  - **why-body width**: добавлен `max-width: var(--reading-w)` — блок «Почему я так думаю» больше не уезжает на всю ширину.
+  - **Белые карточки**: `.prose`, `.karmic-body`, `.rod-col`, `.rod-info`, `.pattern`, `.conflict`, `.money-block`, `.money-karma`, `.compat`, `.fcast`, `.day`, `.why-card`, `.trait-col`, `.soul-task`, `.dl-card`, `.rel-role-card`, `.rp-card`, `.pros-list` — переведены на `bg #FFF`, `box-shadow: 0 2px 12px rgba(44,42,30,0.06)`, `border-radius: var(--radius-md)`. Убраны `border: 1px solid rgba(...)`.
+  - **Двойное оформление**: `.prose` внутри `.karmic-body`/`.rod-col`/`.rod-info` — сброшены bg/padding/shadow чтобы избежать карточки-в-карточке.
+  - **Отбивка**: унифицирована на 24px (`margin` у `.pattern`, `.conflict`, `.soul-task`, `.pros-list`, `.rel-role-card`, `.rel-patterns`, `.compat-grid`, `.money-blocks`, `.trait-grid`).
+  - **@media print**: добавлены сбросы белых карточек для новых элементов (`.soul-task`, `.trait-col`, `.dl-card`, `.rel-role-card`, `.rp-card`, `.money-karma`, `.why-card`, `.prose`).
+  - Палитра, шрифты, HTML-структура, cover, dashboard, sidebar (кроме sticky), мобильная вёрстка — не тронуты.
+- Изменённые файлы: `nura_app/templates/reports/sample-report.html`
+- Блокеры: нет
+- Следующие шаги: деплой на VPS для проверки https://nura-ai.ru/report/sample
 
 ## Сессия 45 — 29.06.2026
 - Модель: DeepSeek V4 Pro
