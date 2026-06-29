@@ -1,6 +1,19 @@
 # NURA — State
 
-> Последнее обновление: **16.06.2026 — Сессия 40** — DeepSeek V4 Flash
+> Последнее обновление: **29.06.2026 — Сессия 41** — DeepSeek V4 Pro
+
+---
+
+## Сессия 41 — 29.06.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано:
+  - Аудит безопасности VPS: nginx (убран backup-конфиг), Redis (пароль + `--requirepass`), Postgres (`scram-sha-256` + пароль, urlencode в `config.py`), SSH (`PermitRootLogin prohibit-password`, `PasswordAuthentication no`), UFW (active, ports 22/80/443)
+  - Исправлен STATE.md (UTF-16 → UTF-8, был битый с 18 июня)
+  - Graphify добавлен в PATH (`~/.local/bin`)
+  - AGENTS.md: добавлен Session Protocol (обязательное обновление STATE.md после сессии) + актуализирована секция graphify
+  - Все пароли сохранены в `.env` на сервере
+- Блокеры: отсутствуют
+- Следующие шаги: мониторинг работы сервера после hardening, обновление локального `.env` при необходимости
 
 ---
 

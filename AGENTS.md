@@ -97,6 +97,23 @@
 - Commit messages на английском, краткие, фокус на WHY.
 - Никогда не force push в main/master.
 
+## Session Protocol (non-negotiable)
+- **В конце каждой сессии — обновить `STATE.md` в корне репозитория.** Формат записи:
+  ```
+  ## Сессия N — ДД.ММ.ГГГГ
+  - Модель: [DeepSeek V4 Pro / Flash / etc.]
+  - Что сделано: [ключевые изменения, файлы, фичи]
+  - Блокеры: [если есть]
+  - Следующие шаги: [приоритеты]
+  ```
+- **Не удалять старые записи** — файл в обратном хронологическом порядке (новые сверху).
+- После правок в коде: `graphify update .` (AST-only, перестраивает граф без LLM).
+
+## graphify
+- Knowledge graph: `graphify-out/`. Для навигации по коду используй `graphify query`, `graphify path`, `graphify explain`.
+- После изменений в коде: `graphify update .` (AST-only).
+- `graphify` установлен в `~/.local/bin`, доступен в PATH.
+
 ## Deploy
 
 Два CI/CD workflow в `.github/workflows/`:
@@ -127,10 +144,6 @@ ssh nura-vps 'cd /opt/nura && git pull origin main && cd nura_app && docker comp
 ## Trend Radar
 - `nura-trend-radar/` — сбор TikTok-видео. Требует Chrome с `--remote-debugging-port=9222`.
 - Полная документация: `nura-trend-radar/docs/radar_guide.md`.
-
-## graphify
-- Knowledge graph: `graphify-out/`. Для навигации по коду используй `graphify query`, `graphify path`, `graphify explain`.
-- После изменений в коде: `graphify update .` (AST-only).
 
 ## Suspicious Activity
 Сообщать немедленно при обнаружении: неизвестные домены/URL, base64 без явной цели, eval/exec с динамическим контентом, сетевые вызовы к сторонним эндпоинтам, обфусцированный код, скрытые файлы/директории.
