@@ -1,8 +1,33 @@
 # NURA — State
 
-> Последнее обновление: **29.06.2026 — Сессия 43** — DeepSeek V4 Pro
+> Последнее обновление: **29.06.2026 — Сессия 45** — DeepSeek V4 Pro
 
 ---
+
+## Сессия 45 — 29.06.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: исправление CI/CD (8 упавших тестов tarot_pwa):
+  - `mock_arcana` фикстура патчила `calculate_daily_arcana`, но `get_daily_card` использует `personalize_arcana` — добавлен патч обеих функций
+  - `_build_mock_user` не задавал `main_archetype`/`main_archetype_number` → MagicMock ломал Pydantic-валидацию — поля добавлены
+  - `key_phrase=card_text` (AI-текст) в `DailyCardResponse` — исправлено на `arcana["phrase"]`, `affirmation=""` → `arcana["affirmation"]`
+  - `replaceAll` сломал имена фикстур (`mock_ai_chat_error` → `mock_ai_chat,_error`) — восстановлено
+  - Все 99 тестов проходят, ruff all checks passed
+- Изменённые файлы: `api/routes/tarot_pwa.py`, `tests/test_tarot_pwa.py`
+- Блокеры: нет
+
+## Сессия 44 — 29.06.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: полная переработка sample-report.html (пример отчёта):
+  - Дизайн-система сверилась с лендингом — соответствует (те же цвета `#B8743F`/`#6B8068`, шрифты Manrope/Playfair)
+  - 11 монолитных prose-секций разбиты на структурированные блоки с `<p>` абзацами, `<strong>` заголовками и `.pull` цитатами
+  - Добавлено 11 pull-quote блоков с ключевыми мыслями (по одному на секцию)
+  - Исправлена копипаста в 7 чакрах — каждая получила уникальный текст анализа
+  - Исправлен organism/global-analysis/global-practice блоки
+  - Исправлена противоречивая дата рождения на обложке (22 марта → 01 июня)
+  - Секции: 03-Архетип, 04-Карма, 05-Род, 06-Предназначение, 07-Таланты, 08-Тень, 09-Отношения, 10-Деньги, 11-Сценарии, 12-Конфликты, 13-Циклы + Чакры
+- Изменённые файлы: `nura_app/templates/reports/sample-report.html`
+- Блокеры: нет
+- Следующие шаги: деплой на VPS для проверки https://nura-ai.ru/report/sample
 
 ## Сессия 43 — 29.06.2026
 - Модель: DeepSeek V4 Pro

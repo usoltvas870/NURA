@@ -106,6 +106,8 @@ def _build_mock_user(
     first_name: str = "Тест",
     name: str = "Тестовый",
     username: str = "testuser",
+    main_archetype: str = "Колесо Фортуны",
+    main_archetype_number: int = 10,
 ) -> MagicMock:
     """Create a MagicMock that looks like a core.models.User instance."""
     user = MagicMock(spec=User)
@@ -117,6 +119,8 @@ def _build_mock_user(
     user.name = name
     user.username = username
     user.web_session_expires_at = None
+    user.main_archetype = main_archetype
+    user.main_archetype_number = main_archetype_number
     return user
 
 
@@ -216,8 +220,11 @@ def mock_get_user(request):
 
 @pytest.fixture
 def mock_arcana():
-    """Patch calculate_daily_arcana to return deterministic value."""
+    """Patch personalize_arcana and calculate_daily_arcana to return deterministic value."""
     with patch(
+        "api.routes.tarot_pwa.personalize_arcana",
+        return_value=3,
+    ), patch(
         "api.routes.tarot_pwa.calculate_daily_arcana",
         return_value=3,
     ) as mock:
@@ -312,7 +319,7 @@ class TestDailyCard:
 
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
-    async def test_daily_card_success(self, client, mock_get_user, mock_arcana):
+    async def test_daily_card_success(self, client, mock_get_user, mock_arcana, mock_ai_chat):
         """200 — карта дня успешно возвращается."""
         # mock_arcana returns 3 → arcana 3 = Императрица
         response = client.get(
@@ -333,7 +340,7 @@ class TestDailyCard:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user(birth_date="15.06.1990"))
     async def test_daily_card_different_birth_date(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """200 — аркан рассчитывается на основе даты рождения."""
         # mock_arcana always returns 3 regardless of birth_date
@@ -348,7 +355,7 @@ class TestDailyCard:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_daily_card_date_label_format(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """200 — date_label формируется корректно."""
         today = date.today()
@@ -406,7 +413,7 @@ class TestDailyCard:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_daily_card_response_schema(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """200 — ответ соответствует схеме DailyCardResponse."""
         response = client.get(
@@ -424,11 +431,11 @@ class TestDailyCard:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_daily_card_arcana_out_of_range_fallback(
-        self, client, mock_get_user,
+        self, client, mock_get_user, mock_ai_chat,
     ):
         """200 — при некорректном аркане используется fallback ARCANA[1]."""
         with patch(
-            "api.routes.tarot_pwa.calculate_daily_arcana",
+            "api.routes.tarot_pwa.personalize_arcana",
             return_value=999,  # out of range
         ):
             response = client.get(
@@ -444,11 +451,11 @@ class TestDailyCard:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_daily_card_arcana_zero(
-        self, client, mock_get_user,
+        self, client, mock_get_user, mock_ai_chat,
     ):
         """200 — аркан 0 тоже падает на ARCANA[1]."""
         with patch(
-            "api.routes.tarot_pwa.calculate_daily_arcana",
+            "api.routes.tarot_pwa.personalize_arcana",
             return_value=0,
         ):
             response = client.get(
@@ -466,7 +473,7 @@ class TestDailyCard:
         _build_mock_user(first_name=None, name=None, username=None),
     )
     async def test_daily_card_minimal_user(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """200 — даже без имени/username не падает."""
         response = client.get(
@@ -1674,7 +1681,7 @@ class TestAIServiceMockVerification:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_life_calls_load_prompt(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """_handle_life_spread вызывает AIService._load_prompt."""
         with patch(
@@ -1696,7 +1703,7 @@ class TestAIServiceMockVerification:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_doubles_calls_load_prompt(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """_handle_doubles_spread вызывает AIService._load_prompt."""
         with patch(
@@ -1740,7 +1747,7 @@ class TestAIServiceMockVerification:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_yesno_calls_load_prompt(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """_handle_yesno_spread вызывает AIService._load_prompt."""
         with patch(
@@ -1846,7 +1853,7 @@ class TestAIServiceChatTrimming:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_chat_response_stripped(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """_handle_life_spread обрезает кавычки из ответа AI."""
         with patch(
@@ -1866,7 +1873,7 @@ class TestAIServiceChatTrimming:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_chat_response_stripped_doubles(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """_handle_doubles_spread обрезает кавычки из ответа AI."""
         with patch(
@@ -1885,7 +1892,7 @@ class TestAIServiceChatTrimming:
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user())
     async def test_chat_response_not_trimmed_unnecessarily(
-        self, client, mock_get_user, mock_arcana,
+        self, client, mock_get_user, mock_arcana, mock_ai_chat,
     ):
         """_handle_life_spread не обрезает текст без кавычек."""
         with patch(
@@ -1969,12 +1976,17 @@ class TestDailyCardEdgeCases:
             ) as mock_renew:
                 mock_renew.return_value = None
                 with patch(
-                    "api.routes.tarot_pwa.calculate_daily_arcana",
-                    return_value=3,
-                ):
-                    resp = client.get(
-                        "/api/v1/tarot/daily-card",
-                        cookies={"nura_session_id": MOCK_SESSION_ID},
-                        params={"extra_param": "value"},
-                    )
+                    "api.routes.tarot_pwa.AIService.chat",
+                    new_callable=AsyncMock,
+                ) as mock_ai:
+                    mock_ai.return_value = MOCK_AI_CHAT_RESPONSE
+                    with patch(
+                        "api.routes.tarot_pwa.personalize_arcana",
+                        return_value=3,
+                    ):
+                        resp = client.get(
+                            "/api/v1/tarot/daily-card",
+                            cookies={"nura_session_id": MOCK_SESSION_ID},
+                            params={"extra_param": "value"},
+                        )
         assert resp.status_code == 200

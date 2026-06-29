@@ -235,8 +235,8 @@
     "semantic_hash": ""
   },
   "nura_app/api/routes/tarot_pwa.py": {
-    "mtime": 1782730524.7410834,
-    "ast_hash": "01d6f8cc3faaebeafff6918f83dfc958",
+    "mtime": 1782748577.2103105,
+    "ast_hash": "cf60650d37a0a815f6f547679f4a20f7",
     "semantic_hash": ""
   },
   "nura_app/api/routes/web.py": {
@@ -670,8 +670,8 @@
     "semantic_hash": ""
   },
   "nura_app/tests/test_tarot_pwa.py": {
-    "mtime": 1782642104.8810804,
-    "ast_hash": "e2c9fd30dd922bfe7ea415ffad16f80c",
+    "mtime": 1782748703.66149,
+    "ast_hash": "4fd6a7df0336ec9b63562c019f3fcaf1",
     "semantic_hash": ""
   },
   "nura_app/tests/test_tasks.py": {
@@ -795,8 +795,8 @@
     "semantic_hash": ""
   },
   "docs/README.md": {
-    "mtime": 1780996853.7712238,
-    "ast_hash": "fbe996b13f70870a274e65aa532816e6",
+    "mtime": 1782731969.8463979,
+    "ast_hash": "64176bc3c4802a7eb40cc66a18f200b9",
     "semantic_hash": ""
   },
   "docs/agent-prompts.md": {
@@ -815,13 +815,13 @@
     "semantic_hash": ""
   },
   "docs/bot-spec.md": {
-    "mtime": 1779982891.1509895,
-    "ast_hash": "a9f19f02706d2586c3c9ad6607285d4d",
+    "mtime": 1782731848.1668863,
+    "ast_hash": "f5bd9a042a2cdf45d7e86e44e78ff2e7",
     "semantic_hash": ""
   },
   "docs/bot-ux-map-pwa-patch.md": {
-    "mtime": 1780996218.2030282,
-    "ast_hash": "f1dbe6193142aa468fffdde2e282793d",
+    "mtime": 1782732004.0988805,
+    "ast_hash": "974192323945ab8a9d7af053139765f6",
     "semantic_hash": ""
   },
   "docs/bot-ux-map.md": {
@@ -875,8 +875,8 @@
     "semantic_hash": ""
   },
   "docs/pwa-spec.md": {
-    "mtime": 1782105342.180133,
-    "ast_hash": "5b3edd27df631b2a904eae823cb39a1e",
+    "mtime": 1782731713.1936615,
+    "ast_hash": "113cce0de60b6b0fb280e356ad17bd1f",
     "semantic_hash": ""
   },
   "docs/report-spec.md": {
@@ -885,13 +885,13 @@
     "semantic_hash": ""
   },
   "docs/tarot-integration-plan-pwa-patch.md": {
-    "mtime": 1780996465.3770752,
-    "ast_hash": "46f1e26244efea23a07ff98535a4a42e",
+    "mtime": 1782732021.2919002,
+    "ast_hash": "a60f99b556ea468e35f95f6a201dfa66",
     "semantic_hash": ""
   },
   "docs/tarot-integration-plan.md": {
-    "mtime": 1779846444.520382,
-    "ast_hash": "ed26874c7abb71f66f2950f4740b0532",
+    "mtime": 1782731757.0458283,
+    "ast_hash": "0953d205f5f67dc548d65ea003f74533",
     "semantic_hash": ""
   },
   "docs/tarot-integration-sessions.md": {
@@ -1235,8 +1235,8 @@
     "semantic_hash": ""
   },
   "nura_app/templates/reports/sample-report.html": {
-    "mtime": 1782356740.892014,
-    "ast_hash": "8549d1441b89d568169014df8da4f8de",
+    "mtime": 1782747820.328466,
+    "ast_hash": "7600153dcfd5f40e78443ede6aadb46a",
     "semantic_hash": ""
   },
   "success.html": {
@@ -1290,8 +1290,8 @@
     "semantic_hash": ""
   },
   "STATE.md": {
-    "mtime": 1782731028.497283,
-    "ast_hash": "0233a5c4766d6f18cd0ce5d21fc21d68",
+    "mtime": 1782748739.8574505,
+    "ast_hash": "e0be62875bdffef3eb99a1b51c3e0f0e",
     "semantic_hash": ""
   },
   "frontend/manifest.json": {
