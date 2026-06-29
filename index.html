@@ -258,6 +258,24 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 .marquee-sep{color:var(--terra);opacity:0.35;font-size:9px;flex-shrink:0}
 @keyframes marquee-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
+.synergy-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:center;margin-top:60px}
+.syn-card{background:var(--bg-card);border-radius:var(--r-lg);padding:40px;box-shadow:var(--shadow-card);transition:all 0.35s var(--ease)}
+.syn-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card-hover)}
+.syn-icon{font-size:32px;margin-bottom:16px;color:var(--terra);line-height:1;display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:14px;background:rgba(184,116,63,0.08)}
+.syn-title{font-size:17px;font-weight:700;color:var(--text);margin-bottom:14px;line-height:1.3;letter-spacing:-0.01em}
+.syn-body{font-size:14px;color:var(--text-m);line-height:1.7}
+.syn-body strong{color:var(--text);font-weight:700}
+.syn-plus{font-size:36px;color:var(--gold);font-weight:200;opacity:0.5;font-family:var(--font-serif);text-align:center;line-height:1}
+.synergy-footer{margin-top:44px;text-align:center;font-size:16px;color:var(--text-m);line-height:1.8;max-width:700px;margin-left:auto;margin-right:auto}
+.synergy-footer strong{color:var(--text);font-weight:700}
+.synergy-footer em{color:var(--terra);font-style:italic}
+@media(max-width:768px){
+  .synergy-grid{grid-template-columns:1fr;gap:16px}
+  .syn-plus{transform:rotate(90deg);display:inline-block;padding:8px 0;font-size:30px}
+}
+
+[data-theme="dark"] .syn-card{box-shadow:0 2px 16px rgba(0,0,0,.18)}
+
 </style>
 </head>
 <body>
@@ -274,6 +292,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
     <ul class="nav-links">
       <li><a href="#matrix">Матрица</a></li>
       <li><a href="#tarot" onclick="document.getElementById('tarot').click()">Таро</a></li>
+      <li><a href="#synergy">Синергия</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ul>
     <div class="nav-right">
@@ -296,7 +315,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           Почему одни сценарии <em>повторяются снова</em> — и как их остановить
         </h1>
         <p class="hero-desc">
-          NURA анализирует твою дату рождения и показывает, <strong>где именно застряли деньги, отношения и энергия</strong> — и что конкретно с этим делать.
+          NURA строит твою <strong>Матрицу Судьбы</strong> — личный цифровой чертёж на основе 22 Старших Арканов — и даёт <strong>ежедневные Таро-расклады</strong>, которые отслеживают эти сценарии в реальном времени.
         </p>
         <div class="cta-group">
           <a href="https://nura-ai.ru/mini.html" class="btn btn-primary">✨ Попробовать бесплатно</a>
@@ -331,6 +350,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <span class="marquee-item">Паттерны, которые можно изменить</span><span class="marquee-sep">✦</span>
       <span class="marquee-item">Твои сценарии — не случайность</span><span class="marquee-sep">✦</span>
       <span class="marquee-item">Самопознание, а не гороскоп</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">22 Аркана · Матрица + Таро</span><span class="marquee-sep">✦</span>
       <span class="marquee-item">Без регистрации</span><span class="marquee-sep">✦</span>
     </span>
     <span class="marquee-inner" aria-hidden="true">
@@ -343,6 +363,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <span class="marquee-item">Паттерны, которые можно изменить</span><span class="marquee-sep">✦</span>
       <span class="marquee-item">Твои сценарии — не случайность</span><span class="marquee-sep">✦</span>
       <span class="marquee-item">Самопознание, а не гороскоп</span><span class="marquee-sep">✦</span>
+      <span class="marquee-item">22 Аркана · Матрица + Таро</span><span class="marquee-sep">✦</span>
       <span class="marquee-item">Без регистрации</span><span class="marquee-sep">✦</span>
     </span>
   </div>
@@ -415,7 +436,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
 <div class="bridge">
   <div class="container-narrow">
     <p class="quote-text">
-      У каждого из этих сценариев есть <strong>структура</strong>. Матрица Судьбы переводит дату рождения в числовой код личности — и показывает, где именно <em>зашит этот алгоритм</em>. Не чтобы смириться — чтобы переписать.
+      У каждого из этих сценариев есть <strong>структура</strong>. Матрица Судьбы переводит дату рождения в числовой код личности — и показывает, где именно <em>зашит этот алгоритм</em>. А Таро-ритуалы помогают отслеживать его проявление день за днём. <strong>Один язык 22 архетипов</strong> — статика и динамика. Стратегия и навигатор.
     </p>
   </div>
 </div>
@@ -469,6 +490,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <div class="label-eyebrow">Два продукта · один бот</div>
       <h2 class="title-h2">Выбери свой <em>формат</em></h2>
       <p class="desc-body">Матрица — один раз и навсегда. Таро — ежедневная практика. Можно начать с любого.</p>
+      <p class="desc-body" style="margin-top:18px;font-size:clamp(14px,1.4vw,16px);color:var(--text-s);max-width:600px;margin-left:auto;margin-right:auto">22 Старших Аркана — общий язык. Матрица фиксирует твои <strong>константы</strong>. Таро отслеживает <strong>переменные</strong>. С Матрицей каждый Таро-расклад становится глубже: AI анализирует карты через контекст твоих 22 позиций.</p>
     </div>
 
     <div class="product-tabs section-gap-sm">
@@ -564,6 +586,34 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
   </div>
 </section>
 
+<!-- SYNERGY -->
+<section class="section" id="synergy">
+  <div class="container">
+    <div class="container-narrow text-center">
+      <div class="label-eyebrow">Одна система · два взгляда</div>
+      <h2 class="title-h2">Матрица и Таро — это <em>один язык</em> 22 архетипов</h2>
+      <p class="desc-body">Разница не в том, о чём они говорят, а под каким углом смотрят.</p>
+    </div>
+    <div class="synergy-grid">
+      <div class="syn-card reveal">
+        <div class="syn-icon">◈</div>
+        <h3 class="syn-title">Матрица Судьбы — рентген личности</h3>
+        <p class="syn-body">Рассчитывается один раз по дате рождения. Показывает твои <strong>константы</strong>: какие арканы стоят в деньгах, отношениях, предназначении. Это твой цифровой чертёж — куда ты идёшь и с чем пришёл. <strong>Статика.</strong></p>
+      </div>
+      <div class="syn-plus">+</div>
+      <div class="syn-card reveal reveal-delay-1">
+        <div class="syn-icon">☯</div>
+        <h3 class="syn-title">Таро-ритуалы — навигатор момента</h3>
+        <p class="syn-body">Меняются каждый день. Показывают, как твои родные арканы проживаются <strong>прямо сейчас</strong>: что усиливать, чего избегать, куда смотреть сегодня. Каждый расклад — слепок текущего состояния. <strong>Динамика.</strong></p>
+      </div>
+    </div>
+    <div class="synergy-footer reveal reveal-delay-2">
+      <p>Вместе они дают <strong>полную картину</strong>: Матрица отвечает на вопрос «кто я и куда иду», Таро — «где я сейчас и что с этим делать».<br>
+      <em>Один язык архетипов — два инструмента. Стратегия и тактика самопознания.</em></p>
+    </div>
+  </div>
+</section>
+
 <!-- HOW IT WORKS -->
 <section class="section" id="steps" style="background:var(--bg-card)">
   <div class="container">
@@ -585,7 +635,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <div class="step-node reveal reveal-delay-2">
         <div class="step-head-line"><div class="step-circle">3</div><div class="step-connector"></div></div>
         <h4 class="step-title">Получи бесплатный фрагмент</h4>
-        <p class="step-desc">Через 2 минуты — ключевые инсайты по твоей дате. Читай и реши, нужен ли полный разбор.</p>
+        <p class="step-desc">Через 2 минуты — ключевые инсайты по твоей дате. Читай и реши, нужен ли полный разбор. А после — <strong>ежедневная Карта дня в Таро</strong> на тех же арканах.</p>
       </div>
       <div class="step-node reveal reveal-delay-3">
         <div class="step-head-line"><div class="step-circle">4</div><div class="step-connector"></div></div>
@@ -643,6 +693,20 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
             <div><div class="testi-name">Екатерина</div><div class="testi-role">Предприниматель, Казань</div></div>
           </div>
           <span class="testi-badge">Матрица</span>
+        </div>
+      </div>
+
+      <div class="testi-card reveal" style="grid-column:1/-1;max-width:100%;text-align:center;border:1px solid rgba(184,116,63,0.2);padding:36px 48px">
+        <div>
+          <div class="stars">★★★★★</div>
+          <p class="testi-quote" style="font-size:15px;max-width:680px;margin:0 auto 24px">Сначала купила Матрицу — разложило всю жизнь по полочкам: почему я так реагирую, откуда этот сценарий в деньгах, какой партнёр мне на самом деле нужен. Потом подключила Таро — и теперь каждое утро вижу, <strong>как мои арканы проживаются прямо сегодня.</strong> Без Матрицы карта дня была бы просто картинкой. Вместе — это система, в которой я наконец перестала гадать.</p>
+        </div>
+        <div class="testi-foot" style="justify-content:center;border:none;padding-top:0">
+          <div class="testi-name-row">
+            <div class="testi-avatar" style="background:linear-gradient(135deg,#B8743F,#C2A476)">О</div>
+            <div><div class="testi-name">Ольга</div><div class="testi-role">Психолог, онлайн-терапия</div></div>
+          </div>
+          <span class="testi-badge" style="margin-left:12px">Матрица + Таро</span>
         </div>
       </div>
     </div>
@@ -705,6 +769,14 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
         </button>
         <div class="faq-a">Да, и они усиливают друг друга. Матрица — один раз навсегда. Таро-подписку можно подключать и отменять в любой момент. Если у тебя есть Матрица, расклады Таро становятся глубже: AI использует все 22 позиции твоих арканов.</div>
       </div>
+
+      <div class="faq-item">
+        <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+          Чем Матрица отличается от Таро — и зачем мне оба?
+          <span class="faq-icon">+</span>
+        </button>
+        <div class="faq-a">Представь, что у тебя есть карта города (Матрица) и навигатор (Таро). Матрица — статичный цифровой чертёж твоей личности: 22 архетипа, закреплённые за сферами жизни. Она рассчитывается один раз и показывает твой пожизненный потенциал, блоки и путь. Таро — ежедневная динамика тех же архетипов: какой из твоих арканов активен сегодня, что усиливать, чего избегать. Матрица отвечает на вопрос «кто я и куда иду». Таро — «где я сейчас и что с этим делать». По отдельности каждый продукт даёт глубину. Вместе — полноту картины.</div>
+      </div>
     </div>
   </div>
 </section>
@@ -718,6 +790,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <p class="cta-sub">Начни с бесплатного мини-разбора. 2 минуты — и ты уже будешь знать о себе больше, чем раньше.</p>
       <div class="cta-group" style="justify-content:center">
         <a href="https://nura-ai.ru/mini.html" class="btn btn-primary">✨ Попробовать бесплатно</a>
+        <a href="https://t.me/ai_nura_bot" class="btn btn-outline">🃏 Получить карту дня</a>
       </div>
       <div class="cta-pills">
         <span><span class="dot"></span>Матрица — 890 ₽ разово</span>
