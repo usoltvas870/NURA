@@ -22,9 +22,9 @@
     --bg-soft:      #F7F4EE;
     --bg-card:      #FFFFFF;
     --ink:          #1A1A1A;
-    --ink-soft:     rgba(26, 26, 26, 0.72);
-    --ink-mute:     rgba(26, 26, 26, 0.48);
-    --ink-faint:    rgba(26, 26, 26, 0.32);
+    --ink-soft:     rgba(26, 26, 26, 0.82);
+    --ink-mute:     rgba(26, 26, 26, 0.58);
+    --ink-faint:    rgba(26, 26, 26, 0.38);
     --line:         rgba(44, 42, 30, 0.10);
     --line-strong:  rgba(44, 42, 30, 0.18);
 
@@ -54,7 +54,8 @@
     background: var(--bg-page);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    line-height: 1.6;
+    line-height: 1.75;
+    font-size: 17.5px;
   }
   ::selection { background: rgba(201, 135, 74, 0.32); color: var(--ink); }
   a { color: inherit; text-decoration: none; }
@@ -93,7 +94,8 @@
     height: 100vh;
     padding: 32px 24px 24px 32px;
     border-right: 1px solid var(--line);
-    background: linear-gradient(180deg, #F7F4EE 0%, #EFEEE9 100%);
+    background: linear-gradient(180deg, #F5F0E5 0%, #EDE7DA 100%);
+    box-shadow: inset -1px 0 0 var(--line-strong), 2px 0 16px rgba(44,42,30,0.05);
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--line-strong) transparent;
@@ -212,25 +214,25 @@
   section.chapter {
     max-width: var(--reading-w);
     margin: 0 auto;
-    padding: 120px 0 60px;
+    padding: 140px 0 70px;
     scroll-margin-top: 40px;
   }
-  section.chapter:first-of-type { padding-top: 60px; }
+  section.chapter:first-of-type { padding-top: 70px; }
 
-  .ch-head { margin-bottom: 40px; }
+  .ch-head { margin-bottom: 48px; }
   .ch-head .nbr {
     font-family: 'Playfair Display', serif;
     font-size: 14px;
     color: var(--m-accent);
     letter-spacing: 0.16em;
     font-variant-numeric: tabular-nums;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     display: block;
   }
   .ch-head h2 {
-    font-size: clamp(38px, 4vw, 52px);
+    font-size: clamp(40px, 4.5vw, 56px);
     line-height: 1.04;
-    margin-bottom: 16px;
+    margin-bottom: 18px;
   }
   .ch-head h2 em { font-style: italic; color: var(--m-leaf); }
   .ch-head .ch-sub {
@@ -242,15 +244,16 @@
   }
 
   .prose {
-    color: var(--ink-soft);
+    color: var(--ink);
     background: var(--bg-card);
     border-radius: var(--radius-md);
-    padding: 32px;
-    box-shadow: 0 2px 12px rgba(44,42,30,0.06);
+    padding: 36px 40px;
+    box-shadow: 0 2px 16px rgba(44,42,30,0.07);
   }
   .prose p {
-    font-size: 17px;
-    line-height: 1.75;
+    font-size: 18px;
+    line-height: 1.8;
+    color: var(--ink-soft);
     margin: 0 0 1.2em;
     font-weight: 400;
   }
@@ -268,13 +271,13 @@
   }
 
   .pull {
-    margin: 36px 0;
-    padding: 4px 0 4px 24px;
-    border-left: 2px solid var(--m-accent);
+    margin: 40px 0;
+    padding: 4px 0 4px 28px;
+    border-left: 3px solid var(--m-accent);
     font-family: 'Playfair Display', serif;
     font-style: italic;
-    font-size: 22px;
-    line-height: 1.4;
+    font-size: 23px;
+    line-height: 1.45;
     color: var(--ink);
     font-weight: 400;
   }
@@ -1235,6 +1238,30 @@
   .lines .line.short { width: 55%; }
   .lines .line.mid { width: 75%; }
 
+  /* ---------- Arcana placeholders ---------- */
+  .arcana-placeholder {
+    background: var(--m-accent-soft);
+    border: 2px dashed var(--m-accent);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--m-accent);
+    font-size: 12px;
+    text-align: center;
+    flex-shrink: 0;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+  .arcana-placeholder.arc-lg { width: 120px; height: 180px; }
+  .arcana-placeholder.arc-md { width: 80px; height: 120px; }
+  .arcana-placeholder.arc-sm { width: 48px; height: 48px; border-radius: var(--radius-sm); font-size: 10px; }
+  .arcana-placeholder.arc-icon { width: 40px; height: 40px; border-radius: 10px; font-size: 9px; }
+  .arcana-row { display: flex; gap: 16px; margin: 28px 0; flex-wrap: wrap; }
+  .arc-aside { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+  .dash-card .arcana-placeholder { margin-top: auto; }
+  .tl-item-arcana { display: flex; gap: 24px; align-items: flex-start; }
+
   /* ---------- Back to top ---------- */
   .to-top {
     position: fixed;
@@ -1337,7 +1364,12 @@
     }
 
     main.content { padding: 0 24px 80px; }
-    section.chapter { padding: 80px 0 40px; }
+    section.chapter { padding: 90px 0 50px; }
+    .arcana-placeholder.arc-lg { width: 90px; height: 135px; }
+    .arcana-placeholder.arc-md { width: 60px; height: 90px; }
+
+    .tl-item-arcana { gap: 14px; }
+    .arc-aside { gap: 12px; }
 
     .cv-grid { grid-template-columns: 1fr; gap: 28px; }
     .matrix-viz { margin: 0 auto; }
@@ -1366,7 +1398,11 @@
     .cv-info .row { grid-template-columns: 100px 1fr; gap: 12px; }
     .dashboard { grid-template-columns: 1fr; }
     /* why-code is flex column, mobile-friendly by default */
-    .ch-head h2 { font-size: 32px; }
+    .ch-head h2 { font-size: 34px; }
+    .arcana-placeholder.arc-lg { width: 80px; height: 120px; font-size: 10px; }
+    .arcana-placeholder.arc-md { width: 50px; height: 75px; font-size: 9px; }
+    .arcana-placeholder.arc-sm { width: 36px; height: 36px; font-size: 8px; }
+    .arcana-placeholder.arc-icon { width: 32px; height: 32px; font-size: 8px; }
     .destiny-chapter .ch-head h2 { font-size: 40px; }
     .tarot-teaser { padding: 28px 20px; }
     .tt-text h3 { font-size: 28px; }
@@ -1398,7 +1434,6 @@
     .mobile-nav,
     .to-top,
     .why-btn,
-    .disclaimer,
     .sb-footer .progress,
     script {
       display: none !important;
@@ -2029,6 +2064,14 @@
       overflow: visible;
     }
 
+    /* --- Arcana placeholders in print --- */
+    .arcana-placeholder {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      color: #8B7332;
+      font-size: 10px;
+    }
+
     /* --- Hide SVG gradients that WeasyPrint can't render --- */
     .matrix-viz defs { display: none; }
   }
@@ -2617,6 +2660,10 @@
             </g>
           </svg>
         </div>
+
+        <div class="arcana-placeholder arc-lg">
+          Аркан X<br>Колесо<br>Фортуны
+        </div>
       </div>
 
       <div class="disclaimer" style="margin-top:80px;">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
@@ -2640,7 +2687,7 @@
           <div class="dc-desc"></div>
           
           <div class="dc-insight">Ты — человек цикла. Твоя жизнь состоит из подъёмов и спадов, и твоя сила — в умении адаптироваться к переменам, а не в попытках их остановить.</div>
-          
+          <div class="arcana-placeholder arc-sm">X</div>
         </div>
         <div class="dash-card">
           <div class="dc-icon">&triangle;</div>
@@ -2649,7 +2696,7 @@
           <div class="dc-desc">Твоя природная сила</div>
           
           <div class="dc-insight">Твой талант — завершать то, что другие бросают. Ты умеешь видеть точку, где нужно поставить точку, и не боишься «убивать» проекты, которые исчерпали себя.</div>
-          
+          <div class="arcana-placeholder arc-sm">XIII</div>
         </div>
         <div class="dash-card">
           <div class="dc-icon">&loz;</div>
@@ -2658,7 +2705,7 @@
           <div class="dc-desc">Что требует осознанной работы</div>
           
           <div class="dc-insight">Твоя зона комфорта — Иерофант (5) — превращается в блок, когда ты начинаешь жить по чужим правилам. Ты теряешь себя, когда ищешь одобрения авторитетов вместо того, чтобы доверять себе.</div>
-          
+          <div class="arcana-placeholder arc-sm">V</div>
         </div>
         <div class="dash-card">
           <div class="dc-icon">&#10022;</div>
@@ -2667,7 +2714,7 @@
           <div class="dc-desc">Направление твоего пути</div>
           
           <div class="dc-insight">Твоё направление — создавать системы, которые помогают другим проходить через кризисы. Ты можешь быть проводником в точках перемен, где нужна ясность и структура.</div>
-          
+          <div class="arcana-placeholder arc-sm">XVII</div>
         </div>
         <div class="dash-card">
           <div class="dc-icon" style="font-style:italic;">XII</div>
@@ -2676,7 +2723,7 @@
           <div class="dc-desc">Энергия текущего года</div>
           
           <div class="dc-insight">В этом году не жди быстрых результатов. Сфокусируйся на завершении старых дел и анализе. Каждое действие должно быть точным, а не быстрым.</div>
-          
+          <div class="arcana-placeholder arc-sm">XII</div>
         </div>
       </div>
     </section>
@@ -2687,8 +2734,11 @@
     <section class="chapter" id="s3" data-screen-label="03 Архетип личности">
       <div class="ch-head">
         <span class="nbr">03 — Архетип личности</span>
+      <div class="arc-aside">
         <h2>Колесо Фортуны <em>в центре</em> карты</h2>
-        <p class="ch-sub">Главный аркан матрицы. Объясняет, почему ты двигаешься так, как двигаешься — и почему это работает.</p>
+        <div class="arcana-placeholder arc-md">Аркан X<br>Колесо<br>Фортуны</div>
+      </div>
+      <p class="ch-sub">Главный аркан матрицы. Объясняет, почему ты двигаешься так, как двигаешься — и почему это работает.</p>
       </div>
 
       <div class="prose">
@@ -2769,22 +2819,31 @@
       </div>
 
       <div class="timeline">
-        <div class="tl-item">
+        <div class="tl-item tl-item-arcana">
+          <div class="arcana-placeholder arc-md">Аркан 5<br>Иерофант</div>
+          <div>
           <span class="tl-tag">Причина &middot; прошлое</span>
           <div class="tl-arc">Аркан 5 — низ матрицы &middot; Иерофант в тени</div>
           <h3>Корень <em>кармического паттерна</em></h3>
+          </div>
         </div>
 
-        <div class="tl-item now">
+        <div class="tl-item tl-item-arcana now">
+          <div class="arcana-placeholder arc-md">Аркан 10<br>Колесо<br>Фортуны</div>
+          <div>
           <span class="tl-tag">Следствие &middot; сейчас</span>
           <div class="tl-arc">Аркан 10 — центр матрицы &middot; Колесо Фортуны</div>
           <h3>Как это <em>проявляется сегодня</em></h3>
+          </div>
         </div>
 
-        <div class="tl-item">
+        <div class="tl-item tl-item-arcana">
+          <div class="arcana-placeholder arc-md">Аркан 3<br>Императрица</div>
+          <div>
           <span class="tl-tag">Урок &middot; трансформация</span>
           <div class="tl-arc">Аркан 3 — верх матрицы &middot; Императрица</div>
           <h3>Путь <em>выхода из цикла</em></h3>
+          </div>
         </div>
       </div>
 
@@ -3008,6 +3067,12 @@
 
         <p><strong>Третья сила — XVII. Звезда</strong> (портретная зона). Способность видеть будущее и вдохновлять своей верой. Ты не просто мечтатель — ты умеешь превращать видение в план, а план — в движение. Люди тянутся к тебе, потому что ты даёшь им ощущение, что всё возможно. Монетизация: стратегическое планирование, vision-коучинг, продюсирование творческих проектов.</p>
 
+      </div>
+
+      <div class="arcana-row">
+        <div class="arcana-placeholder arc-sm">XIII</div>
+        <div class="arcana-placeholder arc-sm">V</div>
+        <div class="arcana-placeholder arc-sm">XVII</div>
       </div>
 
       

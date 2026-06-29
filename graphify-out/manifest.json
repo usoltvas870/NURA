@@ -1235,8 +1235,8 @@
     "semantic_hash": ""
   },
   "nura_app/templates/reports/sample-report.html": {
-    "mtime": 1782747820.328466,
-    "ast_hash": "7600153dcfd5f40e78443ede6aadb46a",
+    "mtime": 1782750963.88951,
+    "ast_hash": "a6ec14b3e0e745d8efb6298eef859ac8",
     "semantic_hash": ""
   },
   "success.html": {
@@ -1290,8 +1290,8 @@
     "semantic_hash": ""
   },
   "STATE.md": {
-    "mtime": 1782748739.8574505,
-    "ast_hash": "e0be62875bdffef3eb99a1b51c3e0f0e",
+    "mtime": 1782750153.986091,
+    "ast_hash": "bd47610910a76880916257aa003d88bb",
     "semantic_hash": ""
   },
   "frontend/manifest.json": {

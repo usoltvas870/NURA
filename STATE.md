@@ -1,8 +1,23 @@
 # NURA — State
 
-> Последнее обновление: **29.06.2026 — Сессия 46** — DeepSeek V4 Pro
+> Последнее обновление: **29.06.2026 — Сессия 47** — DeepSeek V4 Pro
 
 ---
+
+## Сессия 47 — 29.06.2026
+- Модель: DeepSeek V4 Pro (opencode-go/qwen3.7-plus)
+- Что сделано: масштабное обновление дизайна sample-report.html:
+  - **Sidebar**: фон изменён с `#F7F4EE→#EFEEE9` на `#F5F0E5→#EDE7DA` + `box-shadow: inset -1px 0 0 var(--line-strong), 2px 0 16px rgba(44,42,30,0.05)` — визуальное отделение от страницы.
+  - **Типографика**: body font-size 17→17.5px, line-height 1.6→1.75. Контраст текста: `--ink-soft` 0.72→0.82, `--ink-mute` 0.48→0.58, `--ink-faint` 0.32→0.38. Prose: padding увеличен, font-size 17→18px, line-height 1.75→1.8.
+  - **Визуальный ритм**: section padding 120→140px, ch-head margin 40→48px, h2 font-size clamp(38px→40px, 4vw→4.5vw, 52px→56px). Pull-quotes: border 2→3px, font-size 22→23px.
+  - **Плейсхолдеры арканов**: новая система `.arcana-placeholder` с 4 размерами (arc-lg 120×180, arc-md 80×120, arc-sm 48×48, arc-icon 40×40). Размещены: обложка (крупная карточка), архетип (средняя у заголовка), кармический хвост (3 карточки в timeline), таланты (3 иконки), дашборд (5 иконок в карточках).
+  - **CSS-классы для layout**: `.arcana-row`, `.arc-aside`, `.tl-item-arcana`, `.dash-card .arcana-placeholder { margin-top: auto }` — вместо inline-стилей.
+  - **Мобильная версия**: адаптивные размеры плейсхолдеров на ≤880px и ≤520px. `flex-wrap: wrap` на flex-обёртках.
+  - **@media print**: arcana-placeholder получают `border: 1px solid #ddd; background: #fafafa`. Исправлен конфликт `.disclaimer` (убран из `display: none !important`).
+  - **Print bugfix**: убран `.disclaimer` из списка скрытых элементов — теперь disclaimer'ы отображаются в PDF.
+- Изменённые файлы: `nura_app/templates/reports/sample-report.html`
+- Блокеры: нет
+- Следующие шаги: генерация реальных изображений арканов для замены плейсхолдеров; деплой на VPS
 
 ## Сессия 46 — 29.06.2026
 - Модель: DeepSeek V4 Pro
