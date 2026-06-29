@@ -48,6 +48,18 @@ celery_app.conf.beat_schedule = {
         "task": "core.tasks.send_daily_tarot_card",
         "schedule": crontab(hour=9, minute=15),
     },
+    "send-weekly-tarot-spread": {
+        "task": "core.tasks.send_weekly_tarot_spread",
+        "schedule": crontab(hour=9, minute=0, day_of_week=1),
+    },
+    "send-monthly-tarot-portal": {
+        "task": "core.tasks.send_monthly_tarot_portal",
+        "schedule": crontab(hour=9, minute=0, day_of_month=1),
+    },
+    "check-inactive-users": {
+        "task": "core.tasks.check_inactive_users",
+        "schedule": 60 * 60 * 6,
+    },
     "check-expiring-subscriptions": {
         "task": "core.tasks.check_expiring_subscriptions",
         "schedule": 60 * 60 * 12,
@@ -581,22 +593,22 @@ async def _send_daily_tarot_card_async() -> dict:
     user_repo = UserRepository(session_factory)
     users = await user_repo.get_users_with_tarot()
 
+    today = datetime.now(MSK).date()
+    send_semaphore = asyncio.Semaphore(5)
     sent = 0
     failed = 0
-    today = datetime.now(MSK).date()
-    for i, user in enumerate(users):
-        if i > 0 and len(users) > 50 and user.telegram_id:
-            await asyncio.sleep(0.05)
+
+    async def _send_one(user: User) -> bool:
+        nonlocal sent, failed
+        center_arcana = user.main_archetype_number or 0
+        arcana_num = (
+            _personal_arcana_number(today, center_arcana)
+            if center_arcana else _daily_arcana_number(today)
+        )
+        arcana_name = ARCANA[arcana_num]
+        user_name = user.first_name or user.username or "друг"
 
         try:
-            center_arcana = user.main_archetype_number or 0
-            arcana_num = (
-                _personal_arcana_number(today, center_arcana)
-                if center_arcana else _daily_arcana_number(today)
-            )
-            arcana_name = ARCANA[arcana_num]
-            user_name = user.first_name or user.username or "друг"
-
             card_text = await AIService().generate_tarot_daily_card(
                 arcana_number=arcana_num,
                 arcana_name=arcana_name,
@@ -606,7 +618,11 @@ async def _send_daily_tarot_card_async() -> dict:
                 user_archetype_name=user.main_archetype or arcana_name,
             )
         except Exception:
-            continue
+            logger.exception(
+                "Daily tarot card AI failed for user %s", user.id
+            )
+            failed += 1
+            return False
 
         text = (
             f"🌒 <b>Карта дня для {user_name}</b>\n"
@@ -620,26 +636,263 @@ async def _send_daily_tarot_card_async() -> dict:
                 [{"text": "🏠 В меню", "callback_data": "main_menu"}],
             ],
         }
-        try:
-            ok = await _notify_user(
-                user,
-                text,
-                keyboard,
-                push_title="🌒 Карта дня",
-                push_body=f"Карта дня для {user_name}",
-                push_url="/app/tarot",
-                push_tag="daily-tarot-card",
-            )
-            if ok:
-                sent += 1
-            else:
+
+        async with send_semaphore:
+            try:
+                ok = await _notify_user(
+                    user,
+                    text,
+                    keyboard,
+                    push_title="🌒 Карта дня",
+                    push_body=f"Карта дня для {user_name}",
+                    push_url="/app/tarot",
+                    push_tag="daily-tarot-card",
+                )
+                if ok:
+                    sent += 1
+                else:
+                    failed += 1
+                return ok
+            except Exception:
+                logger.exception(
+                    "Failed to notify user %s in daily tarot card task", user.id
+                )
                 failed += 1
-        except Exception:
-            logger.exception(
-                "Failed to notify user %s in daily tarot card task", user.id
-            )
-            failed += 1
+                return False
+
+    await asyncio.gather(*[_send_one(u) for u in users])
+    logger.info(
+        "send_daily_tarot_card: sent=%d failed=%d total=%d",
+        sent, failed, len(users),
+    )
     return {"sent": sent, "failed": failed, "total": len(users)}
+
+
+@celery_app.task(name="core.tasks.send_weekly_tarot_spread")
+def send_weekly_tarot_spread() -> dict:
+    return _run_async(_send_weekly_tarot_spread_async())
+
+
+async def _send_weekly_tarot_spread_async() -> dict:
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    users = await user_repo.get_users_with_tarot()
+    today = datetime.now(MSK).date()
+
+    prompt = AIService._load_prompt("tarot_weekly_spread.txt")
+    send_semaphore = asyncio.Semaphore(3)
+    sent = 0
+    failed = 0
+
+    async def _send_one(user: User) -> bool:
+        nonlocal sent, failed
+        if not user.birth_date:
+            failed += 1
+            return False
+        center_arcana = user.main_archetype_number or 0
+        arcana_num = (
+            _personal_arcana_number(today, center_arcana)
+            if center_arcana else _daily_arcana_number(today)
+        )
+        three_arcana = [(arcana_num + i * 7) % 22 + 1 for i in range(3)]
+        user_name = user.first_name or user.username or "друг"
+
+        matrix_context = ""
+        if user.main_archetype:
+            matrix_context = f"Центральный архетип: {user.main_archetype} ({center_arcana})"
+        filled = prompt.format(
+            user_name=user_name,
+            birth_date=user.birth_date,
+            three_arcana=three_arcana,
+            matrix_context=matrix_context or "(нет данных матрицы)",
+        )
+        try:
+            response = await AIService.chat(
+                messages=[
+                    {"role": "system", "content": "Ты — NURA, персональный психологический проводник."},
+                    {"role": "user", "content": filled},
+                ],
+                api_params={"max_tokens": 600, "temperature": 0.7},
+            )
+            card_text = response.strip().strip('"')
+        except Exception:
+            logger.exception("Weekly spread AI failed for user %s", user.id)
+            failed += 1
+            return False
+
+        text = (
+            f"✦ <b>Расклад недели для {user_name}</b>\n"
+            f"<i>{today.strftime('%d.%m.%Y')} — понедельник</i>\n"
+            f"{'─' * 20}\n\n"
+            f"{card_text}"
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🌒 Карта дня", "callback_data": "tarot_daily"}],
+                [{"text": "🏠 В меню", "callback_data": "main_menu"}],
+            ],
+        }
+        async with send_semaphore:
+            try:
+                ok = await _notify_user(
+                    user, text, keyboard,
+                    push_title="✦ Расклад недели",
+                    push_body=f"Твой расклад на неделю готов, {user_name}",
+                    push_url="/app/tarot",
+                    push_tag="weekly-spread",
+                )
+                if ok:
+                    sent += 1
+                else:
+                    failed += 1
+                return ok
+            except Exception:
+                logger.exception("Failed to notify user %s in weekly spread task", user.id)
+                failed += 1
+                return False
+
+    await asyncio.gather(*[_send_one(u) for u in users])
+    logger.info("send_weekly_tarot_spread: sent=%d failed=%d total=%d", sent, failed, len(users))
+    return {"sent": sent, "failed": failed, "total": len(users)}
+
+
+@celery_app.task(name="core.tasks.send_monthly_tarot_portal")
+def send_monthly_tarot_portal() -> dict:
+    return _run_async(_send_monthly_tarot_portal_async())
+
+
+async def _send_monthly_tarot_portal_async() -> dict:
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    users = await user_repo.get_users_with_tarot()
+    now = datetime.now(MSK)
+    month_num = now.month
+    month_names = {1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрель", 5: "Май", 6: "Июнь",
+                   7: "Июль", 8: "Август", 9: "Сентябрь", 10: "Октябрь", 11: "Ноябрь", 12: "Декабрь"}
+    month_name = month_names[month_num]
+
+    prompt = AIService._load_prompt("tarot_portal.txt")
+    send_semaphore = asyncio.Semaphore(3)
+    sent = 0
+    failed = 0
+
+    async def _send_one(user: User) -> bool:
+        nonlocal sent, failed
+        teach = (month_num * 3) % 22 + 1
+        release = (month_num * 7) % 22 + 1
+        strengthen = (month_num * 11) % 22 + 1
+        from core.arcana_data import ARCANA
+        t_name = ARCANA.get(teach, f"Аркан {teach}")
+        r_name = ARCANA.get(release, f"Аркан {release}")
+        s_name = ARCANA.get(strengthen, f"Аркан {strengthen}")
+
+        filled = prompt.format(
+            month_name=month_name,
+            teach_arcana_number=teach,
+            teach_arcana_name=t_name if isinstance(t_name, str) else t_name.get("name", f"Аркан {teach}"),
+            release_arcana_number=release,
+            release_arcana_name=r_name if isinstance(r_name, str) else r_name.get("name", f"Аркан {release}"),
+            strengthen_arcana_number=strengthen,
+            strengthen_arcana_name=s_name if isinstance(s_name, str) else s_name.get("name", f"Аркан {strengthen}"),
+        )
+        try:
+            response = await AIService.chat(
+                messages=[
+                    {"role": "system", "content": "Ты — NURA, персональный психологический проводник."},
+                    {"role": "user", "content": filled},
+                ],
+                api_params={"max_tokens": 500, "temperature": 0.7},
+            )
+            card_text = response.strip().strip('"')
+        except Exception:
+            logger.exception("Monthly portal AI failed for user %s", user.id)
+            failed += 1
+            return False
+
+        user_name = user.first_name or user.username or "друг"
+        text = (
+            f"🌅 <b>Портал месяца для {user_name}</b>\n"
+            f"<i>{month_name}</i>\n"
+            f"{'─' * 20}\n\n"
+            f"{card_text}"
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "✦ Расклад недели", "callback_data": "tarot_weekly"}],
+                [{"text": "🏠 В меню", "callback_data": "main_menu"}],
+            ],
+        }
+        async with send_semaphore:
+            try:
+                ok = await _notify_user(
+                    user, text, keyboard,
+                    push_title=f"🌅 Портал {month_name}",
+                    push_body=f"Твой портал месяца — {month_name}",
+                    push_url="/app/tarot",
+                    push_tag="monthly-portal",
+                )
+                if ok:
+                    sent += 1
+                else:
+                    failed += 1
+                return ok
+            except Exception:
+                logger.exception("Failed to notify user %s in monthly portal task", user.id)
+                failed += 1
+                return False
+
+    await asyncio.gather(*[_send_one(u) for u in users])
+    logger.info("send_monthly_tarot_portal: sent=%d failed=%d total=%d", sent, failed, len(users))
+    return {"sent": sent, "failed": failed, "total": len(users)}
+
+
+@celery_app.task(name="core.tasks.check_inactive_users")
+def check_inactive_users() -> dict:
+    return _run_async(_check_inactive_users_async())
+
+
+async def _check_inactive_users_async() -> dict:
+    session_factory = get_async_sessionmaker()
+    now = datetime.now(timezone.utc)
+    seven_days_ago = now - timedelta(days=7)
+
+    async with session_factory() as session:
+        result = await session.execute(
+            select(User).where(
+                User.tarot_subscription.is_(True),
+                User.created_at < seven_days_ago,
+            )
+        )
+        users = result.scalars().all()
+
+    notified = 0
+    for user in users:
+        user_name = user.first_name or user.username or "друг"
+        text = (
+            f"🌒 {user_name}, мы соскучились!\n\n"
+            f"Твоя карта дня ждёт тебя в боте. "
+            f"Один взгляд — и ты будешь знать, "
+            f"в каком режиме прожить сегодняшний день.\n\n"
+            f"Загляни — это занимает меньше минуты."
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🌒 Карта дня", "callback_data": "tarot_daily"}],
+                [{"text": "🏠 В меню", "callback_data": "main_menu"}],
+            ],
+        }
+        ok = await _notify_user(
+            user, text, keyboard,
+            push_title="🌒 Давно не виделись",
+            push_body=f"{user_name}, твоя карта дня ждёт",
+            push_url="/app/tarot",
+            push_tag="re-engagement",
+        )
+        if ok:
+            notified += 1
+
+    logger.info("check_inactive_users: notified=%d total_inactive=%d", notified, len(users))
+    return {"notified": notified, "total_inactive": len(users)}
 
 
 @celery_app.task(name="core.tasks.check_expiring_subscriptions")
@@ -883,20 +1136,25 @@ async def _send_broadcast_async(
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
         )
 
+    send_semaphore = asyncio.Semaphore(5)
     failed = 0
-    try:
-        for i, user in enumerate(users):
-            tg_sent = False
 
+    async def _send_one(user: User) -> bool:
+        nonlocal failed
+        tg_sent = False
+
+        async with send_semaphore:
             if send_telegram and user.telegram_id and bot:
                 try:
                     await bot.send_message(chat_id=user.telegram_id, text=text)
                     tg_sent = True
                 except TelegramForbiddenError:
                     failed += 1
+                    return False
                 except Exception:
                     logger.exception("Broadcast TG failed for user %s", user.id)
                     failed += 1
+                    return False
 
             if send_push and user.has_pwa_push and user.push_endpoint and user.push_p256dh and user.push_auth:
                 try:
@@ -911,6 +1169,7 @@ async def _send_broadcast_async(
                     )
                     if not ok:
                         failed += 1
+                        return False
                 except PushSubscriptionExpired:
                     user_repo = UserRepository(session_factory)
                     try:
@@ -924,32 +1183,29 @@ async def _send_broadcast_async(
                     except Exception:
                         logger.exception("Failed to clear push sub for user %s", user.id)
                     failed += 1
+                    return False
                 except Exception:
                     logger.exception("Broadcast push failed for user %s", user.id)
                     failed += 1
+                    return False
 
-            if tg_sent:
-                await asyncio.sleep(1 / 25)
+            if tg_sent or not send_telegram:
+                return True
+            return False
 
-            processed = i + 1
-            await redis.set(f"broadcast:{task_id}", json.dumps({
-                "status": "running",
-                "sent": processed,
-                "total": total,
-                "failed": failed,
-                "finished_at": None,
-            }))
-
-        await redis.set(f"broadcast:{task_id}", json.dumps({
-            "status": "completed",
-            "sent": total,
-            "total": total,
-            "failed": failed,
-            "finished_at": datetime.now(timezone.utc).isoformat(),
-        }))
-
+    try:
+        await asyncio.gather(*[_send_one(u) for u in users])
     finally:
         if bot:
             await bot.session.close()
 
-    return {"sent": total, "total": total, "failed": failed}
+    sent = total - failed
+    await redis.set(f"broadcast:{task_id}", json.dumps({
+        "status": "completed",
+        "sent": sent,
+        "total": total,
+        "failed": failed,
+        "finished_at": datetime.now(timezone.utc).isoformat(),
+    }))
+
+    return {"sent": sent, "total": total, "failed": failed}

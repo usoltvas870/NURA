@@ -8,7 +8,7 @@ from api.dependencies import get_current_web_user
 from core.models import User
 from core.services.ai import AIService
 from core.arcana_data import ARCANA
-from core.services.daily_arcana import calculate_daily_arcana
+from core.services.daily_arcana import calculate_daily_arcana, daily_arcana_number, personalize_arcana
 
 router = APIRouter(prefix="/api/v1/tarot")
 
@@ -63,14 +63,33 @@ async def get_daily_card(
     request: Request,
     user: User = Depends(get_current_web_user),
 ):
-    birth_date = user.birth_date
-    if not birth_date:
+    if not user.birth_date:
         raise HTTPException(status_code=400, detail="Дата рождения не указана")
 
-    arcana_num = calculate_daily_arcana(birth_date)
-    arcana = ARCANA_DATA.get(arcana_num, ARCANA_DATA[1])
-
     today = date.today()
+    center = user.main_archetype_number or 0
+    arcana_num = (
+        personalize_arcana(today, center)
+        if center else daily_arcana_number(today)
+    )
+    arcana = ARCANA_DATA.get(arcana_num, ARCANA_DATA[1])
+    user_name = user.first_name or user.name or "пользователь"
+
+    try:
+        card_text = await AIService().generate_tarot_daily_card(
+            arcana_number=arcana_num,
+            arcana_name=arcana["name"],
+            date_str=today.strftime("%d.%m.%Y"),
+            user_name=user_name,
+            user_archetype_number=center or arcana_num,
+            user_archetype_name=user.main_archetype or arcana["name"],
+        )
+    except Exception:
+        raise HTTPException(status_code=503, detail="AI временно недоступен")
+
+    paragraphs = [p.strip() for p in card_text.split("\n\n") if p.strip()]
+    advice = paragraphs[-1] if len(paragraphs) >= 3 else card_text
+
     months = ["января","февраля","марта","апреля","мая","июня",
               "июля","августа","сентября","октября","ноября","декабря"]
     date_label = f"{today.day} {months[today.month - 1]}"
@@ -79,10 +98,10 @@ async def get_daily_card(
         arcana_number=arcana_num,
         arcana_name=arcana["name"],
         arcana_symbol=arcana["symbol"],
-        key_phrase=arcana["phrase"],
-        interpretation=arcana["interpretation"],
-        advice=arcana["advice"],
-        affirmation=arcana["affirmation"],
+        key_phrase=card_text,
+        interpretation=card_text,
+        advice=advice,
+        affirmation="",
         date_label=date_label,
     )
 
