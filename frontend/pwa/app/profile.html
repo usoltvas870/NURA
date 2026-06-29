@@ -91,6 +91,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div class="list-icon"><i class="ti ti-shield-lock"></i></div><div><div class="list-title">Политика конфиденциальности</div></div><span class="chevron">›</span></article>
 <article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div class="list-icon"><i class="ti ti-message-2"></i></div><div><div class="list-title">Обратная связь</div></div><span class="chevron">›</span></article>
 <article class="card list-card" role="button" tabindex="0" onclick="logout()"><div class="list-icon danger"><i class="ti ti-logout"></i></div><div><div class="list-title" style="color:#C45C5C">Выйти из аккаунта</div></div></article>
+<article class="card list-card" role="button" tabindex="0" onclick="deleteAccount()"><div class="list-icon danger"><i class="ti ti-trash"></i></div><div><div class="list-title" style="color:#C45C5C">Удалить аккаунт</div><div class="list-sub">Удалит все данные безвозвратно</div></div></article>
 </section>
 </main></div>
 <nav class="tabbar"><div class="tabbar-inner">
@@ -103,7 +104,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <script type="text/javascript">
 (function() {
   var N = window.NURA;
-  var BASE = N.BASE, session_id = N.sessionId;
+  var BASE = N.BASE;
   var $ = document.getElementById.bind(document);
 
   document.querySelectorAll('.tab-btn').forEach(function(btn) {
@@ -124,41 +125,38 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 
   var userReports = [];
 
-  if (session_id) {
-    N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
-      .then(function(d) {
-        if (!d && N.sessionId) { location.href = '/mini.html'; return; }
-        if (!d) { $('profile-archetype').textContent = 'Ошибка загрузки'; return; }
-        if (d.name) {
-          $('profile-name').textContent = d.name;
-          var initials = d.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
-          $('avatar-initials').textContent = initials;
+  N.fetchJSON(BASE + '/web/me')
+    .then(function(d) {
+      if (!d) { location.href = '/mini.html'; return; }
+      if (d.name) {
+        $('profile-name').textContent = d.name;
+        var initials = d.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
+        $('avatar-initials').textContent = initials;
+      }
+      if (d.birth_date) $('profile-dob').textContent = 'дата рождения · ' + d.birth_date;
+      if (d.archetype) $('profile-archetype').textContent = '✦ ' + d.archetype;
+      else $('profile-archetype').textContent = '✦ Мини-разбор';
+      if (d.telegram_linked) {
+        $('tg-link-status').textContent = 'подключён';
+        $('tg-link-item').style.opacity = '0.6';
+      }
+      if (d.has_matrix) {
+        var rs = $('matrix-report-status'); if (rs) { rs.textContent = '✓ Куплена'; rs.className = 'report-status ok'; }
+        var ob = $('matrix-open-btn'); if (ob) ob.style.display = '';
+        var bb = $('matrix-buy-btn'); if (bb) bb.style.display = 'none';
+      }
+      if (d.has_tarot) {
+        var sBtn = $('subscribe-btn');
+        if (sBtn) {
+          sBtn.textContent = 'Активна';
+          sBtn.classList.remove('btn-primary');
+          sBtn.classList.add('btn-soft');
+          sBtn.disabled = true;
         }
-        if (d.birth_date) $('profile-dob').textContent = 'дата рождения · ' + d.birth_date;
-        if (d.archetype) $('profile-archetype').textContent = '✦ ' + d.archetype;
-        else $('profile-archetype').textContent = '✦ Мини-разбор';
-        if (d.telegram_linked) {
-          $('tg-link-status').textContent = 'подключён';
-          $('tg-link-item').style.opacity = '0.6';
-        }
-        if (d.has_matrix) {
-          var rs = $('matrix-report-status'); if (rs) { rs.textContent = '✓ Куплена'; rs.className = 'report-status ok'; }
-          var ob = $('matrix-open-btn'); if (ob) ob.style.display = '';
-          var bb = $('matrix-buy-btn'); if (bb) bb.style.display = 'none';
-        }
-        if (d.has_tarot) {
-          var sBtn = $('subscribe-btn');
-          if (sBtn) {
-            sBtn.textContent = 'Активна';
-            sBtn.classList.remove('btn-primary');
-            sBtn.classList.add('btn-soft');
-            sBtn.disabled = true;
-          }
-        }
-        if (d.reports) userReports = d.reports;
-      })
-      .catch(function() { $('profile-archetype').textContent = 'Ошибка сети'; });
-  }
+      }
+      if (d.reports) userReports = d.reports;
+    })
+    .catch(function() { location.href = '/mini.html'; });
 
   var notifPrefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
   Object.keys(notifPrefs).forEach(function(k) {
@@ -170,28 +168,27 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     var prefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
     prefs[key] = val;
     localStorage.setItem('nura_notif_prefs', JSON.stringify(prefs));
-    if (val && session_id && localStorage.getItem('nura_push_subscribed') !== '1') {
-      N.subscribeToPush(session_id).then(function() {
+    if (val && localStorage.getItem('nura_push_subscribed') !== '1') {
+      N.subscribeToPush().then(function() {
         console.log('[push] subscribed');
       }).catch(function(err) {
         console.warn('[push] subscribe skipped:', err && err.message);
       });
     }
-    if (session_id) {
-      fetch(BASE + '/web/notifications', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'X-Session-Id': session_id },
-        body: JSON.stringify({ session_id: session_id, key: key, enabled: val })
-      }).then(function(r) {
-        if (!r.ok) {
-          r.json().then(function(e) {
-            console.error('[notifications] save failed:', r.status, (e && e.detail) || '');
-          });
-        }
-      }).catch(function(err) {
-        console.error('[notifications] network error:', err && err.message);
-      });
-    }
+    fetch(BASE + '/web/notifications', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ key: key, enabled: val })
+    }).then(function(r) {
+      if (!r.ok) {
+        r.json().then(function(e) {
+          console.error('[notifications] save failed:', r.status, (e && e.detail) || '');
+        });
+      }
+    }).catch(function(err) {
+      console.error('[notifications] network error:', err && err.message);
+    });
   };
 
   window.openReport = function(id) {
@@ -209,13 +206,12 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   window.editProfile = function() { location.href = 'https://t.me/ai_nura_bot'; };
 
   window.linkTelegram = async function() {
-    if (!session_id) return;
     var el = $('tg-link-status'); if (el) el.textContent = '…';
     try {
       var res = await fetch(BASE + '/web/generate-link-token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: session_id })
+        credentials: 'same-origin',
       });
       if (res.ok) {
         var data = await res.json();
@@ -230,29 +226,41 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 
   window.logout = function() {
     if (!confirm('Выйти из аккаунта?')) return;
-    localStorage.removeItem('nura_session_id');
-    localStorage.removeItem('nura_chat_log');
-    localStorage.removeItem('nura_notif_prefs');
-    location.href = '../index.html';
+    fetch(BASE + '/web/logout', { method: 'POST', credentials: 'same-origin' }).finally(function() {
+      localStorage.removeItem('nura_chat_log');
+      localStorage.removeItem('nura_notif_prefs');
+      location.href = '/mini.html';
+    });
+  };
+
+  window.deleteAccount = function() {
+    if (!confirm('Удалить аккаунт и все данные? Это действие необратимо.')) return;
+    fetch(BASE + '/web/account', { method: 'DELETE', credentials: 'same-origin' }).then(function(r) {
+      if (r.ok) {
+        localStorage.removeItem('nura_chat_log');
+        localStorage.removeItem('nura_notif_prefs');
+        location.href = '/mini.html';
+      } else {
+        alert('Не удалось удалить аккаунт. Попробуй позже.');
+      }
+    }).catch(function() { alert('Ошибка сети при удалении.'); });
   };
 
   window.activateSubscription = function() {
     var btn = $('subscribe-btn');
     var status = $('subscribe-status');
-    if (!session_id) { location.href = '../index.html'; return; }
     btn.disabled = true;
     btn.textContent = 'Активирую…';
     status.style.display = 'none';
     fetch(BASE + '/web/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: session_id })
+      credentials: 'same-origin'
     })
     .then(function(r) {
       if (!r.ok) {
         return r.json().then(function(err) {
           var msg = (err && err.detail) || ('HTTP ' + r.status);
-          console.error('[subscribe] server error:', r.status, msg);
           throw new Error(msg);
         });
       }
@@ -268,7 +276,6 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       }
     })
     .catch(function(err) {
-      console.error('[subscribe] request failed:', err && err.message);
       btn.disabled = false;
       btn.textContent = 'Подключить подписку';
       status.textContent = (err && err.message) || 'Нет соединения';

@@ -24,6 +24,8 @@ class DailyCardResponse(BaseModel):
     advice: str
     affirmation: str
     date_label: str
+    user_archetype_name: str | None = None
+    user_archetype_number: int | None = None
 
 
 class SpreadRequest(BaseModel):
@@ -103,6 +105,8 @@ async def get_daily_card(
         advice=advice,
         affirmation="",
         date_label=date_label,
+        user_archetype_name=user.main_archetype,
+        user_archetype_number=user.main_archetype_number,
     )
 
 

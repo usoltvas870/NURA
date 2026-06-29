@@ -142,7 +142,7 @@ body{overflow:hidden;padding-bottom:0}
 <script type="text/javascript">
 (function() {
   var N = window.NURA;
-  var BASE = N.BASE, session_id = N.sessionId;
+  var BASE = N.BASE;
   var msgs = document.getElementById('messages'),
       inputEl = document.getElementById('chat-input'),
       sendBtn = document.getElementById('send-btn'),
@@ -181,11 +181,12 @@ body{overflow:hidden;padding-bottom:0}
   }
   updateLimitNote();
 
-  if (session_id) {
-    N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
-      .then(function(d) { if (d && (d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active' || d.has_matrix)) { hasUnlimited = true; updateLimitNote(); } })
-      .catch(function() {});
-  }
+  N.fetchJSON(BASE + '/web/me')
+    .then(function(d) {
+      if (!d) { location.href = '/mini.html'; return; }
+      if (d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active' || d.has_matrix) { hasUnlimited = true; updateLimitNote(); }
+    })
+    .catch(function() {});
 
   inputEl.addEventListener('input', function() {
     this.style.height = 'auto';
@@ -221,7 +222,6 @@ body{overflow:hidden;padding-bottom:0}
   window.sendMessage = function(retryText) {
     var text = retryText || inputEl.value.trim();
     if (!text) return;
-    if (!session_id) { location.href = '/mini.html'; return; }
     if (!retryText) { inputEl.value = ''; inputEl.style.height = 'auto'; sendBtn.disabled = true; }
     emptyState.style.display = 'none';
     var t = N.now();
@@ -233,12 +233,13 @@ body{overflow:hidden;padding-bottom:0}
     });
     fetch(BASE + '/web/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Session-Id': session_id },
-      body: JSON.stringify({ message: text, session_id: session_id, history: history })
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ message: text, history: history })
     })
     .then(function(r) {
       if (r.status === 402 || r.status === 429) return { _limit: true };
-      if (r.status === 404) { location.href = '/mini.html'; return { _gone: true }; }
+      if (r.status === 401) { location.href = '/mini.html'; return { _gone: true }; }
       return r.json().then(function(j) { return r.ok ? j : Object.assign({ _status: r.status }, j); }).catch(function() { return { _status: r.status }; });
     })
     .then(function(d) {

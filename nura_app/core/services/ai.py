@@ -260,6 +260,11 @@ class AIService:
                 _generate_part(user_content_b),
             )
             merged = {**results_a, **results_b}
+            conflicting = set(results_a.keys()) & set(results_b.keys())
+            if conflicting:
+                logger.warning(
+                    "full_report merge conflict: overlapping keys=%s", conflicting
+                )
             validated = FullReportResult(**merged)
             return validated.model_dump()
         except Exception:

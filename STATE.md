@@ -1,6 +1,33 @@
 # NURA — State
 
-> Последнее обновление: **29.06.2026 — Сессия 41** — DeepSeek V4 Pro
+> Последнее обновление: **29.06.2026 — Сессия 43** — DeepSeek V4 Pro
+
+---
+
+## Сессия 43 — 29.06.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: обновление `docs/bot-spec.md`:
+  - EDIT 1: глобальная замена «Расклад по вопросу» → «По вопросу» и «Да/Нет» → «Да / Нет» в §5 (ASCII-схемы, таблица §5.14, инлайн-текст)
+  - EDIT 2: добавлены подписи-саблейблы в ASCII-сетку практик §5.3–§5.4 (Тело · Ум · Дух, Прошлое / Настоящее / Будущее и др.)
+  - EDIT 3: добавлены поля `tarot_subscription: bool`, `tarot_subscription_until: datetime | None` в модель User §14
+  - EDIT 4: добавлен §8.10 «Flow — веб-подписка на Таро (PWA)» с описанием цепочки: бот → PWA → POST /api/v1/web/subscribe → YooKassa → /app/success → tarot.html?subscribed=1
+  - EDIT 5: добавлены `open_pwa` и `open_pwa_report:{token}` в реестр callback_data §1.2
+- Изменённые файлы: `docs/bot-spec.md`
+- Блокеры: нет
+- Следующие шаги: деплой PWA Tarot UX на VPS
+
+## Сессия 42 — 29.06.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: PWA Tarot UX Upgrade по плану `PWA_TAROT_UX_UPGRADE_PLAN.md`:
+  - **Фаза 1 (Critical):** Skeleton + кэш карты дня (localStorage, 1ч TTL), контекст Матрицы (API поле `user_archetype_name`), Paywall с прямым платежом (`POST /web/subscribe` вместо редиректа на профиль)
+  - **Фаза 2 (Medium):** Визуальные экраны раскладов (spread sheet), новая сетка из 6 практик по спецификации, заголовок «Таро-ритуалы», онбординг-блок, Install Banner (pwa-install.js + HTML блоки, счётчик визитов)
+  - **Фаза 3 (Low):** Стреак-счётчик (localStorage), авто-редирект после оплаты (`/app/success -> tarot.html?subscribed=1`), обновлён CACHE_NAME в service-worker (`nura-v16`)
+  - **Синхронизация документации:** 23 расхождения исправлены в 9 документах — `pwa-spec.md`, `bot-spec.md`, `tarot-integration-plan.md`, `tarot-integration-plan-pwa-patch.md`, `bot-ux-map-pwa-patch.md`, `README.md`
+  - **graphify:** добавлен в пользовательский PATH (`~\.local\bin`), `graphify update .` перестроил граф (2982 узла, 4624 связи)
+- Изменённые файлы (код): `tarot_pwa.py`, `payment.py`, `tarot.html`, `success.html` (новый), `service-worker.js`
+- Изменённые файлы (доки): `pwa-spec.md`, `bot-spec.md`, `tarot-integration-plan.md`, `tarot-integration-plan-pwa-patch.md`, `bot-ux-map-pwa-patch.md`, `README.md`, `STATE.md`
+- Блокеры: отсутствуют
+- Следующие шаги: деплой на VPS, тестирование всех сценариев
 
 ---
 

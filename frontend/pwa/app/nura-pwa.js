@@ -82,10 +82,10 @@
 
   /* ── API ───────────────────────────────── */
   window.NURA.BASE = (location.origin === 'https://nura-ai.ru') ? 'https://nura-ai.ru/api/v1' : '/api/v1';
-  window.NURA.sessionId = localStorage.getItem('nura_session_id');
 
   window.NURA.fetchJSON = function(url, options) {
     options = options || {};
+    if (!options.credentials) options.credentials = 'same-origin';
     return fetch(url, options)
       .then(function(r) { return r.ok ? r.json() : null; });
   };
@@ -112,14 +112,14 @@
     return outputArray;
   }
 
-  window.NURA.subscribeToPush = function(sessionId) {
+  window.NURA.subscribeToPush = function() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       return Promise.reject(new Error('Push not supported'));
     }
     if (localStorage.getItem('nura_push_subscribed') === '1') {
       return Promise.resolve({ already: true });
     }
-    return fetch(window.NURA.BASE + '/push/vapid-public-key')
+    return fetch(window.NURA.BASE + '/push/vapid-public-key', {credentials:'same-origin'})
       .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('VAPID fetch failed')); })
       .then(function(d) {
         if (!d || !d.public_key) throw new Error('No VAPID key');
@@ -136,10 +136,10 @@
           return fetch(window.NURA.BASE + '/push/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
             body: JSON.stringify({
               endpoint: sub.endpoint,
-              keys: { p256dh: keys.p256dh, auth: keys.auth },
-              session_id: sessionId
+              keys: { p256dh: keys.p256dh, auth: keys.auth }
             })
           }).then(function(r) {
             if (!r.ok) return r.json().then(function(e) { throw new Error((e && e.detail) || 'Subscribe failed'); });
@@ -151,13 +151,14 @@
       });
   };
 
-  window.NURA.unsubscribeFromPush = function(sessionId) {
+  window.NURA.unsubscribeFromPush = function() {
     var endpoint = localStorage.getItem('nura_push_endpoint');
     if (!endpoint) return Promise.resolve();
     return fetch(window.NURA.BASE + '/push/unsubscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ endpoint: endpoint, session_id: sessionId })
+      credentials: 'same-origin',
+      body: JSON.stringify({ endpoint: endpoint })
     }).then(function(r) {
       localStorage.removeItem('nura_push_subscribed');
       localStorage.removeItem('nura_push_endpoint');

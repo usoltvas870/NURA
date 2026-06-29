@@ -152,7 +152,7 @@ class PaymentService:
                 },
                 "confirmation": {
                     "type": "redirect",
-                    "return_url": f"{settings.report_base_url}/app/profile.html#subscription",
+                    "return_url": f"{settings.report_base_url}/app/success",
                 },
                 "capture": True,
                 "save_payment_method": True,

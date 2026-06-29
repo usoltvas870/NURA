@@ -10,8 +10,6 @@
 <script>if("serviceWorker"in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("/service-worker.js").catch(function(){})});</script>
 <script>
   (function(){
-    var sid = localStorage.getItem('nura_session_id');
-    if (sid) { location.href = '/app/'; return; }
     var t = localStorage.getItem('nura-theme') || 'light';
     document.documentElement.setAttribute('data-theme', t);
   })();
@@ -103,8 +101,18 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 <label class="chip"><input type="radio" name="request" value="purpose"><span>Предназначение</span></label>
 <label class="chip"><input type="radio" name="request" value="unknown"><span>Не знаю</span></label>
 </div></div>
-<button class="btn btn-primary btn-full" id="submit-btn" type="submit"><span class="btn-text">Получить мини-разбор</span><span class="loader"></span></button>
+<button class="btn btn-primary btn-full" id="submit-btn" type="submit" disabled><span class="btn-text">Получить мини-разбор</span><span class="loader"></span></button>
+<div style="display:flex;gap:10px;align-items:flex-start;margin-top:12px">
+<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+<input type="checkbox" id="pd_consent" style="margin-top:3px;flex-shrink:0;width:18px;height:18px;accent-color:var(--terra)">
+<span class="small" style="line-height:1.5">Согласен с <a href="/privacy" style="color:var(--terra);text-decoration:underline">обработкой персональных данных</a></span>
+</label>
+</div>
 </form>
+<div style="text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid var(--line)">
+<div class="small" style="margin-bottom:10px">Уже есть аккаунт?</div>
+<button class="btn btn-soft btn-full" id="tg-login-btn">Войти через Telegram</button>
+</div>
 <div class="small" id="error-msg" style="display:none;margin-top:14px;color:#C45C5C;text-align:center">Введи дату в формате ДД.ММ.ГГГГ</div>
 </section>
 <section class="card mini-card stage" id="stage-result">
@@ -136,9 +144,9 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 </section>
 </div><script>
 var labels={self:'понять себя',money:'деньги и реализацию',love:'отношения',scenario:'повторяющиеся сценарии',purpose:'предназначение',unknown:'разобраться без точной формулировки'};
-var sessionId=null;
 var stageForm=document.getElementById('stage-form'),stageResult=document.getElementById('stage-result');
 var birth=document.getElementById('birth_date'),form=document.getElementById('mini-form'),err=document.getElementById('error-msg'),submitBtn=document.getElementById('submit-btn');
+var consentBox=document.getElementById('pd_consent');
 
 function showStage(name){
   stageForm.classList.remove('active');stageResult.classList.remove('active');
@@ -148,15 +156,25 @@ function showStage(name){
 }
 function setLoading(btn,loading){
   if(loading){btn.classList.add('loading');btn.disabled=true;}
-  else{btn.classList.remove('loading');btn.disabled=false;}
+  else{btn.classList.remove('loading');}
 }
 
-birth.addEventListener('input',function(){var raw=this.value.replace(/\D/g,'').slice(0,8),p=[];if(raw.length>0)p.push(raw.slice(0,2));if(raw.length>2)p.push(raw.slice(2,4));if(raw.length>4)p.push(raw.slice(4,8));this.value=p.join('.');});
+function updateSubmitState(){
+  var nameVal=document.getElementById('name').value.trim();
+  var birthVal=birth.value.trim();
+  var ok=nameVal&&/^\d{2}\.\d{2}\.\d{4}$/.test(birthVal)&&consentBox.checked;
+  submitBtn.disabled=!ok;
+}
+consentBox.addEventListener('change',updateSubmitState);
+birth.addEventListener('input',function(){var raw=this.value.replace(/\D/g,'').slice(0,8),p=[];if(raw.length>0)p.push(raw.slice(0,2));if(raw.length>2)p.push(raw.slice(2,4));if(raw.length>4)p.push(raw.slice(4,8));this.value=p.join('.');updateSubmitState();});
+document.getElementById('name').addEventListener('input',updateSubmitState);
+updateSubmitState();
 
 form.addEventListener('submit',function(e){
   e.preventDefault();err.style.display='none';
   var nameVal=document.getElementById('name').value.trim();
   var birthVal=birth.value.trim();
+  if(!consentBox.checked){err.textContent='Подтверди согласие на обработку ПД';err.style.display='block';return;}
   if(!nameVal){err.textContent='Введи имя — как к тебе обращаться';err.style.display='block';return;}
   if(!/^\d{2}\.\d{2}\.\d{4}$/.test(birthVal)){err.textContent='Введи дату в формате ДД.ММ.ГГГГ';err.style.display='block';return;}
   var req=document.querySelector('input[name=request]:checked').value;
@@ -166,13 +184,12 @@ form.addEventListener('submit',function(e){
   fetch('/api/v1/web/mini-analysis',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({name:nameVal,birth_date:birthVal,main_request:req})
+    credentials:'same-origin',
+    body:JSON.stringify({name:nameVal,birth_date:birthVal,pd_consent:true,main_request:req})
   })
   .then(function(res){if(!res.ok)throw new Error('API error');return res.json();})
   .then(function(data){
     setLoading(submitBtn,false);
-    sessionId=data.session_id;
-    localStorage.setItem('nura_session_id', data.session_id);
     var fullArchetype=data.main_archetype||'';
     var nameMatch=fullArchetype.match(/[—-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)*)\s*\(/);
     var archetypeName=nameMatch?nameMatch[1]:fullArchetype.split('.')[0];
@@ -200,11 +217,34 @@ document.getElementById('pay-btn').addEventListener('click',function(){
   fetch('/api/v1/web/create-payment',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({session_id:sessionId})
+    credentials:'same-origin',
+    body:JSON.stringify({})
   })
   .then(function(res){if(!res.ok)throw new Error('Payment init error');return res.json();})
   .then(function(data){if(data.payment_url)window.location.href=data.payment_url;else throw new Error('No payment_url');})
   .catch(function(){setLoading(btn,false);err.textContent='Что-то пошло не так, попробуй ещё раз';err.style.display='block';});
+});
+
+document.getElementById('tg-login-btn').addEventListener('click',function(){
+  var btn=this;setLoading(btn,true);
+  fetch('/api/v1/web/auth/start',{method:'POST',credentials:'same-origin'})
+  .then(function(res){return res.ok?res.json():Promise.reject(new Error('auth start failed'));})
+  .then(function(data){
+    window.open(data.tg_url,'_blank');
+    var token=data.token,pollCount=0;
+    var pollTimer=setInterval(function(){
+      pollCount++;
+      if(pollCount>150){clearInterval(pollTimer);setLoading(btn,false);err.textContent='Время ожидания истекло';err.style.display='block';return;}
+      fetch('/api/v1/web/auth/check?token='+token,{credentials:'same-origin'})
+      .then(function(res){return res.ok?res.json():null;})
+      .then(function(d){
+        if(d&&d.status==='ok'){clearInterval(pollTimer);location.href='/app/';}
+        else if(d&&d.status==='expired'){clearInterval(pollTimer);setLoading(btn,false);err.textContent='Время ожидания истекло';err.style.display='block';}
+      })
+      .catch(function(){});
+    },2000);
+  })
+  .catch(function(){setLoading(btn,false);err.textContent='Не удалось начать авторизацию';err.style.display='block';});
 });
 </script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>

@@ -181,12 +181,13 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 (function() {
   var N = window.NURA;
   var BASE = N.BASE;
-  var session_id = N.sessionId;
 
   var $ = document.getElementById.bind(document);
 
+  fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
+    .then(function(r) { if (!r.ok) location.href = '/mini.html'; });
+
   function openReport(){
-    if (!session_id) { location.href = '/mini.html'; return; }
     if (window.__hasFullReport) location.href = 'profile.html#reports';
     else location.href = 'profile.html#subscription';
   }
@@ -198,44 +199,41 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   }
   window.askNura = askNura;
 
-  if (session_id) {
-    N.fetchJSON(BASE + '/web/me', {headers: {'X-Session-Id': session_id}})
-      .then(function(d) {
-        if (!d && N.sessionId) { location.href = '/mini.html'; return; }
-        if (!d) { $('matrix-desc').textContent = 'Не удалось загрузить данные. Попробуй позже.'; return; }
-        if (d.name) {
-          $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
-        }
-        var hasFull = d.has_matrix;
-        window.__hasFullReport = hasFull;
-        var hasMini = d.reports && d.reports.length > 0;
-        if (hasFull) {
-          $('status-copy').textContent = 'Полный отчёт готов. Начни с главного вывода или задай вопрос по любой главе.';
-          $('report-cta').textContent = 'Продолжить отчёт';
-        } else if (hasMini) {
-          $('status-copy').textContent = 'Мини-разбор готов. Хочешь полную Матрицу?';
-          $('report-cta').textContent = 'Купить полный отчёт';
-        } else {
-          $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
-          $('report-cta').textContent = 'Получить полный отчёт';
-        }
-        if (d.archetype_number) { $('matrix-num').textContent = d.archetype_number; $('matrix-num').classList.remove('skeleton'); }
-        if (d.archetype) { $('matrix-name').textContent = d.archetype; $('matrix-name').classList.remove('skeleton'); }
-        if (d.archetype) $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype;
-        else if (hasMini) $('matrix-desc').textContent = 'Мини-разбор пройден. Купи полный отчёт для детального разбора.';
-        else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
-      })
-      .catch(function() { $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.'; $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—'; $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных'; });
+  N.fetchJSON(BASE + '/web/me')
+    .then(function(d) {
+      if (!d) { location.href = '/mini.html'; return; }
+      if (d.name) {
+        $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
+      }
+      var hasFull = d.has_matrix;
+      window.__hasFullReport = hasFull;
+      var hasMini = d.reports && d.reports.length > 0;
+      if (hasFull) {
+        $('status-copy').textContent = 'Полный отчёт готов. Начни с главного вывода или задай вопрос по любой главе.';
+        $('report-cta').textContent = 'Продолжить отчёт';
+      } else if (hasMini) {
+        $('status-copy').textContent = 'Мини-разбор готов. Хочешь полную Матрицу?';
+        $('report-cta').textContent = 'Купить полный отчёт';
+      } else {
+        $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
+        $('report-cta').textContent = 'Получить полный отчёт';
+      }
+      if (d.archetype_number) { $('matrix-num').textContent = d.archetype_number; $('matrix-num').classList.remove('skeleton'); }
+      if (d.archetype) { $('matrix-name').textContent = d.archetype; $('matrix-name').classList.remove('skeleton'); }
+      if (d.archetype) $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype;
+      else if (hasMini) $('matrix-desc').textContent = 'Мини-разбор пройден. Купи полный отчёт для детального разбора.';
+      else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
+    })
+    .catch(function() { $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.'; $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—'; $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных'; });
 
-    N.fetchJSON(BASE + '/tarot/daily-card', {headers: {'X-Session-Id': session_id}})
-      .then(function(d) {
-        if (!d) return;
-        if (d.arcana_symbol) { $('day-symbol').textContent = d.arcana_symbol; $('day-symbol').classList.remove('skeleton'); }
-        if (d.arcana_name) { $('day-name').textContent = d.arcana_name; $('day-name').classList.remove('skeleton'); }
-        if (d.key_phrase) { $('day-phrase').textContent = d.key_phrase; }
-      })
-      .catch(function() { $('day-phrase').textContent = 'Не удалось загрузить карту дня.'; $('day-symbol').classList.remove('skeleton'); $('day-symbol').textContent = '—'; $('day-name').classList.remove('skeleton'); $('day-name').textContent = 'Нет данных'; });
-  }
+  N.fetchJSON(BASE + '/tarot/daily-card')
+    .then(function(d) {
+      if (!d) return;
+      if (d.arcana_symbol) { $('day-symbol').textContent = d.arcana_symbol; $('day-symbol').classList.remove('skeleton'); }
+      if (d.arcana_name) { $('day-name').textContent = d.arcana_name; $('day-name').classList.remove('skeleton'); }
+      if (d.key_phrase) { $('day-phrase').textContent = d.key_phrase; }
+    })
+    .catch(function() { $('day-phrase').textContent = 'Не удалось загрузить карту дня.'; $('day-symbol').classList.remove('skeleton'); $('day-symbol').textContent = '—'; $('day-name').classList.remove('skeleton'); $('day-name').textContent = 'Нет данных'; });
 
   document.getElementById('themeToggle').addEventListener('click', function() {
     var next = N.toggleTheme();

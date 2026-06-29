@@ -28,7 +28,7 @@ PWA (`nura-ai.ru`) — это тот же сайт, но с тремя допо�
 | HTTPS + SSL | ✅ Готово | nginx + Certbot |
 | Лендинг `index.html` | ✅ Готово | `/var/www/nura-ai.ru/` |
 | Мини-анализ `mini.html` | ✅ Готово | `/opt/nura/mini.html` |
-| Страница успеха `success.html` | ✅ Готово | `/opt/nura/success.html` |
+| Страница успеха `success.html` (PWA) | ✅ Готово | `/var/www/nura-ai.ru/app/success.html` |
 | Страница отчёта `/report/{token}` | ✅ Готово | FastAPI |
 | `manifest.json` | ✅ Готово (сессия 19) | — |
 | Service Worker | ✅ Готово (сессия 19) | — |
@@ -52,7 +52,6 @@ PWA (`nura-ai.ru`) — это тот же сайт, но с тремя допо�
 /var/www/nura-ai.ru/           ← статика (nginx)
 ├── index.html                  ← лендинг
 ├── mini.html                   ← мини-анализ
-├── success.html                ← после оплаты
 ├── manifest.json               ← 🆕 PWA манифест
 ├── service-worker.js           ← 🆕 Service Worker
 ├── offline.html                ← 🆕 fallback при оффлайне
@@ -198,7 +197,7 @@ PWA (`nura-ai.ru`) — это тот же сайт, но с тремя допо�
 ```javascript
 // Актуальная реализация (Сессия 1, файл frontend/service-worker.js)
 // ES5-совместимый синтаксис для максимальной поддержки браузеров
-var CACHE_NAME = 'nura-v2';
+var CACHE_NAME = 'nura-v16';
 var STATIC_ASSETS = [
   '/',
   '/offline.html',
@@ -208,6 +207,7 @@ var STATIC_ASSETS = [
   '/app/index.html',
   '/app/chat.html',
   '/app/tarot.html',
+  '/app/success.html',
   '/app/profile.html',
   '/app/nura-pwa.js',
   '/manifest.json',
@@ -754,6 +754,42 @@ CSS с учётом safe area (iPhone X+):
 - Сегодняшняя карта дня (бесплатно)
 - Сетка из 6 раскладов (с замком для free)
 - Кнопка "Оформить подписку 390₽/мес"
+
+#### 10.4.1 API: карта дня
+
+Данные подгружаются через `GET /api/v1/tarot/daily-card`.
+
+**Response schema (`DailyCardResponse`):**
+
+```json
+{
+    "arcana_number": int,
+    "arcana_name": str,
+    "arcana_symbol": str,
+    "key_phrase": str,
+    "interpretation": str,
+    "advice": str,
+    "affirmation": str,
+    "date_label": str,
+    "user_archetype_name": str | null,
+    "user_archetype_number": int | null
+}
+```
+
+#### 10.4.2 Поток подписки (прямой платёж)
+
+- Пользователь нажимает CTA на пейволле → `POST /api/v1/web/subscribe` → редирект на платёжную страницу YooKassa
+- После успешной оплаты → YooKassa редиректит на `/app/success` → авто-редирект на `tarot.html?subscribed=1`
+- На `tarot.html` параметр `?subscribed=1` триггерит toast «Подписка активна!» + перезагрузку страницы
+
+#### 10.4.3 UX-фичи
+
+- **Skeleton loading**: CSS-классы `.skeleton`, `.skeleton-num`, `.skeleton-name`, `.skeleton-line` на элементах hero-карточки на время загрузки API
+- **localStorage-кэш**: ключ `tarot_daily_card_YYYY-MM-DD`, TTL 1 час — мгновенный показ из кэша, затем фоновое обновление
+- **Контекст матрицы**: если у пользователя есть `user_archetype_name`, под блоком совета карты дня показывается «Этот аркан резонирует с твоим архетипом [name]»
+- **Онбординг**: показывается при первом визите (localStorage `tarot_onboarding_done`), объясняет концепцию таро + матрицы
+- **Счётчик стрика**: на localStorage, показывает «🔥 N дн. подряд» в eyebrow hero-карточки, сбрасывается при пропуске дня
+- **Баннер установки**: `pwa-install.js` загружается на `tarot.html`, показывается после 3+ визитов на страницу
 
 ### 10.5 Экран /app/chat
 
