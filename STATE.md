@@ -1,8 +1,23 @@
 # NURA — State
 
-> Последнее обновление: **29.06.2026 — Сессия 47** — DeepSeek V4 Pro
+> Последнее обновление: **30.06.2026 — Сессия 48** — Qwen 3.7 Plus (opencode)
 
 ---
+
+## Сессия 48 — 30.06.2026
+- Модель: Qwen 3.7 Plus (opencode-go/qwen3.7-plus)
+- Что сделано: выполнение плана из задачи (возраст, мобильное меню, SVG, дашборд, документы):
+  - **Возраст 39→31**: исправлен в `sample-report.html:2458` (01.06.1995 · 31 год). В `full_report_v2.html` возраст вычисляется динамически (`report.py:232`), формула корректна.
+  - **Мобильное меню — контраст**: `.mn-current` цвет `var(--m-accent)` → `var(--ink)` + `font-weight: 500`, `.mobile-nav-panel a` цвет `var(--ink-mute)` → `var(--ink-soft)`, `.num` цвет `var(--ink-faint)` → `var(--ink-mute)` + `font-weight: 500`.
+  - **SVG матрицы — сакральная геометрия**: полная переработка SVG на обложке (S1). Добавлены: Flower of Life паттерн (7 кругов), гексагон, glow-эффекты, угловые акценты. ViewBox 360→400, ячейки увеличены.
+  - **Дашборд — горизонтальный layout**: `.dashboard` переведён с `grid` на `flex` с горизонтальной прокруткой (`overflow-x: auto`, `scroll-snap-type: x mandatory`). Карточки `flex: 0 0 200px`. На планшете `flex-wrap: wrap`, на мобильном `flex-direction: column`.
+  - **Документ с промптами для изображений**: создан `image-prompts.md` — 11 промптов (RU+EN) для генерации фонов секций отчёта (cover, archetype, karmic, ancestral, purpose, strengths, shadow, relationships, money, cycles, daily card).
+  - **Анализ прайс-листа vs отчёта**: создан `pricing-vs-report-analysis.md` — сравнение заявленного (30-50 стр., 21+ секций) с фактическим (17 реализовано + 5 запланировано = 22 секции). Рекомендации: добавить P1, P2, расширить Kitchen-слой.
+  - **Отраслевой стандарт**: создан `industry-standard-analysis.md` — анализ конкурентов. Ключевая находка: **matrix-profi.ru предлагает 105-107 страниц за 1400 ₽**. NURA (30-50 стр. за 890 ₽) соответствует среднему сегменту. Рекомендация: увеличить объём до 60-80 страниц.
+- Изменённые файлы: `nura_app/templates/reports/full_report_v2.html`, `nura_app/templates/reports/sample-report.html`
+- Созданные файлы: `image-prompts.md`, `pricing-vs-report-analysis.md`, `industry-standard-analysis.md`
+- Блокеры: нет
+- Следующие шаги: добавить P1 (Психологические блоки) и P2 (Карта здоровья) в `full_report_v2.html` для увеличения объёма отчёта до 60-80 страниц; сгенерировать фоновые изображения по `image-prompts.md`
 
 ## Сессия 47 — 29.06.2026
 - Модель: DeepSeek V4 Pro (opencode-go/qwen3.7-plus)

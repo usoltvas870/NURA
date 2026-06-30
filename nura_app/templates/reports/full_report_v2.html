@@ -379,7 +379,7 @@
   /* 3x3 matrix viz */
   .matrix-viz {
     width: 100%;
-    max-width: 360px;
+    max-width: 400px;
     aspect-ratio: 1;
     margin-left: auto;
     position: relative;
@@ -390,11 +390,23 @@
      SECTION 2 — DASHBOARD
      =========================================================== */
   .dashboard {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
     gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+  .dashboard::-webkit-scrollbar {
+    height: 4px;
+  }
+  .dashboard::-webkit-scrollbar-thumb {
+    background: var(--m-accent-soft);
+    border-radius: 2px;
   }
   .dash-card {
+    flex: 0 0 200px;
+    scroll-snap-align: start;
     background: linear-gradient(160deg, rgba(20, 53, 39, 0.6), rgba(14, 36, 25, 0.3));
     border: 1px solid var(--m-line);
     border-radius: var(--radius-md);
@@ -1295,12 +1307,13 @@
     }
     .mobile-nav .mn-current {
       flex: 1;
-      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--m-accent);
+      font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--ink);
       text-align: right;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      font-weight: 500;
     }
     .mobile-nav .mn-toggle {
       width: 36px; height: 36px;
@@ -1329,11 +1342,13 @@
       padding: 10px 12px;
       border-radius: 8px;
       font-size: 14px;
-      color: var(--ink-mute);
+      color: var(--ink-soft);
+      font-weight: 400;
     }
     .mobile-nav-panel a .num {
       font-family: 'Cormorant Garamond', serif;
-      color: var(--ink-faint);
+      color: var(--ink-mute);
+      font-weight: 500;
     }
     .mobile-nav-panel a.active {
       color: var(--m-accent); background: var(--m-accent-soft);
@@ -1344,7 +1359,8 @@
 
     .cv-grid { grid-template-columns: 1fr; gap: 28px; }
     .matrix-viz { margin: 0 auto; }
-    .dashboard { grid-template-columns: repeat(2, 1fr); }
+    .dashboard { flex-wrap: wrap; }
+    .dash-card { flex: 1 1 calc(50% - 6px); min-width: 160px; }
     .rod { grid-template-columns: 1fr; gap: 16px; }
     .compat-grid { grid-template-columns: 1fr; }
     .forecast { grid-template-columns: 1fr; }
@@ -1367,7 +1383,8 @@
     .cv-title { font-size: 44px; }
     .cv-name { font-size: 28px; margin-bottom: 36px; }
     .cv-info .row { grid-template-columns: 100px 1fr; gap: 12px; }
-    .dashboard { grid-template-columns: 1fr; }
+    .dashboard { flex-direction: column; overflow-x: visible; }
+    .dash-card { flex: 1 1 auto; min-height: 140px; }
     /* why-code is flex column, mobile-friendly by default */
     .ch-head h2 { font-size: 32px; }
     .destiny-chapter .ch-head h2 { font-size: 40px; }
@@ -1586,7 +1603,7 @@
     .cv-info .v.accent { color: #8B7332; }
     .cv-info .v.mono { font-family: 'Courier New', monospace; font-size: 13px; color: #555; }
 
-    .matrix-viz { max-width: 240px; }
+    .matrix-viz { max-width: 280px; }
     .matrix-viz svg g[stroke*="url"] line {
       stroke: #8B7332;
       stroke-opacity: 0.35;
@@ -1600,6 +1617,7 @@
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 8px;
+      overflow-x: visible;
     }
     .dash-card {
       background: #fafafa;
@@ -2399,42 +2417,91 @@
         </div>
 
         <div class="matrix-viz" aria-hidden="true">
-          <svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <radialGradient id="cellGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.22"/>
+              <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.35"/>
+                <stop offset="50%" stop-color="#C9A55C" stop-opacity="0.12"/>
                 <stop offset="100%" stop-color="#C9A55C" stop-opacity="0"/>
               </radialGradient>
-              <linearGradient id="line-g" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.35"/>
-                <stop offset="100%" stop-color="#6BA37A" stop-opacity="0.25"/>
+              <linearGradient id="sacred-line" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.55"/>
+                <stop offset="100%" stop-color="#6BA37A" stop-opacity="0.45"/>
               </linearGradient>
+              <linearGradient id="sacred-line-soft" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#6BA37A" stop-opacity="0.2"/>
+              </linearGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
             </defs>
-            <g stroke="url(#line-g)" stroke-width="1">
-              <line x1="90" y1="90"  x2="270" y2="90"/>
-              <line x1="90" y1="180" x2="270" y2="180"/>
-              <line x1="90" y1="270" x2="270" y2="270"/>
-              <line x1="90"  y1="90" x2="90"  y2="270"/>
-              <line x1="180" y1="90" x2="180" y2="270"/>
-              <line x1="270" y1="90" x2="270" y2="270"/>
-              <line x1="90"  y1="90"  x2="270" y2="270"/>
-              <line x1="270" y1="90"  x2="90"  y2="270"/>
+
+            <!-- Sacred geometry background: Flower of Life pattern -->
+            <g opacity="0.15" stroke="url(#sacred-line-soft)" stroke-width="0.5" fill="none">
+              <circle cx="200" cy="200" r="40"/>
+              <circle cx="200" cy="160" r="40"/>
+              <circle cx="200" cy="240" r="40"/>
+              <circle cx="165" cy="180" r="40"/>
+              <circle cx="235" cy="180" r="40"/>
+              <circle cx="165" cy="220" r="40"/>
+              <circle cx="235" cy="220" r="40"/>
             </g>
-            <circle cx="180" cy="180" r="60" fill="url(#cellGlow)"/>
+
+            <!-- Outer sacred geometry: hexagon -->
+            <g opacity="0.2" stroke="url(#sacred-line-soft)" stroke-width="0.75" fill="none">
+              <polygon points="200,120 260,155 260,245 200,280 140,245 140,155"/>
+            </g>
+
+            <!-- Main matrix grid lines -->
+            <g stroke="url(#sacred-line)" stroke-width="1.2" filter="url(#glow)">
+              <!-- Horizontal lines -->
+              <line x1="100" y1="100" x2="300" y2="100"/>
+              <line x1="100" y1="200" x2="300" y2="200"/>
+              <line x1="100" y1="300" x2="300" y2="300"/>
+              <!-- Vertical lines -->
+              <line x1="100" y1="100" x2="100" y2="300"/>
+              <line x1="200" y1="100" x2="200" y2="300"/>
+              <line x1="300" y1="100" x2="300" y2="300"/>
+              <!-- Diagonal lines -->
+              <line x1="100" y1="100" x2="300" y2="300"/>
+              <line x1="300" y1="100" x2="100" y2="300"/>
+            </g>
+
+            <!-- Center glow -->
+            <circle cx="200" cy="200" r="70" fill="url(#centerGlow)"/>
+
+            <!-- Matrix cells with numbers -->
             <g font-family="Cormorant Garamond, Georgia, serif" text-anchor="middle" dominant-baseline="central">
               {% for cell in matrix_svg_cells %}
-              {% set x = [90, 180, 270, 90, 180, 270, 90, 180, 270][loop.index0] %}
-              {% set y = [90, 90, 90, 180, 180, 180, 270, 270, 270][loop.index0] %}
-              {% set cx = x - 18 %}
-              {% set cy = y - 18 %}
+              {% set positions = [
+                (100, 100), (200, 100), (300, 100),
+                (100, 200), (200, 200), (300, 200),
+                (100, 300), (200, 300), (300, 300)
+              ] %}
+              {% set x, y = positions[loop.index0] %}
               {% if loop.index0 == 4 %}
-              <rect x="154" y="154" width="52" height="52" rx="4" fill="#143527" stroke="#E8C078" stroke-opacity="0.95" stroke-width="1.5"/>
-              <text x="180" y="180" fill="#F5D78A" font-size="34" font-weight="500">{{ cell }}</text>
+              <!-- Center cell: special styling -->
+              <rect x="170" y="170" width="60" height="60" rx="6" fill="#143527" stroke="#E8C078" stroke-opacity="0.95" stroke-width="2" filter="url(#glow)"/>
+              <text x="200" y="200" fill="#F5D78A" font-size="36" font-weight="600">{{ cell }}</text>
               {% else %}
-              <rect x="{{ cx }}" y="{{ cy }}" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
-              <text x="{{ x }}" y="{{ y }}" fill="#C9A55C" font-size="22" font-style="italic">{{ cell }}</text>
+              <!-- Regular cells -->
+              <rect x="{{ x - 22 }}" y="{{ y - 22 }}" width="44" height="44" rx="4" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.55" stroke-width="1.2"/>
+              <text x="{{ x }}" y="{{ y }}" fill="#C9A55C" font-size="24" font-style="italic">{{ cell }}</text>
               {% endif %}
               {% endfor %}
+            </g>
+
+            <!-- Corner accents -->
+            <g stroke="#C9A55C" stroke-opacity="0.4" stroke-width="1.5" fill="none">
+              <path d="M 80 80 L 90 80 M 80 80 L 80 90"/>
+              <path d="M 320 80 L 310 80 M 320 80 L 320 90"/>
+              <path d="M 80 320 L 90 320 M 80 320 L 80 310"/>
+              <path d="M 320 320 L 310 320 M 320 320 L 320 310"/>
             </g>
           </svg>
         </div>
