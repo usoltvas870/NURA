@@ -1,6 +1,8 @@
+import os
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -34,6 +36,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve report images as static files
+images_path = os.path.join(os.path.dirname(__file__), "..", "templates", "reports", "images")
+if os.path.exists(images_path):
+    app.mount("/static/report-images", StaticFiles(directory=images_path), name="report-images")
 
 app.include_router(web_router)
 app.include_router(reports_router)
