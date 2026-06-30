@@ -180,6 +180,27 @@ class UserRepository(SQLAlchemyRepository[User]):
         )
         return await self.add(user)
 
+    async def update_web_user(
+        self,
+        user_id: uuid.UUID,
+        name: str | None = None,
+        birth_date: str | None = None,
+        email: str | None = None,
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            if name is not None:
+                user.name = name
+            if birth_date is not None:
+                user.birth_date = birth_date
+            if email is not None:
+                user.email = email
+            await session.commit()
+            await session.refresh(user)
+            return user
+
     async def set_referred_by(
         self,
         user_id: uuid.UUID,

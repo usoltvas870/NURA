@@ -105,20 +105,29 @@ class AuthCheckResponse(BaseModel):
 
 @router.post("/mini-analysis", response_model=MiniAnalysisResponse)
 @limiter.limit("3/hour")
-async def mini_analysis(request: Request, body: MiniAnalysisRequest, response: Response):
+async def mini_analysis(
+    request: Request,
+    body: MiniAnalysisRequest,
+    response: Response,
+    web_user: User | None = Depends(get_optional_web_user),
+):
     if not body.pd_consent:
         raise HTTPException(status_code=400, detail="Необходимо согласие на обработку персональных данных")
 
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
 
-    session_id = uuid.uuid4().hex
-
-    user = await user_repo.create_web_user(
-        name=body.name,
-        birth_date=body.birth_date,
-        web_session_id=session_id,
-    )
+    if web_user is not None:
+        user = web_user
+        session_id = user.web_session_id
+        await user_repo.update_web_user(user.id, name=body.name, birth_date=body.birth_date)
+    else:
+        session_id = uuid.uuid4().hex
+        user = await user_repo.create_web_user(
+            name=body.name,
+            birth_date=body.birth_date,
+            web_session_id=session_id,
+        )
 
     await user_repo.set_pd_consent(user.id)
 
