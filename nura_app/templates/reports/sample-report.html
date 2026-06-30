@@ -33,6 +33,12 @@
     --gold-hover:         #5E4616;
     --gold-fill:          rgba(122,92,30,.08);
     --gold-line:          rgba(122,92,30,.25);
+    --terra:              #B8743F;
+    --terra-d:            #9C5F30;
+    --terra-fill:         rgba(184,116,63,.10);
+    --terra-line:         rgba(184,116,63,.25);
+    --sage:               #6B8068;
+    --sage-fill:          rgba(107,128,104,.10);
 
     --tarot-card:    #EBE6DC;
     --tarot-border:  rgba(106,103,152,.22);
@@ -51,12 +57,21 @@
   html{ scroll-behavior:smooth; }
   body{
     margin:0;
-    background:var(--canvas);
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(184,116,63,.04), transparent 70%),
+      radial-gradient(ellipse 60% 80% at 80% 100%, rgba(107,128,104,.04), transparent 60%),
+      var(--canvas);
     color:var(--ink);
     font-family:'Manrope',system-ui,sans-serif;
     line-height:1.7;
     font-size:16.5px;
     -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Ccircle cx='100' cy='100' r='80' fill='none' stroke='%23B8743F' stroke-opacity='0.03' stroke-width='0.5'/%3E%3Ccircle cx='100' cy='100' r='60' fill='none' stroke='%23B8743F' stroke-opacity='0.025' stroke-width='0.5'/%3E%3Ccircle cx='100' cy='100' r='40' fill='none' stroke='%23B8743F' stroke-opacity='0.02' stroke-width='0.5'/%3E%3Ccircle cx='100' cy='60' r='40' fill='none' stroke='%236B8068' stroke-opacity='0.02' stroke-width='0.5'/%3E%3Ccircle cx='100' cy='140' r='40' fill='none' stroke='%236B8068' stroke-opacity='0.02' stroke-width='0.5'/%3E%3Ccircle cx='60' cy='100' r='40' fill='none' stroke='%236B8068' stroke-opacity='0.02' stroke-width='0.5'/%3E%3Ccircle cx='140' cy='100' r='40' fill='none' stroke='%236B8068' stroke-opacity='0.02' stroke-width='0.5'/%3E%3C/svg%3E");
+    opacity:0.7;
   }
   ::selection{ background:rgba(122,92,30,.18); color:var(--ink); }
   a{ color:inherit; text-decoration:none; }
@@ -112,9 +127,9 @@
     margin-left:auto; font-size:12px; color:var(--ink-muted); text-align:right;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .topbar-section .n{ color:var(--gold); font-weight:600; }
+  .topbar-section .n{ color:var(--terra); font-weight:600; }
   .progress-track{ height:2px; background:var(--line); }
-  .progress-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--leaf),var(--gold)); transition:width .15s linear; }
+  .progress-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--sage),var(--terra)); transition:width .15s linear; }
 
   /* ============ DRAWER NAV ============ */
   .drawer-backdrop{
@@ -137,7 +152,7 @@
   .drawer-meta .dob{ font-size:12px; color:var(--ink-muted); }
   .drawer-meta .chip{
     margin-top:10px; display:inline-flex; align-items:center; gap:6px;
-    padding:5px 12px; border-radius:999px; background:var(--gold-fill); color:var(--gold);
+    padding:5px 12px; border-radius:999px; background:var(--terra-fill); color:var(--terra);
     font-size:11px; font-weight:600; letter-spacing:.08em;
   }
   .drawer-nav{ overflow-y:auto; flex:1; margin:0 -8px; padding:0 8px; }
@@ -147,8 +162,8 @@
   .drawer-nav a{ display:flex; align-items:baseline; gap:11px; padding:7px 10px; border-radius:9px; font-size:13px; color:var(--ink-soft); transition:background .15s ease,color .15s ease; }
   .drawer-nav a .num{ font-family:'Playfair Display',serif; font-size:12.5px; color:var(--ink-faint); flex:none; width:20px; }
   .drawer-nav a:hover{ background:var(--surface-tint); }
-  .drawer-nav a.active{ background:var(--gold-fill); color:var(--gold); }
-  .drawer-nav a.active .num{ color:var(--gold); }
+  .drawer-nav a.active{ background:var(--terra-fill); color:var(--terra); }
+  .drawer-nav a.active .num{ color:var(--terra); }
   .drawer-foot{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:11px; color:var(--ink-faint); line-height:1.5; }
 
   /* ============ CONTENT SHELL ============ */
@@ -176,12 +191,12 @@
   .prose strong{ color:var(--ink); font-weight:600; }
   .prose em{ color:var(--leaf); font-family:'Playfair Display',serif; font-size:1.04em; }
 
-  .pull{ margin:26px 0; padding:2px 0 2px 18px; border-left:3px solid var(--gold); font-family:'Playfair Display',serif; font-style:italic; font-size:18px; line-height:1.45; color:var(--ink); }
+  .pull{ margin:26px 0; padding:2px 0 2px 18px; border-left:3px solid var(--terra); font-family:'Playfair Display',serif; font-style:italic; font-size:18px; line-height:1.45; color:var(--ink); }
   @media (min-width:640px){ .pull{ font-size:20px; padding-left:22px; margin:32px 0; } }
 
   /* ============ WHY ACCORDION ============ */
   .why{ margin-top:26px; border-top:1px solid var(--line); padding-top:16px; }
-  .why-btn{ background:none; border:none; padding:0; display:inline-flex; align-items:center; gap:8px; color:var(--gold); font-size:12.5px; font-weight:600; }
+  .why-btn{ background:none; border:none; padding:0; display:inline-flex; align-items:center; gap:8px; color:var(--terra); font-size:12.5px; font-weight:600; }
   .why-btn .arrow{ display:inline-block; transition:transform .25s ease; font-size:10px; }
   .why.open .arrow{ transform:rotate(90deg); }
   .why-body{ max-height:0; overflow:hidden; transition:max-height .4s ease, margin .3s ease; }
@@ -405,7 +420,7 @@
   .tarot-txt .eyebrow{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--tarot-violet); margin-bottom:6px; display:block; }
   .tarot-txt h3{ font-size:19px; margin-bottom:8px; }
   .tarot-txt p{ font-size:13px; color:var(--ink-soft); line-height:1.6; margin:0 0 14px; }
-  .tarot-cta{ display:inline-flex; align-items:center; gap:8px; background:var(--tarot-violet); color:#fff; padding:11px 18px; border-radius:999px; font-size:13px; font-weight:600; }
+  .tarot-cta{ display:inline-flex; align-items:center; gap:8px; background:var(--terra); color:#fff; padding:11px 18px; border-radius:999px; font-size:13px; font-weight:600; }
   .tarot-cta .price{ opacity:.8; font-weight:400; }
 
   /* ============ REFLECTION PAGES ============ */
@@ -420,6 +435,91 @@
   .to-top svg{ width:16px; height:16px; }
 
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important; scroll-behavior:auto !important; } }
+
+  /* ============ SIDEBAR PROGRESS INDICATOR ============ */
+  .drawer-nav a{ position:relative; }
+  @media (min-width:1024px){
+    .drawer-nav a.active::after{
+      content:"";
+      position:absolute; right:8px; top:50%; transform:translateY(-50%);
+      width:3px; height:60%; border-radius:2px;
+      background:var(--terra);
+    }
+  }
+
+  /* ============ SECTION NAV (between sections) ============ */
+  .section-nav{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:32px; padding-top:16px; border-top:1px solid var(--line);
+    font-size:12px;
+  }
+  .section-nav a{
+    display:inline-flex; align-items:center; gap:6px;
+    color:var(--terra); font-weight:600; text-decoration:none;
+    transition:opacity .2s;
+  }
+  .section-nav a:hover{ opacity:.7; }
+  .section-nav .prev{ color:var(--ink-muted); }
+  .section-nav .next{ margin-left:auto; }
+
+  /* ============ SECTION DIVIDER ============ */
+  .section-divider{
+    display:flex; align-items:center; justify-content:center;
+    gap:16px; padding:20px 0; opacity:.35;
+  }
+  .section-divider .sd-line{
+    flex:1; max-width:120px; height:1px;
+    background:linear-gradient(90deg, transparent, var(--terra), transparent);
+  }
+  .section-divider .sd-star{
+    width:14px; height:14px; color:var(--terra);
+  }
+
+  /* ============ COPY LINK BUTTON ============ */
+  .ch-head{ position:relative; }
+  .copy-link-btn{
+    position:absolute; right:0; top:0;
+    width:32px; height:32px; border-radius:8px;
+    border:1px solid var(--line); background:var(--surface);
+    display:grid; place-items:center;
+    opacity:0; transition:opacity .2s;
+    color:var(--ink-muted); cursor:pointer;
+  }
+  .ch-head:hover .copy-link-btn{ opacity:1; }
+  .copy-link-btn.copied{ color:var(--sage); border-color:var(--sage); }
+  .copy-link-btn svg{ width:14px; height:14px; }
+  @media (max-width:639px){ .copy-link-btn{ display:none; } }
+
+  /* ============ MEDALLION VARIANTS ============ */
+  .medallion.variant-talent{ background:var(--sage-fill); color:var(--sage); border-color:rgba(107,128,104,.25); }
+  .medallion.variant-shadow{ background:var(--terra-fill); color:var(--terra); border-color:var(--terra-line); }
+  .medallion.variant-karma{ background:var(--gold-fill); color:var(--gold); border-color:var(--gold-line); }
+
+  /* ============ DROP CAP ============ */
+  .drop-cap::first-letter{
+    font-family:'Playfair Display',serif;
+    font-size:3.2em;
+    float:left;
+    line-height:0.8;
+    margin-right:8px;
+    margin-top:4px;
+    color:var(--terra);
+    font-weight:600;
+  }
+
+  /* ============ MOBILE IMPROVEMENTS ============ */
+  @media (max-width:639px){
+    .dash-grid{
+      display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
+      gap:10px; padding-bottom:8px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .dash-grid .dash-card{
+      min-width:260px; flex:none; scroll-snap-align:start;
+    }
+    .timeline{ padding-left:20px; }
+    .tl-item .tl-rail{ display:none; }
+  }
 
   /* ============ DESKTOP: SIDEBAR ALWAYS VISIBLE ============ */
   @media (min-width:1024px){
@@ -552,6 +652,9 @@
         </div>
       </div>
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="next" href="#s2">02 · За 30 секунд →</a>
+      </div>
     </div>
   </section>
 
@@ -562,6 +665,9 @@
         <span class="nbr">02 — За 30 секунд</span>
         <h2>Главное о тебе <em>на одном развороте</em></h2>
         <p class="ch-sub">Пять ключей к твоей матрице — читай, если торопишься.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="feature-card">
@@ -592,8 +698,18 @@
         </div>
       </div>
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s1">← 01 · Обложка</a>
+        <a class="next" href="#s3">03 · Архетип личности →</a>
+      </div>
     </div>
   </section>
+
+  <div class="section-divider">
+    <span class="sd-line"></span>
+    <svg class="sd-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/></svg>
+    <span class="sd-line"></span>
+  </div>
 
   <!-- ===== 03 · АРХЕТИП ЛИЧНОСТИ ===== -->
   <section class="chapter" id="s3">
@@ -605,10 +721,13 @@
           <h2 style="margin-bottom:0;">Колесо Фортуны <em>в центре</em> карты</h2>
         </div>
         <p class="ch-sub">Главный аркан матрицы. Объясняет, почему ты двигаешься так, как двигаешься — и почему это работает.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="prose">
-        <p>Твой главный архетип — <strong>X. Колесо Фортуны</strong>, который стоит в центре матрицы (позиция E). Это архетип цикличности, принятия перемен и доверия к течению жизни. Ты не из тех, кто держится за стабильность любой ценой — напротив, ты интуитивно чувствуешь, что всё имеет свой ритм: взлёты сменяются падениями, а затишье — бурей.</p>
+        <p class="drop-cap">Твой главный архетип — <strong>X. Колесо Фортуны</strong>, который стоит в центре матрицы (позиция E). Это архетип цикличности, принятия перемен и доверия к течению жизни. Ты не из тех, кто держится за стабильность любой ценой — напротив, ты интуитивно чувствуешь, что всё имеет свой ритм: взлёты сменяются падениями, а затишье — бурей.</p>
         <div class="pull">«Я не управляю всем, но я выбираю, как реагировать на то, что происходит»</div>
         <p><strong>Как это проявляется в решениях.</strong> Твоя стратегия — гибкость и адаптивность. Ты принимаешь решения не через жёсткое планирование, а через ощущение момента: «сейчас — время действовать, сейчас — время ждать». Это не хаос, а тонкое чутьё на правильный timing. В работе ты можешь долго наблюдать, а потом резко совершить рывок, когда чувствуешь, что «звёзды сошлись». В отношениях ты не давишь, но и не убегаешь — ты позволяешь событиям развиваться, доверяя процессу.</p>
         <p><strong>Защитный механизм.</strong> В кризисных ситуациях твой главный щит — отстранение. Когда случается неожиданное, ты внешне кажешься спокойной, даже равнодушной, но внутри переживаешь бурю. Ты говоришь себе: «это пройдёт» — и это правда работает. Но иногда ты рискуешь обесценить собственные чувства, спрятав их за фасадом философского принятия. Снаружи это выглядит как холодность или фатализм, хотя на деле ты учишься не цепляться за то, что уже уходит.</p>
@@ -659,6 +778,10 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s2">← 02 · За 30 секунд</a>
+        <a class="next" href="#s4">04 · Кармический хвост →</a>
+      </div>
     </div>
   </section>
 
@@ -669,6 +792,9 @@
         <span class="nbr">04 — Кармический хвост</span>
         <h2>Что ты <em>привезла с собой</em></h2>
         <p class="ch-sub">Не про прошлые жизни и не про вину предков — про устойчивый паттерн, который запустился задолго до твоего решения и теперь требует осознанной работы.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="timeline">
@@ -706,8 +832,18 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s3">← 03 · Архетип личности</a>
+        <a class="next" href="#s5">05 · Родовые программы →</a>
+      </div>
     </div>
   </section>
+
+  <div class="section-divider">
+    <span class="sd-line"></span>
+    <svg class="sd-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/></svg>
+    <span class="sd-line"></span>
+  </div>
 
   <!-- ===== 05 · РОДОВЫЕ ПРОГРАММЫ ===== -->
   <section class="chapter" id="s5">
@@ -716,6 +852,9 @@
         <span class="nbr">05 — Родовые программы</span>
         <h2>Что унаследовано <em>по линиям</em></h2>
         <p class="ch-sub">Слабые места и сильные опоры, переданные тебе с двух сторон. Унаследовать — не значит обязательно повторять.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="lineage-row">
@@ -743,6 +882,10 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s4">← 04 · Кармический хвост</a>
+        <a class="next" href="#s6">06 · Предназначение →</a>
+      </div>
     </div>
   </section>
 
@@ -757,10 +900,13 @@
           <svg class="emblem-star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/></svg>
           <span class="emblem-line"></span>
         </div>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="prose">
-        <p>Твоё предназначение — не одна миссия, а вектор, объединяющий таланты, кармический дар и денежный канал. Линия неба: <strong>Колесница (7) → Колесо Фортуны (10) → Повешенный (12)</strong>. Формула: «Управляй потоком, принимая парадоксы». Ты должна стать тем, кто ведёт людей через перемены, не цепляясь за результат.</p>
+        <p class="drop-cap">Твоё предназначение — не одна миссия, а вектор, объединяющий таланты, кармический дар и денежный канал. Линия неба: <strong>Колесница (7) → Колесо Фортуны (10) → Повешенный (12)</strong>. Формула: «Управляй потоком, принимая парадоксы». Ты должна стать тем, кто ведёт людей через перемены, не цепляясь за результат.</p>
         <div class="pull">Твоя сила — вести других через хаос, сохраняя ясность, когда всё рушится</div>
         <p><strong>Как лидер.</strong> Колесница даёт волю и амбиции, Колесо Фортуны — гибкость, Повешенный — умение видеть ситуацию с разных сторон. Ты не командир, который диктует каждый шаг. Ты — капитан в шторм: задаёшь направление, но доверяешь процессу и команде. Пример роли: руководитель реструктуризации бизнеса — ты видишь, что нужно менять, но не ломаешь всё одним ударом.</p>
         <p><strong>В обществе.</strong> Твоя роль — быть проводником в кризисных ситуациях. Ты нужна там, где хаос и неопределённость: антикризисное управление, стартапы на этапе «бури», организационные трансформации, психология кризиса. Люди идут за тобой, потому что ты сохраняешь спокойствие, когда всё рушится.</p>
@@ -799,8 +945,18 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s5">← 05 · Родовые программы</a>
+        <a class="next" href="#s7">07 · Таланты и сила →</a>
+      </div>
     </div>
   </section>
+
+  <div class="section-divider">
+    <span class="sd-line"></span>
+    <svg class="sd-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/></svg>
+    <span class="sd-line"></span>
+  </div>
 
   <!-- ===== 07 · ТАЛАНТЫ ===== -->
   <section class="chapter" id="s7">
@@ -809,6 +965,9 @@
         <span class="nbr">07 — Таланты и сильные стороны</span>
         <h2>Что ты <em>правда умеешь</em></h2>
         <p class="ch-sub">Не «лидерские качества» и не «коммуникабельность». Конкретные навыки, на которых стоит строить дело и репутацию.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="prose" style="margin-bottom:22px;">
@@ -818,19 +977,19 @@
 
       <div class="row-card-list">
         <div class="row-card">
-          <div class="medallion sm"><span class="roman">XIII</span></div>
+          <div class="medallion sm variant-talent"><span class="roman">XIII</span></div>
           <div class="rtxt"><span class="sub">Первая сила · зона талантов</span><h4>Смерть</h4>
             <p>Это не про потери, а про способность к трансформации. Ты умеешь завершать то, что мертво, и начинать новое без сожаления. Ты уходишь с работы, которая не развивает, без драмы. Заканчиваешь отношения-привычку с пониманием, что это нужно для роста. Ты можешь работать кризис-менеджером, реструктуризатором бизнеса, коучем по завершению проектов — или запускать стартапы, зная, что через пару лет передашь их другим.</p>
           </div>
         </div>
         <div class="row-card">
-          <div class="medallion sm"><span class="roman">V</span></div>
+          <div class="medallion sm variant-talent"><span class="roman">V</span></div>
           <div class="rtxt"><span class="sub">Вторая сила · зона комфорта</span><h4>Иерофант</h4>
             <p>Твоя опора — в структуре, знаниях и традициях. Ты не действуешь наобум: тебе нужна система, проверенный метод. Когда начинаешь новый проект, сначала изучаешь готовую методологию — не изобретаешь велосипед. В работе это способность создавать регламенты и обучать других. Монетизация: консалтинг, обучение, написание инструкций, создание образовательных программ.</p>
           </div>
         </div>
         <div class="row-card">
-          <div class="medallion sm"><span class="roman">XVII</span></div>
+          <div class="medallion sm variant-talent"><span class="roman">XVII</span></div>
           <div class="rtxt"><span class="sub">Третья сила · портретная зона</span><h4>Звезда</h4>
             <p>Способность видеть будущее и вдохновлять своей верой. Ты не просто мечтатель — ты умеешь превращать видение в план, а план — в движение. Люди тянутся к тебе, потому что ты даёшь им ощущение, что всё возможно. Монетизация: стратегическое планирование, vision-коучинг, продюсирование творческих проектов.</p>
           </div>
@@ -847,6 +1006,10 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s6">← 06 · Предназначение</a>
+        <a class="next" href="#s8">08 · Теневая сторона →</a>
+      </div>
     </div>
   </section>
 
@@ -857,6 +1020,9 @@
         <span class="nbr">08 — Теневая сторона</span>
         <h2>Цена <em>твоей силы</em></h2>
         <p class="ch-sub">Это не недостатки — это оборотная сторона твоих сильных качеств. Их нельзя «убрать», но можно научиться видеть и не давать им рулить.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="prose" style="margin-bottom:18px;">
@@ -892,8 +1058,18 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s7">← 07 · Таланты и сила</a>
+        <a class="next" href="#health">✦ · Карта здоровья →</a>
+      </div>
     </div>
   </section>
+
+  <div class="section-divider">
+    <span class="sd-line"></span>
+    <svg class="sd-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/></svg>
+    <span class="sd-line"></span>
+  </div>
 
   <!-- ===== ✦ КАРТА ЗДОРОВЬЯ ===== -->
   <section class="chapter" id="health">
@@ -902,6 +1078,9 @@
         <span class="nbr">✦ — Карта здоровья</span>
         <h2>7 чакр <em>энергетические центры</em></h2>
         <p class="ch-sub">Энергетические центры организма, рассчитанные через арканы неба, земли и ключа в каждой зоне.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="chakra-card">
@@ -999,8 +1178,18 @@
           <p>Выбери одну чакру с наименьшим показателем и удели ей 5 минут в день в течение недели. Свадхистана: тёплая ванна с солью, танцуй под музыку. Вишудха: пой в душе, читай стихи вслух. Анахата: обними дерево или человека на 20 секунд дольше обычного. Записывай ощущения до и после — через неделю сравни.</p>
         </div>
       </div>
+      <div class="section-nav">
+        <a class="prev" href="#health">← ✦ · Карта здоровья</a>
+        <a class="next" href="#s9">09 · Отношения →</a>
+      </div>
     </div>
   </section>
+
+  <div class="section-divider">
+    <span class="sd-line"></span>
+    <svg class="sd-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/></svg>
+    <span class="sd-line"></span>
+  </div>
 
   <!-- ===== 09 · ОТНОШЕНИЯ ===== -->
   <section class="chapter" id="s9">
@@ -1009,6 +1198,9 @@
         <span class="nbr">09 — Отношения</span>
         <h2>Динамика <em>твоих отношений</em></h2>
         <p class="ch-sub">Тип партнёра, сценарий входа и выхода, и — самое полезное — с кем у вас будет ресурсный контакт, а с кем сложный.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="role-card">
@@ -1047,6 +1239,10 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#health">← ✦ · Карта здоровья</a>
+        <a class="next" href="#s10">10 · Деньги и карьера →</a>
+      </div>
     </div>
   </section>
 
@@ -1057,6 +1253,9 @@
         <span class="nbr">10 — Деньги и карьера</span>
         <h2>Где тебе <em>естественно</em> зарабатывать</h2>
         <p class="ch-sub">Конкретные роли, в которых твой архетип реализуется без насилия над собой, и денежные блоки, которые важно проработать.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="money-line"><span class="lbl">Линия денег</span><div class="nums">3 — 10 — 5</div></div>
@@ -1091,8 +1290,18 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s9">← 09 · Отношения</a>
+        <a class="next" href="#s11">11 · Сценарии →</a>
+      </div>
     </div>
   </section>
+
+  <div class="section-divider">
+    <span class="sd-line"></span>
+    <svg class="sd-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/></svg>
+    <span class="sd-line"></span>
+  </div>
 
   <!-- ===== 11 · ПОВТОРЯЮЩИЕСЯ СЦЕНАРИИ ===== -->
   <section class="chapter" id="s11">
@@ -1101,6 +1310,9 @@
         <span class="nbr">11 — Повторяющиеся сценарии</span>
         <h2>Что ты <em>проигрываешь</em> снова и снова</h2>
         <p class="ch-sub">Устойчивые сюжеты, которые повторяются в жизни. Если узнаёшь себя — это не приговор, это точка для работы.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="prose" style="margin-bottom:18px;">
@@ -1139,6 +1351,10 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s10">← 10 · Деньги и карьера</a>
+        <a class="next" href="#s12">12 · Внутренние конфликты →</a>
+      </div>
     </div>
   </section>
 
@@ -1149,6 +1365,9 @@
         <span class="nbr">12 — Внутренние конфликты</span>
         <h2>Двойники <em>в диалоге</em></h2>
         <p class="ch-sub">Пары арканов в твоей карте, которые тянут в противоположные стороны. Цель — не победа одного из них, а налаженный диалог.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="prose" style="margin-bottom:18px;">
@@ -1181,6 +1400,10 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s11">← 11 · Сценарии</a>
+        <a class="next" href="#psychological-blocks">✦ · Внутренние блоки →</a>
+      </div>
     </div>
   </section>
 
@@ -1191,6 +1414,9 @@
         <span class="nbr">✦ — Почему это происходит</span>
         <h2>Психологические <em>паттерны</em></h2>
         <p class="ch-sub">Паттерны, которые управляют твоими решениями.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="psych-card">
@@ -1208,8 +1434,18 @@
           <p>Начни с малого: выбери одну ситуацию на неделе, где ты действуешь «как надо», а не «как хочу». Запиши её и придумай альтернативный сценарий. Например, если начальник дал задание, которое кажется неэффективным, предложи свой вариант. Постепенно ты вернёшь себе право выбора.</p>
         </div>
       </div>
+      <div class="section-nav">
+        <a class="prev" href="#s11">← 11 · Сценарии</a>
+        <a class="next" href="#s13">13 · Циклы и прогноз →</a>
+      </div>
     </div>
   </section>
+
+  <div class="section-divider">
+    <span class="sd-line"></span>
+    <svg class="sd-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/></svg>
+    <span class="sd-line"></span>
+  </div>
 
   <!-- ===== 13 · ЦИКЛЫ И ПРОГНОЗ ===== -->
   <section class="chapter" id="s13">
@@ -1218,6 +1454,9 @@
         <span class="nbr">13 — Жизненные циклы и прогноз</span>
         <h2>Где ты <em>сейчас</em> и куда идёт линия</h2>
         <p class="ch-sub">Ключевые семилетние развороты в твоей карте и прогноз на ближайшие годы.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="prose" style="margin-bottom:22px;">
@@ -1252,8 +1491,18 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s12">← 12 · Внутренние конфликты</a>
+        <a class="next" href="#s14">14 · Семь дней →</a>
+      </div>
     </div>
   </section>
+
+  <div class="section-divider">
+    <span class="sd-line"></span>
+    <svg class="sd-star" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5Z"/></svg>
+    <span class="sd-line"></span>
+  </div>
 
   <!-- ===== 14 · СЕМЬ ДНЕЙ ===== -->
   <section class="chapter" id="s14">
@@ -1262,6 +1511,9 @@
         <span class="nbr">14 — Рекомендации на 7 дней</span>
         <h2>Начни <em>с этой недели</em></h2>
         <p class="ch-sub">Семь конкретных коротких заданий. Каждое — на 10–20 минут. Это не «работа над собой» в патетическом смысле, это эксперимент. Отметь сделанное.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="day-list" id="week">
@@ -1275,6 +1527,10 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s13">← 13 · Циклы и прогноз</a>
+        <a class="next" href="#s15">15 · Карта дня →</a>
+      </div>
     </div>
   </section>
 
@@ -1285,6 +1541,9 @@
         <span class="nbr">15 — Карта дня</span>
         <h2>Продолжение <em>каждое утро</em></h2>
         <p class="ch-sub">Матрица — это карта местности. Карта дня — компас, который помогает идти по ней на коротком отрезке.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
 
       <div class="tarot-card">
@@ -1298,6 +1557,10 @@
       </div>
 
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+      <div class="section-nav">
+        <a class="prev" href="#s14">← 14 · Семь дней</a>
+        <a class="next" href="#r1">· Мои инсайты →</a>
+      </div>
     </div>
   </section>
 
@@ -1308,6 +1571,9 @@
         <span class="nbr">• — Страница рефлексии</span>
         <h2>Мои <em>инсайты</em></h2>
         <p class="ch-sub">Что нового ты увидела о себе, читая этот разбор. Не нужно «правильных» формулировок — пиши своими словами, как думается.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
       <div class="reflect-card"><div class="reflect-lines"></div></div>
     </div>
@@ -1320,12 +1586,19 @@
         <span class="nbr">• — Страница рефлексии</span>
         <h2>Что я попробую <em>на этой неделе</em></h2>
         <p class="ch-sub">Один-два конкретных шага. Не «начну жить иначе», а «во вторник напишу N. сообщение». Чем мельче и конкретнее, тем выше шанс, что произойдёт.</p>
+        <button class="copy-link-btn" aria-label="Копировать ссылку на раздел">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
       </div>
       <div class="reflect-card"><div class="reflect-lines"></div></div>
 
       <div class="footer-final">
         <span>NURA AI · Матрица Судьбы · отчёт для Анна</span>
         <a href="https://t.me/Nura_ai_bot" target="_blank" rel="noopener">@Nura_ai_bot</a>
+      </div>
+
+      <div class="section-nav">
+        <a class="prev" href="#r1">← · Мои инсайты</a>
       </div>
     </div>
   </section>
@@ -1370,7 +1643,7 @@
     const max = document.documentElement.scrollHeight - window.innerHeight;
     const pct = Math.max(0, Math.min(100, (window.scrollY / max) * 100));
     progressFill.style.width = pct + '%';
-    toTop.classList.toggle('visible', window.scrollY > 500);
+    toTop.classList.toggle('visible', window.scrollY > 300);
   }
   window.addEventListener('scroll', onScroll, { passive:true });
   onScroll();
@@ -1380,8 +1653,51 @@
     btn.addEventListener('click', () => { document.getElementById(btn.dataset.toggle).classList.toggle('open'); });
   });
 
+  const weekKey = 'nura_week_done';
+  const weekState = JSON.parse(localStorage.getItem(weekKey) || '{}');
   document.querySelectorAll('#week .day-card').forEach(d => {
-    d.addEventListener('click', () => d.classList.toggle('done'));
+    const day = d.dataset.day;
+    if (weekState[day]) d.classList.add('done');
+    d.addEventListener('click', () => {
+      d.classList.toggle('done');
+      weekState[day] = d.classList.contains('done');
+      localStorage.setItem(weekKey, JSON.stringify(weekState));
+    });
+  });
+
+  document.querySelectorAll('.copy-link-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('section.chapter');
+      const url = location.origin + location.pathname + '#' + section.id;
+      navigator.clipboard.writeText(url).then(() => {
+        btn.classList.add('copied');
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
+        }, 1500);
+      });
+    });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    const ids = ['s1','s2','s3','s4','s5','s6','s7','s8','health','s9','s10','s11','s12','psychological-blocks','s13','s14','s15','r1','r2'];
+    const probe = window.scrollY + window.innerHeight * 0.3;
+    let cur = 0;
+    for (let i = 0; i < ids.length; i++){
+      const el = document.getElementById(ids[i]);
+      if (el && el.offsetTop <= probe) cur = i;
+    }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight'){
+      e.preventDefault();
+      const next = Math.min(cur + 1, ids.length - 1);
+      document.getElementById(ids[next]).scrollIntoView({behavior:'smooth'});
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft'){
+      e.preventDefault();
+      const prev = Math.max(cur - 1, 0);
+      document.getElementById(ids[prev]).scrollIntoView({behavior:'smooth'});
+    }
   });
 })();
 </script>
