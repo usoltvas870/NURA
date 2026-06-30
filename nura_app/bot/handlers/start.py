@@ -151,12 +151,28 @@ async def _handle_tg_auth_token(message: Message, token: str) -> None:
         if isinstance(value, bytes):
             value = value.decode()
 
-        if value != "pending":
-            await message.answer("Токен уже использован.")
-            return
-
         session_factory = get_async_sessionmaker()
         user_repo = UserRepository(session_factory)
+
+        if value != "pending":
+            web_user = await user_repo.get_by_web_session_id(value)
+            if web_user is None:
+                await message.answer("Пользователь не найден. Попробуй заново.")
+                return
+
+            result = await user_repo.update_telegram_id(web_user.id, message.from_user.id)
+            if result is None:
+                await message.answer(
+                    "Этот Telegram-аккаунт уже привязан к другому профилю NURA."
+                )
+                return
+
+            await user_repo.renew_session_expiry(web_user.id)
+
+            await redis.setex(key, 60, value)
+            await message.answer(tg_auth_success_text(), reply_markup=open_pwa_keyboard())
+            return
+
         user = await user_repo.get_by_telegram_id(message.from_user.id)
         if user is None:
             user = await user_repo.create(
