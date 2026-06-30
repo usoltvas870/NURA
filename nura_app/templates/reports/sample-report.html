@@ -523,6 +523,7 @@
 
   /* ============ DESKTOP: SIDEBAR ALWAYS VISIBLE ============ */
   @media (min-width:1024px){
+    :root{ --reading-w: 100%; }
     .drawer-backdrop{ display:none !important; }
     .drawer{
       transform:translateX(0) !important;
@@ -537,6 +538,16 @@
     .drawer-meta{ margin-top:40px; }
     main{ margin-left:280px; }
     .topbar-inner{ max-width:none; padding-left:20px; }
+    section.chapter{
+      max-width:none;
+      margin:0;
+      padding:84px 60px 64px;
+    }
+    section.chapter:first-of-type{ padding-top:42px; }
+    .wrap{ max-width:960px; margin:0 auto; padding:0; }
+    .dash-grid{ grid-template-columns:repeat(4,1fr); }
+    .section-divider{ max-width:960px; margin:0 auto; }
+    .section-nav{ max-width:960px; margin-left:auto; margin-right:auto; }
   }
 </style>
 </head>
