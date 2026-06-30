@@ -94,10 +94,10 @@
     border:1px solid var(--line-strong);
     border-radius:10px;
     background:var(--surface);
-    display:none; place-items:center;
+    display:grid; place-items:center;
     color:var(--ink-soft);
   }
-  @media (min-width:1024px){ .menu-btn{ display:grid; } }
+  @media (min-width:1024px){ .menu-btn{ display:none; } }
   .menu-btn svg{ width:17px; height:17px; }
   .topbar-brand{ display:flex; align-items:center; gap:8px; flex:none; }
   .topbar-brand .mark{
@@ -420,6 +420,24 @@
   .to-top svg{ width:16px; height:16px; }
 
   @media (prefers-reduced-motion:reduce){ *{ transition:none !important; scroll-behavior:auto !important; } }
+
+  /* ============ DESKTOP: SIDEBAR ALWAYS VISIBLE ============ */
+  @media (min-width:1024px){
+    .drawer-backdrop{ display:none !important; }
+    .drawer{
+      transform:translateX(0) !important;
+      position:fixed;
+      top:0; left:0; bottom:0;
+      width:280px;
+      z-index:40;
+      border-right:1px solid var(--line);
+      box-shadow:none;
+    }
+    .drawer-top{ display:none; }
+    .drawer-meta{ margin-top:40px; }
+    main{ margin-left:280px; }
+    .topbar-inner{ max-width:none; padding-left:20px; }
+  }
 </style>
 </head>
 <body>
