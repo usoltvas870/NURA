@@ -379,7 +379,7 @@
   /* 3x3 matrix viz */
   .matrix-viz {
     width: 100%;
-    max-width: 400px;
+    max-width: 360px;
     aspect-ratio: 1;
     margin-left: auto;
     position: relative;
@@ -390,23 +390,11 @@
      SECTION 2 — DASHBOARD
      =========================================================== */
   .dashboard {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
     gap: 12px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 8px;
-  }
-  .dashboard::-webkit-scrollbar {
-    height: 4px;
-  }
-  .dashboard::-webkit-scrollbar-thumb {
-    background: var(--m-accent-soft);
-    border-radius: 2px;
   }
   .dash-card {
-    flex: 0 0 200px;
-    scroll-snap-align: start;
     background: linear-gradient(160deg, rgba(20, 53, 39, 0.6), rgba(14, 36, 25, 0.3));
     border: 1px solid var(--m-line);
     border-radius: var(--radius-md);
@@ -1307,13 +1295,12 @@
     }
     .mobile-nav .mn-current {
       flex: 1;
-      font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
-      color: var(--ink);
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--m-accent);
       text-align: right;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      font-weight: 500;
     }
     .mobile-nav .mn-toggle {
       width: 36px; height: 36px;
@@ -1342,13 +1329,11 @@
       padding: 10px 12px;
       border-radius: 8px;
       font-size: 14px;
-      color: var(--ink-soft);
-      font-weight: 400;
+      color: var(--ink-mute);
     }
     .mobile-nav-panel a .num {
       font-family: 'Cormorant Garamond', serif;
-      color: var(--ink-mute);
-      font-weight: 500;
+      color: var(--ink-faint);
     }
     .mobile-nav-panel a.active {
       color: var(--m-accent); background: var(--m-accent-soft);
@@ -1359,8 +1344,7 @@
 
     .cv-grid { grid-template-columns: 1fr; gap: 28px; }
     .matrix-viz { margin: 0 auto; }
-    .dashboard { flex-wrap: wrap; }
-    .dash-card { flex: 1 1 calc(50% - 6px); min-width: 160px; }
+    .dashboard { grid-template-columns: repeat(2, 1fr); }
     .rod { grid-template-columns: 1fr; gap: 16px; }
     .compat-grid { grid-template-columns: 1fr; }
     .forecast { grid-template-columns: 1fr; }
@@ -1383,8 +1367,7 @@
     .cv-title { font-size: 44px; }
     .cv-name { font-size: 28px; margin-bottom: 36px; }
     .cv-info .row { grid-template-columns: 100px 1fr; gap: 12px; }
-    .dashboard { flex-direction: column; overflow-x: visible; }
-    .dash-card { flex: 1 1 auto; min-height: 140px; }
+    .dashboard { grid-template-columns: 1fr; }
     /* why-code is flex column, mobile-friendly by default */
     .ch-head h2 { font-size: 32px; }
     .destiny-chapter .ch-head h2 { font-size: 40px; }
@@ -1441,7 +1424,6 @@
       padding: 28px 0 20px;
       page-break-inside: avoid;
       scroll-margin-top: 0;
-      background-image: none !important;
     }
     section.chapter:first-of-type { padding-top: 0; }
     section.chapter + section.chapter { page-break-before: always; }
@@ -1604,7 +1586,7 @@
     .cv-info .v.accent { color: #8B7332; }
     .cv-info .v.mono { font-family: 'Courier New', monospace; font-size: 13px; color: #555; }
 
-    .matrix-viz { max-width: 280px; }
+    .matrix-viz { max-width: 240px; }
     .matrix-viz svg g[stroke*="url"] line {
       stroke: #8B7332;
       stroke-opacity: 0.35;
@@ -1618,7 +1600,6 @@
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 8px;
-      overflow-x: visible;
     }
     .dash-card {
       background: #fafafa;
@@ -2379,7 +2360,7 @@
     <!-- ===========================================
          01 · COVER
          =========================================== -->
-    <section class="chapter cover" id="s1" data-screen-label="01 Обложка" style="background-image: url('/static/report-images/cover-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter cover" id="s1" data-screen-label="01 Обложка">
       <div class="cv-eye">
         <span class="ln"></span>
         <span>Матрица Судьбы · Полный разбор</span>
@@ -2418,91 +2399,42 @@
         </div>
 
         <div class="matrix-viz" aria-hidden="true">
-          <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.35"/>
-                <stop offset="50%" stop-color="#C9A55C" stop-opacity="0.12"/>
+              <radialGradient id="cellGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.22"/>
                 <stop offset="100%" stop-color="#C9A55C" stop-opacity="0"/>
               </radialGradient>
-              <linearGradient id="sacred-line" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.55"/>
-                <stop offset="100%" stop-color="#6BA37A" stop-opacity="0.45"/>
+              <linearGradient id="line-g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#6BA37A" stop-opacity="0.25"/>
               </linearGradient>
-              <linearGradient id="sacred-line-soft" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#C9A55C" stop-opacity="0.25"/>
-                <stop offset="100%" stop-color="#6BA37A" stop-opacity="0.2"/>
-              </linearGradient>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
             </defs>
-
-            <!-- Sacred geometry background: Flower of Life pattern -->
-            <g opacity="0.15" stroke="url(#sacred-line-soft)" stroke-width="0.5" fill="none">
-              <circle cx="200" cy="200" r="40"/>
-              <circle cx="200" cy="160" r="40"/>
-              <circle cx="200" cy="240" r="40"/>
-              <circle cx="165" cy="180" r="40"/>
-              <circle cx="235" cy="180" r="40"/>
-              <circle cx="165" cy="220" r="40"/>
-              <circle cx="235" cy="220" r="40"/>
+            <g stroke="url(#line-g)" stroke-width="1">
+              <line x1="90" y1="90"  x2="270" y2="90"/>
+              <line x1="90" y1="180" x2="270" y2="180"/>
+              <line x1="90" y1="270" x2="270" y2="270"/>
+              <line x1="90"  y1="90" x2="90"  y2="270"/>
+              <line x1="180" y1="90" x2="180" y2="270"/>
+              <line x1="270" y1="90" x2="270" y2="270"/>
+              <line x1="90"  y1="90"  x2="270" y2="270"/>
+              <line x1="270" y1="90"  x2="90"  y2="270"/>
             </g>
-
-            <!-- Outer sacred geometry: hexagon -->
-            <g opacity="0.2" stroke="url(#sacred-line-soft)" stroke-width="0.75" fill="none">
-              <polygon points="200,120 260,155 260,245 200,280 140,245 140,155"/>
-            </g>
-
-            <!-- Main matrix grid lines -->
-            <g stroke="url(#sacred-line)" stroke-width="1.2" filter="url(#glow)">
-              <!-- Horizontal lines -->
-              <line x1="100" y1="100" x2="300" y2="100"/>
-              <line x1="100" y1="200" x2="300" y2="200"/>
-              <line x1="100" y1="300" x2="300" y2="300"/>
-              <!-- Vertical lines -->
-              <line x1="100" y1="100" x2="100" y2="300"/>
-              <line x1="200" y1="100" x2="200" y2="300"/>
-              <line x1="300" y1="100" x2="300" y2="300"/>
-              <!-- Diagonal lines -->
-              <line x1="100" y1="100" x2="300" y2="300"/>
-              <line x1="300" y1="100" x2="100" y2="300"/>
-            </g>
-
-            <!-- Center glow -->
-            <circle cx="200" cy="200" r="70" fill="url(#centerGlow)"/>
-
-            <!-- Matrix cells with numbers -->
+            <circle cx="180" cy="180" r="60" fill="url(#cellGlow)"/>
             <g font-family="Cormorant Garamond, Georgia, serif" text-anchor="middle" dominant-baseline="central">
               {% for cell in matrix_svg_cells %}
-              {% set positions = [
-                (100, 100), (200, 100), (300, 100),
-                (100, 200), (200, 200), (300, 200),
-                (100, 300), (200, 300), (300, 300)
-              ] %}
-              {% set x, y = positions[loop.index0] %}
+              {% set x = [90, 180, 270, 90, 180, 270, 90, 180, 270][loop.index0] %}
+              {% set y = [90, 90, 90, 180, 180, 180, 270, 270, 270][loop.index0] %}
+              {% set cx = x - 18 %}
+              {% set cy = y - 18 %}
               {% if loop.index0 == 4 %}
-              <!-- Center cell: special styling -->
-              <rect x="170" y="170" width="60" height="60" rx="6" fill="#143527" stroke="#E8C078" stroke-opacity="0.95" stroke-width="2" filter="url(#glow)"/>
-              <text x="200" y="200" fill="#F5D78A" font-size="36" font-weight="600">{{ cell }}</text>
+              <rect x="154" y="154" width="52" height="52" rx="4" fill="#143527" stroke="#E8C078" stroke-opacity="0.95" stroke-width="1.5"/>
+              <text x="180" y="180" fill="#F5D78A" font-size="34" font-weight="500">{{ cell }}</text>
               {% else %}
-              <!-- Regular cells -->
-              <rect x="{{ x - 22 }}" y="{{ y - 22 }}" width="44" height="44" rx="4" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.55" stroke-width="1.2"/>
-              <text x="{{ x }}" y="{{ y }}" fill="#C9A55C" font-size="24" font-style="italic">{{ cell }}</text>
+              <rect x="{{ cx }}" y="{{ cy }}" width="36" height="36" rx="3" fill="#0E2419" stroke="#C9A55C" stroke-opacity="0.45"/>
+              <text x="{{ x }}" y="{{ y }}" fill="#C9A55C" font-size="22" font-style="italic">{{ cell }}</text>
               {% endif %}
               {% endfor %}
-            </g>
-
-            <!-- Corner accents -->
-            <g stroke="#C9A55C" stroke-opacity="0.4" stroke-width="1.5" fill="none">
-              <path d="M 80 80 L 90 80 M 80 80 L 80 90"/>
-              <path d="M 320 80 L 310 80 M 320 80 L 320 90"/>
-              <path d="M 80 320 L 90 320 M 80 320 L 80 310"/>
-              <path d="M 320 320 L 310 320 M 320 320 L 320 310"/>
             </g>
           </svg>
         </div>
@@ -2573,7 +2505,7 @@
     <!-- ===========================================
          03 · ARCHETYPE
          =========================================== -->
-    <section class="chapter" id="s3" data-screen-label="03 Архетип личности" style="background-image: url('/static/report-images/archetype-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter" id="s3" data-screen-label="03 Архетип личности">
       <div class="ch-head">
         <span class="nbr">03 — Архетип личности</span>
         <h2>{{ archetype_name }} <em>в центре</em> карты</h2>
@@ -2609,7 +2541,7 @@
     <!-- ===========================================
          04 · KARMIC TAIL
          =========================================== -->
-    <section class="chapter" id="s4" data-screen-label="04 Кармический хвост" style="background-image: url('/static/report-images/karmic-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter" id="s4" data-screen-label="04 Кармический хвост">
       <div class="ch-head">
         <span class="nbr">04 — Кармический хвост</span>
         <h2>Что ты <em>привезла с собой</em></h2>
@@ -2679,7 +2611,7 @@
     <!-- ===========================================
          05 · RODOVYE
          =========================================== -->
-    <section class="chapter" id="s5" data-screen-label="05 Родовые программы" style="background-image: url('/static/report-images/ancestral-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter" id="s5" data-screen-label="05 Родовые программы">
       <div class="ch-head">
         <span class="nbr">05 — Родовые программы</span>
         <h2>Что унаследовано <em>по линиям</em></h2>
@@ -2735,7 +2667,7 @@
     <!-- ===========================================
          06 · DESTINY
          =========================================== -->
-    <section class="chapter destiny-chapter" id="s6" data-screen-label="06 Предназначение" style="background-image: url('/static/report-images/purpose-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter destiny-chapter" id="s6" data-screen-label="06 Предназначение">
       <div class="ch-head">
         <span class="nbr">06 — Предназначение</span>
         <h2>Твой путь <em>по матрице</em></h2>
@@ -2789,7 +2721,7 @@
     <!-- ===========================================
          07 · TALENTS
          =========================================== -->
-    <section class="chapter" id="s7" data-screen-label="07 Таланты и сила" style="background-image: url('/static/report-images/strengths-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter" id="s7" data-screen-label="07 Таланты и сила">
       <div class="ch-head">
         <span class="nbr">07 — Таланты и сильные стороны</span>
         <h2>Что ты <em>правда умеешь</em></h2>
@@ -2837,7 +2769,7 @@
     <!-- ===========================================
          08 · SHADOW
          =========================================== -->
-    <section class="chapter" id="s8" data-screen-label="08 Теневая сторона" style="background-image: url('/static/report-images/shadow-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter" id="s8" data-screen-label="08 Теневая сторона">
       <div class="ch-head">
         <span class="nbr">08 — Теневая сторона</span>
         <h2>Цена <em>твоей силы</em></h2>
@@ -2889,7 +2821,7 @@
     <!-- ===========================================
          09 · RELATIONSHIPS
          =========================================== -->
-    <section class="chapter" id="s9" data-screen-label="09 Отношения" style="background-image: url('/static/report-images/relationships-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter" id="s9" data-screen-label="09 Отношения">
       <div class="ch-head">
         <span class="nbr">09 — Отношения</span>
         <h2>Динамика <em>твоих отношений</em></h2>
@@ -2937,7 +2869,7 @@
     <!-- ===========================================
          10 · MONEY
          =========================================== -->
-    <section class="chapter" id="s10" data-screen-label="10 Деньги и карьера" style="background-image: url('/static/report-images/money-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter" id="s10" data-screen-label="10 Деньги и карьера">
       <div class="ch-head">
         <span class="nbr">10 — Деньги и карьера</span>
         <h2>Где тебе <em>естественно</em> зарабатывать</h2>
@@ -3092,7 +3024,7 @@
     <!-- ===========================================
          13 · CYCLES
          =========================================== -->
-    <section class="chapter" id="s13" data-screen-label="13 Циклы и прогноз" style="background-image: url('/static/report-images/cycles-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter" id="s13" data-screen-label="13 Циклы и прогноз">
       <div class="ch-head">
         <span class="nbr">13 — Жизненные циклы и прогноз</span>
         <h2>Где ты <em>сейчас</em> и куда идёт линия</h2>
@@ -3189,7 +3121,7 @@
     <!-- ===========================================
          15 · TAROT TEASER
          =========================================== -->
-    <section class="chapter" id="s15" data-screen-label="15 Карта дня" style="background-image: url('/static/report-images/daily-card-bg.png'); background-size: cover; background-position: center; background-repeat: no-repeat; background-blend-mode: multiply;">
+    <section class="chapter" id="s15" data-screen-label="15 Карта дня">
       <div class="ch-head">
         <span class="nbr">15 — Карта дня</span>
         <h2>Продолжение <em>каждое утро</em></h2>
