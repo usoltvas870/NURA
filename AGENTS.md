@@ -138,6 +138,7 @@ ssh nura-vps 'cd /opt/nura && git pull origin main && cd nura_app && docker comp
 
 ### VPS
 - SSH: `root@45.144.178.118`, ключ: `C:\Users\Bayzel\.ssh\id_ed25519_astro`
+- **Агент имеет доступ к этому ключу** через bash-команду `ssh -i C:\Users\Bayzel\.ssh\id_ed25519_astro ...` — может выполнять деплой, смотреть логи, перезапускать контейнеры без участия пользователя.
 - Project root: `/opt/nura/`, код: `/opt/nura/nura_app/`
 - Контейнеры Docker именуются `nura_app-<service>-1`
 
