@@ -1710,22 +1710,17 @@
     const data = container.dataset.matrix.split(',').map(Number);
     const center = Number(container.dataset.center);
     const size = 240;
-    const cell = 60;
-    const offset = 30;
+    const positions = [60, 120, 180];
 
     let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">`;
 
     svg += `<g stroke="var(--matrix-card-border)" stroke-width="1">`;
-    for(let i=0; i<3; i++){
-      for(let j=0; j<3; j++){
-        const x = offset + j*cell;
-        const y = offset + i*cell;
-        if(j<2) svg += `<line x1="${x}" y1="${y}" x2="${x+cell}" y2="${y}"/>`;
-        if(i<2) svg += `<line x1="${x}" y1="${y}" x2="${x}" y2="${y+cell}"/>`;
-      }
+    for(const p of positions){
+      svg += `<line x1="60" y1="${p}" x2="180" y2="${p}"/>`;
+      svg += `<line x1="${p}" y1="60" x2="${p}" y2="180"/>`;
     }
-    svg += `<line x1="${offset}" y1="${offset}" x2="${offset+2*cell}" y2="${offset+2*cell}"/>`;
-    svg += `<line x1="${offset+2*cell}" y1="${offset}" x2="${offset}" y2="${offset+2*cell}"/>`;
+    svg += `<line x1="60" y1="60" x2="180" y2="180"/>`;
+    svg += `<line x1="180" y1="60" x2="60" y2="180"/>`;
     svg += `</g>`;
 
     svg += `<g font-family="Playfair Display, Georgia, serif" text-anchor="middle" dominant-baseline="central">`;
@@ -1733,9 +1728,9 @@
       for(let j=0; j<3; j++){
         const idx = i*3+j;
         const val = data[idx];
-        const x = offset + j*cell + cell/2;
-        const y = offset + i*cell + cell/2;
-        const isCenter = val === center && i===1 && j===1;
+        const x = positions[j];
+        const y = positions[i];
+        const isCenter = (i===1 && j===1);
 
         if(isCenter){
           svg += `<rect x="${x-17}" y="${y-17}" width="34" height="34" rx="4" fill="var(--gold)"/>`;
