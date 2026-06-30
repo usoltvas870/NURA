@@ -242,7 +242,8 @@
   .cv-info .v.accent{ color:var(--gold); font-style:italic; }
   .cv-info .v.mono{ font-family:'Courier New',monospace; font-size:13px; color:var(--ink-soft); }
   .matrix-viz-wrap{ margin-top:28px; display:flex; justify-content:center; }
-  .matrix-viz{ width:100%; max-width:230px; }
+  .matrix-viz{ width:100%; max-width:230px; aspect-ratio:1; }
+  .matrix-viz svg{ width:100%; height:100%; display:block; }
 
   /* ============ DASHBOARD (30 sec) ============ */
   .feature-card{ background:var(--matrix-card); border:1px solid var(--matrix-card-border); border-radius:var(--radius-lg); padding:22px 18px; display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
@@ -549,6 +550,14 @@
     .section-divider{ max-width:960px; margin:0 auto; }
     .section-nav{ max-width:960px; margin-left:auto; margin-right:auto; }
   }
+
+  @media print {
+    .matrix-viz svg rect[fill="#fff"] { fill: #fafafa; stroke: #8B7332; stroke-opacity: 0.5; }
+    .matrix-viz svg rect[fill="var(--gold)"] { fill: #8B7332; }
+    .matrix-viz svg text[fill="var(--gold)"] { fill: #8B7332; }
+    .matrix-viz svg text[fill="#fff"] { fill: #fff; }
+    .matrix-viz svg line { stroke: #8B7332; stroke-opacity: 0.35; }
+  }
 </style>
 </head>
 <body>
@@ -642,24 +651,10 @@
         </div>
 
         <div class="matrix-viz-wrap">
-          <svg class="matrix-viz" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
-            <g stroke="var(--matrix-card-border)" stroke-width="1">
-              <line x1="60" y1="60" x2="180" y2="60"/><line x1="60" y1="120" x2="180" y2="120"/><line x1="60" y1="180" x2="180" y2="180"/>
-              <line x1="60" y1="60" x2="60" y2="180"/><line x1="120" y1="60" x2="120" y2="180"/><line x1="180" y1="60" x2="180" y2="180"/>
-              <line x1="60" y1="60" x2="180" y2="180"/><line x1="180" y1="60" x2="60" y2="180"/>
-            </g>
-            <g font-family="Playfair Display, Georgia, serif" text-anchor="middle" dominant-baseline="central">
-              <rect x="48" y="48" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="60" y="60" fill="var(--gold)" font-size="13" font-style="italic">7</text>
-              <rect x="108" y="48" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="120" y="60" fill="var(--gold)" font-size="13" font-style="italic">3</text>
-              <rect x="168" y="48" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="180" y="60" fill="var(--gold)" font-size="13" font-style="italic">10</text>
-              <rect x="48" y="108" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="60" y="120" fill="var(--gold)" font-size="13" font-style="italic">22</text>
-              <rect x="103" y="103" width="34" height="34" rx="4" fill="var(--gold)"/><text x="120" y="120" fill="#fff" font-size="17" font-weight="500">10</text>
-              <rect x="168" y="108" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="180" y="120" fill="var(--gold)" font-size="13" font-style="italic">7</text>
-              <rect x="48" y="168" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="60" y="180" fill="var(--gold)" font-size="13" font-style="italic">5</text>
-              <rect x="108" y="168" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="120" y="180" fill="var(--gold)" font-size="13" font-style="italic">5</text>
-              <rect x="168" y="168" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="180" y="180" fill="var(--gold)" font-size="13" font-style="italic">17</text>
-            </g>
-          </svg>
+          <div class="matrix-viz" id="matrixViz"
+               data-matrix="7,3,10,22,10,7,5,5,17"
+               data-center="10">
+          </div>
         </div>
       </div>
       <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
@@ -1710,6 +1705,54 @@
       document.getElementById(ids[prev]).scrollIntoView({behavior:'smooth'});
     }
   });
+
+  function renderMatrix(container){
+    const data = container.dataset.matrix.split(',').map(Number);
+    const center = Number(container.dataset.center);
+    const size = 240;
+    const cell = 60;
+    const offset = 30;
+
+    let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">`;
+
+    svg += `<g stroke="var(--matrix-card-border)" stroke-width="1">`;
+    for(let i=0; i<3; i++){
+      for(let j=0; j<3; j++){
+        const x = offset + j*cell;
+        const y = offset + i*cell;
+        if(j<2) svg += `<line x1="${x}" y1="${y}" x2="${x+cell}" y2="${y}"/>`;
+        if(i<2) svg += `<line x1="${x}" y1="${y}" x2="${x}" y2="${y+cell}"/>`;
+      }
+    }
+    svg += `<line x1="${offset}" y1="${offset}" x2="${offset+2*cell}" y2="${offset+2*cell}"/>`;
+    svg += `<line x1="${offset+2*cell}" y1="${offset}" x2="${offset}" y2="${offset+2*cell}"/>`;
+    svg += `</g>`;
+
+    svg += `<g font-family="Playfair Display, Georgia, serif" text-anchor="middle" dominant-baseline="central">`;
+    for(let i=0; i<3; i++){
+      for(let j=0; j<3; j++){
+        const idx = i*3+j;
+        const val = data[idx];
+        const x = offset + j*cell + cell/2;
+        const y = offset + i*cell + cell/2;
+        const isCenter = val === center && i===1 && j===1;
+
+        if(isCenter){
+          svg += `<rect x="${x-17}" y="${y-17}" width="34" height="34" rx="4" fill="var(--gold)"/>`;
+          svg += `<text x="${x}" y="${y}" fill="#fff" font-size="17" font-weight="500">${val}</text>`;
+        } else {
+          svg += `<rect x="${x-12}" y="${y-12}" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/>`;
+          svg += `<text x="${x}" y="${y}" fill="var(--gold)" font-size="13" font-style="italic">${val}</text>`;
+        }
+      }
+    }
+    svg += `</g></svg>`;
+
+    container.innerHTML = svg;
+  }
+
+  const matrixEl = document.getElementById('matrixViz');
+  if(matrixEl) renderMatrix(matrixEl);
 })();
 </script>
 
