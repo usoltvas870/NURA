@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import time
+import uuid
 from datetime import datetime, timezone
 
 import httpx
@@ -11,7 +12,11 @@ from sqlalchemy import func, or_, select, text
 
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
-from core.models import Payment, User
+from core.models import Payment, PromoCode, Report, ReportType, User
+from core.repositories.report import ReportRepository
+from core.repositories.user import UserRepository
+from core.services.report import ReportService
+from core.tasks import generate_full_report
 
 DOCKER_SOCK = "/var/run/docker.sock"
 
@@ -37,6 +42,9 @@ class StatsResponse(BaseModel):
     revenue_7d: int
     unique_paying_users: int
     payment_breakdown: list[dict]
+    referrals_total: int
+    referrals_new_7d: int
+    top_referrers: list[dict]
     reports_by_type: dict
     registrations_by_day: list[dict]
     revenue_by_day: list[dict]
@@ -152,6 +160,30 @@ async def get_stats():
         )
         revenue_by_day = [{"date": str(row[0]), "value": row[1]} for row in r]
 
+        r = await session.execute(
+            text("SELECT COUNT(*) FROM referral_rewards")
+        )
+        referrals_total = _scalar(r)
+
+        r = await session.execute(
+            text("SELECT COUNT(*) FROM referral_rewards WHERE rewarded_at >= NOW() - INTERVAL '7 days'")
+        )
+        referrals_new_7d = _scalar(r)
+
+        r = await session.execute(
+            text(
+                "SELECT u.first_name, u.name, u.telegram_id, COUNT(rr.id) as cnt"
+                " FROM referral_rewards rr"
+                " JOIN users u ON rr.referrer_id = u.id"
+                " GROUP BY u.id, u.first_name, u.name, u.telegram_id"
+                " ORDER BY cnt DESC LIMIT 10"
+            )
+        )
+        top_referrers = [
+            {"name": row[0] or row[1] or f"ID:{row[2]}", "telegram_id": row[2], "count": row[3]}
+            for row in r
+        ]
+
         return StatsResponse(
             users_total=users_total,
             users_new_24h=users_new_24h,
@@ -165,6 +197,9 @@ async def get_stats():
             revenue_7d=revenue_7d,
             unique_paying_users=unique_paying_users,
             payment_breakdown=payment_breakdown,
+            referrals_total=referrals_total,
+            referrals_new_7d=referrals_new_7d,
+            top_referrers=top_referrers,
             reports_by_type=reports_by_type,
             registrations_by_day=registrations_by_day,
             revenue_by_day=revenue_by_day,
@@ -372,6 +407,194 @@ async def get_payments(
         )
 
 
+class UserDetailReport(BaseModel):
+    report_type: str
+    token: str
+    url: str
+    created_at: str
+
+
+class UserDetailPayment(BaseModel):
+    amount: int
+    status: str
+    payment_type: str
+    created_at: str
+
+
+class UserDetailResponse(BaseModel):
+    id: str
+    telegram_id: int | None
+    username: str | None
+    first_name: str | None
+    name: str | None
+    birth_date: str | None
+    main_archetype: str | None
+    main_archetype_number: int | None
+    subscription_status: str
+    subscription_until: str | None
+    tarot_subscription: bool
+    tarot_subscription_until: str | None
+    has_matrix: bool
+    has_pwa_push: bool
+    web_session_expires_at: str | None
+    created_at: str
+    reports: list[UserDetailReport]
+    payments: list[UserDetailPayment]
+
+
+class ExtendSubscriptionRequest(BaseModel):
+    days: int = Field(30, ge=1, le=3650)
+
+
+class GrantSubscriptionRequest(BaseModel):
+    days: int = Field(30, ge=1, le=3650)
+
+
+@router.get("/users/{user_id}", response_model=UserDetailResponse)
+async def get_user_detail(user_id: str):
+    session_factory = get_async_sessionmaker()
+    async with session_factory() as session:
+        user_uuid = uuid.UUID(user_id)
+        user_result = await session.execute(
+            select(User).where(User.id == user_uuid)
+        )
+        user = user_result.scalar_one_or_none()
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        reports_result = await session.execute(
+            select(Report)
+            .where(Report.user_id == user_uuid)
+            .order_by(Report.created_at.desc())
+        )
+        reports = reports_result.scalars().all()
+
+        payments_result = await session.execute(
+            select(Payment)
+            .where(Payment.user_id == user_uuid)
+            .order_by(Payment.created_at.desc())
+            .limit(10)
+        )
+        payments = payments_result.scalars().all()
+
+        return UserDetailResponse(
+            id=str(user.id),
+            telegram_id=user.telegram_id,
+            username=user.username,
+            first_name=user.first_name,
+            name=user.name,
+            birth_date=user.birth_date,
+            main_archetype=user.main_archetype,
+            main_archetype_number=user.main_archetype_number,
+            subscription_status=user.subscription_status,
+            subscription_until=user.subscription_until.isoformat()
+            if user.subscription_until
+            else None,
+            tarot_subscription=user.tarot_subscription,
+            tarot_subscription_until=user.tarot_subscription_until.isoformat()
+            if user.tarot_subscription_until
+            else None,
+            has_matrix=user.has_matrix,
+            has_pwa_push=user.has_pwa_push,
+            web_session_expires_at=user.web_session_expires_at.isoformat()
+            if user.web_session_expires_at
+            else None,
+            created_at=user.created_at.isoformat() if user.created_at else "",
+            reports=[
+                UserDetailReport(
+                    report_type=r.report_type,
+                    token=r.token,
+                    url=f"{settings.report_base_url}/report/{r.token}",
+                    created_at=r.created_at.isoformat() if r.created_at else "",
+                )
+                for r in reports
+            ],
+            payments=[
+                UserDetailPayment(
+                    amount=p.amount,
+                    status=p.status,
+                    payment_type=p.payment_type,
+                    created_at=p.created_at.isoformat() if p.created_at else "",
+                )
+                for p in payments
+            ],
+        )
+
+
+@router.post("/users/{user_id}/subscription/extend")
+async def extend_user_subscription(user_id: str, body: ExtendSubscriptionRequest):
+    user_uuid = uuid.UUID(user_id)
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.extend_subscription(user_uuid, body.days)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"ok": True, "subscription_until": user.subscription_until.isoformat()}
+
+
+@router.post("/users/{user_id}/tarot/extend")
+async def extend_user_tarot(user_id: str, body: ExtendSubscriptionRequest):
+    user_uuid = uuid.UUID(user_id)
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.extend_tarot(user_uuid, body.days)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"ok": True, "tarot_subscription_until": user.tarot_subscription_until.isoformat()}
+
+
+@router.post("/users/{user_id}/subscription/grant")
+async def grant_user_subscription(user_id: str, body: GrantSubscriptionRequest):
+    user_uuid = uuid.UUID(user_id)
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.grant_premium(user_uuid, body.days)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"ok": True, "subscription_until": user.subscription_until.isoformat()}
+
+
+@router.post("/users/{user_id}/tarot/grant")
+async def grant_user_tarot(user_id: str, body: GrantSubscriptionRequest):
+    user_uuid = uuid.UUID(user_id)
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.grant_tarot(user_uuid, body.days)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"ok": True, "tarot_subscription_until": user.tarot_subscription_until.isoformat()}
+
+
+@router.post("/users/{user_id}/regenerate-matrix")
+async def regenerate_user_matrix(user_id: str):
+    user_uuid = uuid.UUID(user_id)
+    session_factory = get_async_sessionmaker()
+
+    async with session_factory() as session:
+        user_result = await session.execute(
+            select(User).where(User.id == user_uuid)
+        )
+        user = user_result.scalar_one_or_none()
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        if not user.birth_date:
+            raise HTTPException(status_code=400, detail="Нет даты рождения")
+
+        birth_date = user.birth_date
+
+    report_repo = ReportRepository(session_factory)
+    existing_report = await report_repo.get_by_user_id_and_type(user_uuid, ReportType.FULL)
+    if existing_report:
+        await report_repo.delete(existing_report.id)
+
+    new_token = ReportService.generate_token()
+    generate_full_report.delay(
+        user_id=str(user_uuid), birth_date=birth_date, report_token=new_token
+    )
+
+    return {"ok": True}
+
+
 class HealthComponent(BaseModel):
     name: str
     status: str
@@ -499,6 +722,30 @@ async def get_health():
     return HealthResponse(overall=overall, components=components, checked_at=checked_at)
 
 
+class PromoCodeCreate(BaseModel):
+    code: str = Field(..., min_length=3, max_length=64)
+    discount_percent: int = Field(..., ge=1, le=100)
+    max_uses: int | None = None
+    expires_at: str | None = None
+
+
+class PromoCodeResponse(BaseModel):
+    id: str
+    code: str
+    discount_percent: int
+    max_uses: int | None
+    used_count: int
+    expires_at: str | None
+    is_active: bool
+    created_at: str
+    model_config = {"from_attributes": True}
+
+
+class PromoCodeListResponse(BaseModel):
+    codes: list[PromoCodeResponse]
+    total: int
+
+
 class BroadcastRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=4000)
     channels: list[str] = Field(..., min_length=1)
@@ -521,6 +768,101 @@ class BroadcastRequest(BaseModel):
         if v not in ("all", "premium", "free"):
             raise ValueError("Filter must be all, premium, or free")
         return v
+
+
+@router.get("/promo-codes", response_model=PromoCodeListResponse)
+async def get_promo_codes():
+    session_factory = get_async_sessionmaker()
+    async with session_factory() as session:
+        result = await session.execute(
+            select(PromoCode).order_by(PromoCode.created_at.desc())
+        )
+        codes = result.scalars().all()
+        total = len(codes)
+        response = [
+            PromoCodeResponse(
+                id=str(c.id),
+                code=c.code,
+                discount_percent=c.discount_percent,
+                max_uses=c.max_uses,
+                used_count=c.used_count,
+                expires_at=c.expires_at.isoformat() if c.expires_at else None,
+                is_active=c.is_active,
+                created_at=c.created_at.isoformat() if c.created_at else "",
+            )
+            for c in codes
+        ]
+        return PromoCodeListResponse(codes=response, total=total)
+
+
+@router.post("/promo-codes", response_model=PromoCodeResponse)
+async def create_promo_code(body: PromoCodeCreate):
+    session_factory = get_async_sessionmaker()
+    async with session_factory() as session:
+        expires_at = None
+        if body.expires_at:
+            expires_at = datetime.fromisoformat(body.expires_at)
+        promo = PromoCode(
+            code=body.code.strip().upper(),
+            discount_percent=body.discount_percent,
+            max_uses=body.max_uses,
+            expires_at=expires_at,
+        )
+        session.add(promo)
+        await session.commit()
+        await session.refresh(promo)
+        return PromoCodeResponse(
+            id=str(promo.id),
+            code=promo.code,
+            discount_percent=promo.discount_percent,
+            max_uses=promo.max_uses,
+            used_count=promo.used_count,
+            expires_at=promo.expires_at.isoformat() if promo.expires_at else None,
+            is_active=promo.is_active,
+            created_at=promo.created_at.isoformat() if promo.created_at else "",
+        )
+
+
+@router.patch("/promo-codes/{code_id}/toggle", response_model=PromoCodeResponse)
+async def toggle_promo_code(code_id: str):
+    session_factory = get_async_sessionmaker()
+    async with session_factory() as session:
+        code_uuid = uuid.UUID(code_id)
+        result = await session.execute(
+            select(PromoCode).where(PromoCode.id == code_uuid)
+        )
+        promo = result.scalar_one_or_none()
+        if promo is None:
+            raise HTTPException(status_code=404, detail="Promo code not found")
+        promo.is_active = not promo.is_active
+        await session.commit()
+        await session.refresh(promo)
+        return PromoCodeResponse(
+            id=str(promo.id),
+            code=promo.code,
+            discount_percent=promo.discount_percent,
+            max_uses=promo.max_uses,
+            used_count=promo.used_count,
+            expires_at=promo.expires_at.isoformat() if promo.expires_at else None,
+            is_active=promo.is_active,
+            created_at=promo.created_at.isoformat() if promo.created_at else "",
+        )
+
+
+@router.delete("/promo-codes/{code_id}")
+async def delete_promo_code(code_id: str):
+    session_factory = get_async_sessionmaker()
+    async with session_factory() as session:
+        code_uuid = uuid.UUID(code_id)
+        result = await session.execute(
+            select(PromoCode).where(PromoCode.id == code_uuid)
+        )
+        promo = result.scalar_one_or_none()
+        if promo is None:
+            raise HTTPException(status_code=404, detail="Promo code not found")
+        await session.delete(promo)
+        await session.commit()
+        return {"ok": True}
 
 
 @router.post("/broadcast")

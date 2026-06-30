@@ -3,17 +3,19 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 
 from api.deps import limiter
 from api.dependencies import (
     clear_session_cookie,
     get_current_web_user,
+    get_optional_web_user,
     set_session_cookie,
 )
 from core.arcana_data import ARCANA
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
-from core.models import ReportType, User
+from core.models import PromoCode, ReportType, User
 from core.repositories.payment import PaymentRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
@@ -48,6 +50,24 @@ class UserProfileResponse(BaseModel):
     ref_link: str | None
 
 
+async def _validate_promo_code(session_factory, code: str, price_kopecks: int) -> tuple[int, PromoCode]:
+    async with session_factory() as session:
+        result = await session.execute(
+            select(PromoCode).where(PromoCode.code == code.strip().upper())
+        )
+        promo = result.scalar_one_or_none()
+        if not promo or not promo.is_active:
+            raise HTTPException(status_code=400, detail="Промокод недействителен")
+        if promo.expires_at and promo.expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Промокод истёк")
+        if promo.max_uses is not None and promo.used_count >= promo.max_uses:
+            raise HTTPException(status_code=400, detail="Промокод исчерпан")
+        discounted = int(price_kopecks * (100 - promo.discount_percent) / 100)
+        promo.used_count += 1
+        await session.commit()
+        return discounted, promo
+
+
 router = APIRouter(prefix="/api/v1/web")
 
 
@@ -67,6 +87,7 @@ class MiniAnalysisResponse(BaseModel):
 
 class CreatePaymentRequest(BaseModel):
     email: str | None = None
+    promo_code: str | None = None
 
 
 class CreatePaymentResponse(BaseModel):
@@ -148,6 +169,9 @@ async def create_payment(
                 await session.commit()
 
     report_token = ReportService.generate_token()
+    amount = 89000
+    if body.promo_code:
+        amount, _ = await _validate_promo_code(session_factory, body.promo_code, amount)
 
     try:
         payment = await PaymentService.create_web_matrix_payment(
@@ -160,7 +184,7 @@ async def create_payment(
     payment_repo = PaymentRepository(session_factory)
     await payment_repo.create(
         user_id=user.id,
-        amount=890,
+        amount=amount // 100,
         yookassa_id=payment["id"],
         payment_type="web_matrix",
     )
@@ -261,6 +285,10 @@ async def get_user_profile(
     )
 
 
+class SubscribeRequest(BaseModel):
+    promo_code: str | None = None
+
+
 class SubscribeResponse(BaseModel):
     payment_url: str
 
@@ -269,9 +297,14 @@ class SubscribeResponse(BaseModel):
 @limiter.limit("5/minute")
 async def subscribe_tarot(
     request: Request,
+    body: SubscribeRequest,
     user: User = Depends(get_current_web_user),
 ):
     session_factory = get_async_sessionmaker()
+
+    amount = 39000
+    if body.promo_code:
+        amount, _ = await _validate_promo_code(session_factory, body.promo_code, amount)
 
     try:
         payment = await PaymentService.create_web_tarot_payment(user_id=user.id)
@@ -281,7 +314,7 @@ async def subscribe_tarot(
     payment_repo = PaymentRepository(session_factory)
     await payment_repo.create(
         user_id=user.id,
-        amount=390,
+        amount=amount // 100,
         yookassa_id=payment["id"],
         payment_type="web_tarot",
     )
@@ -439,10 +472,14 @@ async def session_check(user: User = Depends(get_current_web_user)):
 
 @router.post("/auth/start", response_model=AuthStartResponse)
 @limiter.limit("10/hour")
-async def auth_start(request: Request):
+async def auth_start(
+    request: Request,
+    user: User | None = Depends(get_optional_web_user),
+):
     token = str(uuid.uuid4())
     redis = get_redis()
-    await redis.setex(f"auth_token:{token}", 300, "pending")
+    session_value = user.web_session_id if user else "pending"
+    await redis.setex(f"auth_token:{token}", 300, session_value)
     return AuthStartResponse(
         token=token,
         tg_url=f"https://t.me/{settings.bot_username}?start=tgauth_{token}",

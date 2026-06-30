@@ -630,6 +630,24 @@ tr:hover td { background: rgba(184,116,63,.05); }
 .log-line.warning { color: var(--yellow); }
 .log-error-msg { margin-top: 10px; font-size: 12px; color: var(--red); }
 
+.modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.modal-card { background: var(--bg-card); border-radius: var(--r-xl); max-width: 640px; width: calc(100% - 32px); max-height: 85vh; overflow-y: auto; padding: 28px 24px; position: relative; }
+.modal-close { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(var(--border-light-rgb),.15); background: transparent; color: var(--text-m); cursor: pointer; font-size: 16px; }
+.modal-title { font-family: var(--font-serif); font-size: 22px; margin-bottom: 20px; }
+.modal-section { margin-bottom: 18px; }
+.modal-section-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--text-s); margin-bottom: 8px; }
+.modal-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid rgba(var(--border-light-rgb),.04); }
+.modal-row-label { color: var(--text-s); }
+.modal-row-value { color: var(--text); font-weight: 600; }
+.modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; }
+.modal-action-btn { padding: 10px 14px; border-radius: var(--r-sm); font-family: var(--font-sans); font-size: 12px; font-weight: 700; cursor: pointer; border: none; transition: all .2s; }
+.modal-action-btn.primary { background: var(--terra); color: #fff; }
+.modal-action-btn.primary:hover { background: var(--terra-d); }
+.modal-action-btn.secondary { background: transparent; border: 1px solid rgba(var(--border-light-rgb),.12); color: var(--text-m); }
+.modal-action-btn.danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+.modal-action-btn:disabled { opacity: .5; cursor: not-allowed; }
+.modal-report-link { font-size: 12px; color: var(--terra); text-decoration: underline; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -640,6 +658,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
 }
 @media (max-width: 480px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .modal-actions { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -680,6 +699,8 @@ tr:hover td { background: rgba(184,116,63,.05); }
     <button class="tab-btn" data-tab="push">Push</button>
     <button class="tab-btn" data-tab="health">Здоровье</button>
     <button class="tab-btn" data-tab="broadcast">Рассылка</button>
+    <button class="tab-btn" data-tab="promo">Промокоды</button>
+    <button class="tab-btn" data-tab="referrals">Рефералы</button>
     <button class="tab-btn" data-tab="logs">Логи</button>
   </nav>
 
@@ -831,6 +852,30 @@ tr:hover td { background: rgba(184,116,63,.05); }
       </div>
     </section>
 
+    <!-- Promo -->
+    <section id="section-promo" class="section">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+        <input type="text" class="search-input" id="promoCodeInput" placeholder="Код (напр. WELCOME)" style="width:180px">
+        <input type="number" class="search-input" id="promoDiscountInput" placeholder="Скидка %" min="1" max="100" style="width:110px">
+        <input type="number" class="search-input" id="promoMaxUsesInput" placeholder="Макс. использований" min="1" style="width:140px">
+        <input type="text" class="search-input" id="promoExpiresInput" placeholder="Истекает (ГГГГ-ММ-ДД)" style="width:150px">
+        <button class="btn-refresh" id="promoCreateBtn">Создать</button>
+      </div>
+      <div class="table-wrap" id="promoTableWrap"></div>
+    </section>
+
+    <!-- Referrals -->
+    <section id="section-referrals" class="section">
+      <div id="referralsLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
+      <div id="referralsContent" style="display:none">
+        <div class="kpi-grid" id="referralKpiGrid"></div>
+        <div class="card">
+          <div class="card-header">Топ рефереров</div>
+          <div class="table-wrap" id="referralTableWrap"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- Logs -->
     <section id="section-logs" class="section">
       <div id="logsLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
@@ -861,6 +906,14 @@ tr:hover td { background: rgba(184,116,63,.05); }
     </section>
 
   </main>
+
+<div class="modal-overlay" id="userModal" style="display:none">
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose">&times;</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
 </div>
 
 <script>
@@ -916,6 +969,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
 
   /* ── Token ── */
   function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+  window.getToken = getToken;
   function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
   function clearToken() { localStorage.removeItem(TOKEN_KEY); }
 
@@ -1002,6 +1056,8 @@ tr:hover td { background: rgba(184,116,63,.05); }
       case 'push': loadPush(); break;
       case 'health': loadHealth(); break;
       case 'broadcast': break; // no auto-load
+      case 'promo': loadPromos(); break;
+      case 'referrals': loadReferrals(); break;
       case 'logs': loadLogs(); break;
     }
   }
@@ -1081,7 +1137,9 @@ tr:hover td { background: rgba(184,116,63,.05); }
       { label: 'Выручка всего', value: formatRubles(d.revenue_total) },
       { label: 'Выручка 30д', value: formatRubles(d.revenue_30d) },
       { label: 'Выручка 7д', value: formatRubles(d.revenue_7d) },
-      { label: 'Платящих пользователей', value: d.unique_paying_users }
+      { label: 'Платящих пользователей', value: d.unique_paying_users },
+      { label: 'Mini-анализов', value: (d.reports_by_type && d.reports_by_type.mini) || 0 },
+      { label: 'Конверсия в полный', value: (d.reports_by_type && d.reports_by_type.mini > 0 && d.reports_by_type.full > 0 ? (d.reports_by_type.full / d.reports_by_type.mini * 100).toFixed(1) + '%' : '-') }
     ];
     var html = '';
     cards.forEach(function (c) {
@@ -1166,7 +1224,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
         ? '<span class="badge badge-premium">Активна</span>'
         : '<span class="badge badge-free">Нет</span>';
 
-      html += '<tr>'
+      html += '<tr style="cursor:pointer" onclick="openUserDetail(\'' + u.id + '\')">'
         + '<td>' + escapeHtml(name) + '</td>'
         + '<td>' + escapeHtml(tg) + '</td>'
         + '<td>' + escapeHtml(u.main_archetype || '-') + '</td>'
@@ -1596,6 +1654,245 @@ tr:hover td { background: rgba(184,116,63,.05); }
     if (v > 1000) this.value = 1000;
     loadLogs();
   });
+
+  window.openUserDetail = function(userId) {
+    var modal = document.getElementById('userModal');
+    var content = document.getElementById('modalContent');
+    modal.style.display = 'flex';
+    content.innerHTML = '<div class="loading"><span class="spinner"></span>Загрузка...</div>';
+
+    apiFetch('/users/' + userId).then(function(d) {
+      if (!d) { content.innerHTML = '<p style="color:var(--red)">Пользователь не найден</p>'; return; }
+
+      var subStatus = d.subscription_status === 'premium'
+        ? '<span class="badge badge-premium">Premium</span>'
+        : '<span class="badge badge-free">Free</span>';
+      var tarotStatus = d.tarot_subscription
+        ? '<span class="badge badge-premium">Активна</span>'
+        : '<span class="badge badge-free">Нет</span>';
+      var pushStatus = d.has_pwa_push
+        ? '<span class="badge badge-success">Да</span>'
+        : '<span class="badge badge-free">Нет</span>';
+
+      var reportsHtml = '';
+      if (d.reports && d.reports.length) {
+        d.reports.forEach(function(r) {
+          reportsHtml += '<div class="modal-row">'
+            + '<span class="modal-row-label">' + escapeHtml(r.report_type) + '</span>'
+            + '<span><a class="modal-report-link" href="' + r.url + '" target="_blank">открыть</a> · ' + escapeHtml(r.created_at || '') + '</span>'
+            + '</div>';
+        });
+      } else {
+        reportsHtml = '<div style="font-size:12px;color:var(--text-s);padding:6px 0">Нет отчётов</div>';
+      }
+
+      var paymentsHtml = '';
+      if (d.payments && d.payments.length) {
+        d.payments.forEach(function(p) {
+          var pBadge = p.status === 'succeeded' ? '<span class="badge badge-success">ok</span>' : '<span class="badge badge-warn">' + escapeHtml(p.status) + '</span>';
+          paymentsHtml += '<div class="modal-row">'
+            + '<span class="modal-row-label">' + escapeHtml(p.payment_type) + '</span>'
+            + '<span>' + formatRubles(p.amount) + ' ' + pBadge + ' · ' + formatDate(p.created_at) + '</span>'
+            + '</div>';
+        });
+      } else {
+        paymentsHtml = '<div style="font-size:12px;color:var(--text-s);padding:6px 0">Нет платежей</div>';
+      }
+
+      var html = '<h2 class="modal-title">' + escapeHtml(d.name || d.first_name || 'Без имени') + '</h2>';
+
+      html += '<div class="modal-section">'
+        + '<div class="modal-section-title">Профиль</div>'
+        + '<div class="modal-row"><span class="modal-row-label">Telegram</span><span class="modal-row-value">' + escapeHtml(d.username ? '@' + d.username : (d.telegram_id ? 'ID:' + d.telegram_id : '-')) + '</span></div>'
+        + '<div class="modal-row"><span class="modal-row-label">Дата рождения</span><span class="modal-row-value">' + escapeHtml(d.birth_date || '-') + '</span></div>'
+        + '<div class="modal-row"><span class="modal-row-label">Архетип</span><span class="modal-row-value">' + escapeHtml(d.main_archetype || '-') + (d.main_archetype_number ? ' (' + d.main_archetype_number + ')' : '') + '</span></div>'
+        + '</div>';
+
+      html += '<div class="modal-section">'
+        + '<div class="modal-section-title">Подписки</div>'
+        + '<div class="modal-row"><span class="modal-row-label">Premium</span><span>' + subStatus + (d.subscription_until ? ' до ' + formatDate(d.subscription_until) : '') + '</span></div>'
+        + '<div class="modal-row"><span class="modal-row-label">Таро</span><span>' + tarotStatus + (d.tarot_subscription_until ? ' до ' + formatDate(d.tarot_subscription_until) : '') + '</span></div>'
+        + '<div class="modal-row"><span class="modal-row-label">Push</span><span>' + pushStatus + '</span></div>'
+        + '</div>';
+
+      html += '<div class="modal-section">'
+        + '<div class="modal-section-title">Отчёты</div>'
+        + reportsHtml
+        + '</div>';
+
+      html += '<div class="modal-section">'
+        + '<div class="modal-section-title">Платежи</div>'
+        + paymentsHtml
+        + '</div>';
+
+      html += '<div class="modal-actions">'
+        + '<button class="modal-action-btn primary" onclick="adminAction(\'' + d.id + '\', \'subscription/extend\', \'Продлить premium на 30 дней?\')">Продлить premium 30д</button>'
+        + '<button class="modal-action-btn primary" onclick="adminAction(\'' + d.id + '\', \'tarot/extend\', \'Продлить таро на 30 дней?\')">Продлить таро 30д</button>'
+        + '<button class="modal-action-btn secondary" onclick="adminAction(\'' + d.id + '\', \'subscription/grant\', \'Выдать premium на 30 дней?\')">Выдать premium 30д</button>'
+        + '<button class="modal-action-btn danger" onclick="adminAction(\'' + d.id + '\', \'regenerate-matrix\', \'Перегенерировать матрицу?\')">Перегенерировать</button>'
+        + '</div>';
+
+      content.innerHTML = html;
+    }).catch(function(err) {
+      content.innerHTML = '<p style="color:var(--red)">Ошибка: ' + err.message + '</p>';
+    });
+  };
+
+  window.adminAction = function(userId, path, confirmMsg) {
+    if (!confirm(confirmMsg)) return;
+    var content = document.getElementById('modalContent');
+    var btn = event.target;
+    if (btn) btn.disabled = true;
+
+    var body = null;
+    if (path !== 'regenerate-matrix') {
+      body = JSON.stringify({ days: 30 });
+    }
+
+    var fetchOpts = {
+      method: 'POST',
+      headers: { 'X-Admin-Token': getToken() }
+    };
+    if (body) {
+      fetchOpts.headers['Content-Type'] = 'application/json';
+      fetchOpts.body = body;
+    }
+
+    fetch(API_BASE + '/users/' + userId + '/' + path, fetchOpts)
+      .then(function(r) {
+        if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || 'HTTP ' + r.status); });
+        return r.json();
+      })
+      .then(function(d) {
+        openUserDetail(userId);
+      })
+      .catch(function(err) {
+        alert('Ошибка: ' + err.message);
+        openUserDetail(userId);
+      });
+  };
+
+  document.getElementById('modalClose').addEventListener('click', function() {
+    document.getElementById('userModal').style.display = 'none';
+  });
+  document.getElementById('userModal').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+  });
+
+  function loadPromos() {
+    apiFetch('/promo-codes').then(function(d) {
+      renderPromoTable(d.codes || []);
+    }).catch(function(err) {
+      document.getElementById('promoTableWrap').innerHTML = '<div style="padding:20px;color:var(--red)">Ошибка: ' + err.message + '</div>';
+    });
+  }
+
+  function renderPromoTable(codes) {
+    if (!codes || codes.length === 0) {
+      document.getElementById('promoTableWrap').innerHTML = '<div style="padding:20px;color:var(--text-s)">Нет промокодов</div>';
+      return;
+    }
+    var html = '<table><thead><tr>'
+      + '<th>Код</th><th>Скидка</th><th>Исп./Макс</th><th>Истекает</th><th>Активен</th><th></th>'
+      + '</tr></thead><tbody>';
+    codes.forEach(function(c) {
+      var uses = c.used_count + (c.max_uses != null ? ' / ' + c.max_uses : ' / ∞');
+      var expires = c.expires_at ? formatDate(c.expires_at) : '—';
+      var activeBadge = c.is_active
+        ? '<span class="badge badge-success">Да</span>'
+        : '<span class="badge badge-error">Нет</span>';
+      html += '<tr>'
+        + '<td>' + escapeHtml(c.code) + '</td>'
+        + '<td>' + c.discount_percent + '%</td>'
+        + '<td>' + uses + '</td>'
+        + '<td>' + expires + '</td>'
+        + '<td>' + activeBadge + '</td>'
+        + '<td>'
+        + '<button class="filter-btn" onclick="togglePromo(\'' + c.id + '\')" style="font-size:11px">Перекл.</button> '
+        + '<button class="filter-btn" onclick="deletePromo(\'' + c.id + '\',\'' + escapeHtml(c.code) + '\')" style="font-size:11px;border-color:var(--red);color:var(--red)">Удалить</button>'
+        + '</td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('promoTableWrap').innerHTML = html;
+  }
+
+  document.getElementById('promoCreateBtn').addEventListener('click', function() {
+    var code = document.getElementById('promoCodeInput').value.trim();
+    var discount = parseInt(document.getElementById('promoDiscountInput').value, 10);
+    var maxUses = document.getElementById('promoMaxUsesInput').value;
+    var expires = document.getElementById('promoExpiresInput').value.trim();
+
+    if (!code) { alert('Введите код'); return; }
+    if (!discount || discount < 1 || discount > 100) { alert('Скидка: 1–100'); return; }
+
+    var body = {
+      code: code,
+      discount_percent: discount
+    };
+    if (maxUses) body.max_uses = parseInt(maxUses, 10);
+    if (expires) body.expires_at = expires;
+
+    apiPost('/promo-codes', body).then(function() {
+      document.getElementById('promoCodeInput').value = '';
+      document.getElementById('promoDiscountInput').value = '';
+      document.getElementById('promoMaxUsesInput').value = '';
+      document.getElementById('promoExpiresInput').value = '';
+      loadPromos();
+    }).catch(function(err) {
+      alert('Ошибка: ' + err.message);
+    });
+  });
+
+  window.togglePromo = function(id) {
+    fetch(API_BASE + '/promo-codes/' + id + '/toggle', {
+      method: 'PATCH',
+      headers: { 'X-Admin-Token': getToken() }
+    }).then(function(r) {
+      if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || 'HTTP ' + r.status); });
+      loadPromos();
+    }).catch(function(err) {
+      alert('Ошибка: ' + err.message);
+    });
+  };
+
+  window.deletePromo = function(id, code) {
+    if (!confirm('Удалить промокод ' + code + '?')) return;
+    fetch(API_BASE + '/promo-codes/' + id, {
+      method: 'DELETE',
+      headers: { 'X-Admin-Token': getToken() }
+    }).then(function(r) {
+      if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || 'HTTP ' + r.status); });
+      loadPromos();
+    }).catch(function(err) {
+      alert('Ошибка: ' + err.message);
+    });
+  };
+
+  function loadReferrals() {
+    apiFetch('/stats').then(function(d) {
+      document.getElementById('referralsLoading').style.display = 'none';
+      document.getElementById('referralsContent').style.display = '';
+
+      var kpiHtml = '';
+      kpiHtml += '<div class="kpi-card"><div class="kpi-label">Рефералов всего</div><div class="kpi-value">' + formatNumber(d.referrals_total || 0) + '</div></div>';
+      kpiHtml += '<div class="kpi-card"><div class="kpi-label">Новых за 7д</div><div class="kpi-value">' + formatNumber(d.referrals_new_7d || 0) + '</div></div>';
+      document.getElementById('referralKpiGrid').innerHTML = kpiHtml;
+
+      if (d.top_referrers && d.top_referrers.length) {
+        var tbl = '<table><thead><tr><th>Пользователь</th><th>Рефералов</th></tr></thead><tbody>';
+        d.top_referrers.forEach(function(r) {
+          tbl += '<tr><td>' + escapeHtml(r.name || 'ID:' + r.telegram_id) + '</td><td>' + r.count + '</td></tr>';
+        });
+        tbl += '</tbody></table>';
+        document.getElementById('referralTableWrap').innerHTML = tbl;
+      } else {
+        document.getElementById('referralTableWrap').innerHTML = '<div style="padding:12px;color:var(--text-s)">Нет данных</div>';
+      }
+    }).catch(function(err) {
+      document.getElementById('referralsLoading').textContent = 'Ошибка: ' + err.message;
+    });
+  }
 
   /* ── Init ── */
   if (getToken()) {

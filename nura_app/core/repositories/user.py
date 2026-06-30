@@ -303,3 +303,56 @@ class UserRepository(SQLAlchemyRepository[User]):
             await session.commit()
             await session.refresh(user)
             return user
+
+    async def extend_subscription(self, user_id: uuid.UUID, days: int) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            now = datetime.now(timezone.utc)
+            if user.subscription_until:
+                user.subscription_until = user.subscription_until + timedelta(days=days)
+            else:
+                user.subscription_until = now + timedelta(days=days)
+            if user.subscription_status == "free":
+                user.subscription_status = "premium"
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def extend_tarot(self, user_id: uuid.UUID, days: int) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            now = datetime.now(timezone.utc)
+            user.tarot_subscription = True
+            if user.tarot_subscription_until:
+                user.tarot_subscription_until = user.tarot_subscription_until + timedelta(days=days)
+            else:
+                user.tarot_subscription_until = now + timedelta(days=days)
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def grant_premium(self, user_id: uuid.UUID, days: int) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.subscription_status = "premium"
+            user.subscription_until = datetime.now(timezone.utc) + timedelta(days=days)
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def grant_tarot(self, user_id: uuid.UUID, days: int) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.tarot_subscription = True
+            user.tarot_subscription_until = datetime.now(timezone.utc) + timedelta(days=days)
+            await session.commit()
+            await session.refresh(user)
+            return user

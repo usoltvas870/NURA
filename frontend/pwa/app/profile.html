@@ -69,13 +69,13 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   </div>
 </section><div class="tabs"><button class="tab-btn active" data-tab="reports">Отчёты</button><button class="tab-btn" data-tab="subscription">Подписка</button><button class="tab-btn" data-tab="notifications">Уведомления</button><button class="tab-btn" data-tab="settings">Настройки</button></div>
 <section class="panel active" id="tab-reports">
-<article class="card list-card"><div class="list-icon" style="background:rgba(107,128,104,.10);color:var(--sage)"><i class="ti ti-sparkles"></i></div><div><div class="list-title">Мини-разбор <span class="report-status ok">✓ Готов</span></div><div class="list-sub">Архетип, сила, конфликт и отношения по дате рождения</div></div><button class="btn btn-soft" onclick="location.href='/mini.html'">Открыть</button></article>
-<article class="card list-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы <span class="report-status buy" id="matrix-report-status">Купить</span></div><div class="list-sub">Полный разбор 22 арканов · разовая покупка · навсегда</div></div><button class="btn btn-soft" id="matrix-open-btn" onclick="openReport('matrix-full')" style="display:none">Открыть</button><button class="btn btn-primary" id="matrix-buy-btn" onclick="location.href='https://t.me/ai_nura_bot'">Купить</button></article>
+<div id="reports-list"></div>
+<article class="card list-card" id="static-matrix-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы <span class="report-status buy" id="matrix-report-status">Купить</span></div><div class="list-sub">Полный разбор 22 арканов · разовая покупка · навсегда</div></div><button class="btn btn-soft" id="matrix-open-btn" onclick="openReport('matrix-full')" style="display:none">Открыть</button><button class="btn btn-primary" id="matrix-buy-btn" onclick="location.href='https://t.me/ai_nura_bot'">Купить</button></article>
 <article class="card list-card"><div class="list-icon"><i class="ti ti-heart-handshake"></i></div><div><div class="list-title">Совместимость</div><div class="list-sub">Разбор пары по двум датам рождения</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
 <article class="card list-card"><div class="list-icon"><i class="ti ti-trending-up"></i></div><div><div class="list-title">Прогноз на год</div><div class="list-sub">Циклы, риски, возможности</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
 </section>
 <section class="panel" id="tab-subscription">
-<article class="card card-pad accent-left"><div class="eyebrow">Подписка</div><h2 class="title" style="font-size:32px;margin-top:8px">Ежедневные практики</h2><div style="margin:10px 0 14px"><span class="price">390 ₽</span> <span class="small">/ месяц</span></div><p class="lead">Карта дня, фокус недели и расширенный чат с NURA. Матрица — разовая покупка, не входит в ежемесячный платёж.</p><button class="btn btn-primary btn-full" id="subscribe-btn" style="margin-top:16px" onclick="activateSubscription()">Подключить подписку</button><div id="subscribe-status" style="margin-top:10px;font-size:12px;color:var(--sage);display:none"></div></article>
+<article class="card card-pad accent-left"><div class="eyebrow">Подписка</div><h2 class="title" style="font-size:32px;margin-top:8px">Ежедневные практики</h2><div style="margin:10px 0 14px"><span class="price">390 ₽</span> <span class="small">/ месяц</span></div><p class="lead">Карта дня, фокус недели и расширенный чат с NURA. Матрица — разовая покупка, не входит в ежемесячный платёж.</p><div style="margin-top:12px"><input type="text" id="promoCodeField" placeholder="Промокод (если есть)" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--text);font-family:var(--font-sans);font-size:13px;outline:none"></div><button class="btn btn-primary btn-full" id="subscribe-btn" style="margin-top:16px" onclick="activateSubscription()">Подключить подписку</button><div id="subscribe-status" style="margin-top:10px;font-size:12px;color:var(--sage);display:none"></div></article>
 <article class="card list-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы</div><div class="list-sub">Разовая покупка · отчёт навсегда</div></div><button class="btn btn-soft" id="matrix-status-btn">Куплена</button></article>
 </section>
 <section class="panel" id="tab-notifications"><div class="card">
@@ -141,9 +141,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         $('tg-link-item').style.opacity = '0.6';
       }
       if (d.has_matrix) {
-        var rs = $('matrix-report-status'); if (rs) { rs.textContent = '✓ Куплена'; rs.className = 'report-status ok'; }
-        var ob = $('matrix-open-btn'); if (ob) ob.style.display = '';
-        var bb = $('matrix-buy-btn'); if (bb) bb.style.display = 'none';
+        var mc = $('static-matrix-card'); if (mc) mc.style.display = 'none';
       }
       if (d.has_tarot) {
         var sBtn = $('subscribe-btn');
@@ -154,7 +152,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
           sBtn.disabled = true;
         }
       }
-      if (d.reports) userReports = d.reports;
+      if (d.reports) { userReports = d.reports; renderReports(d.reports); }
     })
     .catch(function() { location.href = '/mini.html'; });
 
@@ -191,13 +189,69 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     });
   };
 
+  window.renderReports = function(reports) {
+    var container = $('reports-list');
+    if (!container) return;
+
+    if (!reports || !reports.length) {
+      container.innerHTML = '<article class="card list-card"><div class="list-icon" style="background:rgba(107,128,104,.10);color:var(--sage)"><i class="ti ti-report"></i></div><div><div class="list-title">Нет отчётов</div><div class="list-sub">У тебя пока нет отчётов. Пройди мини-разбор чтобы получить первый.</div></div></article>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < reports.length; i++) {
+      var r = reports[i];
+      var icon = '';
+      var title = '';
+      var subtitle = '';
+      var url = r.url || '';
+      var bg = 'rgba(184,116,63,.09)';
+      var color = 'var(--terra)';
+
+      if (r.report_type === 'mini') {
+        icon = 'sparkles';
+        title = 'Мини-разбор';
+        subtitle = 'Архетип, сила, конфликт и отношения по дате рождения';
+        bg = 'rgba(107,128,104,.10)';
+        color = 'var(--sage)';
+      } else if (r.report_type === 'full') {
+        icon = 'grid-dots';
+        title = 'Матрица Судьбы';
+      } else if (r.report_type === 'compatibility') {
+        icon = 'heart-handshake';
+        title = 'Совместимость';
+      } else if (r.report_type === 'forecast') {
+        icon = 'trending-up';
+        title = 'Прогноз на год';
+      }
+
+      if (r.created_at) {
+        var parts = r.created_at.split('.');
+        var months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+        var dateStr = parseInt(parts[0], 10) + ' ' + (months[parseInt(parts[1], 10) - 1] || '') + ' ' + parts[2];
+        subtitle = (subtitle ? subtitle + ' · ' : '') + dateStr;
+      }
+
+      html += '<article class="card list-card">' +
+        '<div class="list-icon" style="background:' + bg + ';color:' + color + '">' +
+        '<i class="ti ti-' + icon + '"></i></div>' +
+        '<div><div class="list-title">' + N.escHtml(title) + '</div>' +
+        (subtitle ? '<div class="list-sub">' + N.escHtml(subtitle) + '</div>' : '') +
+        '</div>' +
+        '<button class="btn btn-soft" onclick="location.href=\'' + url.replace(/'/g, "\\'") + '\'">Открыть</button>' +
+        '</article>';
+    }
+
+    container.innerHTML = html;
+  };
+
   window.openReport = function(id) {
     var report = null;
     for (var i = 0; i < userReports.length; i++) {
-      if (userReports[i].report_type === 'full') { report = userReports[i]; break; }
+      if (userReports[i].report_type === id) { report = userReports[i]; break; }
     }
     if (report && report.url) {
-      window.open(report.url, '_blank');
+      location.href = report.url;
     } else {
       location.href = '/mini.html';
     }
@@ -252,10 +306,14 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     btn.disabled = true;
     btn.textContent = 'Активирую…';
     status.style.display = 'none';
+    var promoCode = ($('promoCodeField') && $('promoCodeField').value.trim()) || null;
+    var reqBody = {};
+    if (promoCode) reqBody.promo_code = promoCode;
     fetch(BASE + '/web/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin'
+      credentials: 'same-origin',
+      body: Object.keys(reqBody).length > 0 ? JSON.stringify(reqBody) : undefined
     })
     .then(function(r) {
       if (!r.ok) {

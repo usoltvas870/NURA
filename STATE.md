@@ -1,8 +1,74 @@
 # NURA — State
 
-> Последнее обновление: **30.06.2026 — Сессия 48** — Qwen 3.7 Plus (opencode)
+> Последнее обновление: **30.06.2026 — Сессия 52** — DeepSeek V4 Pro
 
 ---
+
+## Сессия 52 — 30.06.2026
+- Модель: DeepSeek V4 Pro (opencode-go/deepseek-v4-pro)
+- Что сделано: полная реализация плана ADMIN_UPGRADE_PLAN (4 фазы доработки админ-панели):
+  - **Фаза 1 — Действия над пользователем**:
+    - `api/routes/admin_api.py`: +6 эндпоинтов (GET /users/{id}, extend subscription/tarot, grant subscription/tarot, regenerate-matrix)
+    - `core/repositories/user.py`: +4 метода (extend_subscription, extend_tarot, grant_premium, grant_tarot)
+    - Схемы: UserDetailResponse, UserDetailReport, UserDetailPayment, ExtendSubscriptionRequest, GrantSubscriptionRequest
+  - **Фаза 2 — PromoCode**:
+    - `core/models.py`: модель PromoCode
+    - `alembic/versions/`: миграция add_promo_codes
+    - `api/routes/admin_api.py`: CRUD промокодов (GET/POST/PATCH/DELETE /promo-codes)
+    - `api/routes/web.py`: применение промокода в create-payment и subscribe (валидация, скидка, инкремент used_count)
+    - `frontend/admin/index.html`: таб «Промокоды» с созданием/переключением/удалением
+    - `frontend/pwa/app/profile.html`: поле ввода промокода при оплате
+  - **Фаза 3 — Рефералы**:
+    - `api/routes/admin_api.py`: поля referrals_total, referrals_new_7d, top_referrers в GET /stats
+    - `frontend/admin/index.html`: таб «Рефералы» с KPI и топом рефереров
+  - **Фаза 4 — Воронка**:
+    - `frontend/admin/index.html`: KPI «Mini-анализов» и «Конверсия в полный» на Dashboard
+  - **Фаза 1 (фронтенд)**: модальное окно с детальной карточкой пользователя и кнопками действий
+- Изменённые файлы: `api/routes/admin_api.py`, `api/routes/web.py`, `core/models.py`, `core/repositories/user.py`, `alembic/versions/*`, `frontend/admin/index.html`, `frontend/pwa/app/profile.html`
+- Блокеры: нет
+- Следующие шаги: деплой на VPS
+
+---
+
+## Сессия 51 — 30.06.2026
+- Модель: DeepSeek V4 Pro (opencode-go/deepseek-v4-pro)
+- Что сделано: добавление новых табов и KPI в админ-панель, промокод-поле в профиле PWA:
+  - **Admin panel (`frontend/admin/index.html`)**:
+    - Добавлены табы «Промокоды» и «Рефералы» в навигацию
+    - Добавлены HTML-секции: Promo (форма создания + таблица) и Referrals (KPI + топ рефереров)
+    - Обновлён `loadTabContent` switch/case для новых табов
+    - В `renderKpi` (Dashboard) добавлены метрики: Mini-анализов, Конверсия в полный
+    - Добавлены JS-функции: `loadPromos()`, `renderPromoTable(codes)`, создание (POST /promo-codes), переключение (PATCH /promo-codes/{id}/toggle), удаление (DELETE /promo-codes/{id}), `loadReferrals()`
+    - togglePromo использует PATCH (прямой fetch), deletePromo — DELETE
+  - **PWA Profile (`frontend/pwa/app/profile.html`)**:
+    - Добавлено поле ввода промокода перед кнопкой «Подключить подписку»
+    - Обновлена `activateSubscription()`: читает `promoCodeField`, отправляет `promo_code` в теле запроса если заполнено
+- Изменённые файлы: `frontend/admin/index.html`, `frontend/pwa/app/profile.html`
+- Блокеры: API-эндпоинты /promo-codes и /stats (referrals_total, referrals_new_7d, top_referrers) должны быть реализованы на бэкенде
+- Следующие шаги: реализация бэкенд-эндпоинтов для промокодов и реферальной статистики
+
+## Сессия 50 — 30.06.2026
+- Модель: DeepSeek V4 Pro (opencode-go/deepseek-v4-pro)
+- Что сделано: исправление цепочки авторизации и пользовательского пути:
+  - **Telegram auth flow исправлен** — `api/routes/web.py`: `auth/start` теперь сохраняет `web_session_id` существующего пользователя в Redis вместо `"pending"`; `bot/handlers/start.py`: `_handle_tg_auth_token` при получении web_session_id находит веб-пользователя, линкует telegram_id (через `update_telegram_id`), продлевает сессию — вместо создания дублирующей записи
+  - **Profile reports динамический рендер** — `frontend/pwa/app/profile.html`: статическая строка мини-отчёта заменена на `renderReports()` (JS), генерирует карточки mini/full/compatibility/forecast из API-данных с правильными URL; `openReport(id)` исправлен — поиск по `report_type`, `window.open` → `location.href`; статическая матрица скрывается при наличии full-отчёта; дата форматируется через парсинг DD.MM.YYYY
+  - **Config validation** — `core/config.py`: `bot_username` валидатор пустой строки → None
+- Изменённые файлы: `api/routes/web.py`, `bot/handlers/start.py`, `frontend/pwa/app/profile.html`, `core/config.py`
+- Блокеры: нет
+- Следующие шаги: деплой на VPS, тестирование E2E: мини-анализ → Telegram auth → просмотр отчёта в PWA
+
+## Сессия 49 — 30.06.2026
+- Модель: DeepSeek V4 Pro (opencode-go/deepseek-v4-pro)
+- Что сделано: исправление `frontend/pwa/app/profile.html` — страница профиля PWA:
+  - Заменена статическая строка мини-отчёта (строка 72) на динамический контейнер `<div id="reports-list"></div>`
+  - Добавлена JS-функция `renderReports(reports)`, генерирующая карточки отчётов на основе API-данных: mini (sparkles, sage), full (grid-dots, terra), compatibility (heart-handshake), forecast (trending-up). Кнопки используют URL из `report.url` через `location.href`. Пустое состояние — сообщение «У тебя пока нет отчётов». Дата создания форматируется через русские месяцы. Юзерские данные экранируются через `N.escHtml()`.
+  - Статическая карточка «Матрица Судьбы» (строка 73) получает `id="static-matrix-card"` и скрывается при `has_matrix === true` — вместо старой логики переключения кнопок (Купить/Открыть). Если full-отчёт есть — он появляется в динамическом списке.
+  - Функция `openReport(id)` исправлена: поиск по `report_type === id` вместо хардкода `'full'`, `window.open` заменён на `location.href` для работы в PWA standalone-режиме.
+  - Вызов `renderReports(d.reports)` добавлен в then-обработчик загрузки `/api/v1/web/me`.
+  - Карточки «Совместимость» и «Прогноз на год» с кнопкой «Добавить» сохранены после динамического списка.
+- Изменённые файлы: `frontend/pwa/app/profile.html`
+- Блокеры: нет
+- Следующие шаги: деплой статики через `deploy.sh`
 
 ## Сессия 48 — 30.06.2026
 - Модель: Qwen 3.7 Plus (opencode-go/qwen3.7-plus)
