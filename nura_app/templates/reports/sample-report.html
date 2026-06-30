@@ -242,7 +242,7 @@
   .cv-info .v.accent{ color:var(--gold); font-style:italic; }
   .cv-info .v.mono{ font-family:'Courier New',monospace; font-size:13px; color:var(--ink-soft); }
   .matrix-viz-wrap{ margin-top:28px; display:flex; justify-content:center; }
-  .matrix-viz{ width:100%; max-width:230px; aspect-ratio:1; }
+  .matrix-viz{ width:100%; max-width:500px; aspect-ratio:1; }
   .matrix-viz svg{ width:100%; height:100%; display:block; }
 
   /* ============ DASHBOARD (30 sec) ============ */
@@ -552,11 +552,14 @@
   }
 
   @media print {
-    .matrix-viz svg rect[fill="#fff"] { fill: #fafafa; stroke: #8B7332; stroke-opacity: 0.5; }
-    .matrix-viz svg rect[fill="var(--gold)"] { fill: #8B7332; }
-    .matrix-viz svg text[fill="var(--gold)"] { fill: #8B7332; }
+    .matrix-viz{ max-width:400px; }
+    .matrix-viz svg circle[fill="#8B5CF6"] { fill: #8B5CF6; }
+    .matrix-viz svg circle[fill="#EF4444"] { fill: #EF4444; }
+    .matrix-viz svg circle[fill="#10B981"] { fill: #10B981; }
+    .matrix-viz svg circle[fill="#F59E0B"] { fill: #F59E0B; }
+    .matrix-viz svg circle[fill="#3B82F6"] { fill: #3B82F6; }
+    .matrix-viz svg circle[fill="#EC4899"] { fill: #EC4899; }
     .matrix-viz svg text[fill="#fff"] { fill: #fff; }
-    .matrix-viz svg line { stroke: #8B7332; stroke-opacity: 0.35; }
   }
 </style>
 </head>
@@ -652,8 +655,7 @@
 
         <div class="matrix-viz-wrap">
           <div class="matrix-viz" id="matrixViz"
-               data-matrix="7,3,10,22,10,7,5,5,17"
-               data-center="10">
+               data-matrix="7,3,10,22,10,7,5,5,17">
           </div>
         </div>
       </div>
@@ -1708,39 +1710,87 @@
 
   function renderMatrix(container){
     const data = container.dataset.matrix.split(',').map(Number);
-    const center = Number(container.dataset.center);
-    const size = 240;
-    const positions = [60, 120, 180];
+    const size = 500;
+    const cx = size/2;
+    const cy = size/2;
+    const R = 180;
+
+    const colors = ['#8B5CF6', '#EF4444', '#10B981', '#F59E0B', '#3B82F6', '#EC4899', '#8B5CF6', '#EF4444'];
 
     let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">`;
 
-    svg += `<g stroke="var(--matrix-card-border)" stroke-width="1">`;
-    for(const p of positions){
-      svg += `<line x1="60" y1="${p}" x2="180" y2="${p}"/>`;
-      svg += `<line x1="${p}" y1="60" x2="${p}" y2="180"/>`;
+    svg += `<defs>
+      <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:0.3"/>
+        <stop offset="100%" style="stop-color:#F59E0B;stop-opacity:0"/>
+      </radialGradient>
+    </defs>`;
+
+    svg += `<circle cx="${cx}" cy="${cy}" r="${R+40}" fill="url(#centerGlow)"/>`;
+
+    const octagon = [];
+    for(let i=0; i<8; i++){
+      const angle = (i * 45 - 90) * Math.PI / 180;
+      octagon.push({
+        x: cx + R * Math.cos(angle),
+        y: cy + R * Math.sin(angle)
+      });
     }
-    svg += `<line x1="60" y1="60" x2="180" y2="180"/>`;
-    svg += `<line x1="180" y1="60" x2="60" y2="180"/>`;
-    svg += `</g>`;
 
-    svg += `<g font-family="Playfair Display, Georgia, serif" text-anchor="middle" dominant-baseline="central">`;
-    for(let i=0; i<3; i++){
-      for(let j=0; j<3; j++){
-        const idx = i*3+j;
-        const val = data[idx];
-        const x = positions[j];
-        const y = positions[i];
-        const isCenter = (i===1 && j===1);
+    svg += `<polygon points="${octagon.map(p => `${p.x},${p.y}`).join(' ')}" 
+             fill="none" stroke="var(--matrix-card-border)" stroke-width="2"/>`;
 
-        if(isCenter){
-          svg += `<rect x="${x-17}" y="${y-17}" width="34" height="34" rx="4" fill="var(--gold)"/>`;
-          svg += `<text x="${x}" y="${y}" fill="#fff" font-size="17" font-weight="500">${val}</text>`;
-        } else {
-          svg += `<rect x="${x-12}" y="${y-12}" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/>`;
-          svg += `<text x="${x}" y="${y}" fill="var(--gold)" font-size="13" font-style="italic">${val}</text>`;
-        }
+    svg += `<g stroke="var(--matrix-card-border)" stroke-width="1.5" opacity="0.6">`;
+    for(let i=0; i<8; i++){
+      for(let j=i+2; j<8; j++){
+        if(j-i === 4) continue;
+        svg += `<line x1="${octagon[i].x}" y1="${octagon[i].y}" x2="${octagon[j].x}" y2="${octagon[j].y}"/>`;
       }
     }
+    svg += `</g>`;
+
+    svg += `<g stroke="#EF4444" stroke-width="2" opacity="0.4" stroke-dasharray="5,5">`;
+    svg += `<line x1="${octagon[0].x}" y1="${octagon[0].y}" x2="${octagon[4].x}" y2="${octagon[4].y}"/>`;
+    svg += `<line x1="${octagon[2].x}" y1="${octagon[2].y}" x2="${octagon[6].x}" y2="${octagon[6].y}"/>`;
+    svg += `</g>`;
+
+    for(let i=0; i<8; i++){
+      const angle = (i * 45 - 90) * Math.PI / 180;
+      const labelR = R + 60;
+      const lx = cx + labelR * Math.cos(angle);
+      const ly = cy + labelR * Math.sin(angle);
+      svg += `<text x="${lx}" y="${ly}" font-size="11" fill="var(--ink-faint)" 
+              text-anchor="middle" dominant-baseline="central" 
+              font-family="Manrope, sans-serif">${(i+1)*5} лет</text>`;
+    }
+
+    svg += `<g font-family="Playfair Display, Georgia, serif" text-anchor="middle" dominant-baseline="central">`;
+
+    const positions = [
+      {x: cx, y: cy-R, val: data[1]},
+      {x: cx+R, y: cy, val: data[5]},
+      {x: cx, y: cy+R, val: data[7]},
+      {x: cx-R, y: cy, val: data[3]},
+      {x: cx-R*0.7, y: cy-R*0.7, val: data[0]},
+      {x: cx+R*0.7, y: cy-R*0.7, val: data[2]},
+      {x: cx+R*0.7, y: cy+R*0.7, val: data[8]},
+      {x: cx-R*0.7, y: cy+R*0.7, val: data[6]}
+    ];
+
+    positions.forEach((pos, i) => {
+      const color = colors[i % colors.length];
+      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="28" fill="${color}" opacity="0.9"/>`;
+      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="28" fill="none" stroke="#fff" stroke-width="2"/>`;
+      svg += `<text x="${pos.x}" y="${pos.y}" fill="#fff" font-size="20" font-weight="600">${pos.val}</text>`;
+    });
+
+    svg += `<circle cx="${cx}" cy="${cy}" r="40" fill="#F59E0B"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="40" fill="none" stroke="#fff" stroke-width="3"/>`;
+    svg += `<text x="${cx}" y="${cy}" fill="#fff" font-size="28" font-weight="700">${data[4]}</text>`;
+
+    svg += `<text x="${cx}" y="${cy+55}" font-size="16" fill="var(--ink-muted)" 
+            font-family="Manrope, sans-serif" font-weight="500"></text>`;
+
     svg += `</g></svg>`;
 
     container.innerHTML = svg;
