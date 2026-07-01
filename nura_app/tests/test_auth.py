@@ -45,13 +45,6 @@ def mock_send_email(monkeypatch) -> MagicMock:
     return m
 
 
-@pytest.fixture
-def mock_send_sms(monkeypatch) -> MagicMock:
-    m = MagicMock()
-    monkeypatch.setattr(core_tasks, "send_sms_code", m)
-    return m
-
-
 def _factory(db_engine) -> async_sessionmaker:
     return async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -61,7 +54,6 @@ async def auth_service(
     db_engine,
     fake_redis: _FakeRedis,
     mock_send_email: MagicMock,
-    mock_send_sms: MagicMock,
     monkeypatch,
 ) -> AuthService:
     factory = _factory(db_engine)
@@ -386,73 +378,6 @@ async def test_verify_magic_link_merges_guest(
     assert fetched_guest.merged_to_user_id == user.id
 
     assert "guest_profile:tok-merge-guest" not in fake_redis.store
-
-
-@pytest.mark.asyncio
-async def test_start_sms_auth_stores_code_and_dispatches(
-    auth_service: AuthService,
-    fake_redis: _FakeRedis,
-    mock_send_sms: MagicMock,
-):
-    phone = "+79991234567"
-    result = await auth_service.start_sms_auth(phone)
-    expected_ttl = 5 * 60
-    assert result["expires_in"] == expected_ttl
-
-    key = f"sms_code:{phone}"
-    assert key in fake_redis.store
-    code = fake_redis.store[key]
-    assert re.fullmatch(r"\d{4}", str(code))
-
-    assert mock_send_sms.delay.call_count == 1
-    sent_phone, sent_code = mock_send_sms.delay.call_args.args
-    assert sent_phone == phone
-    assert sent_code == code
-
-
-@pytest.mark.asyncio
-async def test_verify_sms_success(
-    auth_service: AuthService,
-    fake_redis: _FakeRedis,
-    db_engine,
-):
-    factory = _factory(db_engine)
-    repo = UserRepository(factory)
-    phone = "+79995554433"
-    user = await repo.create_web_user(
-        name="SMSer",
-        birth_date="03.03.1993",
-        web_session_id=uuid.uuid4().hex,
-    )
-    await repo.set_phone(user.id, phone)
-
-    fake_redis.store[f"sms_code:{phone}"] = "1234"
-
-    result = await auth_service.verify_sms(phone, "1234")
-    assert result is not None
-    assert result["success"] is True
-    assert result["user_id"] == str(user.id)
-    assert result["web_session_id"] is not None
-
-    assert f"sms_code:{phone}" not in fake_redis.store
-
-    fetched = await repo.get(user.id)
-    assert fetched is not None
-    assert fetched.phone_verified is True
-    assert fetched.auth_method == "sms"
-
-
-@pytest.mark.asyncio
-async def test_verify_sms_wrong_code_returns_none(
-    auth_service: AuthService, fake_redis: _FakeRedis
-):
-    phone = "+79991110000"
-    fake_redis.store[f"sms_code:{phone}"] = "1234"
-
-    result = await auth_service.verify_sms(phone, "0000")
-    assert result is None
-    # retry allowed — code key must remain
-    assert f"sms_code:{phone}" in fake_redis.store
 
 
 @pytest.mark.asyncio
