@@ -157,7 +157,11 @@ class AuthService:
 
         return {"message": "Письмо отправлено", "expires_in": ttl}
 
-    async def verify_magic_link(self, token: str) -> dict | None:
+    async def verify_magic_link(
+        self,
+        token: str,
+        current_user: User | None = None,
+    ) -> dict | None:
         redis = get_redis()
         key = f"{MAGIC_LINK_PREFIX}:{token}"
         raw = await redis.get(key)
@@ -196,6 +200,12 @@ class AuthService:
                 await self.merge_guest(guest_token, user)
             except Exception:
                 logger.exception("merge_guest failed during magic link verify")
+
+        if current_user is not None and current_user.id != user.id:
+            try:
+                await self.merge_users(current_user.id, user.id)
+            except Exception:
+                logger.exception("merge_users failed during magic link verify")
 
         return {
             "success": True,
@@ -241,6 +251,7 @@ class AuthService:
         phone: str,
         code: str,
         guest_token: str | None = None,
+        current_user: User | None = None,
     ) -> dict | None:
         redis = get_redis()
         key = f"{SMS_CODE_PREFIX}:{phone}"
@@ -277,6 +288,12 @@ class AuthService:
                 await self.merge_guest(guest_token, user)
             except Exception:
                 logger.exception("merge_guest failed during sms verify")
+
+        if current_user is not None and current_user.id != user.id:
+            try:
+                await self.merge_users(current_user.id, user.id)
+            except Exception:
+                logger.exception("merge_users failed during sms verify")
 
         return {
             "success": True,
@@ -328,11 +345,44 @@ class AuthService:
         now = datetime.now(timezone.utc)
         return await repo.delete_expired(now)
 
+    async def merge_users(self, source_user_id: uuid.UUID, target_user_id: uuid.UUID) -> bool:
+        """Merge source user into target user: transfer reports, payments, referral_rewards, then delete source."""
+        try:
+            from sqlalchemy import update, delete
+            from core.models import Report, Payment, ReferralReward
+
+            async with self._session_factory() as session:
+                await session.execute(
+                    update(Report).where(Report.user_id == source_user_id).values(user_id=target_user_id)
+                )
+                await session.execute(
+                    update(Payment).where(Payment.user_id == source_user_id).values(user_id=target_user_id)
+                )
+                await session.execute(
+                    update(ReferralReward)
+                    .where(ReferralReward.referrer_id == source_user_id)
+                    .values(referrer_id=target_user_id)
+                )
+                await session.execute(
+                    update(ReferralReward)
+                    .where(ReferralReward.referred_id == source_user_id)
+                    .values(referred_id=target_user_id)
+                )
+                await session.execute(
+                    delete(User).where(User.id == source_user_id)
+                )
+                await session.commit()
+            return True
+        except Exception:
+            logger.exception("merge_users failed")
+            return False
+
     async def vk_auth(
         self,
         access_token: str,
         vk_user_id: str,
         guest_token: str | None = None,
+        current_user: User | None = None,
     ) -> dict:
         try:
             async with httpx.AsyncClient() as client:
@@ -380,6 +430,12 @@ class AuthService:
                     await self.merge_guest(guest_token, user)
                 except Exception:
                     logger.exception("merge_guest failed during vk auth")
+
+            if current_user is not None and current_user.id != user.id:
+                try:
+                    await self.merge_users(current_user.id, user.id)
+                except Exception:
+                    logger.exception("merge_users failed during vk auth")
 
             return {
                 "success": True,

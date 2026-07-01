@@ -71,8 +71,9 @@ async def verify_email_auth(
     request: Request,
     response: Response,
     token: str,
+    web_user: User | None = Depends(get_optional_web_user),
 ):
-    res = await AuthService().verify_magic_link(token)
+    res = await AuthService().verify_magic_link(token, web_user)
     if res is None:
         raise HTTPException(status_code=400, detail="Токен истёк или недействителен")
     set_session_cookie(response, res["web_session_id"])
@@ -101,8 +102,9 @@ async def verify_sms_auth(
     request: Request,
     response: Response,
     body: SMSVerifyRequest,
+    web_user: User | None = Depends(get_optional_web_user),
 ):
-    res = await AuthService().verify_sms(body.phone, body.code, body.guest_token)
+    res = await AuthService().verify_sms(body.phone, body.code, body.guest_token, web_user)
     if res is None:
         raise HTTPException(status_code=400, detail="Неверный или просроченный код")
     set_session_cookie(response, res["web_session_id"])
@@ -139,9 +141,10 @@ async def vk_auth(
     request: Request,
     body: VKTokenRequest,
     response: Response,
+    web_user: User | None = Depends(get_optional_web_user),
 ):
     result = await AuthService().vk_auth(
-        body.access_token, body.user_id, body.guest_token
+        body.access_token, body.user_id, body.guest_token, web_user
     )
     set_session_cookie(response, result["web_session_id"])
     return VKAuthResponse(success=True, user_id=result["user_id"])
