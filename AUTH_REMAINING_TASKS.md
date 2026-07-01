@@ -49,27 +49,25 @@ SMS-аутентификация полностью удалена из кода
 
 ---
 
-## 🟡 Фаза 3 — VK ID (код готов, ключи прописаны)
+## 🟡 Фаза 3 — VK ID (OneTap → прямой OAuth redirect)
 
-**Статус:** Код и ключи готовы. Осталось ручное тестирование.
+**Статус:** OneTap заменён на прямой OAuth redirect + `vk-callback.html`. Работает после настройки VK-приложения.
 
 ### Что сделано:
-- ✅ Создан метод `vk_auth` в `AuthService` (obmen access_token на user info через `id.vk.ru/oauth2/user_info`)
-- ✅ Эндпоинт `POST /api/v1/auth/vk` принимает `{access_token, user_id, guest_token?}` → создаёт/находит пользователя по `vk_id`, устанавливает сессию
-- ✅ Добавлен виджет VK ID One Tap в `mini.html` (секция `#stage-auth`)
-- ✅ Схема `VKTokenRequest` для валидации запроса
-- ✅ Ключи прописаны в `.env` на VPS (`VK_CLIENT_ID`, `VK_CLIENT_SECRET`, `VK_SERVICE_TOKEN`)
-- ✅ Тесты проходят (19/19)
+- ✅ Создан метод `vk_auth` в `AuthService`
+- ✅ Эндпоинт `POST /api/v1/auth/vk` принимает `{access_token, user_id, guest_token?}`
+- ✅ Ключи в `.env` на VPS
+- ✅ OneTap заменён на кнопку «Войти через VK» с прямым OAuth-редиректом
+- ✅ Создан `vk-callback.html` — обрабатывает редирект, обменивает код на токен, логинит
+- ✅ guest_token передаётся через `state` параметр OAuth
 
 ### Что осталось сделать:
-1. **Проверить redirect URL в кабинете VK ID:**
-   - Должен быть: `https://nura-ai.ru/api/v1/auth/vk/callback`
-   - Если нет — добавить в настройках приложения
+1. **Настроить VK-приложение** (https://id.vk.com/accounts/apps/):
+   - Добавить домен `nura-ai.ru` в **Allowed domains**
+   - Добавить `https://nura-ai.ru/vk-callback.html` в **Redirect URLs**
 
 2. **Протестировать flow:**
-   - Открыть `mini.html` → пройти квиз → на экране авторизации нажать кнопку VK ID
-   - Авторизоваться через VK → должно редиректить в `/app/`
-   - Проверить, что пользователь создан в БД с `vk_id` и `auth_method='vk'`
+   - Открыть `mini.html` → пройти квиз → нажать «Войти через VK» → авторизоваться → редирект в `/app/`
 
 ### Архитектура VK ID интеграции:
 - **Фронтенд:** VK ID SDK (One Tap кнопка) → получает `code` → обменивает на `access_token` через `VKID.Auth.exchangeCode()` → отправляет на бэкенд
@@ -136,14 +134,16 @@ SMS-аутентификация удалена. A/B тест нерелеван
 | Компонент | Статус |
 |-----------|--------|
 | Guest profile (создание+кэш) | ✅ |
-| Email magic link (send+verify) | ✅ (без ключа Unisender — письма не отправляются) |
+| Email magic link (send+verify) | ✅ Beget SMTP (проверено) |
 | ~~SMS code (send+verify)~~ | ❌ Удалён из кода |
 | Merge guest → user | ✅ |
 | Telegram deep link (генерация) | ✅ |
-| VK ID (One Tap) | ✅ Код + ключи готовы |
+| VK ID | ✅ Прямой OAuth redirect + `vk-callback.html` (ожидает настройки приложения) |
 | Celery cleanup beat | ✅ |
+| Celery broker_connection_retry | ✅ добавлен |
 | ~~Unisender API~~ | ✅ Заменён на Beget SMTP (`e2c4b32`) |
 | ~~SMS.ru API~~ | ❌ Не требуется |
 | Миграция на VPS | ✅ `c4d5e6f7a8b9` на head |
 | Email transport | ✅ Beget SMTP (развёрнуто и проверено 01.07.2026) |
 | SMTP_PASSWORD | ✅ прописан в .env |
+| Bot duplicate telegram_id | ✅ race condition устранён (`get_or_create_by_telegram_id`)

@@ -1,6 +1,6 @@
 # NURA — State
 
-> Последнее обновление: **01.07.2026 — Сессия 59** — DeepSeek V4 Pro
+> Последнее обновление: **01.07.2026 — Сессия 59** — DeepSeek V4 Flash
 
 ---
 
@@ -18,7 +18,11 @@
     - Тесты 16/16 проходят, линтер чист
   - **Деплой**: код запушен в GitHub, но VPS недоступен (SSH + HTTP timeout) — деплой отложен
   - **SMTP на VPS**: добавлен `SMTP_PASSWORD` в .env, контейнеры пересобраны, отправка проверена (0.33s)
-  - **Очистка корня проекта**: удалены 8 устаревших документов (`ADMIN_PANEL_PLAN.md`, `ADMIN_PANEL_WORKFLOW.md`, `CLAUDE.md`, `CODE_AUDIT_PLAN.md`, `PWA_TAROT_UX_UPGRADE_PLAN.md`, `SMART_INSTALL_BANNER_REPORT.md`, `audit-report.md`, `REPORT.md`)
+  - **Очистка корня проекта**: удалены 8 устаревших документов
+  - **VK ID**: OneTap заменён на прямой OAuth redirect + создан vk-callback.html
+  - **Email magic link URL**: исправлен путь с `/auth/verify` на `/api/v1/auth/email/verify`, ответ API изменён на RedirectResponse (→ `/app/`)
+  - **Celery warning**: добавлен `broker_connection_retry_on_startup=True`
+  - **Duplicate telegram_id (race condition)**: добавлен `get_or_create_by_telegram_id()` с `INSERT ... ON CONFLICT DO NOTHING`, заменён во всех 4 вызовах
 - Блокеры: нет
 - Следующие шаги:
   - Протестировать VK ID flow на production
