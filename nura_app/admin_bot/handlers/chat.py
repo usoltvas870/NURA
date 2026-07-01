@@ -9,23 +9,54 @@ from core.services.ai import AIService
 logger = logging.getLogger(__name__)
 router = Router(name="admin_chat")
 
+SERVICES = {"api", "bot", "celery-worker", "celery-beat"}
+
 SYSTEM_PROMPT = (
     "Ты — NURA Admin Assistant. Помогаешь администратору управлять сервером проекта NURA.\n\n"
     "Стек проекта: FastAPI (api), aiogram (bot), Celery (worker + beat), PostgreSQL, Redis, Docker.\n\n"
     "Правила:\n"
     "1. Отвечай коротко и по делу, только на русском.\n"
-    "2. Если спрашивают про состояние сервера — запроси данные и объясни понятно.\n"
-    "3. Если просят починить — предложи команду (/restart, /cache clear, /deploy).\n"
+    "2. Если спрашивают про состояние сервера — объясни понятно.\n"
+    "3. Если просят совет или рекомендацию — помоги.\n"
     "4. Не придумывай команды, которых нет.\n"
-    "5. Не выполняй действия сам — только предлагай команды.\n"
-    "6. Если не знаешь — скажи честно.\n\n"
+    "5. Если не знаешь — скажи честно.\n\n"
     "Доступные команды:\n"
     "/status — статус всех сервисов\n"
     "/restart api|bot|celery-worker|celery-beat — перезапустить сервис\n"
     "/cache clear — очистить Redis кэш\n"
-    "/deploy — выкатить обновление из GitHub\n"
     "/help — список команд"
 )
+
+
+def _detect_action(text: str) -> tuple[str, str] | None:
+    lower = text.lower().strip()
+
+    svc = _detect_restart(lower)
+    if svc:
+        return ("restart", svc)
+
+    if _detect_cache_clear(lower):
+        return ("cache", "clear")
+
+    return None
+
+
+def _detect_restart(lower: str) -> str | None:
+    triggers = ("перезапуст", "рестарт", "почин", "упал", "умер", "не работ", "останов")
+    if not any(t in lower for t in triggers):
+        return None
+    for name in SERVICES:
+        if name in lower:
+            return name
+    return None
+
+
+def _detect_cache_clear(lower: str) -> bool:
+    triggers = ("кэш", "cache", "кеш")
+    if not any(t in lower for t in triggers):
+        return False
+    clears = ("очист", "clear", "сброс", "сбрось")
+    return any(c in lower for c in clears)
 
 
 @router.message()
@@ -33,6 +64,45 @@ async def handle_text(message: Message) -> None:
     if message.text and message.text.startswith("/"):
         return
 
+    action = _detect_action(message.text or "")
+    if action:
+        await _execute_action(message, action)
+        return
+
+    await _ai_answer(message)
+
+
+async def _execute_action(message: Message, action: tuple[str, str]) -> None:
+    kind, target = action
+
+    if kind == "restart":
+        await message.answer(f"🔄 Перезапускаю <b>{target}</b>...")
+        try:
+            dc = DockerClient()
+            ok = await dc.restart_container(target)
+            if ok:
+                await message.answer(f"✅ <b>{target}</b> перезапущен.")
+            else:
+                await message.answer(f"❌ Не удалось перезапустить <b>{target}</b>.")
+        except Exception as e:
+            logger.exception("Restart failed")
+            await message.answer(f"❌ Ошибка: {e}")
+
+    elif kind == "cache":
+        await message.answer("🧹 Очищаю Redis кэш...")
+        try:
+            dc = DockerClient()
+            ok = await dc.clear_redis_cache()
+            if ok:
+                await message.answer("✅ Кэш очищен.")
+            else:
+                await message.answer("❌ Не удалось очистить кэш.")
+        except Exception as e:
+            logger.exception("Cache clear failed")
+            await message.answer(f"❌ Ошибка: {e}")
+
+
+async def _ai_answer(message: Message) -> None:
     await message.answer("🤔 Думаю...")
 
     try:
