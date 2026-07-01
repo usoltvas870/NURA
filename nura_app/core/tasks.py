@@ -4,7 +4,6 @@ import logging
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
-import httpx
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
 from celery.schedules import crontab
@@ -1226,36 +1225,83 @@ async def _send_broadcast_async(
 )
 def send_magic_link_email(self, email: str, token: str) -> dict:
     link = f"{settings.report_base_url}/auth/verify?token={token}"
-    if not settings.unisender_api_key:
-        logger.warning("unisender key unset, skipping magic link email to %s", email)
+    if not settings.smtp_password:
+        logger.warning("smtp password unset, skipping magic link email to %s", email)
         return {"ok": True, "skipped_no_key": True}
 
-    subject = "Ваш персональный отчёт готов"
-    html_body = (
-        "<html><body>"
-        "<p>Здравствуйте!</p>"
-        "<p>Для подтверждения email и доступа к персональному отчёту "
-        f'откройте ссылку: <a href="{link}">{link}</a></p>'
-        f"<p>Ссылка действительна {settings.magic_link_ttl_minutes} минут.</p>"
-        "<p>Если вы не запрашивали письмо, просто проигнорируйте его.</p>"
-        "<p>— Нура</p>"
-        "</body></html>"
-    )
-    payload = {
-        "api_key": settings.unisender_api_key,
-        "sender_email": "noreply@nura-ai.ru",
-        "sender_name": "Нура",
-        "recipient": email,
-        "subject": subject,
-        "body": html_body,
-    }
-    with httpx.Client(timeout=10) as client:
-        resp = client.post("https://api.unisender.com/ru/api/sendEmail", data=payload)
-        resp.raise_for_status()
-        data = resp.json()
-    if data.get("status") != "ok":
-        raise Exception(f"Unisender send failed: {data}")
-    return {"ok": True}
+    async def _send() -> dict:
+        import aiosmtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
+        ttl = settings.magic_link_ttl_minutes
+        html_body = (
+            '<!DOCTYPE html>'
+            '<html><head><meta charset="utf-8"></head>'
+            '<body style="margin:0;padding:0;background-color:#EFEEE9;">'
+            '<table width="100%" cellpadding="0" cellspacing="0" role="presentation">'
+            '<tr><td align="center" style="padding:40px 20px;">'
+            '<table width="480" cellpadding="0" cellspacing="0" role="presentation"'
+            ' style="background:#fff;border-radius:12px;overflow:hidden;">'
+            '<tr><td style="padding:40px 40px 30px;text-align:center;">'
+            '<h1 style="font:32px Georgia,serif;color:#1a1a1a;margin:0;letter-spacing:2px;">NURA</h1>'
+            '</td></tr>'
+            '<tr><td style="padding:0 40px 30px;font:16px/24px Arial,Helvetica,sans-serif;color:#333;">'
+            '<p style="margin:0;">Нажмите кнопку, чтобы войти в NURA:</p>'
+            '</td></tr>'
+            '<tr><td align="center" style="padding:0 40px 30px;">'
+            '<a href="' + link + '"'
+            ' style="display:inline-block;background:#D45429;color:#fff;text-decoration:none;'
+            'padding:14px 40px;border-radius:8px;font:16px Arial,Helvetica,sans-serif;'
+            'font-weight:600;">Войти в NURA</a>'
+            '</td></tr>'
+            '<tr><td style="padding:0 40px 20px;font:14px/20px Arial,Helvetica,sans-serif;color:#777;">'
+            '<p style="margin:0 0 8px;">Или откройте ссылку в браузере:</p>'
+            '<p style="margin:0;"><a href="' + link + '"'
+            ' style="color:#D45429;word-break:break-all;">' + link + '</a></p>'
+            '<p style="margin:8px 0 0;">Ссылка действительна ' + str(ttl) + ' минут.</p>'
+            '</td></tr>'
+            '<tr><td style="padding:0 40px 30px;font:12px/18px Arial,Helvetica,sans-serif;color:#999;">'
+            '<p style="margin:0;">Если вы не запрашивали вход, просто проигнорируйте это письмо.</p>'
+            '</td></tr>'
+            '</table></td></tr>'
+            '<tr><td align="center" style="padding:20px;font:12px Arial,Helvetica,sans-serif;color:#bbb;">'
+            'NURA &middot; <a href="https://nura-ai.ru" style="color:#bbb;">nura-ai.ru</a>'
+            '</td></tr></table></body></html>'
+        )
+        text_body = (
+            f"Вход в NURA\n\n"
+            f"Нажмите кнопку, чтобы войти в NURA:\n{link}\n\n"
+            f"Ссылка действительна {ttl} минут.\n\n"
+            f"Если вы не запрашивали вход, просто проигнорируйте это письмо.\n\n"
+            f"NURA — nura-ai.ru"
+        )
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Вход в NURA"
+        msg["From"] = settings.smtp_from
+        msg["To"] = email
+        msg.attach(MIMEText(text_body, "plain", "utf-8"))
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        await aiosmtplib.send(
+            msg,
+            hostname=settings.smtp_host,
+            port=settings.smtp_port,
+            username=settings.smtp_user,
+            password=settings.smtp_password,
+            use_tls=settings.smtp_secure,
+        )
+        return {"ok": True}
+
+    masked = email[0] + "***@" + email.rsplit("@", 1)[-1] if "@" in email else email
+    try:
+        result = _run_async(_send())
+        logger.info("magic link email sent to %s", masked)
+        return result
+    except Exception:
+        logger.exception("failed to send magic link email to %s", masked)
+        raise
 
 
 @celery_app.task(name="core.tasks.cleanup_expired_guest_profiles")

@@ -81,13 +81,19 @@ class Settings(BaseSettings):
     web_session_ttl_seconds: int = 7776000  # 90 days
 
     # Auth & retention
-    unisender_api_key: str = ""
-    sms_ru_api_id: str = ""
+    smtp_host: str = "smtp.beget.com"
+    smtp_port: int = 465
+    smtp_secure: bool = True
+    smtp_user: str = "noreply@nura-ai.ru"
+    smtp_password: str = ""
+    smtp_from: str = "NURA <noreply@nura-ai.ru>"
+    unisender_api_key: str = ""  # deprecated, replaced by SMTP
+    sms_ru_api_id: str = ""  # deprecated, SMS auth removed
     vk_client_id: str = ""
     vk_client_secret: str = ""
     guest_profile_ttl_days: int = 30
     magic_link_ttl_minutes: int = 15
-    sms_code_ttl_minutes: int = 5
+    sms_code_ttl_minutes: int = 5  # deprecated, SMS auth removed
 
     # Admin Panel
     admin_token: str | None = None

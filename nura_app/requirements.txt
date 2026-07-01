@@ -28,3 +28,6 @@ pywebpush>=2.0.0
 
 # Testing
 aiosqlite>=0.20
+
+# Email
+aiosmtplib>=3.0
