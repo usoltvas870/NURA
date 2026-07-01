@@ -104,6 +104,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:380px){.chips{grid-template-columns:1fr}}
 </style>
+<script src="/assets/vendor/vkid-sdk.js" defer></script>
 <script src="/metrika.js" defer></script>
 </head><body>
 <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px" alt=""/></div></noscript>
@@ -185,15 +186,51 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 <a href="/app/" class="small" style="color:var(--text-m);text-decoration:underline">Уже есть аккаунт? Войти →</a>
 </div>
 <script>
+function randomUrlSafe(byteLength) {
+  var bytes = new Uint8Array(byteLength || 32);
+  crypto.getRandomValues(bytes);
+  var binary = '';
+  for (var i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
 function vkLogin() {
-  var guestToken = localStorage.getItem('nura_guest_token') || '';
-  var authUrl = 'https://id.vk.com/authorize'
-    + '?client_id=54660807'
-    + '&redirect_uri=https://nura-ai.ru/vk-callback.html'
-    + '&response_type=token'
-    + '&state=' + encodeURIComponent(guestToken)
-    + '&scope=email';
-  location.href = authUrl;
+  var SDK = window.VKIDSDK;
+  if (!SDK) {
+    authError('Не удалось загрузить модуль входа VK.');
+    return;
+  }
+
+  var btn = document.getElementById('vk-login-btn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+
+  var state = randomUrlSafe(32);
+  var codeVerifier = randomUrlSafe(64);
+
+  sessionStorage.setItem('nura_vk_state', state);
+  sessionStorage.setItem('nura_vk_code_verifier', codeVerifier);
+  sessionStorage.setItem('nura_vk_started_at', String(Date.now()));
+
+  SDK.Config.init({
+    app: 54660807,
+    redirectUrl: 'https://nura-ai.ru/vk-callback.html',
+    state: state,
+    codeVerifier: codeVerifier,
+    scope: 'email'
+  });
+
+  SDK.Auth.login().catch(function() {
+    authError('Не удалось открыть вход через VK. Попробуйте ещё раз.');
+  }).finally(function() {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  });
 }
 </script>
 </section>
