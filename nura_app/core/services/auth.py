@@ -281,23 +281,25 @@ class AuthService:
                 logger.warning("VK ID user_info response: %s", json.dumps(user_info, ensure_ascii=False))
 
             if not isinstance(user_info, dict):
-                logger.error("VK ID user_info returned non-dict: %s", type(user_info).__name__)
+                logger.warning("VK ID user_info returned non-dict: %s", type(user_info).__name__)
                 raise ValueError("VK user_info is invalid")
 
             if user_info.get("error"):
-                logger.error("VK ID user_info error: %s", user_info.get("error"))
+                logger.warning("VK ID user_info error: %s", user_info.get("error"))
                 raise ValueError("VK token validation failed")
 
-            vk_user_id = str(user_info.get("user_id")) if user_info.get("user_id") is not None else None
+            user_data = user_info.get("user") if "user" in user_info else user_info
+
+            vk_user_id = str(user_data.get("user_id")) if user_data.get("user_id") is not None else None
             if not vk_user_id:
-                logger.error("VK ID user_info missing user_id")
+                logger.warning("VK ID user_info missing user_id")
                 raise ValueError("VK user_info is invalid")
 
-            first_name = user_info.get("first_name", "")
-            last_name = user_info.get("last_name", "")
+            first_name = user_data.get("first_name", "")
+            last_name = user_data.get("last_name", "")
             vk_name = f"{first_name} {last_name}".strip() if last_name else first_name
-            email = user_info.get("email")
-            birthday = user_info.get("birthday", "")
+            email = user_data.get("email")
+            birthday = user_data.get("birthday", "")
 
             user_repo = UserRepository(self._session_factory)
             user = await user_repo.get_by_vk_id(vk_user_id)
