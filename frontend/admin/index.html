@@ -1212,13 +1212,14 @@ tr:hover td { background: rgba(184,116,63,.05); }
       return;
     }
     var html = '<table><thead><tr>'
-      + '<th>Имя</th><th>TG</th><th>Email</th><th>VK</th><th>Вход</th><th>Архетип</th><th>Статус</th>'
+      + '<th>ID</th><th>Имя</th><th>TG</th><th>Email</th><th>VK</th><th>Вход</th><th>Архетип</th><th>Статус</th>'
       + '<th>Таро</th><th>Создан</th><th>Платежей</th><th>Сумма</th>'
       + '</tr></thead><tbody>';
 
     users.forEach(function (u) {
       var name = u.name || u.first_name || '-';
       var tg = u.username ? '@' + u.username : (u.telegram_id ? 'ID:' + u.telegram_id : '-');
+      var shortId = u.id ? u.id.slice(0, 8) : '-';
       var statusBadge = u.subscription_status === 'premium'
         ? '<span class="badge badge-premium">Premium</span>'
         : '<span class="badge badge-free">Free</span>';
@@ -1234,6 +1235,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
       var vkStr = u.vk_id || '-';
 
       html += '<tr style="cursor:pointer" onclick="openUserDetail(\'' + u.id + '\')">'
+        + '<td style="font-family:monospace;font-size:11px;color:var(--text-s)" title="' + escapeHtml(u.id) + '">' + escapeHtml(shortId) + '</td>'
         + '<td>' + escapeHtml(name) + '</td>'
         + '<td>' + escapeHtml(tg) + '</td>'
         + '<td>' + emailStr + '</td>'
@@ -1715,6 +1717,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
 
       html += '<div class="modal-section">'
         + '<div class="modal-section-title">Профиль</div>'
+        + '<div class="modal-row"><span class="modal-row-label">ID</span><span class="modal-row-value" style="font-family:monospace;font-size:11px">' + escapeHtml(d.id || '-') + '</span></div>'
         + '<div class="modal-row"><span class="modal-row-label">Имя</span><span class="modal-row-value">' + escapeHtml(d.name || d.first_name || '-') + '</span></div>'
         + '<div class="modal-row"><span class="modal-row-label">Email</span><span class="modal-row-value">' + (d.email ? escapeHtml(d.email) + (d.email_verified ? ' <span class="badge badge-success">подтверждён</span>' : ' <span class="badge badge-warn">не подтверждён</span>') : '-') + '</span></div>'
         + '<div class="modal-row"><span class="modal-row-label">Telegram</span><span class="modal-row-value">' + escapeHtml(d.username ? '@' + d.username : (d.telegram_id ? 'ID:' + d.telegram_id : '-')) + '</span></div>'
