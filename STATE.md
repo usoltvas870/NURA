@@ -1,7 +1,41 @@
 # NURA — State
 
-> Последнее обновление: **01.07.2026 — Сессия 62** — GLM-5.2
+> Последнее обновление: **01.07.2026 — Сессия 64** — DeepSeek V4 Flash
 
+---
+
+## Сессия 64 — 01.07.2026
+- Модель: DeepSeek V4 Flash (opencode-go/deepseek-v4-flash)
+- Что сделано:
+  - **Admin Bot доработки по обратной связи:**
+    - Убраны команды `/errors`, `/logs`, `/db query`, `/deploy` — оставлены только `/status`, `/restart`, `/cache clear`, `/help`
+    - Исправлен баг: команды не работали из-за chat_router, зарегистрированного первым
+    - Создан `chat.py` — обработчик текстовых сообщений с AI (DeepSeek), отвечает на русском с контекстом сервера
+    - Добавлено выполнение действий из чата: «перезапусти api», «очисти кэш» — бот выполняет без команды
+    - `monitor_health` alert'ы переведены на русский через `_russian_error()`
+    - Из `deploy.py` вынесен `/cache` в отдельный `cache.py`
+    - Обновлён `/help` с примерами текстовых запросов
+  - **Деплой на VPS**: admin-bot запущен, все 7 контейнеров работают
+- Блокеры: нет
+- Следующие шаги: тестирование chat-режима и мониторинга
+
+---
+
+## Сессия 63 — 01.07.2026
+- Модель: DeepSeek V4 Flash (opencode-go/deepseek-v4-flash)
+- Что сделано:
+  - **Диагностика VK — обнаружена причина**: `https://id.vk.com/oauth2/token` (VK ID token exchange endpoint) возвращает 404. VK полностью убрал/деактивировал серверный endpoint VK ID OAuth. `https://oauth.vk.com/access_token` (старый VK OAuth endpoint) работает корректно — возвращает `{"error":"invalid_grant"}`.
+  - **Исправление**: флоу переключён с VK ID на VK OAuth:
+    - `mini.html:188-198` — `vkLogin()`: URL авторизации изменён с `https://id.vk.com/authorize` на `https://oauth.vk.com/authorize`, добавлены `display=page` и `v=5.131`
+    - `core/services/auth.py:262-342` — `vk_auth()`: token exchange переключён с `https://id.vk.com/oauth2/token` на `https://oauth.vk.com/access_token`; user info переключён с `https://id.vk.ru/oauth2/user_info` на `https://api.vk.com/method/users.get` (c VK API v5.131); парсинг ответа адаптирован под VK API формат (`response[0]`, поля `id/first_name/last_name/bdate`, email из token response)
+    - Email извлекается из `access_token` ответа (scope=email), а не из user_info
+    - `bdate` из VK API проверяется на наличие года (`len(bdate.split(".")) == 3`) — без года birthday не передаётся
+  - **Email регистрация**: проверена — работает (POST `/api/v1/auth/email/send` → 200)
+  - **Деплой**: файлы скопированы на VPS, API-контейнер пересобран (`docker compose up -d --build api`)
+- Блокеры: нет
+- Следующие шаги:
+  - Протестировать VK auth flow end-to-end на проде
+  - Если VK OAuth redirect_uri не совпадает — проверить настройки VK-приложения
 ---
 
 ## Сессия 62 — 01.07.2026
