@@ -10,10 +10,9 @@ from aiogram.types import BotCommand, BotCommandScopeDefault
 
 from admin_bot.config import AdminBotConfig
 from admin_bot.handlers import (
+    chat_router,
     deploy_router,
-    errors_router,
     help_router,
-    logs_router,
     restart_router,
     status_router,
 )
@@ -51,21 +50,17 @@ async def main() -> None:
     dp.message.middleware(admin_mw)
     dp.callback_query.middleware(admin_mw)
 
+    dp.include_router(chat_router)
     dp.include_router(help_router)
     dp.include_router(status_router)
-    dp.include_router(errors_router)
-    dp.include_router(logs_router)
     dp.include_router(restart_router)
     dp.include_router(deploy_router)
 
     commands = [
-        BotCommand(command="status", description="Сводка состояния сервера"),
-        BotCommand(command="errors", description="Последние ошибки"),
-        BotCommand(command="logs", description="Логи контейнера"),
+        BotCommand(command="status", description="Состояние сервера"),
         BotCommand(command="restart", description="Перезапустить сервис"),
-        BotCommand(command="cache", description="Управление кэшем"),
+        BotCommand(command="cache", description="Очистить кэш"),
         BotCommand(command="deploy", description="Деплой"),
-        BotCommand(command="db", description="SQL запрос"),
         BotCommand(command="help", description="Справка"),
     ]
     await bot.set_my_commands(commands, BotCommandScopeDefault())

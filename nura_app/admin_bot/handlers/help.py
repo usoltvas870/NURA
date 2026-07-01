@@ -6,14 +6,13 @@ router = Router(name="admin_help")
 
 HELP_TEXT = (
     "🛠 <b>Команды Admin Bot</b>\n\n"
-    "/status — сводка: контейнеры, health, последние ошибки\n"
-    "/errors [N] — последние N ошибок из логов с AI-анализом\n"
-    "/logs [name] — логи контейнера за последний час\n"
-    "/restart [svc] — перезапустить контейнер (api|bot|celery-worker|celery-beat)\n"
+    "/status — показать состояние всех сервисов\n"
+    "/restart [svc] — перезапустить сервис (api|bot|celery-worker|celery-beat)\n"
     "/cache clear — очистить Redis кэш\n"
-    "/deploy — git pull + docker compose up -d --build\n"
-    "/db query SQL — выполнить read-only SQL запрос\n"
-    "/help — этот список"
+    "/deploy — выкатить обновление из GitHub\n"
+    "/help — этот список\n\n"
+    "💬 Также можно просто писать вопросы — бот ответит по-русски "
+    "и поможет разобраться с проблемой."
 )
 
 

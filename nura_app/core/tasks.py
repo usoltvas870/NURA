@@ -1328,11 +1328,26 @@ def monitor_health() -> dict:
     return _run_async(_monitor_health_async())
 
 
+def _russian_error(exc: Exception) -> str:
+    msg = str(exc)
+    if isinstance(exc, httpx.ConnectError):
+        return "Не удалось подключиться — сервер не отвечает"
+    if isinstance(exc, httpx.TimeoutException):
+        return "Сервер не ответил вовремя (таймаут)"
+    if isinstance(exc, httpx.HTTPStatusError):
+        return f"HTTP ошибка: {exc.response.status_code}"
+    if isinstance(exc, ImportError):
+        return f"Ошибка загрузки модуля: {msg}"
+    if isinstance(exc, FileNotFoundError):
+        return "Файл или ресурс не найден"
+    return f"Ошибка: {msg}"
+
+
 async def _monitor_health_async() -> dict:
-    logger.info("Running monitor_health check...")
+    logger.info("Проверка здоровья сервера...")
     admin_id = settings.admin_telegram_id
     if not admin_id:
-        logger.warning("ADMIN_TELEGRAM_ID not set, skipping health monitoring")
+        logger.warning("ADMIN_TELEGRAM_ID не задан, пропускаю мониторинг")
         return {"skipped": True}
 
     issues: list[str] = []
@@ -1342,9 +1357,9 @@ async def _monitor_health_async() -> dict:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get("http://localhost:8000/health")
             if resp.status_code != 200:
-                issues.append(f"🔴 API /health returned {resp.status_code}")
+                issues.append(f"🔴 API-сервер вернул статус {resp.status_code}")
     except Exception as e:
-        issues.append(f"🔴 API health check failed: {e}")
+        issues.append(f"🔴 API-сервер недоступен: {_russian_error(e)}")
 
     # 2. Docker container status
     try:
@@ -1356,7 +1371,7 @@ async def _monitor_health_async() -> dict:
             if c["state"] != "running":
                 issues.append(f"🔴 Контейнер <b>{c['name']}</b> — {c['status']}")
     except Exception as e:
-        issues.append(f"🔴 Docker check failed: {e}")
+        issues.append(f"🔴 Не удалось проверить Docker: {_russian_error(e)}")
 
     # 3. Scan recent logs for errors
     try:
@@ -1383,10 +1398,10 @@ async def _monitor_health_async() -> dict:
                 + "\n".join(f"<code>{s}</code>" for s in error_samples)
             )
     except Exception as e:
-        issues.append(f"⚠️ Log scan failed: {e}")
+        issues.append(f"⚠️ Не удалось проверить логи: {_russian_error(e)}")
 
     if not issues:
-        logger.info("monitor_health: all ok")
+        logger.info("monitor_health: всё в порядке")
         return {"status": "ok"}
 
     alert_text = "⚠️ <b>NURA Health Alert</b>\n\n" + "\n\n".join(issues)
