@@ -972,11 +972,9 @@ async def _read_all_logs(lines: int, level: str) -> dict:
                             "tail": per_container, "timestamps": "false"},
                 )
                 log_resp.raise_for_status()
-                raw = log_resp.text
-                for line in raw.split("\n"):
-                    clean = _strip_docker_header(line)
-                    if clean:
-                        all_lines.append(f"[{name}] {clean}")
+                raw_bytes = log_resp.content
+                for line in _parse_docker_multiplexed(raw_bytes):
+                    all_lines.append(f"[{name}] {line}")
     except Exception as e:
         return {"lines": [], "container": "all", "total": 0, "error": str(e)}
 
@@ -1008,26 +1006,36 @@ async def _read_container_logs(container: str, lines: int, level: str) -> list[s
             params={"stdout": "true", "stderr": "true", "tail": lines, "timestamps": "false"},
         )
         log_resp.raise_for_status()
-        raw = log_resp.text
+        raw_bytes = log_resp.content
 
-    parsed: list[str] = []
-    for line in raw.split("\n"):
-        clean = _strip_docker_header(line)
-        if clean:
-            parsed.append(clean)
+    parsed = _parse_docker_multiplexed(raw_bytes)
     return _filter_by_level(parsed, level)
 
 
 def _strip_docker_header(line: str) -> str | None:
-    clean = line
-    if len(clean) >= 8:
-        try:
-            _ = int(clean[:8].strip(), 16)
-            clean = clean[8:]
-        except ValueError:
-            pass
-    clean = clean.strip()
+    clean = line.strip()
     return clean or None
+
+
+def _parse_docker_multiplexed(raw_bytes: bytes) -> list[str]:
+    lines: list[str] = []
+    i = 0
+    while i + 8 <= len(raw_bytes):
+        size = int.from_bytes(raw_bytes[i + 4 : i + 8], "big")
+        i += 8
+        if i + size > len(raw_bytes):
+            break
+        payload = raw_bytes[i : i + size]
+        i += size
+        try:
+            text = payload.decode("utf-8", errors="replace")
+        except Exception:
+            continue
+        for line in text.split("\n"):
+            stripped = line.strip()
+            if stripped:
+                lines.append(stripped)
+    return lines
 
 
 def _filter_by_level(lines: list[str], level: str) -> list[str]:
