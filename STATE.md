@@ -1,6 +1,49 @@
 # NURA — State
 
-> Последнее обновление: **01.07.2026 — Сессия 59** — DeepSeek V4 Flash
+> Последнее обновление: **01.07.2026 — Сессия 61** — DeepSeek V4 Pro
+
+---
+
+## Сессия 61 — 01.07.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано:
+  - **Исправление VK авторизации** (`28fb181`):
+    - **Nginx**: добавлен `location = /vk-callback.html` в `/etc/nginx/sites-enabled/nura-ai.ru` (файл лежал в `/opt/nura/`, но Nginx отдавал 404)
+    - **vk-callback.html**: `redirectUrl` изменён с `window.location.href` (с query params) на `window.location.origin + window.location.pathname` (чистый URL)
+    - **core/services/auth.py**: добавлен `client_secret` в POST-запрос к `id.vk.ru/oauth2/user_info`
+    - **VK app settings**: redirect URI изменён с `https://nura-ai.ru/api/v1/auth/vk/callback` на `https://nura-ai.ru/vk-callback.html`
+    - API контейнер пересобран и перезапущен
+  - **Десктопный layout mini.html**:
+    - Добавлены media queries для 768px (680px ширина) и 1024px (760px ширина)
+    - Форма мини-разбора на десктопе в 2 колонки
+  - **Welcome-экран для зарегистрированных**:
+    - Новая секция `#stage-welcome` вместо баннера сверху
+    - Персонализация имени через `/api/v1/web/me`
+    - Кнопка «Перейти в приложение» + ссылка «Начать заново»
+- Блокеры: нет
+- Следующие шаги:
+  - Протестировать VK auth flow end-to-end
+  - Проверить welcome-экран на десктопе и мобиле
+
+---
+
+## Сессия 60 — 01.07.2026
+- Модель: DeepSeek V4 Flash
+- Что сделано: **Реализация Admin Bot** по спецификации ADMIN_BOT_SPEC.md:
+  - `core/config.py` — добавлены `admin_bot_token`, `admin_telegram_id`
+  - `admin_bot/` — полная структура: config, middleware (AdminOnlyMiddleware), main (polling entry point)
+  - `admin_bot/handlers/` — 6 роутеров: status, errors, logs, restart, deploy (включая /cache clear и /db query), help
+  - `admin_bot/services/` — DockerClient (Docker socket через httpx, логи, рестарт, health check, deploy, Redis cache clear, DB query), LogParser (фильтрация ошибок с noise-исключением), AIAdvisor (DeepSeek-анализ ошибок)
+  - `core/tasks.py` — добавлена задача `monitor_health` (каждые 5 мин: health check, docker ps, сканирование логов на ERROR, alert админу) и helper `_send_admin_message`
+  - `docker-compose.yml` — добавлен сервис `admin-bot` с монтированием Docker socket
+  - `.env.example` — добавлены `ADMIN_BOT_TOKEN`, `ADMIN_TELEGRAM_ID`
+- Ruff: `All checks passed!`; pytest: 335 passed, 1 pre-existing failure
+- Блокеры: нет
+- Следующие шаги:
+  - Создать бота `/newbot` → `@nura_admin_bot` в BotFather, прописать токен в `.env` на VPS
+  - Установить команды бота через BotFather
+  - Прописать `ADMIN_TELEGRAM_ID` в `.env` на VPS
+  - Пересобрать контейнеры: `docker compose up -d --build admin-bot`
 
 ---
 
