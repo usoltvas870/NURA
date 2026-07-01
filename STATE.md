@@ -7,19 +7,19 @@
 ## Сессия 66 — 02.07.2026
 - Модель: DeepSeek V4 Flash (opencode-go/deepseek-v4-flash)
 - Что сделано:
-  - **Полная переработка VK-авторизации на официальный VK ID Web SDK:**
-    - **Корневая причина**: VK деактивировал `id.vk.com/oauth2/token`, серверный обмен code→token невозможен. Надо использовать официальный клиентский SDK с PKCE.
-    - **mini.html**: `vkLogin()` заменён на VK ID SDK (`VKIDSDK`). Генерирует `state` и `code_verifier` через `crypto.getRandomValues()`, сохраняет в `sessionStorage`, вызывает `SDK.Config.init()` + `SDK.Auth.login()`. Кнопка блокируется на время загрузки.
-    - **vk-callback.html**: полный реврайт. Парсит callback (поддерживает `payload` JSON и обычные query params). Проверяет `state` (сравнение с sessionStorage), `code_verifier`, TTL 10 мин. Вызывает `SDK.Auth.exchangeCode(code, deviceId, codeVerifier)`. Отправляет только `access_token` на бэкенд. Не доверяет user_id/email из URL.
-    - **core/services/auth.py**: `vk_auth()` переписан — принимает только `access_token` + `guest_token`. Валидирует токен через `https://id.vk.com/oauth2/user_info` (POST, client_id + client_secret). Получает `user_id`, `first_name`, `last_name`, `email`, `birthday` от VK. User создаётся/находится по проверенному vk_id.
-    - **core/schemas/auth.py**: `VKTokenRequest` — только `access_token` (required, min_length=20) + `guest_token` (optional). Убраны `user_id`, `code`, `email`.
-    - **api/routes/auth.py**: роут обновлён под новую схему и новый `vk_auth()`.
-    - **nginx**: добавлен `location ^~ /assets/` (с `^~` чтобы перебить regex `.js` location), SDK бандл положен в `/opt/nura/assets/vendor/vkid-sdk.js` (170 KB, `@vkid/sdk@2.6.5` UMD).
-  - **Запрещённые эндпоинты удалены**: `id.vk.com/oauth2/token`, `oauth.vk.com`, `api.vk.com/method/users.get` — нигде не используются в VK-флоу.
-  - **Бэкенд тест**: POST `/api/v1/auth/vk` с фейковым токеном → 401 `VK token validation failed` (ожидаемо, VK user_info возвращает `invalid_token`).
-  - **Деплой**: API пересобран, nginx перезагружен, статика обновлена.
+  - **Полная переработка VK-авторизации на официальный VK ID Web SDK**:
+    - **Корневая причина**: VK деактивировал `id.vk.com/oauth2/token`, серверный обмен code→token невозможен. Использован официальный клиентский SDK с PKCE.
+    - **mini.html**: `vkLogin()` заменён на VK ID SDK (`VKIDSDK`). PKCE через `crypto.getRandomValues()`, `SDK.Config.init()` + `SDK.Auth.login()`.
+    - **vk-callback.html**: `SDK.Auth.exchangeCode(code, deviceId, codeVerifier)`. State-проверка, TTL 10 мин. Только `access_token` на бэкенд.
+    - **Баг**: vk-callback.html был записан в Windows-1251 — русский текст не отображался. Исправлен на UTF-8.
+    - **core/services/auth.py**: `vk_auth()` — принимает только `access_token` + `guest_token`. Валидация через VK ID `user_info`.
+    - **core/schemas/auth.py**: `VKTokenRequest` — только `access_token` (required) + `guest_token`.
+    - **nginx**: `location ^~ /assets/` для SDK бандла (`/opt/nura/assets/vendor/vkid-sdk.js`).
+    - **Ключевой баг**: VK ID `user_info` возвращает `{"user": {"user_id": ..., "first_name": ..., "last_name": ..., "birthday": ...}}` — данные под ключом `"user"`. Код искал `user_id` на верхнем уровне → исправлено.
+  - **E2E тест**: VK-авторизация прошла успешно — mini.html → VK диалог → vk-callback.html → /app/
+  - **Блокеры CI/CD**: ручные правки на VPS (scp/Python) создавали локальный diff, блокирующий `git pull` в CI. Решение: не править файлы на VPS напрямую.
 - Блокеры: нет
-- Следующие шаги: **end-to-end тест VK auth в реальном браузере** (инкогнито, домашняя сеть) — mini.html → SDK login → callback → /app/
+- Следующие шаги: мониторинг VK-авторизации в проде
 
 ---
 
