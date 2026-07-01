@@ -162,6 +162,18 @@ class UserRepository(SQLAlchemyRepository[User]):
             )
             return result.scalar_one_or_none()
 
+    async def get_by_name_and_birth_date(
+        self, name: str, birth_date: str
+    ) -> User | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User).where(
+                    User.name == name.strip(),
+                    User.birth_date == birth_date.strip(),
+                )
+            )
+            return result.scalar_one_or_none()
+
     async def create_web_user(
         self,
         name: str,
@@ -179,6 +191,24 @@ class UserRepository(SQLAlchemyRepository[User]):
             web_session_expires_at=now + timedelta(seconds=settings.web_session_ttl_seconds),
         )
         return await self.add(user)
+
+    async def update_web_session(
+        self,
+        user_id: uuid.UUID,
+        web_session_id: str,
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.web_session_id = web_session_id
+            user.web_session_expires_at = (
+                datetime.now(timezone.utc)
+                + timedelta(seconds=settings.web_session_ttl_seconds)
+            )
+            await session.commit()
+            await session.refresh(user)
+            return user
 
     async def update_web_user(
         self,
@@ -213,6 +243,93 @@ class UserRepository(SQLAlchemyRepository[User]):
             user.referred_by = referrer_telegram_id
             await session.commit()
             return True
+
+    async def get_by_email(self, email: str) -> User | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User).where(User.email == email)
+            )
+            return result.scalar_one_or_none()
+
+    async def get_by_phone(self, phone: str) -> User | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User).where(User.phone == phone)
+            )
+            return result.scalar_one_or_none()
+
+    async def get_by_vk_id(self, vk_id: str) -> User | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User).where(User.vk_id == vk_id)
+            )
+            return result.scalar_one_or_none()
+
+    async def set_email_verified(
+        self, user_id: uuid.UUID, value: bool = True
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.email_verified = value
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def set_phone_verified(
+        self, user_id: uuid.UUID, value: bool = True
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.phone_verified = value
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def set_auth_method(
+        self, user_id: uuid.UUID, auth_method: str
+    ) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.auth_method = auth_method
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def set_phone(self, user_id: uuid.UUID, phone: str) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.phone = phone
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def set_vk_id(self, user_id: uuid.UUID, vk_id: str) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.vk_id = vk_id
+            await session.commit()
+            await session.refresh(user)
+            return user
+
+    async def set_email(self, user_id: uuid.UUID, email: str) -> User | None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return None
+            user.email = email
+            await session.commit()
+            await session.refresh(user)
+            return user
 
     async def update_telegram_id(
         self,

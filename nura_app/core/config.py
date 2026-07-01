@@ -80,6 +80,15 @@ class Settings(BaseSettings):
     # Web session
     web_session_ttl_seconds: int = 7776000  # 90 days
 
+    # Auth & retention
+    unisender_api_key: str = ""
+    sms_ru_api_id: str = ""
+    vk_client_id: str = ""
+    vk_client_secret: str = ""
+    guest_profile_ttl_days: int = 30
+    magic_link_ttl_minutes: int = 15
+    sms_code_ttl_minutes: int = 5
+
     # Admin Panel
     admin_token: str | None = None
 

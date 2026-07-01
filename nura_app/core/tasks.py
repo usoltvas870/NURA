@@ -4,6 +4,7 @@ import logging
 import uuid
 from datetime import date, datetime, timedelta, timezone
 
+import httpx
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
 from celery.schedules import crontab
@@ -66,6 +67,10 @@ celery_app.conf.beat_schedule = {
     },
     "downgrade-expired-subscriptions": {
         "task": "core.tasks.downgrade_expired_subscriptions",
+        "schedule": 60 * 60 * 24,
+    },
+    "cleanup-expired-guests": {
+        "task": "core.tasks.cleanup_expired_guest_profiles",
         "schedule": 60 * 60 * 24,
     },
 }
@@ -1209,3 +1214,86 @@ async def _send_broadcast_async(
     }))
 
     return {"sent": sent, "total": total, "failed": failed}
+
+
+@celery_app.task(
+    name="core.tasks.send_magic_link_email",
+    bind=True,
+    max_retries=3,
+    autoretry_on=(Exception,),
+    retry_backoff=30,
+    retry_backoff_max=180,
+)
+def send_magic_link_email(self, email: str, token: str) -> dict:
+    link = f"{settings.report_base_url}/auth/verify?token={token}"
+    if not settings.unisender_api_key:
+        logger.warning("unisender key unset, skipping magic link email to %s", email)
+        return {"ok": True, "skipped_no_key": True}
+
+    subject = "Ваш персональный отчёт готов"
+    html_body = (
+        "<html><body>"
+        "<p>Здравствуйте!</p>"
+        "<p>Для подтверждения email и доступа к персональному отчёту "
+        f'откройте ссылку: <a href="{link}">{link}</a></p>'
+        f"<p>Ссылка действительна {settings.magic_link_ttl_minutes} минут.</p>"
+        "<p>Если вы не запрашивали письмо, просто проигнорируйте его.</p>"
+        "<p>— Нура</p>"
+        "</body></html>"
+    )
+    payload = {
+        "api_key": settings.unisender_api_key,
+        "sender_email": "noreply@nura-ai.ru",
+        "sender_name": "Нура",
+        "recipient": email,
+        "subject": subject,
+        "body": html_body,
+    }
+    with httpx.Client(timeout=10) as client:
+        resp = client.post("https://api.unisender.com/ru/api/sendEmail", data=payload)
+        resp.raise_for_status()
+        data = resp.json()
+    if data.get("status") != "ok":
+        raise Exception(f"Unisender send failed: {data}")
+    return {"ok": True}
+
+
+@celery_app.task(
+    name="core.tasks.send_sms_code",
+    bind=True,
+    max_retries=3,
+    autoretry_on=(Exception,),
+    retry_backoff=30,
+    retry_backoff_max=180,
+)
+def send_sms_code(self, phone: str, code: str) -> dict:
+    message = f"Ваш код для Нура: {code}. Действителен 5 минут."
+    if not settings.sms_ru_api_id:
+        logger.warning("sms_ru api id unset, skipping sms to %s", phone)
+        return {"ok": True, "skipped_no_key": True}
+
+    params = {
+        "api_id": settings.sms_ru_api_id,
+        "to": phone,
+        "msg": message,
+        "json": 1,
+    }
+    with httpx.Client(timeout=10) as client:
+        resp = client.get("https://sms.ru/sms/send", params=params)
+        resp.raise_for_status()
+        data = resp.json()
+    if data.get("status") != "OK":
+        raise Exception(f"SMS send failed: {data}")
+    return {"ok": True}
+
+
+@celery_app.task(name="core.tasks.cleanup_expired_guest_profiles")
+def cleanup_expired_guest_profiles() -> dict:
+    async def _run() -> dict:
+        from core.services.auth import AuthService
+
+        svc = AuthService()
+        count = await svc.cleanup_expired_guests()
+        return {"deleted": count}
+
+    return _run_async(_run())

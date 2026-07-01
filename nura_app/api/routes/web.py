@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from api.deps import limiter
 from api.dependencies import (
@@ -122,12 +123,27 @@ async def mini_analysis(
         session_id = user.web_session_id
         await user_repo.update_web_user(user.id, name=body.name, birth_date=body.birth_date)
     else:
-        session_id = uuid.uuid4().hex
-        user = await user_repo.create_web_user(
-            name=body.name,
-            birth_date=body.birth_date,
-            web_session_id=session_id,
-        )
+        existing = await user_repo.get_by_name_and_birth_date(body.name, body.birth_date)
+        if existing is not None:
+            user = existing
+            session_id = uuid.uuid4().hex
+            await user_repo.update_web_session(user.id, session_id)
+        else:
+            session_id = uuid.uuid4().hex
+            try:
+                user = await user_repo.create_web_user(
+                    name=body.name,
+                    birth_date=body.birth_date,
+                    web_session_id=session_id,
+                )
+            except IntegrityError:
+                existing = await user_repo.get_by_name_and_birth_date(body.name, body.birth_date)
+                if existing is not None:
+                    user = existing
+                    session_id = uuid.uuid4().hex
+                    await user_repo.update_web_session(user.id, session_id)
+                else:
+                    raise HTTPException(status_code=409, detail="Пользователь уже существует")
 
     await user_repo.set_pd_consent(user.id)
 

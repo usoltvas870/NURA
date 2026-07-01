@@ -12,6 +12,7 @@ from api.routes.payment import router as payment_router
 from api.routes.push import router as push_router
 from api.routes.admin_api import router as admin_api_router
 from api.routes.tarot_pwa import router as tarot_pwa_router
+from api.routes.auth import router as auth_router
 
 from core.config import settings
 
@@ -41,6 +42,7 @@ app.include_router(payment_router)
 app.include_router(push_router)
 app.include_router(admin_api_router)
 app.include_router(tarot_pwa_router)
+app.include_router(auth_router)
 
 setup_admin(app)
 

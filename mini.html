@@ -3,6 +3,9 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#EFEEE9">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="NURA">
@@ -43,6 +46,10 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 .btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
 .btn-full{width:100%}
 .btn:disabled{opacity:.55;cursor:not-allowed}
+.auth-form{display:none;grid-template-columns:1fr;gap:12px;margin-top:16px}
+.auth-form.show{display:grid}
+.auth-success{margin-top:16px;text-align:center;display:grid;gap:12px}
+.auth-hint{font-size:12px;color:var(--text-s);line-height:1.5;text-align:center;margin-top:6px}
 .input{width:100%;height:52px;border:1px solid var(--line-strong);background:var(--bg-card);color:var(--text);border-radius:var(--r-md);outline:none;font-size:15px;padding:0 16px;transition:border-color .2s,box-shadow .2s}
 .input:focus{border-color:rgba(184,116,63,.42);box-shadow:0 0 0 3px rgba(184,116,63,.10)}
 .input:-webkit-autofill,
@@ -142,16 +149,95 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 <a href="/" class="small" style="text-align:center;margin-top:4px">← Вернуться на лендинг</a>
 </div>
 </section>
+<section class="card mini-card stage" id="stage-auth">
+<a href="/" class="small">← На главную</a>
+<div style="margin-top:18px" class="eyebrow">Полный доступ</div>
+<h1 class="title" style="margin-top:10px">Забери <em>свой отчёт</em></h1>
+<p class="lead" style="margin-top:12px">Куда отправить расшифровку? Без пароля — пришлём ссылку. Один клик, и полный разбор у тебя.</p>
+<button class="btn btn-primary btn-full" id="auth-email-btn" type="button">✶ Получить на Email</button>
+<div class="auth-hint">Magic Link — без пароля</div>
+<button class="btn btn-soft btn-full" id="auth-sms-btn" type="button" style="margin-top:6px">Получить по SMS</button>
+<div class="auth-hint">Код придёт в сообщении</div>
+<div class="auth-form" id="auth-email-form">
+<input class="input" type="email" id="auth-email-input" placeholder="you@example.com" autocomplete="email">
+<button class="btn btn-primary btn-full" id="auth-email-submit" type="button"><span class="btn-text">Отправить ссылку</span><span class="loader"></span></button>
+</div>
+<div class="auth-form" id="auth-sms-form">
+<input class="input" type="tel" id="auth-sms-input" placeholder="+7XXXXXXXXXX" autocomplete="tel">
+<button class="btn btn-primary btn-full" id="auth-sms-send" type="button"><span class="btn-text">Отправить код</span><span class="loader"></span></button>
+<div class="auth-form" id="auth-sms-code-wrap" style="margin-top:4px">
+<input class="input" type="text" id="auth-sms-code" inputmode="numeric" maxlength="4" placeholder="Код из SMS" autocomplete="one-time-code">
+<button class="btn btn-primary btn-full" id="auth-sms-verify-btn" type="button"><span class="btn-text">Подтвердить</span><span class="loader"></span></button>
+</div>
+</div>
+<div class="auth-success" id="auth-success" style="display:none"></div>
+<div class="small" id="auth-error-msg" style="display:none;margin-top:14px;color:#C45C5C;text-align:center"></div>
+<div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--line);text-align:center">
+<div class="small" style="margin-bottom:10px">Или войди через</div>
+<div id="vk-auth-container" style="display:inline-block"></div>
+</div>
+<script src="https://unpkg.com/@vkid/sdk@3.0.0/dist-sdk/umd/index.js"></script>
+<script>
+(function() {
+  if (!('VKIDSDK' in window)) return;
+  var VKID = window.VKIDSDK;
+  VKID.Config.init({
+    app: 54660807,
+    redirectUrl: 'https://nura-ai.ru/api/v1/auth/vk/callback',
+    responseMode: VKID.ConfigResponseMode.Callback,
+    source: VKID.ConfigSource.LOWCODE,
+    scope: 'email'
+  });
+  var oneTap = new VKID.OneTap();
+  oneTap.render({
+    container: document.getElementById('vk-auth-container'),
+    showAlternativeLogin: false
+  })
+  .on(VKID.WidgetEvents.ERROR, function(error) {
+    var authErr = document.getElementById('auth-error-msg');
+    if (authErr) { authErr.textContent = 'Ошибка авторизации VK'; authErr.style.display = 'block'; }
+  })
+  .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function(payload) {
+    var code = payload.code;
+    var deviceId = payload.device_id;
+    VKID.Auth.exchangeCode(code, deviceId)
+      .then(function(data) {
+        var guestToken = localStorage.getItem('nura_guest_token');
+        var body = { access_token: data.access_token, user_id: String(data.user_id) };
+        if (guestToken) body.guest_token = guestToken;
+        return fetch('/api/v1/auth/vk', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          credentials: 'same-origin',
+          body: JSON.stringify(body)
+        });
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('VK auth failed');
+        return res.json();
+      })
+      .then(function(result) {
+        if (result.success) location.href = '/app/';
+      })
+      .catch(function(err) {
+        var authErr = document.getElementById('auth-error-msg');
+        if (authErr) { authErr.textContent = 'Не удалось войти через VK'; authErr.style.display = 'block'; }
+      });
+  });
+})();
+</script>
+</section>
 </div><script>
 var labels={self:'понять себя',money:'деньги и реализацию',love:'отношения',scenario:'повторяющиеся сценарии',purpose:'предназначение',unknown:'разобраться без точной формулировки'};
-var stageForm=document.getElementById('stage-form'),stageResult=document.getElementById('stage-result');
+var stageForm=document.getElementById('stage-form'),stageResult=document.getElementById('stage-result'),stageAuth=document.getElementById('stage-auth');
 var birth=document.getElementById('birth_date'),form=document.getElementById('mini-form'),err=document.getElementById('error-msg'),submitBtn=document.getElementById('submit-btn');
 var consentBox=document.getElementById('pd_consent');
 
 function showStage(name){
-  stageForm.classList.remove('active');stageResult.classList.remove('active');
+  stageForm.classList.remove('active');stageResult.classList.remove('active');stageAuth.classList.remove('active');
   if(name==='form')stageForm.classList.add('active');
   if(name==='result')stageResult.classList.add('active');
+  if(name==='auth')stageAuth.classList.add('active');
   err.style.display='none';
 }
 function setLoading(btn,loading){
@@ -181,35 +267,49 @@ form.addEventListener('submit',function(e){
   localStorage.setItem('nura_main_request',req);
   window.nuraTrack&&window.nuraTrack('form_submit',{form:'mini_analysis'});
   setLoading(submitBtn,true);
-  fetch('/api/v1/web/mini-analysis',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    credentials:'same-origin',
-    body:JSON.stringify({name:nameVal,birth_date:birthVal,pd_consent:true,main_request:req})
-  })
-  .then(function(res){if(!res.ok)throw new Error('API error');return res.json();})
-  .then(function(data){
-    setLoading(submitBtn,false);
-    var fullArchetype=data.main_archetype||'';
-    var nameMatch=fullArchetype.match(/[—-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)*)\s*\(/);
-    var archetypeName=nameMatch?nameMatch[1]:fullArchetype.split('.')[0];
-    document.getElementById('res-archetype-name').textContent=archetypeName||'…';
-    document.getElementById('res-archetype-full').textContent=fullArchetype;
-    document.getElementById('val-core').textContent=data.core_strength||'…';
-    document.getElementById('val-conflict').textContent=data.emotional_conflict||'…';
-    document.getElementById('val-relations').textContent=data.relationship_pattern||'…';
-    document.getElementById('val-finance').textContent=data.financial_block||'…';
-    document.getElementById('val-extra-1').textContent='';
-    document.getElementById('val-extra-2').textContent='';
-    document.getElementById('request-line').textContent='Запрос: '+labels[req]+'. Полный отчёт раскрывает именно эту линию глубже.';
-    showStage('result');
-    window.scrollTo({top:0,behavior:'smooth'});
-  })
-  .catch(function(){
-    setLoading(submitBtn,false);
-    err.textContent='Что-то пошло не так, попробуй ещё раз';
-    err.style.display='block';
-  });
+  (async function(){
+    try{
+      var gRes=await fetch('/api/v1/auth/guest',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'same-origin',
+        body:JSON.stringify({name:nameVal,birth_date:birthVal,quiz_answers:{main_request:req}})
+      });
+      if(gRes.ok){
+        var gData=await gRes.json();
+        if(gData&&gData.guest_token)localStorage.setItem('nura_guest_token',gData.guest_token);
+      }
+    }catch(e){}
+    fetch('/api/v1/web/mini-analysis',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      credentials:'same-origin',
+      body:JSON.stringify({name:nameVal,birth_date:birthVal,pd_consent:true,main_request:req})
+    })
+    .then(function(res){if(!res.ok)throw new Error('API error');return res.json();})
+    .then(function(data){
+      setLoading(submitBtn,false);
+      var fullArchetype=data.main_archetype||'';
+      var nameMatch=fullArchetype.match(/[—-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)*)\s*\(/);
+      var archetypeName=nameMatch?nameMatch[1]:fullArchetype.split('.')[0];
+      document.getElementById('res-archetype-name').textContent=archetypeName||'…';
+      document.getElementById('res-archetype-full').textContent=fullArchetype;
+      document.getElementById('val-core').textContent=data.core_strength||'…';
+      document.getElementById('val-conflict').textContent=data.emotional_conflict||'…';
+      document.getElementById('val-relations').textContent=data.relationship_pattern||'…';
+      document.getElementById('val-finance').textContent=data.financial_block||'…';
+      document.getElementById('val-extra-1').textContent='';
+      document.getElementById('val-extra-2').textContent='';
+      document.getElementById('request-line').textContent='Запрос: '+labels[req]+'. Полный отчёт раскрывает именно эту линию глубже.';
+      showStage('auth');
+      window.scrollTo({top:0,behavior:'smooth'});
+    })
+    .catch(function(){
+      setLoading(submitBtn,false);
+      err.textContent='Что-то пошло не так, попробуй ещё раз';
+      err.style.display='block';
+    });
+  })();
 });
 
 document.getElementById('pay-btn').addEventListener('click',function(){
@@ -246,6 +346,87 @@ document.getElementById('tg-login-btn').addEventListener('click',function(){
   })
   .catch(function(){setLoading(btn,false);err.textContent='Не удалось начать авторизацию';err.style.display='block';});
 });
+
+var authErr=document.getElementById('auth-error-msg');
+var authEmailForm=document.getElementById('auth-email-form');
+var authSmsForm=document.getElementById('auth-sms-form');
+var authSuccess=document.getElementById('auth-success');
+function authError(msg){authErr.textContent=msg;authErr.style.display='block';}
+function showAuthSuccess(msgHtml){
+  authEmailForm.style.display='none';authSmsForm.style.display='none';
+  authSuccess.style.display='grid';
+  authSuccess.innerHTML=msgHtml;
+}
+var guestToken=function(){return localStorage.getItem('nura_guest_token');};
+
+document.getElementById('auth-email-btn').addEventListener('click',function(){
+  authErr.style.display='none';
+  authSmsForm.classList.remove('show');authSmsForm.style.display='none';
+  if(authEmailForm.classList.contains('show')){authEmailForm.classList.remove('show');authEmailForm.style.display='none';return;}
+  authSuccess.style.display='none';
+  authEmailForm.classList.add('show');authEmailForm.style.display='grid';
+  document.getElementById('auth-email-input').focus();
+});
+document.getElementById('auth-email-submit').addEventListener('click',function(){
+  var btn=this;setLoading(btn,true);authErr.style.display='none';
+  var email=document.getElementById('auth-email-input').value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setLoading(btn,false);authError('Проверь адрес почты — что-то не так');return;}
+  fetch('/api/v1/auth/email/send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'same-origin',
+    body:JSON.stringify({email:email,guest_token:guestToken()||undefined})
+  })
+  .then(function(res){if(!res.ok)throw new Error('send error');return res.json();})
+  .then(function(){setLoading(btn,false);showAuthSuccess('<p class="lead">Письмо отправлено. Проверь почту и перейди по ссылке внутри.</p><a href="/app/" class="btn btn-primary btn-full">Открыть приложение NURA</a>');})
+  .catch(function(){setLoading(btn,false);authError('Не удалось отправить письмо. Попробуй ещё раз');});
+});
+
+document.getElementById('auth-sms-btn').addEventListener('click',function(){
+  authErr.style.display='none';
+  authEmailForm.classList.remove('show');authEmailForm.style.display='none';
+  if(authSmsForm.classList.contains('show')){authSmsForm.classList.remove('show');authSmsForm.style.display='none';return;}
+  authSuccess.style.display='none';
+  authSmsForm.classList.add('show');authSmsForm.style.display='grid';
+  document.getElementById('auth-sms-input').focus();
+});
+var smsPhone='';
+function formatPhone(raw){
+  var d=raw.replace(/\D/g,'');
+  if(d.charAt(0)==='8')d='7'+d.slice(1);
+  if(d.charAt(0)==='7')d=d.slice(1);
+  d=d.slice(0,10);
+  return d.length?('+7'+d):'+7';
+}
+document.getElementById('auth-sms-input').addEventListener('input',function(){this.value=formatPhone(this.value);});
+document.getElementById('auth-sms-send').addEventListener('click',function(){
+  var btn=this;setLoading(btn,true);authErr.style.display='none';
+  var phone=document.getElementById('auth-sms-input').value.trim();
+  if(!/^\+7\d{10}$/.test(phone)){setLoading(btn,false);authError('Введи номер в формате +7XXXXXXXXXX');return;}
+  fetch('/api/v1/auth/sms/send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'same-origin',
+    body:JSON.stringify({phone:phone,guest_token:guestToken()||undefined})
+  })
+  .then(function(res){if(!res.ok)throw new Error('sms send error');return res.json();})
+  .then(function(){setLoading(btn,false);smsPhone=phone;document.getElementById('auth-sms-code-wrap').classList.add('show');document.getElementById('auth-sms-code-wrap').style.display='grid';document.getElementById('auth-sms-code').focus();})
+  .catch(function(){setLoading(btn,false);authError('Не удалось отправить SMS. Попробуй ещё раз');});
+});
+document.getElementById('auth-sms-verify-btn').addEventListener('click',function(){
+  var btn=this;setLoading(btn,true);authErr.style.display='none';
+  var code=document.getElementById('auth-sms-code').value.trim();
+  if(!/^\d{4}$/.test(code)){setLoading(btn,false);authError('Код состоит из 4 цифр');return;}
+  fetch('/api/v1/auth/sms/verify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    credentials:'same-origin',
+    body:JSON.stringify({phone:smsPhone,code:code,guest_token:guestToken()||undefined})
+  })
+  .then(function(res){if(!res.ok)throw new Error('verify error');return res.json();})
+  .then(function(data){setLoading(btn,false);if(data&&data.success){location.href='/app/';}else{authError('Неверный или просроченный код');}})
+  .catch(function(){setLoading(btn,false);authError('Неверный или просроченный код');});
+});
 </script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
 <div id="pwa-ios-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
@@ -263,4 +444,18 @@ document.getElementById('tg-login-btn').addEventListener('click',function(){
   </div>
 </div>
 <script src="/pwa-install.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var params=new URLSearchParams(location.search);
+  var token=params.get('token');
+  var onVerify=(location.pathname.indexOf('/auth/verify')!==-1)||(params.has('token')&&location.pathname.indexOf('verify')!==-1);
+  if(!onVerify||!token)return;
+  document.body.innerHTML='<div style="min-height:100dvh;display:grid;place-items:center;padding:24px;text-align:center"><div><div style="font-size:40px;color:var(--terra);margin-bottom:12px">✦</div><p class="lead" id="verify-status" style="color:var(--text)">Проверяем ссылку…</p></div></div>';
+  var st=document.getElementById('verify-status');
+  fetch('/api/v1/auth/email/verify?token='+encodeURIComponent(token),{method:'GET',credentials:'same-origin'})
+  .then(function(res){if(!res.ok)throw new Error('verify failed');return res.json();})
+  .then(function(data){if(data&&data.success){st.textContent='Готово. Открываем приложение…';setTimeout(function(){location.href='/app/';},600);}else{st.textContent='Ссылка недействительна или истекла.';}})
+  .catch(function(){st.textContent='Ссылка недействительна или истекла.';});
+});
+</script>
 </body></html>

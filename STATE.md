@@ -1,6 +1,36 @@
 # NURA — State
 
-> Последнее обновление: **30.06.2026 — Сессия 53** — DeepSeek V4 Pro
+> Последнее обновление: **01.07.2026 — Сессия 55** — glm-5.2
+
+---
+
+## Сессия 55 — 01.07.2026
+- Модель: glm-5.2 (opencode-go/glm-5.2) — оркестратор, реализация через субагентов
+- Что сделано: реализация плана `docs/auth_system_implementation_plan.md` (Фаза 1 + Фаза 2)
+  - **Слой данных**: `core/models.py` — новые поля User (`phone`, `auth_method`, `email_verified`, `phone_verified`, `vk_id`) + новая модель `GuestProfile`; `core/config.py` — настройки `unisender_api_key`, `sms_ru_api_id`, `vk_client_id/secret`, TTL'ы guest/magic-link/sms; `core/schemas/auth.py` (11 Pydantic-схем, email через regex без зависимости email-validator); `core/repositories/guest.py` (`GuestProfileRepository`); методы в `UserRepository` (`get_by_email/phone/vk_id`, `set_email_verified/phone_verified/auth_method/phone/vk_id/email`); миграция `alembic/versions/c4d5e6f7a8b9_add_auth_and_guest.py` (колонки users + partial unique indexes + таблица guest_profiles)
+  - **Сервис и задачи**: `core/services/auth.py` (`AuthService` — guest/email-magic-link/sms/merge/tg-link/cleanup переиспользует текущую веб-сессию, ключи Redis `guest_profile:`/`magic_link:`/`sms_code:`/`link_token:`); `core/tasks.py` — задачи `send_magic_link_email` (Unisender), `send_sms_code` (sms.ru), `cleanup_expired_guest_profiles` + beat-расписание; no-op без API-ключей (без retry-штормов в dev)
+  - **API**: `api/routes/auth.py` (9 эндпоинтов `/api/v1/auth/*`: guest, email send/verify, sms send/verify, merge, generate-tg-link, vk-501-stub) + регистрация в `api/main.py`; лимиты slowapi по плану
+  - **Frontend**: `mini.html` — создание guest-профиля при сабмите квиза, stage-auth (leadwall) после мини-результата с inline-формами Email/SMS, автоформат телефона, verify-страница `/auth/verify?token=...` → редирект в PWA; нет prompt/alert, пользовательский ввод через textContent
+  - **Telegram**: deep-link уже реализован в `bot/handlers/start.py` (`link_`), переиспользован без дублирования
+  - **Тесты**: `nura_app/tests/test_auth.py` (19 тестов, все зелёные) — repo-тесты на реальной SQLite + service-тесты через `_FakeRedis` и MagicMock для Celery (direct-call паттерн, как `test_report_ttl`)
+  - Исправление: tz-безопасное сравнение `expires_at` в `AuthService.get_guest` (SQLite возвращает naive datetime)
+- ruff: `All checks passed!`; pytest: `19 passed` (auth); полный прогон — 338 passed, 1 failed в `test_tarot_handlers.py` (файл игнорируется CI, ошибка в mock платежей — не связана с auth)
+- Блокеры: нет
+- Не реализовано (вне кода): Фаза 3 VK ID (требует регистрацию VK-приложения — endpoint оставлен стабом 501), Фаза 4 (рефералка/рассылки/аналитика — продуктовые задачи)
+- Следующие шаги: применить миграцию на VPS (`alembic upgrade head`), выставить `UNISENDER_API_KEY`/`SMS_RU_API_ID` в `.env`, прогнать flow на staging, при появлении VK-кредентов реализовать `/api/v1/auth/vk`; при расширении — добавить route-level тесты через общий `client` fixture
+
+---
+
+## Сессия 54 — 30.06.2026
+- Модель: qwen3.7-plus (opencode-go/qwen3.7-plus)
+- Что сделано:
+  - **Полное исправление дублирования веб-пользователей**: `POST /api/v1/web/mini-analysis` теперь проверяет существование пользователя по `(name, birth_date)` перед созданием нового
+  - `core/repositories/user.py`: добавлены методы `get_by_name_and_birth_date()` и `update_web_session()`
+  - `api/routes/web.py`: логика — если пользователь с такими данными уже существует, обновляется его `web_session_id` вместо создания нового; добавлена обработка `IntegrityError` для race condition
+  - `core/models.py`: добавлен composite unique constraint `uq_user_name_birth_date` на `(name, birth_date)`
+  - `alembic/versions/b3c4d5e6f7a8_add_unique_name_birth_date.py`: миграция для constraint
+- Блокеры: нет
+- Следующие шаги: применить миграцию на VPS (`alembic upgrade head`), перезапустить API
 
 ---
 
