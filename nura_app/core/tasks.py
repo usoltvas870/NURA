@@ -2,6 +2,8 @@ import asyncio
 import json
 import logging
 import uuid
+
+import httpx
 from datetime import date, datetime, timedelta, timezone
 
 from celery import Celery
@@ -72,6 +74,10 @@ celery_app.conf.beat_schedule = {
     "cleanup-expired-guests": {
         "task": "core.tasks.cleanup_expired_guest_profiles",
         "schedule": 60 * 60 * 24,
+    },
+    "monitor-health": {
+        "task": "core.tasks.monitor_health",
+        "schedule": 60 * 5,
     },
 }
 
@@ -1315,3 +1321,108 @@ def cleanup_expired_guest_profiles() -> dict:
         return {"deleted": count}
 
     return _run_async(_run())
+
+
+@celery_app.task(name="core.tasks.monitor_health")
+def monitor_health() -> dict:
+    return _run_async(_monitor_health_async())
+
+
+async def _monitor_health_async() -> dict:
+    logger.info("Running monitor_health check...")
+    admin_id = settings.admin_telegram_id
+    if not admin_id:
+        logger.warning("ADMIN_TELEGRAM_ID not set, skipping health monitoring")
+        return {"skipped": True}
+
+    issues: list[str] = []
+
+    # 1. Check API health endpoint
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get("http://localhost:8000/health")
+            if resp.status_code != 200:
+                issues.append(f"🔴 API /health returned {resp.status_code}")
+    except Exception as e:
+        issues.append(f"🔴 API health check failed: {e}")
+
+    # 2. Docker container status
+    try:
+        from admin_bot.services.docker_client import DockerClient
+
+        dc = DockerClient()
+        containers = await dc.list_containers()
+        for c in containers:
+            if c["state"] != "running":
+                issues.append(f"🔴 Контейнер <b>{c['name']}</b> — {c['status']}")
+    except Exception as e:
+        issues.append(f"🔴 Docker check failed: {e}")
+
+    # 3. Scan recent logs for errors
+    try:
+        from admin_bot.services.docker_client import DockerClient
+        from admin_bot.services.log_parser import LogParser
+
+        dc = DockerClient()
+        containers = await dc.list_containers()
+        error_count = 0
+        error_samples: list[str] = []
+        for c in containers:
+            if c["state"] != "running":
+                continue
+            lines = await dc.get_container_logs(c["name"], since_minutes=5, lines=200)
+            errors = LogParser.extract_errors(lines, max_per_container=5)
+            for err in errors:
+                error_count += 1
+                if len(error_samples) < 5:
+                    error_samples.append(f"[{c['name']}] {err['line'][:200]}")
+
+        if error_samples:
+            issues.append(
+                f"⚠️ Найдено {error_count} ошибок в логах за 5 мин:\n"
+                + "\n".join(f"<code>{s}</code>" for s in error_samples)
+            )
+    except Exception as e:
+        issues.append(f"⚠️ Log scan failed: {e}")
+
+    if not issues:
+        logger.info("monitor_health: all ok")
+        return {"status": "ok"}
+
+    alert_text = "⚠️ <b>NURA Health Alert</b>\n\n" + "\n\n".join(issues)
+
+    try:
+        await _send_admin_message(admin_id, alert_text)
+        logger.info("monitor_health: alert sent to admin %s", admin_id)
+    except Exception as e:
+        logger.exception("Failed to send health alert: %s", e)
+
+    return {"status": "alert", "issues": issues}
+
+
+async def _send_admin_message(telegram_id: int, text: str) -> bool:
+    from aiogram import Bot
+    from aiogram.client.default import DefaultBotProperties
+    from aiogram.enums import ParseMode
+    from aiogram.exceptions import TelegramForbiddenError
+
+    token = settings.admin_bot_token
+    if not token or token.startswith("change-me"):
+        logger.warning("ADMIN_BOT_TOKEN not configured, skipping admin message")
+        return False
+
+    bot = Bot(
+        token=token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
+    try:
+        await bot.send_message(chat_id=telegram_id, text=text)
+        return True
+    except TelegramForbiddenError:
+        logger.warning("Admin bot blocked by user %s", telegram_id)
+        return False
+    except Exception:
+        logger.exception("Failed to send admin message")
+        return False
+    finally:
+        await bot.session.close()
