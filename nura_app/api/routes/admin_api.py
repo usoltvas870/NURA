@@ -214,6 +214,8 @@ class UserRow(BaseModel):
     name: str | None
     birth_date: str | None
     main_archetype: str | None
+    auth_method: str | None
+    vk_id: str | None
     subscription_status: str
     subscription_until: str | None
     tarot_subscription: bool
@@ -273,6 +275,10 @@ async def get_users(
                 conditions.append(User.subscription_status == "premium")
             elif filter == "tarot":
                 conditions.append(User.tarot_subscription == True)  # noqa: E712
+            elif filter == "vk":
+                conditions.append(User.vk_id != None)  # noqa: E711
+            elif filter == "email":
+                conditions.append(User.email != None)  # noqa: E711
             elif filter == "telegram":
                 conditions.append(User.telegram_id != None)  # noqa: E711
             elif filter == "push":
@@ -301,6 +307,8 @@ async def get_users(
                     name=user.name,
                     birth_date=user.birth_date,
                     main_archetype=user.main_archetype,
+                    auth_method=user.auth_method,
+                    vk_id=user.vk_id,
                     subscription_status=user.subscription_status,
                     subscription_until=user.subscription_until.isoformat()
                     if user.subscription_until
@@ -430,6 +438,8 @@ class UserDetailResponse(BaseModel):
     birth_date: str | None
     main_archetype: str | None
     main_archetype_number: int | None
+    auth_method: str | None
+    vk_id: str | None
     subscription_status: str
     subscription_until: str | None
     tarot_subscription: bool
@@ -486,6 +496,8 @@ async def get_user_detail(user_id: str):
             birth_date=user.birth_date,
             main_archetype=user.main_archetype,
             main_archetype_number=user.main_archetype_number,
+            auth_method=user.auth_method,
+            vk_id=user.vk_id,
             subscription_status=user.subscription_status,
             subscription_until=user.subscription_until.isoformat()
             if user.subscription_until

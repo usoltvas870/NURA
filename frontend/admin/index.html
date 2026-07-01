@@ -739,6 +739,8 @@ tr:hover td { background: rgba(184,116,63,.05); }
         <button class="filter-btn" data-filter="premium">Premium</button>
         <button class="filter-btn" data-filter="tarot">Таро</button>
         <button class="filter-btn" data-filter="telegram">Telegram</button>
+        <button class="filter-btn" data-filter="vk">VK</button>
+        <button class="filter-btn" data-filter="email">Email</button>
         <button class="filter-btn" data-filter="push">Push</button>
       </div>
       <div id="usersLoading" class="loading"><span class="spinner"></span>Загрузка...</div>
@@ -1210,7 +1212,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
       return;
     }
     var html = '<table><thead><tr>'
-      + '<th>Имя</th><th>Telegram</th><th>Архетип</th><th>Статус</th>'
+      + '<th>Имя</th><th>TG</th><th>Вход</th><th>Архетип</th><th>Статус</th>'
       + '<th>Таро</th><th>Создан</th><th>Платежей</th><th>Сумма</th>'
       + '</tr></thead><tbody>';
 
@@ -1227,6 +1229,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
       html += '<tr style="cursor:pointer" onclick="openUserDetail(\'' + u.id + '\')">'
         + '<td>' + escapeHtml(name) + '</td>'
         + '<td>' + escapeHtml(tg) + '</td>'
+        + '<td>' + escapeHtml(u.auth_method || '-') + '</td>'
         + '<td>' + escapeHtml(u.main_archetype || '-') + '</td>'
         + '<td>' + statusBadge + '</td>'
         + '<td>' + tarotBadge + '</td>'
@@ -1703,7 +1706,10 @@ tr:hover td { background: rgba(184,116,63,.05); }
 
       html += '<div class="modal-section">'
         + '<div class="modal-section-title">Профиль</div>'
+        + '<div class="modal-row"><span class="modal-row-label">Имя</span><span class="modal-row-value">' + escapeHtml(d.name || d.first_name || '-') + '</span></div>'
         + '<div class="modal-row"><span class="modal-row-label">Telegram</span><span class="modal-row-value">' + escapeHtml(d.username ? '@' + d.username : (d.telegram_id ? 'ID:' + d.telegram_id : '-')) + '</span></div>'
+        + '<div class="modal-row"><span class="modal-row-label">VK ID</span><span class="modal-row-value">' + escapeHtml(d.vk_id || '-') + '</span></div>'
+        + '<div class="modal-row"><span class="modal-row-label">Способ входа</span><span class="modal-row-value">' + escapeHtml(d.auth_method || '-') + '</span></div>'
         + '<div class="modal-row"><span class="modal-row-label">Дата рождения</span><span class="modal-row-value">' + escapeHtml(d.birth_date || '-') + '</span></div>'
         + '<div class="modal-row"><span class="modal-row-label">Архетип</span><span class="modal-row-value">' + escapeHtml(d.main_archetype || '-') + (d.main_archetype_number ? ' (' + d.main_archetype_number + ')' : '') + '</span></div>'
         + '</div>';
