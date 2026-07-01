@@ -35,11 +35,6 @@ class EmailAuthResponse(BaseModel):
     expires_in: int
 
 
-class VKAuthRequest(BaseModel):
-    code: str
-    guest_token: str | None = None
-
-
 class VKTokenRequest(BaseModel):
     access_token: str | None = None
     user_id: str | None = None

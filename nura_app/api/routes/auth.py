@@ -85,7 +85,7 @@ async def verify_email_auth(
 
 @router.post("/merge", response_model=MergeGuestResponse)
 @limiter.limit("10/minute")
-async def merge_guest(
+async def apply_guest_data(
     request: Request,
     body: MergeGuestRequest,
     user: User = Depends(get_current_web_user),
