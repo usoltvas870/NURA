@@ -20,7 +20,14 @@
     - Добавлен `vk_redirect_uri` в `Settings`
     - Удалён `@vkid/sdk` скрипт из mini.html и vk-callback.html — флоу не зависит от VK SDK
   - **mini.html текст**: убраны «абстрактный текст» и «болит», заменено на «Дата рождения — ключ к твоей личной матрице. А запрос помогает NURA сфокусироваться на главном, чтобы разбор получился точным и личным.»
-  - ruff: passed
+  - **Архитектурное изменение: User только при авторизации** (`api/routes/web.py`, `core/services/auth.py`, `core/repositories/guest.py`, `mini.html`, `tests/test_auth.py`):
+    - mini-analysis больше НЕ создаёт User и Report — только GuestProfile (report_data с анализом + матрицей)
+    - User создаётся ТОЛЬКО в момент авторизации: email или VK
+    - `merge_guest` → `apply_guest_data_and_create_report`: копирует name/birth_date из GuestProfile в User, затем создаёт MINI Report из guest.report_data
+    - `merge_users` удалён — каждый способ входа = отдельный аккаунт, без слияния
+    - GuestProfileRepository: добавлен `save_report_data`
+    - mini.html: guest_token передаётся в mini-analysis запрос
+  - ruff: passed, test_auth: 16/16 passed
 - Блокеры: нет
 - Следующие шаги: проверить VK-флоу на проде после деплоя; возможно убрать гостевой профиль-призрак при неудачной VK-авторизации (сейчас guest создаётся на этапе мини-анализа — это ожидаемое поведение, не баг)
 

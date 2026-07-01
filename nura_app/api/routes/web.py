@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 
 from api.deps import limiter
 from api.dependencies import (
@@ -13,13 +12,13 @@ from api.dependencies import (
     get_optional_web_user,
     set_session_cookie,
 )
-from core.arcana_data import ARCANA
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
 from core.models import PromoCode, ReportType, User
 from core.repositories.payment import PaymentRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
+from core.repositories.guest import GuestProfileRepository
 
 from core.services.ai import AIService
 from core.services.matrix import MatrixService
@@ -76,6 +75,7 @@ class MiniAnalysisRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
     birth_date: str = Field(..., pattern=r"^\d{2}\.\d{2}\.\d{4}$")
     pd_consent: bool = Field(..., description="Согласие на обработку ПД")
+    guest_token: str | None = None
 
 
 class MiniAnalysisResponse(BaseModel):
@@ -115,54 +115,10 @@ async def mini_analysis(
     if not body.pd_consent:
         raise HTTPException(status_code=400, detail="Необходимо согласие на обработку персональных данных")
 
-    session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-
-    if web_user is not None:
-        user = web_user
-        session_id = user.web_session_id
-        await user_repo.update_web_user(user.id, name=body.name, birth_date=body.birth_date)
-    else:
-        existing = await user_repo.get_by_name_and_birth_date(body.name, body.birth_date)
-        if existing is not None:
-            user = existing
-            session_id = uuid.uuid4().hex
-            await user_repo.update_web_session(user.id, session_id)
-        else:
-            session_id = uuid.uuid4().hex
-            try:
-                user = await user_repo.create_web_user(
-                    name=body.name,
-                    birth_date=body.birth_date,
-                    web_session_id=session_id,
-                )
-            except IntegrityError:
-                existing = await user_repo.get_by_name_and_birth_date(body.name, body.birth_date)
-                if existing is not None:
-                    user = existing
-                    session_id = uuid.uuid4().hex
-                    await user_repo.update_web_session(user.id, session_id)
-                else:
-                    raise HTTPException(status_code=409, detail="Пользователь уже существует")
-
-    await user_repo.set_pd_consent(user.id)
-
     try:
         matrix_data = MatrixService.calculate(body.birth_date)
     except Exception:
         raise HTTPException(status_code=400, detail="Неверный формат даты")
-
-    center_num = matrix_data.center
-    center_name = ARCANA.get(center_num, {}).get("name", "Неизвестный")
-    await user_repo.update_archetype(user.id, center_name, center_num)
-
-    report_repo = ReportRepository(session_factory)
-    await report_repo.create(
-        user_id=user.id,
-        report_type=ReportType.MINI,
-        token=ReportService.generate_token(),
-        matrix_data=matrix_data if isinstance(matrix_data, dict) else matrix_data.model_dump(),
-    )
 
     try:
         analysis = await AIService.generate_mini_analysis(
@@ -172,7 +128,14 @@ async def mini_analysis(
     except Exception:
         raise HTTPException(status_code=503, detail="AI сервис временно недоступен")
 
-    set_session_cookie(response, session_id)
+    if body.guest_token:
+        session_factory = get_async_sessionmaker()
+        guest_repo = GuestProfileRepository(session_factory)
+        report_data = {
+            **analysis,
+            "matrix_data": matrix_data.model_dump() if hasattr(matrix_data, "model_dump") else matrix_data,
+        }
+        await guest_repo.save_report_data(body.guest_token, report_data)
 
     return MiniAnalysisResponse(**analysis)
 

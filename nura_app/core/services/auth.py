@@ -7,8 +7,9 @@ from typing import Any
 
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
-from core.models import User
+from core.models import ReportType, User
 from core.repositories.guest import GuestProfileRepository
+from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 
 logger = logging.getLogger(__name__)
@@ -195,15 +196,9 @@ class AuthService:
 
         if guest_token:
             try:
-                await self.merge_guest(guest_token, user)
+                await self.apply_guest_data_and_create_report(guest_token, user)
             except Exception:
-                logger.exception("merge_guest failed during magic link verify")
-
-        if current_user is not None and current_user.id != user.id:
-            try:
-                await self.merge_users(current_user.id, user.id)
-            except Exception:
-                logger.exception("merge_users failed during magic link verify")
+                logger.exception("apply_guest_data failed during magic link verify")
 
         return {
             "success": True,
@@ -211,7 +206,7 @@ class AuthService:
             "web_session_id": web_session_id,
         }
 
-    async def merge_guest(self, guest_token: str, user: User) -> bool:
+    async def apply_guest_data_and_create_report(self, guest_token: str, user: User) -> bool:
         try:
             repo = GuestProfileRepository(self._session_factory)
             guest = await repo.get_by_token(guest_token)
@@ -226,13 +221,22 @@ class AuthService:
             if user.birth_date in (None, "") and guest.birth_date:
                 await user_repo.update_web_user(user.id, birth_date=guest.birth_date)
 
-            await repo.mark_merged(guest.id, user.id)
+            if guest.report_data:
+                report_repo = ReportRepository(self._session_factory)
+                await report_repo.create(
+                    user_id=user.id,
+                    report_type=ReportType.MINI,
+                    token=uuid.uuid4().hex,
+                    matrix_data=guest.report_data.get("matrix_data"),
+                    ai_analysis=guest.report_data,
+                )
 
+            await repo.mark_merged(guest.id, user.id)
             redis = get_redis()
             await redis.delete(f"{GUEST_CACHE_PREFIX}:{guest_token}")
             return True
         except Exception:
-            logger.exception("merge_guest failed")
+            logger.exception("apply_guest_data failed")
             return False
 
     async def generate_telegram_link(self, user: User) -> dict:
@@ -254,38 +258,6 @@ class AuthService:
         repo = GuestProfileRepository(self._session_factory)
         now = datetime.now(timezone.utc)
         return await repo.delete_expired(now)
-
-    async def merge_users(self, source_user_id: uuid.UUID, target_user_id: uuid.UUID) -> bool:
-        """Merge source user into target user: transfer reports, payments, referral_rewards, then delete source."""
-        try:
-            from sqlalchemy import update, delete
-            from core.models import Report, Payment, ReferralReward
-
-            async with self._session_factory() as session:
-                await session.execute(
-                    update(Report).where(Report.user_id == source_user_id).values(user_id=target_user_id)
-                )
-                await session.execute(
-                    update(Payment).where(Payment.user_id == source_user_id).values(user_id=target_user_id)
-                )
-                await session.execute(
-                    update(ReferralReward)
-                    .where(ReferralReward.referrer_id == source_user_id)
-                    .values(referrer_id=target_user_id)
-                )
-                await session.execute(
-                    update(ReferralReward)
-                    .where(ReferralReward.referred_id == source_user_id)
-                    .values(referred_id=target_user_id)
-                )
-                await session.execute(
-                    delete(User).where(User.id == source_user_id)
-                )
-                await session.commit()
-            return True
-        except Exception:
-            logger.exception("merge_users failed")
-            return False
 
     async def vk_auth(
         self,
@@ -392,15 +364,9 @@ class AuthService:
 
             if guest_token:
                 try:
-                    await self.merge_guest(guest_token, user)
+                    await self.apply_guest_data_and_create_report(guest_token, user)
                 except Exception:
-                    logger.exception("merge_guest failed during vk auth")
-
-            if current_user is not None and current_user.id != user.id:
-                try:
-                    await self.merge_users(current_user.id, user.id)
-                except Exception:
-                    logger.exception("merge_users failed during vk auth")
+                    logger.exception("apply_guest_data failed during vk auth")
 
             return {
                 "success": True,

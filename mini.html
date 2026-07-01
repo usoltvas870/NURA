@@ -290,7 +290,7 @@ form.addEventListener('submit',function(e){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       credentials:'same-origin',
-      body:JSON.stringify({name:nameVal,birth_date:birthVal,pd_consent:true,main_request:req})
+      body:JSON.stringify({name:nameVal,birth_date:birthVal,pd_consent:true,main_request:req,guest_token:localStorage.getItem('nura_guest_token')||undefined})
     })
     .then(function(res){if(!res.ok)throw new Error('API error');return res.json();})
     .then(function(data){

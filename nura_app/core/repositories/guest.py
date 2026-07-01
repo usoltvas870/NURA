@@ -47,6 +47,21 @@ class GuestProfileRepository(SQLAlchemyRepository[GuestProfile]):
             guest.merged_to_user_id = user_id
             await session.commit()
 
+    async def save_report_data(
+        self, guest_token: str, report_data: dict
+    ) -> GuestProfile | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(GuestProfile).where(GuestProfile.guest_token == guest_token)
+            )
+            guest = result.scalar_one_or_none()
+            if guest is None:
+                return None
+            guest.report_data = report_data
+            await session.commit()
+            await session.refresh(guest)
+            return guest
+
     async def delete_by_id(self, guest_id: uuid.UUID) -> None:
         async with self._session_factory() as session:
             await session.execute(

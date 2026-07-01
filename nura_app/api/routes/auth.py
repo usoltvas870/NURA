@@ -90,7 +90,7 @@ async def merge_guest(
     body: MergeGuestRequest,
     user: User = Depends(get_current_web_user),
 ):
-    ok = await AuthService().merge_guest(body.guest_token, user)
+    ok = await AuthService().apply_guest_data_and_create_report(body.guest_token, user)
     if not ok:
         raise HTTPException(
             status_code=400, detail="Гостевой профиль не найден или уже привязан"

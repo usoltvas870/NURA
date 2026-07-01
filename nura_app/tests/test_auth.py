@@ -401,10 +401,10 @@ async def test_merge_guest_idempotent(
         web_session_id=uuid.uuid4().hex,
     )
 
-    first = await auth_service.merge_guest("tok-idemp", user)
+    first = await auth_service.apply_guest_data_and_create_report("tok-idemp", user)
     assert first is True
 
-    second = await auth_service.merge_guest("tok-idemp", user)
+    second = await auth_service.apply_guest_data_and_create_report("tok-idemp", user)
     assert second is False
 
 
