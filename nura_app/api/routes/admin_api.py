@@ -947,7 +947,7 @@ async def _read_all_logs(lines: int, level: str) -> dict:
     all_lines: list[str] = []
 
     try:
-        transport = httpx.HTTPTransport(uds=DOCKER_SOCK)
+        transport = httpx.AsyncHTTPTransport(uds=DOCKER_SOCK)
         async with httpx.AsyncClient(transport=transport, timeout=15.0) as client:
             list_resp = await client.get("http://localhost/containers/json")
             list_resp.raise_for_status()
@@ -985,7 +985,7 @@ async def _read_all_logs(lines: int, level: str) -> dict:
 
 
 async def _read_container_logs(container: str, lines: int, level: str) -> list[str]:
-    transport = httpx.HTTPTransport(uds=DOCKER_SOCK)
+    transport = httpx.AsyncHTTPTransport(uds=DOCKER_SOCK)
     async with httpx.AsyncClient(transport=transport, timeout=10.0) as client:
         list_resp = await client.get("http://localhost/containers/json")
         list_resp.raise_for_status()
