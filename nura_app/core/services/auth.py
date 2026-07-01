@@ -309,8 +309,22 @@ class AuthService:
                 user_info = resp.json()
                 logger.info("VK ID user_info response: %s", json.dumps(user_info, ensure_ascii=False))
 
-            user_repo = UserRepository(self._session_factory)
-            user = await user_repo.get_by_vk_id(vk_user_id)
+            if not isinstance(user_info, dict) or user_info.get("error"):
+                logger.error("VK ID user_info returned error: %s", user_info if isinstance(user_info, dict) else type(user_info).__name__)
+                raise ValueError("VK user_info is invalid")
+
+            info_user_id = (
+                str(user_info.get("user_id"))
+                if user_info.get("user_id") is not None
+                else None
+            )
+            if info_user_id is None or info_user_id != str(vk_user_id):
+                logger.error(
+                    "VK user_id mismatch: frontend=%s, user_info=%s",
+                    vk_user_id,
+                    info_user_id,
+                )
+                raise ValueError("VK user_id mismatch")
 
             first_name = (
                 user_info.get("first_name")
@@ -323,6 +337,9 @@ class AuthService:
             email = user_info.get("email")
             birthday = user_info.get("birthday", "")
 
+            user_repo = UserRepository(self._session_factory)
+            user = await user_repo.get_by_vk_id(vk_user_id)
+
             if user is None:
                 name = vk_name or "Пользователь"
                 web_session_id = uuid.uuid4().hex
@@ -331,8 +348,8 @@ class AuthService:
                     birth_date=birthday,
                     web_session_id=web_session_id,
                     email=email,
+                    vk_id=vk_user_id,
                 )
-                await user_repo.set_vk_id(user.id, vk_user_id)
             else:
                 if user.name in (None, GUEST_NAME_PLACEHOLDER, "Пользователь", "") and vk_name:
                     await user_repo.update_web_user(user.id, name=vk_name)

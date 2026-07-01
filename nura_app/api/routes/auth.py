@@ -1,3 +1,6 @@
+import logging
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 
@@ -16,6 +19,8 @@ from core.schemas.auth import (
     VKTokenRequest,
 )
 from core.services.auth import AuthService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth")
 
@@ -110,8 +115,17 @@ async def vk_auth(
     response: Response,
     web_user: User | None = Depends(get_optional_web_user),
 ):
-    result = await AuthService().vk_auth(
-        body.access_token, body.user_id, body.guest_token, web_user
-    )
+    try:
+        result = await AuthService().vk_auth(
+            body.access_token, body.user_id, body.guest_token, web_user
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e) or "VK-токен не подтверждён")
+    except httpx.HTTPStatusError as e:
+        logger.error("VK ID API error: %s", e.response.text if e.response is not None else "no response")
+        raise HTTPException(status_code=502, detail="VK-авторизация недоступна. Попробуйте позже.")
+    except Exception:
+        logger.exception("vk_auth endpoint failed")
+        raise HTTPException(status_code=502, detail="Не удалось авторизоваться через VK")
     set_session_cookie(response, result["web_session_id"])
     return VKAuthResponse(success=True, user_id=result["user_id"])

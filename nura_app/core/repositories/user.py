@@ -201,6 +201,7 @@ class UserRepository(SQLAlchemyRepository[User]):
         birth_date: str,
         web_session_id: str,
         email: str | None = None,
+        vk_id: str | None = None,
     ) -> User:
         now = datetime.now(timezone.utc)
         user = User(
@@ -209,6 +210,7 @@ class UserRepository(SQLAlchemyRepository[User]):
             birth_date=birth_date,
             web_session_id=web_session_id,
             email=email,
+            vk_id=vk_id,
             web_session_expires_at=now + timedelta(seconds=settings.web_session_ttl_seconds),
         )
         return await self.add(user)

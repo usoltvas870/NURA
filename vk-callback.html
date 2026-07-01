@@ -10,9 +10,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#1
 .card{background:#222;border-radius:12px;padding:32px;text-align:center;max-width:360px;width:100%}
 h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
 .status{font-size:14px;line-height:1.5;color:#999}
-.error{color:#C45C5C}
+.error{color:#C45C5C;margin-bottom:18px}
 .loader{display:inline-block;width:20px;height:20px;border:2px solid #444;border-top-color:#D45429;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
 @keyframes spin{to{transform:rotate(360deg)}}
+.retry-btn{display:inline-block;margin-top:4px;padding:10px 22px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#eee;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
+.retry-btn:hover{background:#333}
 </style>
 </head>
 <body>
@@ -32,22 +34,34 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
   var error = params.get('error');
   var state = params.get('state') || '';
 
-  if (error) {
+  function renderError(msg) {
     loader.style.display = 'none';
     el.className = 'status error';
-    el.textContent = 'Авторизация отклонена';
+    el.textContent = msg;
+    var card = el.closest('.card');
+    if (card && !card.querySelector('.retry-btn')) {
+      var btn = document.createElement('a');
+      btn.className = 'retry-btn';
+      btn.href = '/mini';
+      btn.textContent = 'Попробовать ещё раз';
+      card.appendChild(btn);
+    }
+  }
+
+  function isSdkError(e) {
+    return !!(e && (e.name === 'VKIDError' || /exchangeCode|SDK|VK/i.test(String(e.message || ''))));
+  }
+
+  if (error) {
+    renderError('Авторизация отклонена. Попробуйте другой способ входа.');
     return;
   }
   if (!code) {
-    loader.style.display = 'none';
-    el.className = 'status error';
-    el.textContent = 'Код авторизации не получен';
+    renderError('Код авторизации не получен. Попробуйте ещё раз.');
     return;
   }
   if (!('VKIDSDK' in window)) {
-    loader.style.display = 'none';
-    el.className = 'status error';
-    el.textContent = 'Ошибка загрузки VK SDK';
+    renderError('Не удалось загрузить VK SDK. Попробуйте другой способ или обновите страницу.');
     return;
   }
 
@@ -60,10 +74,16 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
     scope: 'email'
   });
 
+  var fetchCalled = false;
+
   VKID.Auth.exchangeCode(code, '')
     .then(function(data) {
+      if (!data || !data.access_token || !data.user_id) {
+        throw new Error('VK_TOKEN_MISSING');
+      }
       var body = { access_token: data.access_token, user_id: String(data.user_id) };
       if (state) body.guest_token = state;
+      fetchCalled = true;
       return fetch('/api/v1/auth/vk', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -72,17 +92,24 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
       });
     })
     .then(function(res) {
-      if (!res.ok) throw new Error('Ошибка сервера');
+      if (!res.ok) {
+        throw new Error('SERVER_ERROR');
+      }
       return res.json();
     })
     .then(function(result) {
       if (result.success) { location.href = '/app/'; }
-      else throw new Error('Ошибка авторизации');
+      else throw new Error('SERVER_ERROR');
     })
     .catch(function(err) {
-      loader.style.display = 'none';
-      el.className = 'status error';
-      el.textContent = err.message || 'Не удалось войти через VK';
+      var msg = err && err.message ? err.message : '';
+      if (msg === 'SERVER_ERROR' || fetchCalled) {
+        renderError('Ошибка сервера. Попробуйте позже.');
+      } else if (msg === 'VK_TOKEN_MISSING' || isSdkError(err)) {
+        renderError('Не удалось авторизоваться через VK. Попробуйте другой способ.');
+      } else {
+        renderError('Не удалось войти через VK. Попробуйте ещё раз.');
+      }
     });
 })();
 </script>
