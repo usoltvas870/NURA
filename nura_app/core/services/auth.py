@@ -278,21 +278,21 @@ class AuthService:
                 )
                 resp.raise_for_status()
                 user_info = resp.json()
-                logger.warning("VK ID user_info response: %s", json.dumps(user_info, ensure_ascii=False))
+                logger.info("VK ID user_info response: %s", json.dumps(user_info, ensure_ascii=False))
 
             if not isinstance(user_info, dict):
-                logger.warning("VK ID user_info returned non-dict: %s", type(user_info).__name__)
+                logger.error("VK ID user_info returned non-dict: %s", type(user_info).__name__)
                 raise ValueError("VK user_info is invalid")
 
             if user_info.get("error"):
-                logger.warning("VK ID user_info error: %s", user_info.get("error"))
+                logger.error("VK ID user_info error: %s", user_info.get("error"))
                 raise ValueError("VK token validation failed")
 
             user_data = user_info.get("user") if "user" in user_info else user_info
 
             vk_user_id = str(user_data.get("user_id")) if user_data.get("user_id") is not None else None
             if not vk_user_id:
-                logger.warning("VK ID user_info missing user_id")
+                logger.error("VK ID user_info missing user_id")
                 raise ValueError("VK user_info is invalid")
 
             first_name = user_data.get("first_name", "")
