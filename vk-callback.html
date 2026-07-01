@@ -54,7 +54,7 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
   var VKID = window.VKIDSDK;
   VKID.Config.init({
     app: 54660807,
-    redirectUrl: window.location.href,
+    redirectUrl: window.location.origin + window.location.pathname,
     responseMode: VKID.ConfigResponseMode.Callback,
     source: VKID.ConfigSource.LOWCODE,
     scope: 'email'

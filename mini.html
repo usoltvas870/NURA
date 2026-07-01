@@ -33,6 +33,8 @@ body{
 }
 a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;background:none;color:inherit;cursor:pointer}
 .mini-wrap{width:min(100%,460px);padding:28px 16px}
+@media(min-width:768px){.mini-wrap{width:min(100%,680px);padding:40px 24px}}
+@media(min-width:1024px){.mini-wrap{width:min(100%,760px);padding:48px 32px}}
 .card{background:var(--bg-card);border:1px solid rgba(255,255,255,.64);border-radius:var(--r-lg);box-shadow:var(--shadow-card);overflow:hidden;position:relative}
 [data-theme="dark"] .card{border-color:var(--line)}
 .eyebrow{font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:var(--terra)}
@@ -66,7 +68,12 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 .meta-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-s);font-weight:800;display:block;margin-bottom:8px}
 .small{font-size:12px;color:var(--text-s);line-height:1.5}
 .mini-card{padding:28px 22px;background:radial-gradient(circle at 86% 0%,rgba(194,164,118,.22),transparent 36%),var(--bg-card)}
+@media(min-width:768px){.mini-card{padding:40px 36px}}
+@media(min-width:1024px){.mini-card{padding:48px 44px}}
 .form-grid{display:grid;gap:14px;margin-top:24px}
+@media(min-width:768px){.form-grid{grid-template-columns:1fr 1fr;gap:20px}}
+@media(min-width:768px){.form-grid>div:first-child,.form-grid>div:nth-child(2){grid-column:span 1}}
+@media(min-width:768px){.form-grid>div:nth-child(3),.form-grid>button,.form-grid>div:last-child{grid-column:1/-1}}
 .chips{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .chip input{display:none}
 .chip span{display:flex;min-height:44px;align-items:center;justify-content:center;text-align:center;padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card-soft);font-size:12px;font-weight:800;color:var(--text-m)}
@@ -83,6 +90,13 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 [data-theme="dark"] .blur-lock{background:rgba(18,16,14,.70)}
 .nav-footer{display:flex;flex-direction:column;gap:8px;margin-top:14px;text-align:center}
 .nav-footer a{display:block;font-size:13px;color:var(--text-m);font-weight:700;padding:6px 0}
+.welcome-icon{width:80px;height:80px;border-radius:50%;background:rgba(184,116,63,.12);color:var(--terra);display:grid;place-items:center;font-size:36px;margin:0 auto 24px}
+.welcome-name{font-family:var(--font-serif);font-size:clamp(28px,6vw,36px);line-height:1.1;font-weight:400;margin-bottom:16px}
+.welcome-name em{color:var(--terra);font-style:italic}
+.welcome-text{color:var(--text-m);font-size:15px;line-height:1.6;margin-bottom:32px}
+.welcome-actions{display:grid;gap:12px}
+.welcome-secondary{font-size:13px;color:var(--text-m);text-align:center;margin-top:16px}
+.welcome-secondary a{color:var(--terra);text-decoration:underline;font-weight:600}
 .loader{display:none;width:20px;height:20px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 .btn.loading .loader{display:inline-block}.btn.loading .btn-text{display:none}.btn.loading{pointer-events:none}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -182,33 +196,55 @@ function vkLogin() {
 }
 </script>
 </section>
+<section class="card mini-card stage" id="stage-welcome">
+<a href="/" class="small">← На главную</a>
+<div class="welcome-icon">✦</div>
+<h1 class="welcome-name">С возвращением<em id="welcome-user-name">!</em></h1>
+<p class="welcome-text">Твой профиль уже здесь. Перейди в приложение, чтобы продолжить работу с разборами и получить полный отчёт.</p>
+<div class="welcome-actions">
+<a href="/app/" class="btn btn-primary btn-full">Перейти в приложение</a>
+<a href="/" class="btn btn-soft btn-full" style="background:transparent;border-color:var(--line)">На главную</a>
+</div>
+<p class="welcome-secondary">Хочешь новый мини-разбор? <a href="#" id="new-analysis-link">Начать заново</a></p>
+</section>
 </div><script>
 var labels={self:'понять себя',money:'деньги и реализацию',love:'отношения',scenario:'повторяющиеся сценарии',purpose:'предназначение',unknown:'разобраться без точной формулировки'};
-var stageForm=document.getElementById('stage-form'),stageResult=document.getElementById('stage-result'),stageAuth=document.getElementById('stage-auth');
+var stageForm=document.getElementById('stage-form'),stageResult=document.getElementById('stage-result'),stageAuth=document.getElementById('stage-auth'),stageWelcome=document.getElementById('stage-welcome');
 var birth=document.getElementById('birth_date'),form=document.getElementById('mini-form'),err=document.getElementById('error-msg'),submitBtn=document.getElementById('submit-btn');
 var consentBox=document.getElementById('pd_consent');
 
-// Проверка сессии — если пользователь уже авторизован, показать баннер
+function showStage(name){
+  stageForm.classList.remove('active');stageResult.classList.remove('active');stageAuth.classList.remove('active');stageWelcome.classList.remove('active');
+  if(name==='form')stageForm.classList.add('active');
+  if(name==='result')stageResult.classList.add('active');
+  if(name==='auth')stageAuth.classList.add('active');
+  if(name==='welcome')stageWelcome.classList.add('active');
+  err.style.display='none';
+}
+
+// Проверка сессии — если пользователь уже авторизован, показать welcome-экран
 fetch('/api/v1/web/session-check',{method:'GET',credentials:'same-origin'})
 .then(function(res){if(res.ok)return res.json();throw new Error('no session');})
 .then(function(data){
   if(data&&data.authenticated){
-    var banner=document.createElement('div');
-    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:100;padding:12px 16px;background:var(--bg-card);border-bottom:1px solid var(--line);box-shadow:0 2px 12px rgba(0,0,0,.08);display:flex;justify-content:space-between;align-items:center;gap:12px';
-    banner.innerHTML='<span style="font-size:13.5px;color:var(--text)">С возвращением! Твой профиль уже здесь.</span><a href="/app/" style="font-size:13px;font-weight:700;color:var(--terra);text-decoration:none;white-space:nowrap">Перейти в приложение →</a>';
-    document.body.insertBefore(banner,document.body.firstChild);
-    document.body.style.paddingTop='56px';
+    // Получаем имя пользователя для персонализации
+    fetch('/api/v1/web/me',{method:'GET',credentials:'same-origin'})
+    .then(function(res){if(res.ok)return res.json();return null;})
+    .then(function(user){
+      if(user&&user.name&&user.name!=='Гость'&&user.name!=='Пользователь'){
+        document.getElementById('welcome-user-name').textContent=', '+user.name+'!';
+      }
+    })
+    .catch(function(){});
+    showStage('welcome');
   }
 })
 .catch(function(){});
 
-function showStage(name){
-  stageForm.classList.remove('active');stageResult.classList.remove('active');stageAuth.classList.remove('active');
-  if(name==='form')stageForm.classList.add('active');
-  if(name==='result')stageResult.classList.add('active');
-  if(name==='auth')stageAuth.classList.add('active');
-  err.style.display='none';
-}
+document.getElementById('new-analysis-link').addEventListener('click',function(e){
+  e.preventDefault();
+  showStage('form');
+});
 function setLoading(btn,loading){
   if(loading){btn.classList.add('loading');btn.disabled=true;}
   else{btn.classList.remove('loading');}

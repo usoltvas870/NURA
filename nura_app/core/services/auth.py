@@ -300,6 +300,7 @@ class AuthService:
                     "https://id.vk.ru/oauth2/user_info",
                     data={
                         "client_id": settings.vk_client_id,
+                        "client_secret": settings.vk_client_secret,
                         "access_token": access_token,
                     },
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
