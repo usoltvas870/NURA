@@ -2300,7 +2300,7 @@ class TestBuyTarotSubscription:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_settings.test_mode = False
-            mock_ps.create_subscription = AsyncMock(
+            mock_ps.create_tarot_payment = AsyncMock(
                 return_value={
                     "payment_url": "https://pay.example.com",
                     "id": "pm-456",

@@ -27,7 +27,9 @@
     - `merge_users` удалён — каждый способ входа = отдельный аккаунт, без слияния
     - GuestProfileRepository: добавлен `save_report_data`
     - mini.html: guest_token передаётся в mini-analysis запрос
-  - ruff: passed, test_auth: 16/16 passed
+  - ruff: passed, test_auth: 16/16 passed, test_tarot_handlers: fixed mock bug (create_subscription → create_tarot_payment)
+  - VK callback page: 200 OK на проде
+  - API логи: чисто, без ошибок
 - Блокеры: нет
 - Следующие шаги: проверить VK-флоу на проде после деплоя; возможно убрать гостевой профиль-призрак при неудачной VK-авторизации (сейчас guest создаётся на этапе мини-анализа — это ожидаемое поведение, не баг)
 
