@@ -1,6 +1,73 @@
 # NURA — State
 
-> Последнее обновление: **01.07.2026 — Сессия 55** — glm-5.2
+> Последнее обновление: **01.07.2026 — Сессия 59** — DeepSeek V4 Pro
+
+---
+
+## Сессия 59 — 01.07.2026
+- Модель: DeepSeek V4 Pro (deepseek-v4-pro)
+- Что сделано:
+  - **Проверка и актуализация AUTH_REMAINING_TASKS.md**: миграция применена, VK ключи прописаны, Celery Beat работает, SMS удалён
+  - **Замена транспорта email: Unisender → Beget SMTP** (`e2c4b32`):
+    - Добавлены SMTP-поля в `core/config.py` (smtp_host, smtp_port, smtp_secure, smtp_user, smtp_password, smtp_from)
+    - `core/tasks.py:send_magic_link_email` переписан с `httpx → Unisender API` на `aiosmtplib → Beget SMTP`
+    - HTML-шаблон письма «Вход в NURA» (светлый премиальный стиль, кнопка, text/plain fallback)
+    - Безопасное логирование (email маскируется: `t***@example.com`)
+    - `requirements.txt`: добавлен `aiosmtplib>=3.0`, убран httpx из tasks.py
+    - `.env.example`: SMTP секция добавлена, UNISENDER_API_KEY помечен deprecated
+    - Тесты 16/16 проходят, линтер чист
+  - **Деплой**: код запушен в GitHub, но VPS недоступен (SSH + HTTP timeout) — деплой отложен
+- Блокеры: VPS 45.144.178.118 недоступен (SSH connection timed out, HTTP 000)
+- Следующие шаги:
+  - Дождаться восстановления VPS → `git pull && docker compose up -d --build api celery-worker celery-beat`
+  - Пользователю добавить `SMTP_PASSWORD` в `.env` на VPS (Beget, ящик noreply@nura-ai.ru)
+  - Протестировать VK ID flow на production
+  - Настроить Sentry мониторинг
+
+---
+
+## Сессия 58 — 02.07.2026
+- Модель: DeepSeek V4 Pro (deepseek-v4-pro)
+- Что сделано:
+  - **Telegram как интеграция, не web-login**: Telegram убран с основного экрана входа (на mini.html уже только Email + VK). Telegram теперь только привязка в профиле.
+  - **Отвязка Telegram в профиле**: добавлена кнопка «Отключить Telegram» в PWA-профиль (`frontend/pwa/app/profile.html`) и серверный шаблон (`templates/profile.html`)
+  - **Backend endpoint**: `DELETE /api/v1/web/unlink-telegram` — очищает telegram_id, проверяет что есть другой способ входа (email_verified или vk_id)
+  - **Репозиторий**: `UserRepository.has_other_auth_method()` + `UserRepository.unlink_telegram()`
+  - **Бот**: обновлён `welcome_back_text` — предлагает веб-приложение для полного доступа; кнопка «Войти через Email или VK» в главном меню для всех пользователей
+  - Файлы: `core/repositories/user.py`, `api/routes/web.py`, `frontend/pwa/app/profile.html`, `nura_app/templates/profile.html`, `bot/texts/start.py`, `bot/keyboards/main_menu.py`
+  - **Админка**: добавлены колонки Email (с ✓/без подтверждения) и VK в таблицу пользователей; email + статус верификации в модалку деталей; поля `email`, `email_verified` в API `UserRow` и `UserDetailResponse`
+  - Файлы админки: `api/routes/admin_api.py`, `frontend/admin/index.html`
+- Блокеры: нет
+- Следующие шаги: деплой на VPS, ручное тестирование отвязки TG
+
+---
+
+## Сессия 57 — 02.07.2026
+- Модель: DeepSeek V4 Pro (deepseek-v4-pro)
+- Что сделано:
+  - **VK ID фикс имени**: добавлено логирование полного ответа `id.vk.ru/oauth2/user_info` (строка 309); обработка альтернативных полей имени (first_name, name, display_name); убрано лишнее форматирование пробелов при отсутствии фамилии
+  - **Деплой**: исправления задеплоены на VPS, все 6 контейнеров healthy
+- Блокеры:
+  - Email magic link не работает — требуется `UNISENDER_API_KEY` в `.env` на VPS. Пользователь сгенерирует ключ в ЛК Unisender
+- Следующие шаги: добавить UNISENDER_API_KEY на VPS, протестировать VK ID проверку имени, протестировать email auth
+
+---
+
+## Сессия 56 — 02.07.2026
+- Модель: glm-5.2 (opencode-go/glm-5.2)
+- Что сделано:
+  - **VK ID интеграция**: реализован полный флоу авторизации через VK ID (One Tap кнопка), обмен кода на access_token, получение данных пользователя через `id.vk.ru/oauth2/user_info`, создание/обновление пользователя по `vk_id`
+  - **Merge пользователей**: добавлена логика объединения аккаунтов — если пользователь вошёл через email/VK/SMS и есть другой веб-аккаунт (из квиза), данные (отчёты, платежи, реферальные награды) переносятся, старый аккаунт удаляется
+  - **Удалён SMS auth**: полностью удалён SMS как метод авторизации (кнопки, формы, backend эндпоинты, Celery задача, Pydantic схемы) — оставлен только Email magic link + VK ID
+  - **Улучшен UX auth экрана**: убрана надпись "Полный доступ", добавлены отступы, текст разбит на строки, добавлена ссылка "Уже есть аккаунт? Войти →" для тех кто с другого устройства
+  - **Проверка сессии**: при загрузке mini.html проверяется `/api/v1/web/session-check`, если есть активная сессия — показывается баннер "С возвращением! [Перейти в приложение →]"
+  - **Админка**: добавлены колонки `vk_id` и `auth_method` в таблицу пользователей, фильтры VK/Email, поля в модалке деталей пользователя
+  - **Миграция БД**: применена `c4d5e6f7a8b9_add_auth_and_guest.py` (колонки users + таблица guest_profiles)
+  - **Деплой**: все контейнеры пересобраны и запущены на VPS, база очищена (0 пользователей)
+- ruff: `All checks passed!`; pytest: `19 passed` (auth)
+- Блокеры: нет
+- Не реализовано: Email magic link не работает (Unisender API ключ не прописан в `.env`)
+- Следующие шаги: прописать `UNISENDER_API_KEY` в `.env` на VPS, протестировать email auth flow, проверить что VK ID сохраняет имя пользователя (возможно, VK ID API возвращает поля в другом формате)
 
 ---
 

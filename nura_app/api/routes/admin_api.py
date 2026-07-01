@@ -216,6 +216,8 @@ class UserRow(BaseModel):
     main_archetype: str | None
     auth_method: str | None
     vk_id: str | None
+    email: str | None
+    email_verified: bool
     subscription_status: str
     subscription_until: str | None
     tarot_subscription: bool
@@ -309,6 +311,8 @@ async def get_users(
                     main_archetype=user.main_archetype,
                     auth_method=user.auth_method,
                     vk_id=user.vk_id,
+                    email=user.email,
+                    email_verified=user.email_verified,
                     subscription_status=user.subscription_status,
                     subscription_until=user.subscription_until.isoformat()
                     if user.subscription_until
@@ -440,6 +444,8 @@ class UserDetailResponse(BaseModel):
     main_archetype_number: int | None
     auth_method: str | None
     vk_id: str | None
+    email: str | None
+    email_verified: bool
     subscription_status: str
     subscription_until: str | None
     tarot_subscription: bool
@@ -498,6 +504,8 @@ async def get_user_detail(user_id: str):
             main_archetype_number=user.main_archetype_number,
             auth_method=user.auth_method,
             vk_id=user.vk_id,
+            email=user.email,
+            email_verified=user.email_verified,
             subscription_status=user.subscription_status,
             subscription_until=user.subscription_until.isoformat()
             if user.subscription_until

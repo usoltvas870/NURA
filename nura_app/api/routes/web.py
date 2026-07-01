@@ -490,6 +490,29 @@ async def logout(response: Response):
     return {"ok": True}
 
 
+@router.delete("/unlink-telegram")
+@limiter.limit("10/minute")
+async def unlink_telegram(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+
+    if not user.telegram_id:
+        raise HTTPException(status_code=400, detail="Telegram не подключён")
+
+    has_other = await user_repo.has_other_auth_method(user.id)
+    if not has_other:
+        raise HTTPException(
+            status_code=400,
+            detail="Сначала привяжите email или VK, чтобы не потерять доступ к аккаунту",
+        )
+
+    await user_repo.unlink_telegram(user.id)
+    return {"ok": True}
+
+
 @router.get("/session-check")
 async def session_check(user: User = Depends(get_current_web_user)):
     return {"authenticated": True}

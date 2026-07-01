@@ -494,3 +494,23 @@ class UserRepository(SQLAlchemyRepository[User]):
             await session.commit()
             await session.refresh(user)
             return user
+
+    async def has_other_auth_method(self, user_id: uuid.UUID) -> bool:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return False
+            has_email = bool(user.email and user.email_verified)
+            has_vk = bool(user.vk_id)
+            return has_email or has_vk
+
+    async def unlink_telegram(self, user_id: uuid.UUID) -> bool:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return False
+            user.telegram_id = None
+            user.username = None
+            user.first_name = None
+            await session.commit()
+            return True

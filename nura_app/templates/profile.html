@@ -462,11 +462,10 @@ function renderNotifications(u) {
         '<button class="btn-secondary" onclick="linkTelegram()" id="linkTgBtn">Подключить Telegram</button>' +
       '</div>'
     :
-      '<div class="info-card">' +
-        '<div class="info-row">' +
-          '<span class="info-label">Telegram</span>' +
-          '<span class="badge badge-active">\u2713 Подключён</span>' +
-        '</div>' +
+      '<div class="link-tg-card">' +
+        '<div class="link-tg-title">\uD83D\uDCF1 Telegram</div>' +
+        '<div class="link-tg-desc">Аккаунт привязан. Карта дня и уведомления приходят в бот.</div>' +
+        '<button class="btn-danger" onclick="unlinkTelegram()">Отключить Telegram</button>' +
       '</div>'
     );
 }
@@ -609,6 +608,29 @@ async function linkTelegram() {
     showToast('Ошибка сети', true);
   } finally {
     if (btn) { btn.textContent = 'Подключить Telegram'; btn.disabled = false; }
+  }
+}
+
+async function unlinkTelegram() {
+  if (!sessionId) return;
+  if (!confirm('Отвязать Telegram? Уведомления перестанут приходить в бот.')) return;
+  try {
+    const res = await fetch('/api/v1/web/unlink-telegram', {
+      method:'DELETE',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({session_id: sessionId}),
+    });
+    if (res.ok) {
+      userData.telegram_linked = false;
+      renderNotifications(userData);
+      renderSettings(userData);
+      showToast('Telegram отвязан');
+    } else {
+      const data = await res.json().catch(() => ({}));
+      showToast(data.detail || 'Не удалось отвязать Telegram', true);
+    }
+  } catch(e) {
+    showToast('Ошибка сети', true);
   }
 }
 

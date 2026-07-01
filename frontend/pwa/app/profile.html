@@ -2,6 +2,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="NURA">
@@ -86,7 +89,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 </div></section>
 <section class="panel" id="tab-settings">
 <article class="card list-card" role="button" tabindex="0" onclick="editProfile()"><div class="list-icon"><i class="ti ti-user-edit"></i></div><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()"><div class="list-icon"><i class="ti ti-brand-telegram"></i></div><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="chevron">›</span></article>
+<div id="tg-link-container"><article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()"><div class="list-icon"><i class="ti ti-brand-telegram"></i></div><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="chevron">›</span></article></div>
 <article class="card list-card" role="button" tabindex="0" id="themeToggle2" onclick="document.getElementById('themeToggle').click()"><div class="list-icon"><i class="ti ti-sun-moon"></i></div><div><div class="list-title">Тема</div><div class="list-sub" id="theme-label">Светлая</div></div><span class="chevron">›</span></article>
 <article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div class="list-icon"><i class="ti ti-shield-lock"></i></div><div><div class="list-title">Политика конфиденциальности</div></div><span class="chevron">›</span></article>
 <article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div class="list-icon"><i class="ti ti-message-2"></i></div><div><div class="list-title">Обратная связь</div></div><span class="chevron">›</span></article>
@@ -136,10 +139,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       if (d.birth_date) $('profile-dob').textContent = 'дата рождения · ' + d.birth_date;
       if (d.archetype) $('profile-archetype').textContent = '✦ ' + d.archetype;
       else $('profile-archetype').textContent = '✦ Мини-разбор';
-      if (d.telegram_linked) {
-        $('tg-link-status').textContent = 'подключён';
-        $('tg-link-item').style.opacity = '0.6';
-      }
+      renderTgRow(!!d.telegram_linked);
       if (d.has_matrix) {
         var mc = $('static-matrix-card'); if (mc) mc.style.display = 'none';
       }
@@ -259,6 +259,28 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 
   window.editProfile = function() { location.href = 'https://t.me/ai_nura_bot'; };
 
+  window.renderTgRow = function(linked) {
+    var container = $('tg-link-container');
+    if (!container) return;
+    if (linked) {
+      container.innerHTML =
+        '<article class="card list-card" id="tg-linked-item">' +
+          '<div class="list-icon"><i class="ti ti-brand-telegram"></i></div>' +
+          '<div><div class="list-title">Telegram</div>' +
+          '<div class="list-sub" id="tg-link-status">подключён</div></div>' +
+          '<button class="btn btn-soft" onclick="unlinkTelegram()" style="color:#C45C5C;border-color:rgba(196,92,92,.24)">Отключить</button>' +
+        '</article>';
+    } else {
+      container.innerHTML =
+        '<article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()">' +
+          '<div class="list-icon"><i class="ti ti-brand-telegram"></i></div>' +
+          '<div><div class="list-title">Подключить Telegram</div>' +
+          '<div class="list-sub" id="tg-link-status">не подключён</div></div>' +
+          '<span class="chevron">›</span>' +
+        '</article>';
+    }
+  };
+
   window.linkTelegram = async function() {
     var el = $('tg-link-status'); if (el) el.textContent = '…';
     try {
@@ -276,6 +298,26 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         } else { if (el) el.textContent = 'не подключён'; }
       } else { if (el) el.textContent = 'не подключён'; }
     } catch(e) { if (el) el.textContent = 'не подключён'; }
+  };
+
+  window.unlinkTelegram = async function() {
+    if (!confirm('Отвязать Telegram? Уведомления перестанут приходить в бот.')) return;
+    var el = $('tg-link-status'); if (el) el.textContent = '…';
+    try {
+      var res = await fetch(BASE + '/web/unlink-telegram', {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      });
+      if (res.ok) {
+        renderTgRow(false);
+      } else {
+        var data = await res.json().catch(function(){ return {}; });
+        alert(data.detail || 'Не удалось отвязать Telegram');
+        renderTgRow(true);
+      }
+    } catch(e) {
+      renderTgRow(true);
+    }
   };
 
   window.logout = function() {

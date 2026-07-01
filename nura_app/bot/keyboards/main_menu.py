@@ -32,6 +32,10 @@ def main_menu_keyboard(
         keyboard.insert(0, [
             InlineKeyboardButton(text="🌐 Открыть в NURA", url="https://nura-ai.ru/app")
         ])
+    else:
+        keyboard.insert(0, [
+            InlineKeyboardButton(text="🌐 Войти через Email или VK", url="https://nura-ai.ru/app")
+        ])
     # Кнопка «Купить разбор» скрывается если:
     # - has_matrix=True (матрица уже куплена)
     # - subscription_status="premium" (подписка даёт доступ ко всему)
