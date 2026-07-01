@@ -1355,7 +1355,7 @@ async def _monitor_health_async() -> dict:
     # 1. Check API health endpoint
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get("http://localhost:8000/health")
+            resp = await client.get("http://api:8000/health")
             if resp.status_code != 200:
                 issues.append(f"🔴 API-сервер вернул статус {resp.status_code}")
     except Exception as e:

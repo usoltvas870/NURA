@@ -154,7 +154,7 @@ class DockerClient:
 
     async def check_api_health(self) -> bool:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get("http://localhost:8000/health")
+            resp = await client.get("http://api:8000/health")
             return resp.status_code == 200
 
     async def run_deploy(self) -> str:

@@ -103,6 +103,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      PYTHONPATH: /app
     depends_on:
       postgres:
         condition: service_healthy
@@ -128,6 +130,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      PYTHONPATH: /app
     depends_on:
       postgres:
         condition: service_healthy
