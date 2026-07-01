@@ -278,6 +278,7 @@ class AuthService:
                 )
                 resp.raise_for_status()
                 user_info = resp.json()
+                logger.info("VK ID user_info response: %s", json.dumps(user_info, ensure_ascii=False))
 
             if not isinstance(user_info, dict):
                 logger.error("VK ID user_info returned non-dict: %s", type(user_info).__name__)
