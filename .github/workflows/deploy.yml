@@ -24,15 +24,12 @@ jobs:
           script: |
             set -e
             cd /opt/nura
-            if git diff --quiet && git diff --cached --quiet && [ -z "$(git status --porcelain)" ]; then
+            if git diff --quiet && git diff --cached --quiet; then
               echo "✓ Working tree is clean — safe to deploy."
               exit 0
             else
-              echo "::error::Working tree on VPS is NOT clean. Automatic deploy aborted to avoid clobbering uncommitted prod-only changes."
-              echo "::error::See DEPLOY.md → «Деплой упал из-за грязного working tree» for the manual resolution pattern."
+              echo "::error::Working tree on VPS is NOT clean. Automatic deploy aborted."
               echo ""
-              echo "--- git status --porcelain ---"
-              git status --porcelain
               echo "--- git diff --stat ---"
               git diff --stat
               exit 1

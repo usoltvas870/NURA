@@ -48,3 +48,6 @@ nura-trend-radar/data/
 # Graphify
 .graphifyignore
 graphify-out/
+
+# Frontend assets (VK SDK, etc.) — deployed separately
+assets/
