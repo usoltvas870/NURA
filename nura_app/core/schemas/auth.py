@@ -36,11 +36,8 @@ class EmailAuthResponse(BaseModel):
 
 
 class VKTokenRequest(BaseModel):
-    access_token: str | None = None
-    user_id: str | None = None
-    code: str | None = None
+    access_token: str = Field(..., min_length=20, max_length=4096)
     guest_token: str | None = None
-    email: str | None = None
 
 
 class VKAuthResponse(BaseModel):

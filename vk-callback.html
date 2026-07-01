@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Р’С…РѕРґ С‡РµСЂРµР· VK вЂ” NURA</title>
+<title>Вход через VK — NURA</title>
+<script src="/assets/vendor/vkid-sdk.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#1a1a1a;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
@@ -21,21 +22,12 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
 <div class="card">
 <h1>NURA</h1>
 <div class="loader" id="loader"></div>
-<div class="status" id="status">Р’С‹РїРѕР»РЅСЏРµРј РІС…РѕРґ С‡РµСЂРµР· VK...</div>
+<div class="status" id="status">Выполняем вход через VK...</div>
 </div>
 <script>
 (function() {
   var el = document.getElementById('status');
   var loader = document.getElementById('loader');
-
-  var hash = window.location.hash ? window.location.hash.substring(1) : '';
-  var params = new URLSearchParams(hash);
-  var access_token = params.get('access_token');
-  var user_id = params.get('user_id');
-  var vk_email = params.get('email');
-  var error = params.get('error');
-  var error_description = params.get('error_description');
-  var state = params.get('state') || '';
 
   function renderError(msg) {
     loader.style.display = 'none';
@@ -46,41 +38,110 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
       var btn = document.createElement('a');
       btn.className = 'retry-btn';
       btn.href = '/mini';
-      btn.textContent = 'РџРѕРїСЂРѕР±РѕРІР°С‚СЊ РµС‰С‘ СЂР°Р·';
+      btn.textContent = 'Попробовать ещё раз';
       card.appendChild(btn);
     }
   }
 
-  if (error) {
-    renderError('РђРІС‚РѕСЂРёР·Р°С†РёСЏ РѕС‚РєР»РѕРЅРµРЅР°: ' + (error_description || error));
-    return;
+  function clearVkData() {
+    sessionStorage.removeItem('nura_vk_state');
+    sessionStorage.removeItem('nura_vk_code_verifier');
+    sessionStorage.removeItem('nura_vk_started_at');
   }
-  if (!access_token || !user_id) {
-    renderError('РўРѕРєРµРЅ РЅРµ РїРѕР»СѓС‡РµРЅ РѕС‚ VK. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.');
+
+  var SDK = window.VKIDSDK;
+  if (!SDK) {
+    renderError('Не удалось загрузить SDK. Обновите страницу.');
     return;
   }
 
-  var body = { access_token: access_token, user_id: user_id };
-  if (vk_email) body.email = vk_email;
-  if (state) body.guest_token = state;
+  var searchParams = new URLSearchParams(window.location.search);
+  var payload = searchParams.get('payload');
+  var callbackData;
 
-  fetch('/api/v1/auth/vk', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    credentials: 'same-origin',
-    body: JSON.stringify(body)
-  })
-  .then(function(res) {
-    if (!res.ok) throw new Error('SERVER_ERROR');
-    return res.json();
-  })
-  .then(function(result) {
-    if (result.success) { location.href = '/app/'; }
-    else throw new Error('SERVER_ERROR');
-  })
-  .catch(function() {
-    renderError('РћС€РёР±РєР° СЃРµСЂРІРµСЂР°. РџРѕРїСЂРѕР±СѓР№С‚Рµ РїРѕР·Р¶Рµ.');
+  if (payload) {
+    try { callbackData = JSON.parse(payload); } catch(e) {
+      renderError('Некорректный ответ от VK.');
+      clearVkData(); return;
+    }
+  } else {
+    callbackData = {
+      code: searchParams.get('code'),
+      device_id: searchParams.get('device_id'),
+      state: searchParams.get('state'),
+      error: searchParams.get('error'),
+      error_description: searchParams.get('error_description')
+    };
+  }
+
+  if (callbackData.error) {
+    renderError('Авторизация отклонена.');
+    clearVkData(); return;
+  }
+
+  var code = callbackData.code;
+  var deviceId = callbackData.device_id;
+  var returnedState = callbackData.state;
+
+  if (!code || !deviceId) {
+    renderError('Неполный ответ от VK.');
+    clearVkData(); return;
+  }
+
+  var expectedState = sessionStorage.getItem('nura_vk_state');
+  var codeVerifier = sessionStorage.getItem('nura_vk_code_verifier');
+  var startedAt = Number(sessionStorage.getItem('nura_vk_started_at'));
+
+  if (!expectedState || !returnedState || returnedState !== expectedState) {
+    renderError('Проверка безопасности не пройдена.');
+    clearVkData(); return;
+  }
+  if (!codeVerifier) {
+    renderError('Данные сессии утеряны.');
+    clearVkData(); return;
+  }
+  if (!Number.isFinite(startedAt) || Date.now() - startedAt > 600000) {
+    renderError('Время входа истекло.');
+    clearVkData(); return;
+  }
+
+  SDK.Config.init({
+    app: 54660807,
+    redirectUrl: 'https://nura-ai.ru/vk-callback.html',
+    state: expectedState,
+    codeVerifier: codeVerifier,
+    scope: 'email'
   });
+
+  SDK.Auth.exchangeCode(code, deviceId, codeVerifier)
+    .then(function(tokenResult) {
+      if (!tokenResult || !tokenResult.access_token) {
+        throw new Error('VK_ID_NO_TOKEN');
+      }
+      var guestToken = '';
+      try { guestToken = localStorage.getItem('nura_guest_token') || ''; } catch(e) {}
+      var body = { access_token: tokenResult.access_token };
+      if (guestToken) body.guest_token = guestToken;
+      return fetch('/api/v1/auth/vk', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'same-origin',
+        body: JSON.stringify(body)
+      });
+    })
+    .then(function(res) {
+      if (!res.ok) return res.json().then(function(d) { throw new Error(d.detail || 'AUTH_FAILED'); });
+      return res.json();
+    })
+    .then(function(result) {
+      clearVkData();
+      if (result.success) location.replace('/app/');
+      else renderError('Не удалось завершить вход.');
+    })
+    .catch(function() {
+      clearVkData();
+      renderError('Ошибка при входе через VK.');
+    });
 })();
 </script>
 </body>
