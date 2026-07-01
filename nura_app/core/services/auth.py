@@ -266,54 +266,67 @@ class AuthService:
         code: str | None = None,
         guest_token: str | None = None,
         current_user: User | None = None,
+        vk_email: str | None = None,
     ) -> dict:
+        vk_email_from_token = None
         try:
             async with httpx.AsyncClient() as client:
                 if code:
                     token_resp = await client.post(
-                        "https://id.vk.com/oauth2/token",
+                        "https://oauth.vk.com/access_token",
                         data={
                             "client_id": settings.vk_client_id,
                             "client_secret": settings.vk_client_secret,
                             "code": code,
                             "redirect_uri": settings.vk_redirect_uri,
-                            "grant_type": "authorization_code",
                         },
                         headers={"Content-Type": "application/x-www-form-urlencoded"},
                     )
                     token_resp.raise_for_status()
                     token_data = token_resp.json()
-                    logger.info("VK token exchange response: %s", json.dumps(token_data, ensure_ascii=False))
+                    logger.info("VK OAuth token response: %s", json.dumps(token_data, ensure_ascii=False))
 
                     if not isinstance(token_data, dict) or token_data.get("error"):
-                        logger.error("VK token exchange error: %s", token_data if isinstance(token_data, dict) else type(token_data).__name__)
+                        logger.error("VK OAuth error: %s", token_data if isinstance(token_data, dict) else type(token_data).__name__)
                         raise ValueError("VK code exchange failed")
 
                     access_token = token_data.get("access_token")
                     vk_user_id = str(token_data.get("user_id")) if token_data.get("user_id") is not None else None
 
                     if not access_token or not vk_user_id:
-                        logger.error("VK token exchange missing access_token or user_id")
+                        logger.error("VK OAuth missing access_token or user_id")
                         raise ValueError("VK code exchange failed")
 
-                resp = await client.post(
-                    "https://id.vk.ru/oauth2/user_info",
-                    data={
-                        "client_id": settings.vk_client_id,
-                        "client_secret": settings.vk_client_secret,
+                resp = await client.get(
+                    "https://api.vk.com/method/users.get",
+                    params={
+                        "user_ids": vk_user_id,
+                        "fields": "first_name,last_name,bdate",
                         "access_token": access_token,
+                        "v": "5.131",
                     },
-                    headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
                 resp.raise_for_status()
                 user_info = resp.json()
-                logger.info("VK ID user_info response: %s", json.dumps(user_info, ensure_ascii=False))
+                logger.info("VK API users.get response: %s", json.dumps(user_info, ensure_ascii=False))
 
-            if not isinstance(user_info, dict) or user_info.get("error"):
-                logger.error("VK ID user_info returned error: %s", user_info if isinstance(user_info, dict) else type(user_info).__name__)
+                vk_email_from_token = token_data.get("email") if code else None
+
+            if not isinstance(user_info, dict):
+                logger.error("VK API response is not a dict: %s", type(user_info).__name__)
                 raise ValueError("VK user_info is invalid")
 
-            info_user_id = str(user_info.get("user_id")) if user_info.get("user_id") is not None else None
+            if user_info.get("error"):
+                logger.error("VK API error: %s", json.dumps(user_info, ensure_ascii=False))
+                raise ValueError("VK user_info is invalid")
+
+            user_data_list = user_info.get("response")
+            if not isinstance(user_data_list, list) or len(user_data_list) == 0:
+                logger.error("VK API users.get returned empty response: %s", json.dumps(user_info, ensure_ascii=False))
+                raise ValueError("VK user_info is invalid")
+
+            user_data = user_data_list[0]
+            info_user_id = str(user_data.get("id")) if user_data.get("id") is not None else None
             if info_user_id is None or info_user_id != str(vk_user_id):
                 logger.error(
                     "VK user_id mismatch: exchange=%s, user_info=%s",
@@ -322,16 +335,12 @@ class AuthService:
                 )
                 raise ValueError("VK user_id mismatch")
 
-            first_name = (
-                user_info.get("first_name")
-                or user_info.get("name")
-                or user_info.get("display_name")
-                or ""
-            )
-            last_name = user_info.get("last_name", "")
+            first_name = user_data.get("first_name", "")
+            last_name = user_data.get("last_name", "")
             vk_name = f"{first_name} {last_name}".strip() if last_name else first_name
-            email = user_info.get("email")
-            birthday = user_info.get("birthday", "")
+            email = vk_email or vk_email_from_token
+            bdate = user_data.get("bdate", "")
+            birthday = bdate if len(bdate.split(".")) == 3 else ""
 
             user_repo = UserRepository(self._session_factory)
             user = await user_repo.get_by_vk_id(vk_user_id)
@@ -374,7 +383,7 @@ class AuthService:
                 "web_session_id": web_session_id,
             }
         except httpx.HTTPStatusError as e:
-            logger.error("VK ID API error: %s", e.response.text if e.response is not None else "no response")
+            logger.error("VK OAuth API error: %s", e.response.text if e.response is not None else "no response")
             raise
         except Exception:
             logger.exception("vk_auth failed")

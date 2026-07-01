@@ -28,9 +28,13 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
   var el = document.getElementById('status');
   var loader = document.getElementById('loader');
 
-  var params = new URLSearchParams(window.location.search);
-  var code = params.get('code');
+  var hash = window.location.hash ? window.location.hash.substring(1) : '';
+  var params = new URLSearchParams(hash);
+  var access_token = params.get('access_token');
+  var user_id = params.get('user_id');
+  var vk_email = params.get('email');
   var error = params.get('error');
+  var error_description = params.get('error_description');
   var state = params.get('state') || '';
 
   function renderError(msg) {
@@ -48,15 +52,16 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
   }
 
   if (error) {
-    renderError('Авторизация отклонена. Попробуйте другой способ входа.');
+    renderError('Авторизация отклонена: ' + (error_description || error));
     return;
   }
-  if (!code) {
-    renderError('Код авторизации не получен. Попробуйте ещё раз.');
+  if (!access_token || !user_id) {
+    renderError('Токен не получен от VK. Попробуйте ещё раз.');
     return;
   }
 
-  var body = { code: code };
+  var body = { access_token: access_token, user_id: user_id };
+  if (vk_email) body.email = vk_email;
   if (state) body.guest_token = state;
 
   fetch('/api/v1/auth/vk', {

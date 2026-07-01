@@ -40,6 +40,7 @@ class VKTokenRequest(BaseModel):
     user_id: str | None = None
     code: str | None = None
     guest_token: str | None = None
+    email: str | None = None
 
 
 class VKAuthResponse(BaseModel):

@@ -190,7 +190,7 @@ function vkLogin() {
   var authUrl = 'https://id.vk.com/authorize'
     + '?client_id=54660807'
     + '&redirect_uri=https://nura-ai.ru/vk-callback.html'
-    + '&response_type=code'
+    + '&response_type=token'
     + '&state=' + encodeURIComponent(guestToken)
     + '&scope=email';
   location.href = authUrl;
