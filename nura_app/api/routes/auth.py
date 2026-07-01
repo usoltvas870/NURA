@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 
 from api.dependencies import get_current_web_user, get_optional_web_user, set_session_cookie
 from api.deps import limiter
@@ -72,9 +73,9 @@ async def verify_email_auth(
 ):
     res = await AuthService().verify_magic_link(token, web_user)
     if res is None:
-        raise HTTPException(status_code=400, detail="Токен истёк или недействителен")
+        return RedirectResponse(url="/?error=token_expired")
     set_session_cookie(response, res["web_session_id"])
-    return {"success": True, "user_id": res["user_id"]}
+    return RedirectResponse(url="/app/")
 
 
 @router.post("/merge", response_model=MergeGuestResponse)

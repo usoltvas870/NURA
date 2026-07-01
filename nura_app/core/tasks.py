@@ -1224,7 +1224,7 @@ async def _send_broadcast_async(
     retry_backoff_max=180,
 )
 def send_magic_link_email(self, email: str, token: str) -> dict:
-    link = f"{settings.report_base_url}/auth/verify?token={token}"
+    link = f"{settings.report_base_url}/api/v1/auth/email/verify?token={token}"
     if not settings.smtp_password:
         logger.warning("smtp password unset, skipping magic link email to %s", email)
         return {"ok": True, "skipped_no_key": True}
