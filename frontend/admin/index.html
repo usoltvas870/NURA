@@ -884,6 +884,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
       <div id="logsContent" style="display:none">
         <div class="log-filters">
           <select id="logContainer">
+            <option value="all">All (все контейнеры)</option>
             <option value="api">api</option>
             <option value="bot">bot</option>
             <option value="celery-worker">celery-worker</option>
@@ -898,7 +899,10 @@ tr:hover td { background: rgba(184,116,63,.05); }
             <option value="WARNING">WARNING</option>
             <option value="INFO">INFO</option>
           </select>
-          <input type="number" id="logLines" value="150" min="10" max="1000" style="width:80px">
+          <input type="number" id="logLines" value="200" min="10" max="1000" style="width:80px">
+          <label class="check-label" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-m)">
+            <input type="checkbox" id="logAutoRefresh"> авто-обновление
+          </label>
           <button class="btn-refresh" id="logsRefresh">Обновить</button>
         </div>
         <div class="log-viewer" id="logViewer"></div>
@@ -1614,18 +1618,18 @@ tr:hover td { background: rgba(184,116,63,.05); }
   }
 
   /* ── Logs ── */
+  var logAutoRefreshTimer = null;
+
   function loadLogs() {
     var container = document.getElementById('logContainer').value;
     var level = document.getElementById('logLevel').value;
-    var lines = document.getElementById('logLines').value || 150;
-    document.getElementById('logsLoading').style.display = '';
-    document.getElementById('logsContent').style.display = 'none';
-    apiFetch('/logs?container=' + container + '&level=' + level + '&lines=' + lines)
+    var lines = document.getElementById('logLines').value || 200;
+    apiFetch('/logs?container=' + encodeURIComponent(container) + '&level=' + level + '&lines=' + lines)
       .then(function (data) {
         document.getElementById('logsLoading').style.display = 'none';
         document.getElementById('logsContent').style.display = '';
         document.getElementById('logError').textContent = data.error || '';
-        renderLogs(data.lines || []);
+        renderLogs(data.lines || [], data.container || container);
         document.getElementById('logsChecked').textContent =
           'Обновлено: ' + new Date().toLocaleTimeString('ru-RU') +
           ' (' + data.total + ' строк)';
@@ -1637,7 +1641,7 @@ tr:hover td { background: rgba(184,116,63,.05); }
       });
   }
 
-  function renderLogs(lines) {
+  function renderLogs(lines, container) {
     var viewer = document.getElementById('logViewer');
     if (!lines.length) {
       viewer.innerHTML = '<div class="log-line" style="color:var(--text-s)">Нет записей</div>';
@@ -1659,6 +1663,15 @@ tr:hover td { background: rgba(184,116,63,.05); }
     viewer.scrollTop = viewer.scrollHeight;
   }
 
+  function startLogAutoRefresh() {
+    stopLogAutoRefresh();
+    logAutoRefreshTimer = setInterval(loadLogs, 5000);
+  }
+
+  function stopLogAutoRefresh() {
+    if (logAutoRefreshTimer) { clearInterval(logAutoRefreshTimer); logAutoRefreshTimer = null; }
+  }
+
   document.getElementById('logsRefresh').addEventListener('click', loadLogs);
   document.getElementById('logContainer').addEventListener('change', loadLogs);
   document.getElementById('logLevel').addEventListener('change', loadLogs);
@@ -1667,6 +1680,9 @@ tr:hover td { background: rgba(184,116,63,.05); }
     if (isNaN(v) || v < 10) this.value = 10;
     if (v > 1000) this.value = 1000;
     loadLogs();
+  });
+  document.getElementById('logAutoRefresh').addEventListener('change', function () {
+    if (this.checked) { startLogAutoRefresh(); } else { stopLogAutoRefresh(); }
   });
 
   window.openUserDetail = function(userId) {

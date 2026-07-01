@@ -909,17 +909,20 @@ async def get_broadcast_status(task_id: str):
     return json.loads(raw)
 
 
-ALLOWED_CONTAINERS = {"api", "bot", "celery-worker", "celery-beat", "postgres", "redis", "nginx"}
+ALLOWED_CONTAINERS = {"all", "api", "bot", "celery-worker", "celery-beat", "postgres", "redis", "nginx"}
 
 
 @router.get("/logs")
 async def get_logs(
-    container: str = Query("api", description="Container name"),
+    container: str = Query("all", description="Container name or 'all'"),
     lines: int = Query(100, ge=10, le=1000),
     level: str = Query("all", description="ERROR|WARNING|INFO|all"),
 ):
     if container not in ALLOWED_CONTAINERS:
         raise HTTPException(status_code=400, detail=f"Unknown container: {container}")
+
+    if container == "all":
+        return await _read_all_logs(lines, level)
 
     if container == "nginx":
         return await _read_nginx_logs(lines, level)
@@ -929,62 +932,118 @@ async def get_logs(
                 "error": "Docker socket not available"}
 
     try:
+        parsed = await _read_container_logs(container, lines, level)
+        return {"lines": parsed, "container": container, "total": len(parsed)}
+    except Exception as e:
+        return {"lines": [], "container": container, "total": 0, "error": str(e)}
+
+
+async def _read_all_logs(lines: int, level: str) -> dict:
+    if not os.path.exists(DOCKER_SOCK):
+        return {"lines": [], "container": "all", "total": 0,
+                "error": "Docker socket not available"}
+
+    docker_containers = ["api", "bot", "celery-worker", "celery-beat", "postgres", "redis"]
+    all_lines: list[str] = []
+
+    try:
         transport = httpx.HTTPTransport(uds=DOCKER_SOCK)
-        async with httpx.AsyncClient(transport=transport, timeout=10.0) as client:
+        async with httpx.AsyncClient(transport=transport, timeout=15.0) as client:
             list_resp = await client.get("http://localhost/containers/json")
             list_resp.raise_for_status()
             containers = list_resp.json()
 
             project = "nura_app"
-            target_id = None
-            for c in containers:
-                names = c.get("Names", [])
-                expected = f"/{project}-{container}-1"
-                if expected in names:
-                    target_id = c["Id"]
-                    break
+            for name in docker_containers:
+                target_id = None
+                expected = f"/{project}-{name}-1"
+                for c in containers:
+                    cnames = c.get("Names", [])
+                    if expected in cnames:
+                        target_id = c["Id"]
+                        break
+                if not target_id:
+                    continue
 
-            if not target_id:
-                return {"lines": [], "container": container, "total": 0,
-                        "error": f"Container {project}-{container}-1 not found"}
-
-            log_resp = await client.get(
-                f"http://localhost/containers/{target_id}/logs",
-                params={"stdout": "true", "stderr": "true", "tail": lines, "timestamps": "false"},
-            )
-            log_resp.raise_for_status()
-            raw = log_resp.text
-
+                per_container = max(20, lines // len(docker_containers))
+                log_resp = await client.get(
+                    f"http://localhost/containers/{target_id}/logs",
+                    params={"stdout": "true", "stderr": "true",
+                            "tail": per_container, "timestamps": "false"},
+                )
+                log_resp.raise_for_status()
+                raw = log_resp.text
+                for line in raw.split("\n"):
+                    clean = _strip_docker_header(line)
+                    if clean:
+                        all_lines.append(f"[{name}] {clean}")
     except Exception as e:
-        return {"lines": [], "container": container, "total": 0, "error": str(e)}
+        return {"lines": [], "container": "all", "total": 0, "error": str(e)}
 
-    parsed = _parse_docker_logs(raw, level)
-    return {"lines": parsed, "container": container, "total": len(parsed)}
+    filtered = _filter_by_level(all_lines, level)
+    return {"lines": filtered, "container": "all", "total": len(filtered)}
 
 
-def _parse_docker_logs(raw: str, level: str) -> list[str]:
-    out: list[str] = []
+async def _read_container_logs(container: str, lines: int, level: str) -> list[str]:
+    transport = httpx.HTTPTransport(uds=DOCKER_SOCK)
+    async with httpx.AsyncClient(transport=transport, timeout=10.0) as client:
+        list_resp = await client.get("http://localhost/containers/json")
+        list_resp.raise_for_status()
+        containers = list_resp.json()
+
+        project = "nura_app"
+        target_id = None
+        for c in containers:
+            names = c.get("Names", [])
+            expected = f"/{project}-{container}-1"
+            if expected in names:
+                target_id = c["Id"]
+                break
+
+        if not target_id:
+            raise ValueError(f"Container {project}-{container}-1 not found")
+
+        log_resp = await client.get(
+            f"http://localhost/containers/{target_id}/logs",
+            params={"stdout": "true", "stderr": "true", "tail": lines, "timestamps": "false"},
+        )
+        log_resp.raise_for_status()
+        raw = log_resp.text
+
+    parsed: list[str] = []
     for line in raw.split("\n"):
-        clean = line
-        if len(clean) >= 8:
-            try:
-                _ = int(clean[:8].strip(), 16)
-                clean = clean[8:]
-            except ValueError:
-                pass
-        clean = clean.strip()
-        if not clean:
+        clean = _strip_docker_header(line)
+        if clean:
+            parsed.append(clean)
+    return _filter_by_level(parsed, level)
+
+
+def _strip_docker_header(line: str) -> str | None:
+    clean = line
+    if len(clean) >= 8:
+        try:
+            _ = int(clean[:8].strip(), 16)
+            clean = clean[8:]
+        except ValueError:
+            pass
+    clean = clean.strip()
+    return clean or None
+
+
+def _filter_by_level(lines: list[str], level: str) -> list[str]:
+    if level == "all":
+        return lines
+    result: list[str] = []
+    for line in lines:
+        upper = line.upper()
+        if level == "ERROR" and "ERROR" not in upper:
             continue
-        if level != "all":
-            upper = clean.upper()
-            if level == "ERROR" and "ERROR" not in upper:
-                continue
-            if level == "WARNING" and "WARNING" not in upper and "WARN" not in upper:
-                continue
-            if level == "INFO" and ("ERROR" in upper or "WARNING" in upper or "WARN" in upper):
-                continue
-        out.append(clean)
-    return out
+        if level == "WARNING" and "WARNING" not in upper and "WARN" not in upper:
+            continue
+        if level == "INFO" and ("ERROR" in upper or "WARNING" in upper or "WARN" in upper):
+            continue
+        result.append(line)
+    return result
 
 
 async def _read_nginx_logs(lines: int, level: str) -> dict:
