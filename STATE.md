@@ -1,6 +1,43 @@
 # NURA — State
 
-> Последнее обновление: **01.07.2026 — Сессия 64** — DeepSeek V4 Flash
+> Последнее обновление: **02.07.2026 — Сессия 66** — DeepSeek V4 Flash
+
+---
+
+## Сессия 66 — 02.07.2026
+- Модель: DeepSeek V4 Flash (opencode-go/deepseek-v4-flash)
+- Что сделано:
+  - **Полная переработка VK-авторизации на официальный VK ID Web SDK:**
+    - **Корневая причина**: VK деактивировал `id.vk.com/oauth2/token`, серверный обмен code→token невозможен. Надо использовать официальный клиентский SDK с PKCE.
+    - **mini.html**: `vkLogin()` заменён на VK ID SDK (`VKIDSDK`). Генерирует `state` и `code_verifier` через `crypto.getRandomValues()`, сохраняет в `sessionStorage`, вызывает `SDK.Config.init()` + `SDK.Auth.login()`. Кнопка блокируется на время загрузки.
+    - **vk-callback.html**: полный реврайт. Парсит callback (поддерживает `payload` JSON и обычные query params). Проверяет `state` (сравнение с sessionStorage), `code_verifier`, TTL 10 мин. Вызывает `SDK.Auth.exchangeCode(code, deviceId, codeVerifier)`. Отправляет только `access_token` на бэкенд. Не доверяет user_id/email из URL.
+    - **core/services/auth.py**: `vk_auth()` переписан — принимает только `access_token` + `guest_token`. Валидирует токен через `https://id.vk.com/oauth2/user_info` (POST, client_id + client_secret). Получает `user_id`, `first_name`, `last_name`, `email`, `birthday` от VK. User создаётся/находится по проверенному vk_id.
+    - **core/schemas/auth.py**: `VKTokenRequest` — только `access_token` (required, min_length=20) + `guest_token` (optional). Убраны `user_id`, `code`, `email`.
+    - **api/routes/auth.py**: роут обновлён под новую схему и новый `vk_auth()`.
+    - **nginx**: добавлен `location ^~ /assets/` (с `^~` чтобы перебить regex `.js` location), SDK бандл положен в `/opt/nura/assets/vendor/vkid-sdk.js` (170 KB, `@vkid/sdk@2.6.5` UMD).
+  - **Запрещённые эндпоинты удалены**: `id.vk.com/oauth2/token`, `oauth.vk.com`, `api.vk.com/method/users.get` — нигде не используются в VK-флоу.
+  - **Бэкенд тест**: POST `/api/v1/auth/vk` с фейковым токеном → 401 `VK token validation failed` (ожидаемо, VK user_info возвращает `invalid_token`).
+  - **Деплой**: API пересобран, nginx перезагружен, статика обновлена.
+- Блокеры: нет
+- Следующие шаги: **end-to-end тест VK auth в реальном браузере** (инкогнито, домашняя сеть) — mini.html → SDK login → callback → /app/
+
+---
+
+## Сессия 65 — 02.07.2026
+- Модель: DeepSeek V4 Flash (opencode-go/deepseek-v4-flash)
+- Что сделано:
+  - **Исправлены ложные срабатывания NURA Health Alert:**
+    - `core/tasks.py`: URL health check изменён с `http://localhost:8000/health` на `http://api:8000/health` (Docker service name)
+    - `admin_bot/services/docker_client.py`: тот же фикс для `check_api_health()`
+    - `docker-compose.yml`: добавлен `PYTHONPATH=/app` для celery-worker и celery-beat
+  - **Деплой на VPS**: контейнеры api, celery-worker, celery-beat, admin-bot пересобраны и перезапущены
+  - **Разблокирован deploy.yml (frontend)**:
+    - pre-flight check больше не проверяет untracked файлы (только `git diff`)
+    - Добавлен `--ignore-cr-at-eol` для игнорирования CRLF-различий на VPS
+    - `assets/` добавлен в `.gitignore`
+  - **Зафиксированы незакоммиченные hotfix-ы**: VK OAuth (mini.html, vk-callback, auth-слой)
+- Блокеры: нет
+- Следующие шаги: мониторинг — ложные Health Alert должны исчезнуть
 
 ---
 

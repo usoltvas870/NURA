@@ -118,16 +118,13 @@ async def vk_auth(
     try:
         result = await AuthService().vk_auth(
             access_token=body.access_token,
-            vk_user_id=body.user_id,
-            code=body.code,
             guest_token=body.guest_token,
             current_user=web_user,
-            vk_email=body.email,
         )
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e) or "VK-токен не подтверждён")
     except httpx.HTTPStatusError as e:
-        logger.error("VK OAuth API error: %s", e.response.text if e.response is not None else "no response")
+        logger.error("VK ID user_info HTTP error: %s", e.response.status_code)
         raise HTTPException(status_code=502, detail="VK-авторизация недоступна. Попробуйте позже.")
     except Exception:
         logger.exception("vk_auth endpoint failed")
