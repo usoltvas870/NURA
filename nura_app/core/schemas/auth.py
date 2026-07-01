@@ -35,22 +35,6 @@ class EmailAuthResponse(BaseModel):
     expires_in: int
 
 
-class SMSAuthRequest(BaseModel):
-    phone: str = Field(..., pattern=r"^\+7\d{10}$")
-    guest_token: str | None = None
-
-
-class SMSAuthResponse(BaseModel):
-    message: str
-    expires_in: int
-
-
-class SMSVerifyRequest(BaseModel):
-    phone: str = Field(..., pattern=r"^\+7\d{10}$")
-    code: str = Field(..., min_length=4, max_length=6)
-    guest_token: str | None = None
-
-
 class VKAuthRequest(BaseModel):
     code: str
     guest_token: str | None = None

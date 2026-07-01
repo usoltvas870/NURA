@@ -1,7 +1,6 @@
 import httpx
 import json
 import logging
-import random
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -16,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 GUEST_CACHE_PREFIX = "guest_profile"
 MAGIC_LINK_PREFIX = "magic_link"
-SMS_CODE_PREFIX = "sms_code"
 LINK_TOKEN_PREFIX = "link_token"
 LINK_TOKEN_TTL_SECONDS = 900
 GUEST_NAME_PLACEHOLDER = "Гость"
@@ -206,94 +204,6 @@ class AuthService:
                 await self.merge_users(current_user.id, user.id)
             except Exception:
                 logger.exception("merge_users failed during magic link verify")
-
-        return {
-            "success": True,
-            "user_id": str(user.id),
-            "web_session_id": web_session_id,
-        }
-
-    async def start_sms_auth(
-        self,
-        phone: str,
-        guest_token: str | None = None,
-        current_user: User | None = None,
-    ) -> dict:
-        user_repo = UserRepository(self._session_factory)
-
-        if current_user is None:
-            existing = await user_repo.get_by_phone(phone)
-            if existing is None:
-                web_session_id = uuid.uuid4().hex
-                existing = await user_repo.create_web_user(
-                    name=GUEST_NAME_PLACEHOLDER,
-                    birth_date="",
-                    web_session_id=web_session_id,
-                )
-                await user_repo.set_phone(existing.id, phone)
-
-        code = f"{random.randint(1000, 9999):04d}"
-        redis = get_redis()
-        ttl = settings.sms_code_ttl_minutes * 60
-        await redis.setex(f"{SMS_CODE_PREFIX}:{phone}", ttl, code)
-
-        try:
-            from core.tasks import send_sms_code
-
-            send_sms_code.delay(phone, code)
-        except Exception:
-            logger.exception("Failed to dispatch send_sms_code")
-
-        return {"message": "Код отправлен", "expires_in": ttl}
-
-    async def verify_sms(
-        self,
-        phone: str,
-        code: str,
-        guest_token: str | None = None,
-        current_user: User | None = None,
-    ) -> dict | None:
-        redis = get_redis()
-        key = f"{SMS_CODE_PREFIX}:{phone}"
-        stored = await redis.get(key)
-        if stored is None:
-            return None
-        if str(stored) != str(code):
-            return None
-        await redis.delete(key)
-
-        user_repo = UserRepository(self._session_factory)
-        user = await user_repo.get_by_phone(phone)
-        if user is None:
-            web_session_id = uuid.uuid4().hex
-            user = await user_repo.create_web_user(
-                name=GUEST_NAME_PLACEHOLDER,
-                birth_date="",
-                web_session_id=web_session_id,
-            )
-            await user_repo.set_phone(user.id, phone)
-
-        await user_repo.set_phone_verified(user.id, True)
-        await user_repo.set_auth_method(user.id, "sms")
-
-        if user.web_session_id is None:
-            web_session_id = uuid.uuid4().hex
-            await user_repo.update_web_session(user.id, web_session_id)
-        else:
-            web_session_id = user.web_session_id
-            await user_repo.renew_session_expiry(user.id)
-
-        if guest_token:
-            try:
-                await self.merge_guest(guest_token, user)
-            except Exception:
-                logger.exception("merge_guest failed during sms verify")
-
-        if current_user is not None and current_user.id != user.id:
-            try:
-                await self.merge_users(current_user.id, user.id)
-            except Exception:
-                logger.exception("merge_users failed during sms verify")
 
         return {
             "success": True,

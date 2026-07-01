@@ -1258,35 +1258,6 @@ def send_magic_link_email(self, email: str, token: str) -> dict:
     return {"ok": True}
 
 
-@celery_app.task(
-    name="core.tasks.send_sms_code",
-    bind=True,
-    max_retries=3,
-    autoretry_on=(Exception,),
-    retry_backoff=30,
-    retry_backoff_max=180,
-)
-def send_sms_code(self, phone: str, code: str) -> dict:
-    message = f"Ваш код для Нура: {code}. Действителен 5 минут."
-    if not settings.sms_ru_api_id:
-        logger.warning("sms_ru api id unset, skipping sms to %s", phone)
-        return {"ok": True, "skipped_no_key": True}
-
-    params = {
-        "api_id": settings.sms_ru_api_id,
-        "to": phone,
-        "msg": message,
-        "json": 1,
-    }
-    with httpx.Client(timeout=10) as client:
-        resp = client.get("https://sms.ru/sms/send", params=params)
-        resp.raise_for_status()
-        data = resp.json()
-    if data.get("status") != "OK":
-        raise Exception(f"SMS send failed: {data}")
-    return {"ok": True}
-
-
 @celery_app.task(name="core.tasks.cleanup_expired_guest_profiles")
 def cleanup_expired_guest_profiles() -> dict:
     async def _run() -> dict:

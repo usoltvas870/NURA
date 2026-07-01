@@ -11,9 +11,6 @@ from core.schemas.auth import (
     GuestProfileResponse,
     MergeGuestRequest,
     MergeGuestResponse,
-    SMSAuthRequest,
-    SMSAuthResponse,
-    SMSVerifyRequest,
     VKAuthResponse,
     VKTokenRequest,
 )
@@ -76,37 +73,6 @@ async def verify_email_auth(
     res = await AuthService().verify_magic_link(token, web_user)
     if res is None:
         raise HTTPException(status_code=400, detail="Токен истёк или недействителен")
-    set_session_cookie(response, res["web_session_id"])
-    return {"success": True, "user_id": res["user_id"]}
-
-
-@router.post("/sms/send", response_model=SMSAuthResponse)
-@limiter.limit("3/minute")
-async def send_sms_auth(
-    request: Request,
-    body: SMSAuthRequest,
-    web_user: User | None = Depends(get_optional_web_user),
-):
-    result = await AuthService().start_sms_auth(
-        body.phone, body.guest_token, web_user
-    )
-    return SMSAuthResponse(
-        message=result["message"],
-        expires_in=result["expires_in"],
-    )
-
-
-@router.post("/sms/verify")
-@limiter.limit("10/minute")
-async def verify_sms_auth(
-    request: Request,
-    response: Response,
-    body: SMSVerifyRequest,
-    web_user: User | None = Depends(get_optional_web_user),
-):
-    res = await AuthService().verify_sms(body.phone, body.code, body.guest_token, web_user)
-    if res is None:
-        raise HTTPException(status_code=400, detail="Неверный или просроченный код")
     set_session_cookie(response, res["web_session_id"])
     return {"success": True, "user_id": res["user_id"]}
 

@@ -147,30 +147,24 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 </section>
 <section class="card mini-card stage" id="stage-auth">
 <a href="/" class="small">← На главную</a>
-<div style="margin-top:18px" class="eyebrow">Полный доступ</div>
-<h1 class="title" style="margin-top:10px">Забери <em>свой отчёт</em></h1>
-<p class="lead" style="margin-top:12px">Куда отправить расшифровку? Без пароля — пришлём ссылку. Один клик, и полный разбор у тебя.</p>
-<button class="btn btn-primary btn-full" id="auth-email-btn" type="button">✶ Получить на Email</button>
-<div class="auth-hint">Magic Link — без пароля</div>
-<button class="btn btn-soft btn-full" id="auth-sms-btn" type="button" style="margin-top:6px">Получить по SMS</button>
-<div class="auth-hint">Код придёт в сообщении</div>
-<div class="auth-form" id="auth-email-form">
+<h1 class="title" style="margin-top:24px">Забери <em>свой отчёт</em></h1>
+<p class="lead" style="margin-top:16px;line-height:1.7">Куда отправить расшифровку?<br>Без пароля — пришлём ссылку.<br>Один клик, и полный разбор у тебя.</p>
+<div style="margin-top:24px">
+<button class="btn btn-primary btn-full" id="auth-email-btn" type="button">Получить на Email</button>
+<div class="auth-hint" style="margin-top:8px">Magic Link — без пароля</div>
+</div>
+<div class="auth-form" id="auth-email-form" style="margin-top:16px">
 <input class="input" type="email" id="auth-email-input" placeholder="you@example.com" autocomplete="email">
-<button class="btn btn-primary btn-full" id="auth-email-submit" type="button"><span class="btn-text">Отправить ссылку</span><span class="loader"></span></button>
+<button class="btn btn-primary btn-full" id="auth-email-submit" type="button" style="margin-top:12px"><span class="btn-text">Отправить ссылку</span><span class="loader"></span></button>
 </div>
-<div class="auth-form" id="auth-sms-form">
-<input class="input" type="tel" id="auth-sms-input" placeholder="+7XXXXXXXXXX" autocomplete="tel">
-<button class="btn btn-primary btn-full" id="auth-sms-send" type="button"><span class="btn-text">Отправить код</span><span class="loader"></span></button>
-<div class="auth-form" id="auth-sms-code-wrap" style="margin-top:4px">
-<input class="input" type="text" id="auth-sms-code" inputmode="numeric" maxlength="4" placeholder="Код из SMS" autocomplete="one-time-code">
-<button class="btn btn-primary btn-full" id="auth-sms-verify-btn" type="button"><span class="btn-text">Подтвердить</span><span class="loader"></span></button>
-</div>
-</div>
-<div class="auth-success" id="auth-success" style="display:none"></div>
-<div class="small" id="auth-error-msg" style="display:none;margin-top:14px;color:#C45C5C;text-align:center"></div>
-<div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--line);text-align:center">
-<div class="small" style="margin-bottom:10px">Или войди через</div>
+<div class="auth-success" id="auth-success" style="display:none;margin-top:16px"></div>
+<div class="small" id="auth-error-msg" style="display:none;margin-top:16px;color:#C45C5C;text-align:center"></div>
+<div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--line);text-align:center">
+<div class="small" style="margin-bottom:16px">Или войди через</div>
 <div id="vk-auth-container" style="display:inline-block"></div>
+</div>
+<div style="text-align:center;margin-top:20px">
+<a href="/app/" class="small" style="color:var(--text-m);text-decoration:underline">Уже есть аккаунт? Войти →</a>
 </div>
 <script src="https://unpkg.com/@vkid/sdk@2.6.5/dist-sdk/umd/index.js"></script>
 <script>
@@ -228,6 +222,20 @@ var labels={self:'понять себя',money:'деньги и реализац
 var stageForm=document.getElementById('stage-form'),stageResult=document.getElementById('stage-result'),stageAuth=document.getElementById('stage-auth');
 var birth=document.getElementById('birth_date'),form=document.getElementById('mini-form'),err=document.getElementById('error-msg'),submitBtn=document.getElementById('submit-btn');
 var consentBox=document.getElementById('pd_consent');
+
+// Проверка сессии — если пользователь уже авторизован, показать баннер
+fetch('/api/v1/web/session-check',{method:'GET',credentials:'same-origin'})
+.then(function(res){if(res.ok)return res.json();throw new Error('no session');})
+.then(function(data){
+  if(data&&data.authenticated){
+    var banner=document.createElement('div');
+    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:100;padding:12px 16px;background:var(--bg-card);border-bottom:1px solid var(--line);box-shadow:0 2px 12px rgba(0,0,0,.08);display:flex;justify-content:space-between;align-items:center;gap:12px';
+    banner.innerHTML='<span style="font-size:13.5px;color:var(--text)">С возвращением! Твой профиль уже здесь.</span><a href="/app/" style="font-size:13px;font-weight:700;color:var(--terra);text-decoration:none;white-space:nowrap">Перейти в приложение →</a>';
+    document.body.insertBefore(banner,document.body.firstChild);
+    document.body.style.paddingTop='56px';
+  }
+})
+.catch(function(){});
 
 function showStage(name){
   stageForm.classList.remove('active');stageResult.classList.remove('active');stageAuth.classList.remove('active');
@@ -323,11 +331,10 @@ document.getElementById('pay-btn').addEventListener('click',function(){
 
 var authErr=document.getElementById('auth-error-msg');
 var authEmailForm=document.getElementById('auth-email-form');
-var authSmsForm=document.getElementById('auth-sms-form');
 var authSuccess=document.getElementById('auth-success');
 function authError(msg){authErr.textContent=msg;authErr.style.display='block';}
 function showAuthSuccess(msgHtml){
-  authEmailForm.style.display='none';authSmsForm.style.display='none';
+  authEmailForm.style.display='none';
   authSuccess.style.display='grid';
   authSuccess.innerHTML=msgHtml;
 }
@@ -335,7 +342,6 @@ var guestToken=function(){return localStorage.getItem('nura_guest_token');};
 
 document.getElementById('auth-email-btn').addEventListener('click',function(){
   authErr.style.display='none';
-  authSmsForm.classList.remove('show');authSmsForm.style.display='none';
   if(authEmailForm.classList.contains('show')){authEmailForm.classList.remove('show');authEmailForm.style.display='none';return;}
   authSuccess.style.display='none';
   authEmailForm.classList.add('show');authEmailForm.style.display='grid';
@@ -354,52 +360,6 @@ document.getElementById('auth-email-submit').addEventListener('click',function()
   .then(function(res){if(!res.ok)throw new Error('send error');return res.json();})
   .then(function(){setLoading(btn,false);showAuthSuccess('<p class="lead">Письмо отправлено. Проверь почту и перейди по ссылке внутри.</p><a href="/app/" class="btn btn-primary btn-full">Открыть приложение NURA</a>');})
   .catch(function(){setLoading(btn,false);authError('Не удалось отправить письмо. Попробуй ещё раз');});
-});
-
-document.getElementById('auth-sms-btn').addEventListener('click',function(){
-  authErr.style.display='none';
-  authEmailForm.classList.remove('show');authEmailForm.style.display='none';
-  if(authSmsForm.classList.contains('show')){authSmsForm.classList.remove('show');authSmsForm.style.display='none';return;}
-  authSuccess.style.display='none';
-  authSmsForm.classList.add('show');authSmsForm.style.display='grid';
-  document.getElementById('auth-sms-input').focus();
-});
-var smsPhone='';
-function formatPhone(raw){
-  var d=raw.replace(/\D/g,'');
-  if(d.charAt(0)==='8')d='7'+d.slice(1);
-  if(d.charAt(0)==='7')d=d.slice(1);
-  d=d.slice(0,10);
-  return d.length?('+7'+d):'+7';
-}
-document.getElementById('auth-sms-input').addEventListener('input',function(){this.value=formatPhone(this.value);});
-document.getElementById('auth-sms-send').addEventListener('click',function(){
-  var btn=this;setLoading(btn,true);authErr.style.display='none';
-  var phone=document.getElementById('auth-sms-input').value.trim();
-  if(!/^\+7\d{10}$/.test(phone)){setLoading(btn,false);authError('Введи номер в формате +7XXXXXXXXXX');return;}
-  fetch('/api/v1/auth/sms/send',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    credentials:'same-origin',
-    body:JSON.stringify({phone:phone,guest_token:guestToken()||undefined})
-  })
-  .then(function(res){if(!res.ok)throw new Error('sms send error');return res.json();})
-  .then(function(){setLoading(btn,false);smsPhone=phone;document.getElementById('auth-sms-code-wrap').classList.add('show');document.getElementById('auth-sms-code-wrap').style.display='grid';document.getElementById('auth-sms-code').focus();})
-  .catch(function(){setLoading(btn,false);authError('Не удалось отправить SMS. Попробуй ещё раз');});
-});
-document.getElementById('auth-sms-verify-btn').addEventListener('click',function(){
-  var btn=this;setLoading(btn,true);authErr.style.display='none';
-  var code=document.getElementById('auth-sms-code').value.trim();
-  if(!/^\d{4}$/.test(code)){setLoading(btn,false);authError('Код состоит из 4 цифр');return;}
-  fetch('/api/v1/auth/sms/verify',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    credentials:'same-origin',
-    body:JSON.stringify({phone:smsPhone,code:code,guest_token:guestToken()||undefined})
-  })
-  .then(function(res){if(!res.ok)throw new Error('verify error');return res.json();})
-  .then(function(data){setLoading(btn,false);if(data&&data.success){location.href='/app/';}else{authError('Неверный или просроченный код');}})
-  .catch(function(){setLoading(btn,false);authError('Неверный или просроченный код');});
 });
 </script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
