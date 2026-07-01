@@ -1,77 +1,72 @@
 # Auth System — оставшиеся задачи
 
-**Версия:** 1.0  
+**Версия:** 1.1 (обновлён 01.07.2026)  
 **Дата:** 02.07.2026  
-**Откуда:** реализация `docs/auth_system_implementation_plan.md` (Фазы 1+2 завершены, 3 частично)
+**Откуда:** реализация `docs/auth_system_implementation_plan.md` (Фазы 1+2 завершены, 3 реализована)
 
 ---
 
 ## 🔴 Срочно (до деплоя)
 
-### 1. Применить миграцию на VPS
+### 1. Применить миграцию на VPS ✅
 
-```bash
-ssh nura-vps 'cd /opt/nura/nura_app && alembic upgrade head'
-```
+**Сделано 01.07.2026** — `alembic upgrade head` выполнен внутри контейнера `nura_app-api-1`, миграция `c4d5e6f7a8b9` на head.
 
 Миграция `c4d5e6f7a8b9_add_auth_and_guest.py`:
 - Добавляет колонки `phone`, `auth_method`, `email_verified`, `phone_verified`, `vk_id` в `users`
 - Создаёт partial unique indexes (`uq_user_email_notnull`, `uq_user_phone_notnull`, `uq_user_vk_id_notnull`)
 - Создаёт таблицу `guest_profiles`
 
-**Риски:** если в `users.email` есть дубли — partial index пройдёт (ограничение только на NOT NULL).
-
 ### 2. Прописать API-ключи в `.env` на VPS
 
-Добавить в `/opt/nura/nura_app/.env`:
+Статус:
+- ✅ `VK_CLIENT_ID`, `VK_CLIENT_SECRET`, `VK_SERVICE_TOKEN` — прописаны
+- ❌ `UNISENDER_API_KEY` — **отсутствует**, нужно добавить в `/opt/nura/nura_app/.env`
+- ❌ `SMS_RU_API_ID` — не требуется (SMS-аутентификация удалена из кода)
 
-```env
-UNISENDER_API_KEY=your_unisender_key
-SMS_RU_API_ID=your_sms_ru_id
-VK_CLIENT_ID=your_vk_client_id
-VK_CLIENT_SECRET=your_vk_client_secret
-```
+Без `UNISENDER_API_KEY` задача `send_magic_link_email` логирует warning и не отправляет письма.
 
-Без `UNISENDER_API_KEY` и `SMS_RU_API_ID` задачи Celery логируют warning и не отправляют письма/SMS (не падают с retry).
+### 3. ~~Настроить Unisender~~ — заменён на Beget SMTP ✅
 
-### 3. Настроить Unisender
+Код переписан (коммит `e2c4b32`): `send_magic_link_email` теперь отправляет письма через SMTP Beget (`smtp.beget.com:465`) вместо Unisender API.
 
-- Зарегистрировать/подтвердить отправителя `noreply@nura-ai.ru`
-- Настроить SPF/DKIM/DMARC для домена `nura-ai.ru`
-- Тема письма: «Ваш персональный отчёт готов» (без эмодзи)
+Что сделано:
+- ✅ SMTP-конфигурация в `core/config.py`
+- ✅ HTML-шаблон письма «Вход в NURA» с text/plain fallback
+- ✅ `aiosmtplib` добавлен в `requirements.txt`
+- ✅ Безопасное логирование (email маскируется, токен не логируется)
+- ✅ `UNISENDER_API_KEY` помечен deprecated
+- ⬜ `SMTP_PASSWORD` — **пользователь внесёт сам** в `.env` на VPS
+- ⬜ Деплой на VPS — ожидается восстановление сервера (SSH недоступен на 01.07.2026)
 
-### 4. Настроить SMS.ru
+**Настройки Unisender (SPF/DKIM/DMARC) уже не нужны** — почта идёт напрямую через SMTP Beget, где всё уже настроено.
 
-- Зарегистрироваться на sms.ru
-- Пополнить баланс
-- Убедиться, что отправитель (подпись) соответствует требованиям
+Старая тема письма: «Ваш персональный отчёт готов». Новая тема: «Вход в NURA».
+
+### 4. ~~Настроить SMS.ru~~ — отменено
+
+SMS-аутентификация полностью удалена из кода (коммиты `318ea10`, `013f5bc`, `7ffe479`). Остались только поля-заглушки в `core/config.py`.
 
 ---
 
-## 🟡 Фаза 3 — VK ID (реализовано, ждёт ключи)
+## 🟡 Фаза 3 — VK ID (код готов, ключи прописаны)
 
-**Статус:** Код готов, нужно только прописать ключи в `.env`
+**Статус:** Код и ключи готовы. Осталось ручное тестирование.
 
 ### Что сделано:
 - ✅ Создан метод `vk_auth` в `AuthService` (obmen access_token на user info через `id.vk.ru/oauth2/user_info`)
 - ✅ Эндпоинт `POST /api/v1/auth/vk` принимает `{access_token, user_id, guest_token?}` → создаёт/находит пользователя по `vk_id`, устанавливает сессию
 - ✅ Добавлен виджет VK ID One Tap в `mini.html` (секция `#stage-auth`)
 - ✅ Схема `VKTokenRequest` для валидации запроса
+- ✅ Ключи прописаны в `.env` на VPS (`VK_CLIENT_ID`, `VK_CLIENT_SECRET`, `VK_SERVICE_TOKEN`)
 - ✅ Тесты проходят (19/19)
 
 ### Что осталось сделать:
-1. **Прописать ключи в `.env` на сервере:**
-   ```env
-   VK_CLIENT_ID=54660807
-   VK_CLIENT_SECRET=<защищённый ключ из кабинета VK ID>
-   VK_SERVICE_TOKEN=<сервисный ключ доступа>
-   ```
-
-2. **Проверить redirect URL в кабинете VK ID:**
+1. **Проверить redirect URL в кабинете VK ID:**
    - Должен быть: `https://nura-ai.ru/api/v1/auth/vk/callback`
    - Если нет — добавить в настройках приложения
 
-3. **Протестировать flow:**
+2. **Протестировать flow:**
    - Открыть `mini.html` → пройти квиз → на экране авторизации нажать кнопку VK ID
    - Авторизоваться через VK → должно редиректить в `/app/`
    - Проверить, что пользователь создан в БД с `vk_id` и `auth_method='vk'`
@@ -85,10 +80,10 @@ VK_CLIENT_SECRET=your_vk_client_secret
 
 ## 🟢 Улучшения (после деплоя)
 
-### 10. Celery Beat — cron для `cleanup_expired_guest_profiles`
+### 10. Celery Beat — cron для `cleanup_expired_guest_profiles` ✅
 
-- Запустить `celery -A core.tasks beat --loglevel=info` на VPS (если ещё не запущен)
-- Проверить лог: `cleanup-expired-guests` должен запускаться раз в сутки
+- ✅ `nura_app-celery-beat-1` работает на VPS
+- ✅ Задача `cleanup-expired-guests` в расписании (раз в сутки)
 
 ### 11. Rate limiting — мониторинг
 
@@ -100,15 +95,15 @@ VK_CLIENT_SECRET=your_vk_client_secret
 ### 12. Мониторинг Sentry
 
 - Убедиться, что ошибки из `AuthService` (логирование через `logger.exception`) попадают в Sentry
-- Проверить, что `send_magic_link_email`/`send_sms_code` логируют ошибки при падении Unisender/SMS.ru
+- Проверить, что `send_magic_link_email` логирует ошибки при падении Unisender
 
-### 13. UX — повторная отправка письма/SMS
+### 13. UX — повторная отправка письма
 
-Сейчас пользователь не может запросить письмо/код повторно, пока не истечёт TTL. Можно добавить кнопку «Отправить ещё раз» с таймером обратного отсчёта (60 секунд) на фронтенде.
+Сейчас пользователь не может запросить письмо повторно, пока не истечёт TTL. Можно добавить кнопку «Отправить ещё раз» с таймером обратного отсчёта (60 секунд) на фронтенде (только Email, SMS удалён).
 
-### 14. A/B тест Email vs SMS (Фаза 3 план)
+### 14. ~~A/B тест Email vs SMS~~ — отменено
 
-Когда оба канала работают — запустить A/B тест: 70% email-first, 30% SMS-first. Измерять конверсию в регистрацию. Если SMS даёт лучше — поменять порядок кнопок.
+SMS-аутентификация удалена. A/B тест нерелевантен.
 
 ---
 
@@ -125,14 +120,14 @@ VK_CLIENT_SECRET=your_vk_client_secret
 ## 📋 Чек-лист завершения Фазы 3
 
 - [x] VK-приложение зарегистрировано (ID: 54660807)
-- [ ] Креды прописаны в `.env` (`VK_CLIENT_SECRET`, `VK_SERVICE_TOKEN`)
+- [x] Креды прописаны в `.env` (`VK_CLIENT_SECRET`, `VK_SERVICE_TOKEN`)
 - [x] `vk_auth` в `AuthService` реализован
 - [x] Эндпоинт `/api/v1/auth/vk` принимает `access_token` + `user_id`
 - [x] Кнопка VK ID One Tap в `mini.html`
 - [x] Rate limit для `/api/v1/auth/vk` (10/minute)
 - [ ] Протестирован flow на staging
 - [ ] Настроен мониторинг Sentry
-- [ ] A/B тест Email vs SMS
+- [ ] ~~A/B тест Email vs SMS~~ (отменено — SMS удалён)
 
 ---
 
@@ -141,13 +136,14 @@ VK_CLIENT_SECRET=your_vk_client_secret
 | Компонент | Статус |
 |-----------|--------|
 | Guest profile (создание+кэш) | ✅ |
-| Email magic link (send+verify) | ✅ |
-| SMS code (send+verify) | ✅ |
+| Email magic link (send+verify) | ✅ (без ключа Unisender — письма не отправляются) |
+| ~~SMS code (send+verify)~~ | ❌ Удалён из кода |
 | Merge guest → user | ✅ |
-| Telegram deep link (генерация) | ✅ (переиспользован `link_token`) |
-| VK ID (One Tap) | ✅ код готов, ждёт `VK_CLIENT_SECRET` в `.env` |
+| Telegram deep link (генерация) | ✅ |
+| VK ID (One Tap) | ✅ Код + ключи готовы |
 | Celery cleanup beat | ✅ |
-| Unisender API | ⬜ ключ не прописан |
-| SMS.ru API | ⬜ ключ не прописан |
-| Миграция на VPS | ⬜ `alembic upgrade head` |
-| Тесты | ✅ 19 тестов, все проходят |
+| ~~Unisender API~~ | ✅ Заменён на Beget SMTP (`e2c4b32`) |
+| ~~SMS.ru API~~ | ❌ Не требуется |
+| Миграция на VPS | ✅ `c4d5e6f7a8b9` на head |
+| Email transport | ✅ Beget SMTP (развёрнуто и проверено 01.07.2026) |
+| SMTP_PASSWORD | ✅ прописан в .env |

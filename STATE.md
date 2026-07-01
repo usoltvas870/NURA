@@ -17,10 +17,10 @@
     - `.env.example`: SMTP секция добавлена, UNISENDER_API_KEY помечен deprecated
     - Тесты 16/16 проходят, линтер чист
   - **Деплой**: код запушен в GitHub, но VPS недоступен (SSH + HTTP timeout) — деплой отложен
-- Блокеры: VPS 45.144.178.118 недоступен (SSH connection timed out, HTTP 000)
+  - **SMTP на VPS**: добавлен `SMTP_PASSWORD` в .env, контейнеры пересобраны, отправка проверена (0.33s)
+  - **Очистка корня проекта**: удалены 8 устаревших документов (`ADMIN_PANEL_PLAN.md`, `ADMIN_PANEL_WORKFLOW.md`, `CLAUDE.md`, `CODE_AUDIT_PLAN.md`, `PWA_TAROT_UX_UPGRADE_PLAN.md`, `SMART_INSTALL_BANNER_REPORT.md`, `audit-report.md`, `REPORT.md`)
+- Блокеры: нет
 - Следующие шаги:
-  - Дождаться восстановления VPS → `git pull && docker compose up -d --build api celery-worker celery-beat`
-  - Пользователю добавить `SMTP_PASSWORD` в `.env` на VPS (Beget, ящик noreply@nura-ai.ru)
   - Протестировать VK ID flow на production
   - Настроить Sentry мониторинг
 
