@@ -173,7 +173,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
   var VKID = window.VKIDSDK;
   VKID.Config.init({
     app: 54660807,
-    redirectUrl: 'https://nura-ai.ru/api/v1/auth/vk/callback',
+    redirectUrl: window.location.href,
     responseMode: VKID.ConfigResponseMode.Callback,
     source: VKID.ConfigSource.LOWCODE,
     scope: 'email'
@@ -185,6 +185,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
   })
   .on(VKID.WidgetEvents.ERROR, function(error) {
     var authErr = document.getElementById('auth-error-msg');
+    console.warn('VK ID OneTap error:', error);
     if (authErr) { authErr.textContent = 'Ошибка авторизации VK'; authErr.style.display = 'block'; }
   })
   .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function(payload) {
