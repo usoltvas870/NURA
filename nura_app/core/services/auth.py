@@ -310,13 +310,14 @@ class AuthService:
             user_repo = UserRepository(self._session_factory)
             user = await user_repo.get_by_vk_id(vk_user_id)
 
-            if user is None:
-                first_name = user_info.get("first_name", "")
-                last_name = user_info.get("last_name", "")
-                name = f"{first_name} {last_name}".strip() or "Пользователь"
-                email = user_info.get("email")
-                birthday = user_info.get("birthday", "")
+            first_name = user_info.get("first_name", "")
+            last_name = user_info.get("last_name", "")
+            vk_name = f"{first_name} {last_name}".strip()
+            email = user_info.get("email")
+            birthday = user_info.get("birthday", "")
 
+            if user is None:
+                name = vk_name or "Пользователь"
                 web_session_id = uuid.uuid4().hex
                 user = await user_repo.create_web_user(
                     name=name,
@@ -326,6 +327,12 @@ class AuthService:
                 )
                 await user_repo.set_vk_id(user.id, vk_user_id)
             else:
+                if user.name in (None, GUEST_NAME_PLACEHOLDER, "Пользователь", "") and vk_name:
+                    await user_repo.update_web_user(user.id, name=vk_name)
+                if user.birth_date in (None, "") and birthday:
+                    await user_repo.update_web_user(user.id, birth_date=birthday)
+                if user.email is None and email:
+                    await user_repo.set_email(user.id, email)
                 web_session_id = user.web_session_id
                 if web_session_id is None:
                     web_session_id = uuid.uuid4().hex
