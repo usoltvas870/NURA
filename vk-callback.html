@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Вход через VK — NURA</title>
+<title>Р’С…РѕРґ С‡РµСЂРµР· VK вЂ” NURA</title>
 <script src="/assets/vendor/vkid-sdk.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -22,7 +22,7 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
 <div class="card">
 <h1>NURA</h1>
 <div class="loader" id="loader"></div>
-<div class="status" id="status">Выполняем вход через VK...</div>
+<div class="status" id="status">Р’С‹РїРѕР»РЅСЏРµРј РІС…РѕРґ С‡РµСЂРµР· VK...</div>
 </div>
 <script>
 (function() {
@@ -38,7 +38,7 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
       var btn = document.createElement('a');
       btn.className = 'retry-btn';
       btn.href = '/mini';
-      btn.textContent = 'Попробовать ещё раз';
+      btn.textContent = 'РџРѕРїСЂРѕР±РѕРІР°С‚СЊ РµС‰С‘ СЂР°Р·';
       card.appendChild(btn);
     }
   }
@@ -51,7 +51,7 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
 
   var SDK = window.VKIDSDK;
   if (!SDK) {
-    renderError('Не удалось загрузить SDK. Обновите страницу.');
+    renderError('РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ SDK. РћР±РЅРѕРІРёС‚Рµ СЃС‚СЂР°РЅРёС†Сѓ.');
     return;
   }
 
@@ -61,7 +61,7 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
 
   if (payload) {
     try { callbackData = JSON.parse(payload); } catch(e) {
-      renderError('Некорректный ответ от VK.');
+      renderError('РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ РѕС‚РІРµС‚ РѕС‚ VK.');
       clearVkData(); return;
     }
   } else {
@@ -75,7 +75,7 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
   }
 
   if (callbackData.error) {
-    renderError('Авторизация отклонена.');
+    renderError('РђРІС‚РѕСЂРёР·Р°С†РёСЏ РѕС‚РєР»РѕРЅРµРЅР°.');
     clearVkData(); return;
   }
 
@@ -84,7 +84,7 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
   var returnedState = callbackData.state;
 
   if (!code || !deviceId) {
-    renderError('Неполный ответ от VK.');
+    renderError('РќРµРїРѕР»РЅС‹Р№ РѕС‚РІРµС‚ РѕС‚ VK.');
     clearVkData(); return;
   }
 
@@ -93,15 +93,15 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
   var startedAt = Number(sessionStorage.getItem('nura_vk_started_at'));
 
   if (!expectedState || !returnedState || returnedState !== expectedState) {
-    renderError('Проверка безопасности не пройдена.');
+    renderError('РџСЂРѕРІРµСЂРєР° Р±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё РЅРµ РїСЂРѕР№РґРµРЅР°.');
     clearVkData(); return;
   }
   if (!codeVerifier) {
-    renderError('Данные сессии утеряны.');
+    renderError('Р”Р°РЅРЅС‹Рµ СЃРµСЃСЃРёРё СѓС‚РµСЂСЏРЅС‹.');
     clearVkData(); return;
   }
   if (!Number.isFinite(startedAt) || Date.now() - startedAt > 600000) {
-    renderError('Время входа истекло.');
+    renderError('Р’СЂРµРјСЏ РІС…РѕРґР° РёСЃС‚РµРєР»Рѕ.');
     clearVkData(); return;
   }
 
@@ -136,11 +136,11 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
     .then(function(result) {
       clearVkData();
       if (result.success) location.replace('/app/');
-      else renderError('Не удалось завершить вход.');
+      else renderError('РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РІРµСЂС€РёС‚СЊ РІС…РѕРґ.');
     })
     .catch(function() {
       clearVkData();
-      renderError('Ошибка при входе через VK.');
+      renderError('РћС€РёР±РєР° РїСЂРё РІС…РѕРґРµ С‡РµСЂРµР· VK.');
     });
 })();
 </script>
