@@ -161,61 +161,25 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 <div class="small" id="auth-error-msg" style="display:none;margin-top:16px;color:#C45C5C;text-align:center"></div>
 <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--line);text-align:center">
 <div class="small" style="margin-bottom:16px">Или войди через</div>
-<div id="vk-auth-container" style="display:inline-block"></div>
+<div id="vk-auth-container" style="display:inline-block">
+        <button class="btn btn-soft" id="vk-login-btn" type="button" onclick="vkLogin()" style="min-width:200px">Войти через VK</button>
+</div>
 </div>
 <div style="text-align:center;margin-top:20px">
 <a href="/app/" class="small" style="color:var(--text-m);text-decoration:underline">Уже есть аккаунт? Войти →</a>
 </div>
 <script src="https://unpkg.com/@vkid/sdk@2.6.5/dist-sdk/umd/index.js"></script>
 <script>
-(function() {
-  if (!('VKIDSDK' in window)) return;
-  var VKID = window.VKIDSDK;
-  VKID.Config.init({
-    app: 54660807,
-    redirectUrl: window.location.href,
-    responseMode: VKID.ConfigResponseMode.Callback,
-    source: VKID.ConfigSource.LOWCODE,
-    scope: 'email'
-  });
-  var oneTap = new VKID.OneTap();
-  oneTap.render({
-    container: document.getElementById('vk-auth-container'),
-    showAlternativeLogin: false
-  })
-  .on(VKID.WidgetEvents.ERROR, function(error) {
-    var authErr = document.getElementById('auth-error-msg');
-    console.warn('VK ID OneTap error:', error);
-    if (authErr) { authErr.textContent = 'Ошибка авторизации VK'; authErr.style.display = 'block'; }
-  })
-  .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, function(payload) {
-    var code = payload.code;
-    var deviceId = payload.device_id;
-    VKID.Auth.exchangeCode(code, deviceId)
-      .then(function(data) {
-        var guestToken = localStorage.getItem('nura_guest_token');
-        var body = { access_token: data.access_token, user_id: String(data.user_id) };
-        if (guestToken) body.guest_token = guestToken;
-        return fetch('/api/v1/auth/vk', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          credentials: 'same-origin',
-          body: JSON.stringify(body)
-        });
-      })
-      .then(function(res) {
-        if (!res.ok) throw new Error('VK auth failed');
-        return res.json();
-      })
-      .then(function(result) {
-        if (result.success) location.href = '/app/';
-      })
-      .catch(function(err) {
-        var authErr = document.getElementById('auth-error-msg');
-        if (authErr) { authErr.textContent = 'Не удалось войти через VK'; authErr.style.display = 'block'; }
-      });
-  });
-})();
+function vkLogin() {
+  var guestToken = localStorage.getItem('nura_guest_token') || '';
+  var authUrl = 'https://id.vk.com/authorize'
+    + '?client_id=54660807'
+    + '&redirect_uri=https://nura-ai.ru/vk-callback.html'
+    + '&response_type=code'
+    + '&state=' + encodeURIComponent(guestToken)
+    + '&scope=email';
+  location.href = authUrl;
+}
 </script>
 </section>
 </div><script>

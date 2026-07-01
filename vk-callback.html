@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Вход через VK — NURA</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;background:#1a1a1a;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.card{background:#222;border-radius:12px;padding:32px;text-align:center;max-width:360px;width:100%}
+h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
+.status{font-size:14px;line-height:1.5;color:#999}
+.error{color:#C45C5C}
+.loader{display:inline-block;width:20px;height:20px;border:2px solid #444;border-top-color:#D45429;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>NURA</h1>
+<div class="loader" id="loader"></div>
+<div class="status" id="status">Выполняем вход через VK...</div>
+</div>
+<script src="https://unpkg.com/@vkid/sdk@2.6.5/dist-sdk/umd/index.js"></script>
+<script>
+(function() {
+  var el = document.getElementById('status');
+  var loader = document.getElementById('loader');
+
+  var params = new URLSearchParams(window.location.search);
+  var code = params.get('code');
+  var error = params.get('error');
+  var state = params.get('state') || '';
+
+  if (error) {
+    loader.style.display = 'none';
+    el.className = 'status error';
+    el.textContent = 'Авторизация отклонена';
+    return;
+  }
+  if (!code) {
+    loader.style.display = 'none';
+    el.className = 'status error';
+    el.textContent = 'Код авторизации не получен';
+    return;
+  }
+  if (!('VKIDSDK' in window)) {
+    loader.style.display = 'none';
+    el.className = 'status error';
+    el.textContent = 'Ошибка загрузки VK SDK';
+    return;
+  }
+
+  var VKID = window.VKIDSDK;
+  VKID.Config.init({
+    app: 54660807,
+    redirectUrl: window.location.href,
+    responseMode: VKID.ConfigResponseMode.Callback,
+    source: VKID.ConfigSource.LOWCODE,
+    scope: 'email'
+  });
+
+  VKID.Auth.exchangeCode(code, '')
+    .then(function(data) {
+      var body = { access_token: data.access_token, user_id: String(data.user_id) };
+      if (state) body.guest_token = state;
+      return fetch('/api/v1/auth/vk', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'same-origin',
+        body: JSON.stringify(body)
+      });
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Ошибка сервера');
+      return res.json();
+    })
+    .then(function(result) {
+      if (result.success) { location.href = '/app/'; }
+      else throw new Error('Ошибка авторизации');
+    })
+    .catch(function(err) {
+      loader.style.display = 'none';
+      el.className = 'status error';
+      el.textContent = err.message || 'Не удалось войти через VK';
+    });
+})();
+</script>
+</body>
+</html>
