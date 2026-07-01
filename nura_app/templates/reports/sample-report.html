@@ -242,7 +242,7 @@
   .cv-info .v.accent{ color:var(--gold); font-style:italic; }
   .cv-info .v.mono{ font-family:'Courier New',monospace; font-size:13px; color:var(--ink-soft); }
   .matrix-viz-wrap{ margin-top:28px; display:flex; justify-content:center; }
-  .matrix-viz{ width:100%; max-width:500px; aspect-ratio:1; }
+  .matrix-viz{ width:100%; max-width:420px; aspect-ratio:1; }
   .matrix-viz svg{ width:100%; height:100%; display:block; }
 
   /* ============ DASHBOARD (30 sec) ============ */
@@ -553,12 +553,9 @@
 
   @media print {
     .matrix-viz{ max-width:400px; }
-    .matrix-viz svg circle[fill="#8B5CF6"] { fill: #8B5CF6; }
-    .matrix-viz svg circle[fill="#EF4444"] { fill: #EF4444; }
-    .matrix-viz svg circle[fill="#10B981"] { fill: #10B981; }
-    .matrix-viz svg circle[fill="#F59E0B"] { fill: #F59E0B; }
-    .matrix-viz svg circle[fill="#3B82F6"] { fill: #3B82F6; }
-    .matrix-viz svg circle[fill="#EC4899"] { fill: #EC4899; }
+    .matrix-viz svg circle[fill="#B8743F"] { fill: #B8743F; }
+    .matrix-viz svg circle[fill="#6B8068"] { fill: #6B8068; }
+    .matrix-viz svg circle[fill="#C2A476"] { fill: #C2A476; }
     .matrix-viz svg text[fill="#fff"] { fill: #fff; }
   }
 </style>
@@ -1716,14 +1713,17 @@
     const cy = size/2;
     const R = 180;
 
-    const colors = ['#8B5CF6', '#EF4444', '#10B981', '#F59E0B', '#3B82F6', '#EC4899', '#8B5CF6', '#EF4444'];
+    const TERRA = '#B8743F';
+    const SAGE = '#6B8068';
+    const GOLD = '#C2A476';
+    const INK_FAINT = '#9A8A82';
 
     let svg = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">`;
 
     svg += `<defs>
       <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:0.3"/>
-        <stop offset="100%" style="stop-color:#F59E0B;stop-opacity:0"/>
+        <stop offset="0%" style="stop-color:${TERRA};stop-opacity:0.08"/>
+        <stop offset="100%" style="stop-color:${TERRA};stop-opacity:0"/>
       </radialGradient>
     </defs>`;
 
@@ -1739,9 +1739,9 @@
     }
 
     svg += `<polygon points="${octagon.map(p => `${p.x},${p.y}`).join(' ')}" 
-             fill="none" stroke="var(--matrix-card-border)" stroke-width="2"/>`;
+             fill="none" stroke="${INK_FAINT}" stroke-width="1" opacity="0.5"/>`;
 
-    svg += `<g stroke="var(--matrix-card-border)" stroke-width="1.5" opacity="0.6">`;
+    svg += `<g stroke="${INK_FAINT}" stroke-width="0.75" opacity="0.3">`;
     for(let i=0; i<8; i++){
       for(let j=i+2; j<8; j++){
         if(j-i === 4) continue;
@@ -1750,19 +1750,19 @@
     }
     svg += `</g>`;
 
-    svg += `<g stroke="#EF4444" stroke-width="2" opacity="0.4" stroke-dasharray="5,5">`;
+    svg += `<g stroke="${TERRA}" stroke-width="1.5" opacity="0.25" stroke-dasharray="6,6">`;
     svg += `<line x1="${octagon[0].x}" y1="${octagon[0].y}" x2="${octagon[4].x}" y2="${octagon[4].y}"/>`;
     svg += `<line x1="${octagon[2].x}" y1="${octagon[2].y}" x2="${octagon[6].x}" y2="${octagon[6].y}"/>`;
     svg += `</g>`;
 
     for(let i=0; i<8; i++){
       const angle = (i * 45 - 90) * Math.PI / 180;
-      const labelR = R + 60;
+      const labelR = R + 55;
       const lx = cx + labelR * Math.cos(angle);
       const ly = cy + labelR * Math.sin(angle);
-      svg += `<text x="${lx}" y="${ly}" font-size="11" fill="var(--ink-faint)" 
+      svg += `<text x="${lx}" y="${ly}" font-size="10" fill="${INK_FAINT}" 
               text-anchor="middle" dominant-baseline="central" 
-              font-family="Manrope, sans-serif">${(i+1)*5} лет</text>`;
+              font-family="Manrope, sans-serif" opacity="0.6">${(i+1)*5} лет</text>`;
     }
 
     svg += `<g font-family="Playfair Display, Georgia, serif" text-anchor="middle" dominant-baseline="central">`;
@@ -1779,18 +1779,15 @@
     ];
 
     positions.forEach((pos, i) => {
-      const color = colors[i % colors.length];
-      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="28" fill="${color}" opacity="0.9"/>`;
-      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="28" fill="none" stroke="#fff" stroke-width="2"/>`;
-      svg += `<text x="${pos.x}" y="${pos.y}" fill="#fff" font-size="20" font-weight="600">${pos.val}</text>`;
+      const color = i % 2 === 0 ? TERRA : SAGE;
+      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="26" fill="${color}" opacity="0.85"/>`;
+      svg += `<circle cx="${pos.x}" cy="${pos.y}" r="26" fill="none" stroke="#fff" stroke-width="1.5"/>`;
+      svg += `<text x="${pos.x}" y="${pos.y}" fill="#fff" font-size="18" font-weight="500">${pos.val}</text>`;
     });
 
-    svg += `<circle cx="${cx}" cy="${cy}" r="40" fill="#F59E0B"/>`;
-    svg += `<circle cx="${cx}" cy="${cy}" r="40" fill="none" stroke="#fff" stroke-width="3"/>`;
-    svg += `<text x="${cx}" y="${cy}" fill="#fff" font-size="28" font-weight="700">${data[4]}</text>`;
-
-    svg += `<text x="${cx}" y="${cy+55}" font-size="16" fill="var(--ink-muted)" 
-            font-family="Manrope, sans-serif" font-weight="500"></text>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="38" fill="${GOLD}"/>`;
+    svg += `<circle cx="${cx}" cy="${cy}" r="38" fill="none" stroke="#fff" stroke-width="2"/>`;
+    svg += `<text x="${cx}" y="${cy}" fill="#fff" font-size="26" font-weight="600">${data[4]}</text>`;
 
     svg += `</g></svg>`;
 
