@@ -1424,12 +1424,11 @@ class TestCmdStart:
             patch("bot.handlers.start.OnboardingStates"),
         ):
             repo_instance = MagicMock()
-            repo_instance.get_by_telegram_id = AsyncMock(return_value=None)
-            repo_instance.create = AsyncMock()
-            repo_instance.create.return_value = MagicMock(
+            new_user = MagicMock(
                 birth_date=None,
                 main_archetype="Маг",
             )
+            repo_instance.get_or_create_by_telegram_id = AsyncMock(return_value=new_user)
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_greet.return_value = "Привет!"
@@ -1463,7 +1462,7 @@ class TestCmdStart:
             existing_user.subscription_status = "free"
 
             repo_instance = MagicMock()
-            repo_instance.get_by_telegram_id = AsyncMock(
+            repo_instance.get_or_create_by_telegram_id = AsyncMock(
                 return_value=existing_user
             )
             MockRepo.return_value = repo_instance
@@ -1498,7 +1497,7 @@ class TestCmdStart:
             existing_user.main_archetype = "Маг"
 
             repo_instance = MagicMock()
-            repo_instance.get_by_telegram_id = AsyncMock(
+            repo_instance.get_or_create_by_telegram_id = AsyncMock(
                 return_value=existing_user
             )
             MockRepo.return_value = repo_instance

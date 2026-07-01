@@ -16,13 +16,11 @@ class UserRegistrationMiddleware(BaseMiddleware):
         if telegram_user and not telegram_user.is_bot:
             session_factory = get_async_sessionmaker()
             repo = UserRepository(session_factory)
-            user = await repo.get_by_telegram_id(telegram_user.id)
-            if user is None:
-                user = await repo.create(
-                    telegram_id=telegram_user.id,
-                    username=telegram_user.username,
-                    first_name=telegram_user.first_name,
-                )
+            user = await repo.get_or_create_by_telegram_id(
+                telegram_user.id,
+                username=telegram_user.username,
+                first_name=telegram_user.first_name,
+            )
             data["user"] = user
 
         return await handler(event, data)

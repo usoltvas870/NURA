@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import load_only
 
@@ -34,6 +35,26 @@ class UserRepository(SQLAlchemyRepository[User]):
             first_name=first_name,
         )
         return await self.add(user)
+
+    async def get_or_create_by_telegram_id(
+        self,
+        telegram_id: int,
+        username: str | None = None,
+        first_name: str | None = None,
+    ) -> User:
+        async with self._session_factory() as session:
+            stmt = pg_insert(User).values(
+                id=uuid.uuid4(),
+                telegram_id=telegram_id,
+                username=username,
+                first_name=first_name,
+            ).on_conflict_do_nothing()
+            await session.execute(stmt)
+            await session.commit()
+            result = await session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            return result.scalar_one()
 
     async def update_archetype(
         self,

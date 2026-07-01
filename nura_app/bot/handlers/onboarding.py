@@ -45,14 +45,11 @@ async def process_onboarding_birth_date(
 
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
-    db_user = user or await user_repo.get_by_telegram_id(message.from_user.id)
-
-    if db_user is None:
-        db_user = await user_repo.create(
-            telegram_id=message.from_user.id,
-            username=message.from_user.username,
-            first_name=message.from_user.first_name,
-        )
+    db_user = user or await user_repo.get_or_create_by_telegram_id(
+        message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
 
     matrix = MatrixService.calculate(date_str)
     archetype_name = MatrixService.get_archetype_name(matrix.center)

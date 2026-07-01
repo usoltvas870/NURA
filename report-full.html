@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F7F3ED">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<title>Матрица Судьбы — Анна · 01.06.1995 · NURA AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:        #F7F3ED;
+    --surface:        #FFFFFF;
+    --surface-tint:   #EFEAE2;
+
+    --ink:        #1C1814;
+    --ink-soft:   #3D3530;
+    --ink-muted:  #6B5A52;
+    --ink-faint:  #9A8A82;
+
+    --line:         rgba(28,24,20,.10);
+    --line-strong:  rgba(28,24,20,.18);
+
+    --matrix-bg:          #EEF4F0;
+    --matrix-card:        #E2ECE6;
+    --matrix-card-border: rgba(74,122,90,.25);
+    --matrix-glyph-bg:    rgba(74,122,90,.16);
+    --matrix-glyph:       #3A6848;
+    --leaf:               #3A6B4A;
+    --gold:               #7A5C1E;
+    --gold-hover:         #5E4616;
+    --gold-fill:          rgba(122,92,30,.08);
+    --gold-line:          rgba(122,92,30,.25);
+
+    --tarot-card:    #EBE6DC;
+    --tarot-border:  rgba(106,103,152,.22);
+    --tarot-violet:  #4A4878;
+
+    --shadow:     0 4px 20px rgba(28,24,20,.07);
+    --shadow-md:  0 10px 36px rgba(28,24,20,.09);
+
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 10px;
+    --reading-w: 660px;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0;
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:'Manrope',system-ui,sans-serif;
+    line-height:1.7;
+    font-size:16.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:rgba(122,92,30,.18); color:var(--ink); }
+  a{ color:inherit; text-decoration:none; }
+  button{ font-family:inherit; cursor:pointer; }
+  img,svg{ max-width:100%; display:block; }
+
+  h1,h2,h3,h4{
+    font-family:'Playfair Display',Georgia,serif;
+    margin:0;
+    font-weight:500;
+    letter-spacing:-0.01em;
+    color:var(--ink);
+  }
+  em{ font-style:italic; }
+
+  .wrap{ max-width:var(--reading-w); margin:0 auto; padding:0 20px; }
+  @media (min-width:640px){ .wrap{ padding:0 28px; } }
+
+  /* ============ TOP BAR ============ */
+  .topbar{
+    position:sticky; top:0; z-index:60;
+    background:rgba(247,243,237,.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:var(--reading-w);
+    margin:0 auto;
+    padding:12px 20px;
+    display:flex; align-items:center; gap:12px;
+  }
+  @media (min-width:640px){ .topbar-inner{ padding:14px 28px; } }
+  .menu-btn{
+    width:36px; height:36px; flex:none;
+    border:1px solid var(--line-strong);
+    border-radius:10px;
+    background:var(--surface);
+    display:none; place-items:center;
+    color:var(--ink-soft);
+  }
+  @media (min-width:1024px){ .menu-btn{ display:grid; } }
+  .menu-btn svg{ width:17px; height:17px; }
+  .topbar-brand{ display:flex; align-items:center; gap:8px; flex:none; }
+  .topbar-brand .mark{
+    width:26px; height:26px; border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),#B08948);
+    color:#fff; display:grid; place-items:center;
+    font-family:'Playfair Display',serif; font-weight:600; font-size:13px;
+  }
+  .topbar-brand .name{ font-size:11px; font-weight:700; letter-spacing:.16em; color:var(--ink-soft); display:none; }
+  @media (min-width:480px){ .topbar-brand .name{ display:inline; } }
+  .topbar-section{
+    margin-left:auto; font-size:12px; color:var(--ink-muted); text-align:right;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .topbar-section .n{ color:var(--gold); font-weight:600; }
+  .progress-track{ height:2px; background:var(--line); }
+  .progress-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--leaf),var(--gold)); transition:width .15s linear; }
+
+  /* ============ DRAWER NAV ============ */
+  .drawer-backdrop{
+    position:fixed; inset:0; background:rgba(28,24,20,.32);
+    opacity:0; pointer-events:none; transition:opacity .25s ease; z-index:70;
+  }
+  body.drawer-open .drawer-backdrop{ opacity:1; pointer-events:auto; }
+  .drawer{
+    position:fixed; top:0; left:0; bottom:0; width:min(320px,86vw);
+    background:var(--surface); box-shadow:var(--shadow-md);
+    transform:translateX(-100%); transition:transform .3s cubic-bezier(.22,1,.36,1);
+    z-index:80; display:flex; flex-direction:column; padding:22px 22px 18px;
+  }
+  body.drawer-open .drawer{ transform:translateX(0); }
+  .drawer-top{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .drawer-close{ width:32px; height:32px; border-radius:50%; border:1px solid var(--line-strong); background:transparent; display:grid; place-items:center; color:var(--ink-muted); }
+  .drawer-meta{ padding:14px 0 16px; border-bottom:1px solid var(--line); margin-bottom:10px; }
+  .drawer-meta .label{ font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px; }
+  .drawer-meta .who{ font-size:24px; margin-bottom:4px; font-family:'Playfair Display',serif; }
+  .drawer-meta .dob{ font-size:12px; color:var(--ink-muted); }
+  .drawer-meta .chip{
+    margin-top:10px; display:inline-flex; align-items:center; gap:6px;
+    padding:5px 12px; border-radius:999px; background:var(--gold-fill); color:var(--gold);
+    font-size:11px; font-weight:600; letter-spacing:.08em;
+  }
+  .drawer-nav{ overflow-y:auto; flex:1; margin:0 -8px; padding:0 8px; }
+  .drawer-nav .group-label{ font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); margin:14px 0 5px; padding:0 10px; }
+  .drawer-nav .group-label:first-child{ margin-top:0; }
+  .drawer-nav ul{ list-style:none; margin:0; padding:0; }
+  .drawer-nav a{ display:flex; align-items:baseline; gap:11px; padding:7px 10px; border-radius:9px; font-size:13px; color:var(--ink-soft); transition:background .15s ease,color .15s ease; }
+  .drawer-nav a .num{ font-family:'Playfair Display',serif; font-size:12.5px; color:var(--ink-faint); flex:none; width:20px; }
+  .drawer-nav a:hover{ background:var(--surface-tint); }
+  .drawer-nav a.active{ background:var(--gold-fill); color:var(--gold); }
+  .drawer-nav a.active .num{ color:var(--gold); }
+  .drawer-foot{ margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:11px; color:var(--ink-faint); line-height:1.5; }
+
+  /* ============ CONTENT SHELL ============ */
+  main{ padding-bottom:60px; }
+  section.chapter{ max-width:var(--reading-w); margin:0 auto; padding:56px 20px 48px; scroll-margin-top:64px; }
+  @media (min-width:640px){ section.chapter{ padding:84px 28px 64px; } }
+  section.chapter:first-of-type{ padding-top:30px; }
+  @media (min-width:640px){ section.chapter:first-of-type{ padding-top:42px; } }
+
+  .ch-head{ margin-bottom:30px; }
+  @media (min-width:640px){ .ch-head{ margin-bottom:38px; } }
+  .ch-head .nbr{ font-family:'Playfair Display',serif; font-style:italic; font-size:13px; color:var(--gold); letter-spacing:.1em; margin-bottom:12px; display:block; }
+  .ch-head h2{ font-size:clamp(26px,7vw,40px); line-height:1.08; margin-bottom:12px; }
+  .ch-head h2 em{ color:var(--leaf); }
+  .ch-head .ch-sub{ font-size:14.5px; color:var(--ink-muted); max-width:50ch; font-weight:400; line-height:1.6; }
+
+  .disclaimer{ margin-top:40px; padding-top:16px; border-top:1px solid var(--line); font-size:11px; color:var(--ink-faint); font-style:italic; }
+
+  /* ============ PROSE CARD ============ */
+  .prose{ background:var(--surface); border-radius:var(--radius-md); padding:22px 18px; box-shadow:var(--shadow); }
+  @media (min-width:640px){ .prose{ padding:32px 34px; } }
+  .prose p{ font-size:16px; line-height:1.8; color:var(--ink-soft); margin:0 0 1.15em; }
+  @media (min-width:640px){ .prose p{ font-size:17px; } }
+  .prose p:last-child{ margin-bottom:0; }
+  .prose strong{ color:var(--ink); font-weight:600; }
+  .prose em{ color:var(--leaf); font-family:'Playfair Display',serif; font-size:1.04em; }
+
+  .pull{ margin:26px 0; padding:2px 0 2px 18px; border-left:3px solid var(--gold); font-family:'Playfair Display',serif; font-style:italic; font-size:18px; line-height:1.45; color:var(--ink); }
+  @media (min-width:640px){ .pull{ font-size:20px; padding-left:22px; margin:32px 0; } }
+
+  /* ============ WHY ACCORDION ============ */
+  .why{ margin-top:26px; border-top:1px solid var(--line); padding-top:16px; }
+  .why-btn{ background:none; border:none; padding:0; display:inline-flex; align-items:center; gap:8px; color:var(--gold); font-size:12.5px; font-weight:600; }
+  .why-btn .arrow{ display:inline-block; transition:transform .25s ease; font-size:10px; }
+  .why.open .arrow{ transform:rotate(90deg); }
+  .why-body{ max-height:0; overflow:hidden; transition:max-height .4s ease, margin .3s ease; }
+  .why.open .why-body{ max-height:900px; margin-top:14px; }
+  .why-card{ background:var(--surface-tint); border-radius:var(--radius-sm); padding:16px 18px; display:flex; flex-direction:column; gap:12px; }
+  .why-line{ display:flex; flex-direction:column; gap:3px; }
+  .why-comment{ font-size:10.5px; letter-spacing:.06em; color:var(--ink-faint); font-family:'Courier New',monospace; }
+  .why-value{ font-size:13px; color:var(--ink-soft); line-height:1.55; }
+
+  /* ============ MEDALLION ============ */
+  .medallion{
+    flex:none; width:60px; height:60px; border-radius:50%;
+    background:var(--matrix-glyph-bg); color:var(--matrix-glyph);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:'Playfair Display',serif; border:1px solid var(--matrix-card-border);
+  }
+  .medallion .roman{ font-size:17px; font-style:italic; line-height:1; }
+  .medallion .name{ font-size:6.5px; letter-spacing:.04em; text-transform:uppercase; margin-top:3px; text-align:center; max-width:50px; line-height:1.15; }
+  .medallion.lg{ width:84px; height:84px; }
+  .medallion.lg .roman{ font-size:22px; }
+  .medallion.lg .name{ font-size:7.5px; max-width:68px; }
+  .medallion.sm{ width:42px; height:42px; }
+  .medallion.sm .roman{ font-size:13px; }
+  .medallion.sm .name{ display:none; }
+
+  /* ============ COVER ============ */
+  .cover-card{ position:relative; background:linear-gradient(165deg,var(--matrix-bg) 0%,var(--surface) 65%); border:1px solid var(--matrix-card-border); border-radius:var(--radius-lg); padding:26px 20px 28px; box-shadow:var(--shadow-md); overflow:hidden; }
+  @media (min-width:640px){ .cover-card{ padding:46px 42px 42px; } }
+  .cv-eye{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--gold); font-weight:600; margin-bottom:20px; }
+  .cv-eye .dt{ font-family:'Courier New',monospace; color:var(--ink-muted); letter-spacing:.08em; text-transform:none; font-size:11px; }
+  .cv-title{ font-size:clamp(32px,9vw,52px); line-height:1.02; letter-spacing:-0.02em; margin-bottom:6px; }
+  .cv-title em{ color:var(--leaf); }
+  .cv-name{ font-family:'Playfair Display',serif; font-style:italic; font-size:clamp(15px,4vw,18px); color:var(--gold); margin-bottom:24px; }
+  @media (min-width:640px){ .cv-name{ margin-bottom:32px; } }
+  .cv-glyph-row{ display:flex; align-items:center; gap:14px; padding:14px; margin-bottom:24px; background:var(--matrix-card); border:1px solid var(--matrix-card-border); border-radius:var(--radius-md); }
+  .cv-glyph-row .txt .k{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--matrix-glyph); opacity:.85; margin-bottom:2px; }
+  .cv-glyph-row .txt .v{ font-family:'Playfair Display',serif; font-size:17px; color:var(--ink); }
+  .cv-info{ display:grid; gap:0; }
+  .cv-info .row{ display:grid; grid-template-columns:auto 1fr; gap:14px; padding:10px 0; border-bottom:1px solid var(--line); align-items:baseline; }
+  .cv-info .row:last-child{ border-bottom:none; }
+  .cv-info .k{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); width:104px; }
+  .cv-info .v{ font-family:'Playfair Display',serif; font-size:15px; color:var(--ink); }
+  .cv-info .v.accent{ color:var(--gold); font-style:italic; }
+  .cv-info .v.mono{ font-family:'Courier New',monospace; font-size:13px; color:var(--ink-soft); }
+  .matrix-viz-wrap{ margin-top:28px; display:flex; justify-content:center; }
+  .matrix-viz{ width:100%; max-width:230px; }
+
+  /* ============ DASHBOARD (30 sec) ============ */
+  .feature-card{ background:var(--matrix-card); border:1px solid var(--matrix-card-border); border-radius:var(--radius-lg); padding:22px 18px; display:flex; gap:14px; align-items:flex-start; margin-bottom:14px; }
+  @media (min-width:640px){ .feature-card{ padding:28px 26px; gap:20px; } }
+  .feature-card .ftxt .k{ font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--matrix-glyph); margin-bottom:6px; }
+  .feature-card .ftxt h3{ font-size:20px; margin-bottom:2px; }
+  .feature-card .ftxt h3 em{ display:block; font-size:11.5px; color:var(--ink-muted); font-style:italic; margin-top:2px; }
+  .feature-card .ftxt p{ margin:10px 0 0; font-size:13.5px; color:var(--ink-soft); line-height:1.6; }
+  .dash-grid{ display:grid; gap:12px; grid-template-columns:1fr; }
+  @media (min-width:560px){ .dash-grid{ grid-template-columns:1fr 1fr; } }
+  .dash-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px 16px 18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:8px; }
+  .dash-card .dc-top{ display:flex; align-items:center; gap:10px; }
+  .dash-card .dc-k{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); }
+  .dash-card .dc-v{ font-family:'Playfair Display',serif; font-size:17px; color:var(--ink); line-height:1.2; }
+  .dash-card .dc-v em{ display:block; font-size:11px; color:var(--ink-muted); font-style:italic; font-family:'Manrope',sans-serif; margin-top:2px; }
+  .dash-card .dc-insight{ font-size:12.5px; color:var(--ink-soft); line-height:1.55; padding-top:10px; border-top:1px solid var(--line); margin-top:2px; }
+
+  /* ============ TRAIT GRID (strengths/shadow) ============ */
+  .trait-grid{ display:grid; gap:14px; margin-top:22px; grid-template-columns:1fr; }
+  @media (min-width:560px){ .trait-grid{ grid-template-columns:1fr 1fr; } }
+  .trait-col{ border-radius:var(--radius-md); padding:18px 18px 20px; }
+  .trait-plus{ background:var(--matrix-card); border:1px solid var(--matrix-card-border); }
+  .trait-minus{ background:var(--surface-tint); border:1px solid var(--line-strong); }
+  .trait-col-label{ display:block; font-size:10px; letter-spacing:.14em; text-transform:uppercase; margin-bottom:12px; font-weight:700; }
+  .trait-plus .trait-col-label{ color:var(--matrix-glyph); }
+  .trait-minus .trait-col-label{ color:var(--ink-muted); }
+  .trait-list{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:10px; }
+  .trait-list li{ font-size:13px; line-height:1.55; color:var(--ink-soft); padding-left:16px; position:relative; }
+  .trait-list li::before{ content:"·"; position:absolute; left:0; font-weight:700; }
+  .trait-plus .trait-list li::before{ color:var(--leaf); }
+  .trait-minus .trait-list li::before{ color:var(--ink-faint); }
+
+  .soul-task{ margin-top:22px; background:var(--surface); border-left:3px solid var(--gold); border-radius:0 var(--radius-md) var(--radius-md) 0; padding:16px 18px; box-shadow:var(--shadow); }
+  .soul-task-label{ display:block; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); font-weight:700; margin-bottom:8px; }
+  .soul-task p{ margin:0; font-size:14px; line-height:1.65; color:var(--ink-soft); }
+
+  /* ============ TIMELINE (karmic tail) ============ */
+  .timeline{ display:flex; flex-direction:column; gap:0; }
+  .tl-item{ display:flex; gap:14px; padding-bottom:22px; margin-bottom:22px; border-bottom:1px dashed var(--line-strong); }
+  .tl-item:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .tl-item .tl-rail{ display:flex; flex-direction:column; align-items:center; flex:none; }
+  .tl-item .tl-txt{ flex:1; min-width:0; }
+  .tl-tag{ font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); font-weight:700; display:block; margin-bottom:5px; }
+  .tl-arc{ font-family:'Playfair Display',serif; font-style:italic; font-size:11.5px; color:var(--ink-faint); margin-bottom:8px; }
+  .tl-item h3{ font-size:19px; line-height:1.2; }
+  .tl-item h3 em{ color:var(--leaf); }
+  .tl-item.now .medallion{ background:var(--gold-fill); color:var(--gold); border-color:var(--gold-line); }
+  .karmic-body{ margin-top:4px; }
+  .karmic-body .prose{ margin-top:0; }
+
+  /* ============ LINEAGE BADGES (родовые) ============ */
+  .lineage-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+  .lineage-chip{ background:var(--matrix-card); border:1px solid var(--matrix-card-border); border-radius:999px; padding:8px 16px; font-size:11.5px; color:var(--matrix-glyph); font-weight:600; }
+
+  /* ============ DESTINY STAGES ============ */
+  .emblem-row{ display:flex; align-items:center; gap:14px; margin:14px 0 0; }
+  .emblem-line{ flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+  .emblem-star{ width:18px; height:18px; color:var(--gold); flex:none; }
+  .stage-list{ display:flex; flex-direction:column; gap:14px; margin-top:26px; }
+  .stage-card{ background:var(--surface); border-radius:0 var(--radius-md) var(--radius-md) 0; padding:18px 18px 20px; box-shadow:var(--shadow); border-left:3px solid var(--leaf); }
+  .stage-age{ font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--leaf); font-weight:700; margin-bottom:8px; display:block; }
+  .stage-card h4{ font-size:18px; margin-bottom:8px; }
+  .stage-card p{ font-size:13.5px; color:var(--ink-soft); line-height:1.6; margin:0 0 12px; }
+  .stage-sign{ font-size:12px; color:var(--gold); font-style:italic; padding-top:10px; border-top:1px solid var(--line); }
+
+  /* ============ TALENT / SCENARIO ROW CARDS ============ */
+  .row-card-list{ display:flex; flex-direction:column; gap:13px; margin-top:8px; }
+  .row-card{ display:flex; gap:14px; background:var(--surface); border-radius:var(--radius-md); padding:18px; box-shadow:var(--shadow); align-items:flex-start; }
+  .row-card .rtxt .sub{ font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.07em; margin-bottom:6px; display:block; }
+  .row-card .rtxt h4{ font-size:17px; margin-bottom:6px; }
+  .row-card .rtxt p{ margin:0; font-size:13.5px; color:var(--ink-soft); line-height:1.6; }
+
+  /* ============ SHADOW CARDS ============ */
+  .shadow-list{ display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+  .shadow-card{ background:var(--surface-tint); border-radius:0 var(--radius-md) var(--radius-md) 0; padding:18px; border-left:3px solid var(--ink-faint); }
+  .shadow-card h4{ font-size:16px; margin-bottom:8px; }
+  .shadow-card p{ font-size:13.5px; color:var(--ink-soft); line-height:1.6; margin:0; }
+  .shadow-card .practice-tag{ display:block; margin-top:10px; font-size:12.5px; color:var(--gold); font-style:italic; }
+
+  /* ============ HEALTH / CHAKRAS ============ */
+  .chakra-card{ display:flex; gap:13px; background:var(--surface); border-radius:var(--radius-md); padding:16px; box-shadow:var(--shadow); margin-bottom:11px; }
+  .chakra-ring{ flex:none; width:42px; height:42px; border-radius:50%; display:grid; place-items:center; font-size:15px; border:2px solid var(--c,var(--gold)); color:var(--c,var(--gold)); margin-top:2px; }
+  .chakra-meta{ flex:1; min-width:0; }
+  .chakra-name-row{ display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; margin-bottom:3px; }
+  .chakra-name-row h4{ font-size:16px; }
+  .chakra-name-row .skt{ font-size:10.5px; color:var(--ink-faint); font-style:italic; }
+  .chakra-name-row .loc{ font-size:10.5px; color:var(--ink-muted); margin-left:auto; }
+  .chakra-bar-track{ height:4px; background:var(--line); border-radius:2px; overflow:hidden; margin:7px 0 9px; }
+  .chakra-bar-fill{ height:100%; background:var(--c,var(--gold)); border-radius:2px; }
+  .chakra-positions{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:8px; }
+  .chakra-pos{ font-size:10px; background:var(--surface-tint); border-radius:999px; padding:3px 9px; color:var(--ink-muted); }
+  .chakra-pos b{ color:var(--ink-soft); font-weight:600; }
+  .chakra-organs{ font-size:11px; color:var(--ink-faint); margin-bottom:8px; }
+  .chakra-analysis{ font-size:13px; color:var(--ink-soft); line-height:1.6; margin:0; }
+  .chakra-summary-grid{ display:grid; gap:14px; margin-top:20px; grid-template-columns:1fr; }
+  @media (min-width:560px){ .chakra-summary-grid{ grid-template-columns:1fr 1fr; } }
+  .chakra-summary-card{ background:var(--matrix-card); border:1px solid var(--matrix-card-border); border-radius:var(--radius-md); padding:18px; }
+  .chakra-summary-card h4{ font-size:14px; color:var(--matrix-glyph); margin-bottom:8px; }
+  .chakra-summary-card p{ margin:0; font-size:13px; color:var(--ink-soft); line-height:1.6; }
+
+  /* ============ RELATIONSHIPS ============ */
+  .role-card{ background:var(--matrix-card); border:1px solid var(--matrix-card-border); border-radius:var(--radius-lg); padding:20px 18px; display:flex; gap:14px; align-items:flex-start; margin-bottom:16px; }
+  .role-icon{ flex:none; width:46px; height:46px; border-radius:50%; background:var(--surface); display:grid; place-items:center; font-size:20px; color:var(--matrix-glyph); }
+  .role-card .rl-label{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--matrix-glyph); margin-bottom:5px; display:block; }
+  .role-card .rl-name{ font-family:'Playfair Display',serif; font-size:19px; margin-bottom:6px; }
+  .role-card .rl-desc{ font-size:13.5px; color:var(--ink-soft); line-height:1.6; }
+
+  /* ============ GENERIC MINI CARD ROW (rp-cards, dash-style reused) ============ */
+  .mini-grid{ display:grid; gap:12px; grid-template-columns:1fr; margin-bottom:8px; }
+  @media (min-width:560px){ .mini-grid{ grid-template-columns:1fr 1fr; } }
+  .mini-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px; box-shadow:var(--shadow); }
+  .mini-card .mc-label{ font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px; display:block; }
+  .mini-card .mc-title{ font-family:'Playfair Display',serif; font-size:16px; margin-bottom:6px; }
+  .mini-card .mc-text{ font-size:12.5px; color:var(--ink-soft); line-height:1.55; }
+
+  /* ============ MONEY ============ */
+  .money-line{ background:var(--matrix-card); border:1px solid var(--matrix-card-border); border-radius:var(--radius-md); padding:16px 18px; display:flex; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
+  .money-line .lbl{ font-size:9.5px; text-transform:uppercase; letter-spacing:.14em; color:var(--matrix-glyph); }
+  .money-line .nums{ font-family:'Playfair Display',serif; font-size:22px; color:var(--ink); letter-spacing:.04em; }
+  .money-karma-card{ background:var(--surface); border-radius:var(--radius-md); padding:20px 18px; box-shadow:var(--shadow); margin-bottom:18px; }
+  .money-karma-card .mk-label{ font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:8px; }
+  .money-karma-card h3{ font-size:19px; margin-bottom:10px; }
+  .money-karma-card p{ font-size:14px; color:var(--ink-soft); line-height:1.65; margin:0; }
+  .belief-list{ display:flex; flex-direction:column; }
+  .belief-card{ display:flex; gap:14px; padding:14px 0; border-bottom:1px solid var(--line); }
+  .belief-card:last-child{ border-bottom:none; }
+  .belief-num{ font-family:'Playfair Display',serif; font-style:italic; color:var(--ink-faint); font-size:19px; flex:none; }
+  .belief-old{ font-size:13px; color:var(--ink-muted); margin-bottom:6px; line-height:1.5; }
+  .belief-new{ font-size:13px; color:var(--gold); font-weight:600; line-height:1.5; }
+
+  /* ============ CONFLICTS — DUEL CARDS ============ */
+  .duel-list{ display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+  .duel-card{ background:var(--surface); border-radius:var(--radius-md); padding:16px 18px; box-shadow:var(--shadow); }
+  .duel-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .duel-head .vs{ font-size:10.5px; color:var(--ink-faint); font-style:italic; }
+  .duel-head h4{ font-size:15.5px; }
+  .duel-card p{ margin:0; font-size:13.5px; color:var(--ink-soft); line-height:1.6; }
+
+  /* ============ PSYCH CARD ============ */
+  .psych-card{ background:var(--surface); border-radius:var(--radius-md); padding:20px 18px; box-shadow:var(--shadow); }
+  .psych-chip{ display:inline-flex; align-items:center; gap:8px; background:var(--gold-fill); color:var(--gold); padding:5px 12px; border-radius:999px; font-size:11.5px; font-weight:700; margin-bottom:16px; }
+  .psych-block{ margin-bottom:16px; }
+  .psych-block:last-child{ margin-bottom:0; }
+  .psych-block .lbl{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-faint); margin-bottom:6px; font-weight:700; }
+  .psych-block p{ margin:0; font-size:13.5px; color:var(--ink-soft); line-height:1.65; }
+
+  /* ============ FORECAST YEARS ============ */
+  .year-list{ display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+  .year-card{ display:flex; gap:14px; background:var(--surface); border-radius:var(--radius-md); padding:16px 18px; box-shadow:var(--shadow); }
+  .year-badge{ flex:none; width:52px; height:52px; border-radius:13px; background:var(--matrix-card); border:1px solid var(--matrix-card-border); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .year-badge .y{ font-family:'Playfair Display',serif; font-size:14px; color:var(--matrix-glyph); }
+  .year-badge .a{ font-size:8.5px; color:var(--matrix-glyph); opacity:.8; }
+  .year-card h4{ font-size:15.5px; margin-bottom:4px; }
+  .year-card p{ margin:0; font-size:13px; color:var(--ink-soft); line-height:1.6; }
+  .age-note{ background:var(--surface-tint); border-radius:var(--radius-md); padding:15px 17px; font-size:12.5px; color:var(--ink-soft); line-height:1.6; margin-top:10px; }
+
+  /* ============ WEEK DAYS ============ */
+  .day-list{ display:flex; flex-direction:column; gap:9px; }
+  .day-card{ display:flex; gap:13px; align-items:flex-start; background:var(--surface); border-radius:var(--radius-md); padding:15px 16px; box-shadow:var(--shadow); cursor:pointer; transition:opacity .2s ease; }
+  .day-card .chk{ flex:none; width:21px; height:21px; border-radius:50%; border:2px solid var(--line-strong); margin-top:2px; position:relative; }
+  .day-card.done .chk{ background:var(--leaf); border-color:var(--leaf); }
+  .day-card.done .chk::after{ content:"✓"; position:absolute; inset:0; display:grid; place-items:center; color:#fff; font-size:11px; }
+  .day-card.done{ opacity:.55; }
+  .day-card.done .d-task{ text-decoration:line-through; }
+  .d-meta{ display:flex; gap:8px; align-items:center; margin-bottom:6px; flex-wrap:wrap; }
+  .d-cat{ font-size:10.5px; background:var(--matrix-card); color:var(--matrix-glyph); padding:3px 9px; border-radius:999px; font-weight:600; }
+  .d-name{ font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em; }
+  .d-task{ font-size:13px; color:var(--ink-soft); line-height:1.6; }
+
+  /* ============ TAROT TEASER ============ */
+  .tarot-card{ background:var(--tarot-card); border:1px solid var(--tarot-border); border-radius:var(--radius-lg); padding:24px 20px; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .tarot-medallion{ width:58px; height:78px; border-radius:10px; background:rgba(106,103,152,.15); border:1px solid var(--tarot-border); display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--tarot-violet); font-family:'Playfair Display',serif; flex:none; }
+  .tarot-medallion .num{ font-size:24px; font-style:italic; }
+  .tarot-txt{ flex:1; min-width:220px; }
+  .tarot-txt .eyebrow{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--tarot-violet); margin-bottom:6px; display:block; }
+  .tarot-txt h3{ font-size:19px; margin-bottom:8px; }
+  .tarot-txt p{ font-size:13px; color:var(--ink-soft); line-height:1.6; margin:0 0 14px; }
+  .tarot-cta{ display:inline-flex; align-items:center; gap:8px; background:var(--tarot-violet); color:#fff; padding:11px 18px; border-radius:999px; font-size:13px; font-weight:600; }
+  .tarot-cta .price{ opacity:.8; font-weight:400; }
+
+  /* ============ REFLECTION PAGES ============ */
+  .reflect-card{ background:var(--surface); border-radius:var(--radius-lg); padding:24px 20px; box-shadow:var(--shadow); }
+  .reflect-lines{ margin-top:18px; background-image:repeating-linear-gradient(transparent, transparent 34px, var(--line) 34px, var(--line) 35px); height:360px; border-radius:var(--radius-sm); }
+  .footer-final{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:11.5px; color:var(--ink-faint); margin-top:44px; padding-top:18px; border-top:1px solid var(--line); }
+  .footer-final a{ color:var(--gold); font-weight:600; }
+
+  /* ============ TO-TOP ============ */
+  .to-top{ position:fixed; right:18px; bottom:18px; z-index:50; width:42px; height:42px; border-radius:50%; background:var(--surface); box-shadow:var(--shadow-md); border:1px solid var(--line-strong); display:grid; place-items:center; color:var(--ink-soft); opacity:0; pointer-events:none; transform:translateY(8px); transition:opacity .2s ease, transform .2s ease; }
+  .to-top.visible{ opacity:1; pointer-events:auto; transform:translateY(0); }
+  .to-top svg{ width:16px; height:16px; }
+
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; scroll-behavior:auto !important; } }
+</style>
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="menu-btn" id="menuBtn" aria-label="Открыть содержание">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <div class="topbar-brand"><span class="mark">N</span><span class="name">NURA AI</span></div>
+    <div class="topbar-section" id="topbarSection"><span class="n">01</span> · Обложка</div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+</header>
+
+<!-- ============ DRAWER ============ -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<aside class="drawer" id="drawer" aria-label="Содержание отчёта">
+  <div class="drawer-top">
+    <div class="topbar-brand"><span class="mark">N</span><span class="name" style="display:inline;">NURA AI</span></div>
+    <button class="drawer-close" id="drawerClose" aria-label="Закрыть">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="drawer-meta">
+    <div class="label">Отчёт для</div>
+    <div class="who">Анна</div>
+    <div class="dob">01.06.1995 · 31 год</div>
+    <div class="chip">X · Колесо Фортуны</div>
+  </div>
+
+  <nav class="drawer-nav">
+    <div class="group-label">Разбор</div>
+    <ul id="navList">
+      <li><a href="#s1" data-target="s1"><span class="num">01</span><span>Обложка</span></a></li>
+      <li><a href="#s2" data-target="s2"><span class="num">02</span><span>За 30 секунд</span></a></li>
+      <li><a href="#s3" data-target="s3"><span class="num">03</span><span>Архетип личности</span></a></li>
+      <li><a href="#s4" data-target="s4"><span class="num">04</span><span>Кармический хвост</span></a></li>
+      <li><a href="#s5" data-target="s5"><span class="num">05</span><span>Родовые программы</span></a></li>
+      <li><a href="#s6" data-target="s6"><span class="num">06</span><span>Предназначение</span></a></li>
+      <li><a href="#s7" data-target="s7"><span class="num">07</span><span>Таланты и сила</span></a></li>
+      <li><a href="#s8" data-target="s8"><span class="num">08</span><span>Теневая сторона</span></a></li>
+      <li><a href="#health" data-target="health"><span class="num">✦</span><span>Карта здоровья</span></a></li>
+      <li><a href="#s9" data-target="s9"><span class="num">09</span><span>Отношения</span></a></li>
+      <li><a href="#s10" data-target="s10"><span class="num">10</span><span>Деньги и карьера</span></a></li>
+      <li><a href="#s11" data-target="s11"><span class="num">11</span><span>Сценарии</span></a></li>
+      <li><a href="#s12" data-target="s12"><span class="num">12</span><span>Внутренние конфликты</span></a></li>
+      <li><a href="#psychological-blocks" data-target="psychological-blocks"><span class="num">✦</span><span>Внутренние блоки</span></a></li>
+      <li><a href="#s13" data-target="s13"><span class="num">13</span><span>Циклы и прогноз</span></a></li>
+      <li><a href="#s14" data-target="s14"><span class="num">14</span><span>Семь дней</span></a></li>
+      <li><a href="#s15" data-target="s15"><span class="num">15</span><span>Карта дня</span></a></li>
+    </ul>
+    <div class="group-label">Рефлексия</div>
+    <ul id="navListR">
+      <li><a href="#r1" data-target="r1"><span class="num">•</span><span>Мои инсайты</span></a></li>
+      <li><a href="#r2" data-target="r2"><span class="num">•</span><span>Что я попробую</span></a></li>
+    </ul>
+  </nav>
+
+  <div class="drawer-foot">Сгенерировано 15 июня 2026 · NURA AI</div>
+</aside>
+
+<main>
+
+  <!-- ===== 01 · ОБЛОЖКА ===== -->
+  <section class="chapter" id="s1">
+    <div class="wrap">
+      <div class="cover-card">
+        <div class="cv-eye">
+          <span>Матрица Судьбы · Полный разбор</span>
+          <span class="dt">№ NR-2026-0615-XX</span>
+        </div>
+
+        <h1 class="cv-title">Разбор для<br><em>Анну</em></h1>
+        <div class="cv-name">01 июня 1995 года</div>
+
+        <div class="cv-glyph-row">
+          <div class="medallion"><span class="roman">X</span><span class="name">Колесо Фортуны</span></div>
+          <div class="txt"><div class="k">Главный архетип</div><div class="v">Колесо Фортуны</div></div>
+        </div>
+
+        <div class="cv-info">
+          <div class="row"><div class="k">Имя</div><div class="v">Анна</div></div>
+          <div class="row"><div class="k">Дата рождения</div><div class="v mono">01.06.1995</div></div>
+          <div class="row"><div class="k">Архетип</div><div class="v accent">X. Колесо Фортуны</div></div>
+          <div class="row"><div class="k">Линия неба</div><div class="v mono">7 — 10 — 12</div></div>
+          <div class="row"><div class="k">Аркан 2026</div><div class="v">XII. Повешенный</div></div>
+          <div class="row"><div class="k">Сгенерировано</div><div class="v mono">15.06.2026</div></div>
+        </div>
+
+        <div class="matrix-viz-wrap">
+          <svg class="matrix-viz" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="var(--matrix-card-border)" stroke-width="1">
+              <line x1="60" y1="60" x2="180" y2="60"/><line x1="60" y1="120" x2="180" y2="120"/><line x1="60" y1="180" x2="180" y2="180"/>
+              <line x1="60" y1="60" x2="60" y2="180"/><line x1="120" y1="60" x2="120" y2="180"/><line x1="180" y1="60" x2="180" y2="180"/>
+              <line x1="60" y1="60" x2="180" y2="180"/><line x1="180" y1="60" x2="60" y2="180"/>
+            </g>
+            <g font-family="Playfair Display, Georgia, serif" text-anchor="middle" dominant-baseline="central">
+              <rect x="48" y="48" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="60" y="60" fill="var(--gold)" font-size="13" font-style="italic">7</text>
+              <rect x="108" y="48" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="120" y="60" fill="var(--gold)" font-size="13" font-style="italic">3</text>
+              <rect x="168" y="48" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="180" y="60" fill="var(--gold)" font-size="13" font-style="italic">10</text>
+              <rect x="48" y="108" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="60" y="120" fill="var(--gold)" font-size="13" font-style="italic">22</text>
+              <rect x="103" y="103" width="34" height="34" rx="4" fill="var(--gold)"/><text x="120" y="120" fill="#fff" font-size="17" font-weight="500">10</text>
+              <rect x="168" y="108" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="180" y="120" fill="var(--gold)" font-size="13" font-style="italic">7</text>
+              <rect x="48" y="168" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="60" y="180" fill="var(--gold)" font-size="13" font-style="italic">5</text>
+              <rect x="108" y="168" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="120" y="180" fill="var(--gold)" font-size="13" font-style="italic">5</text>
+              <rect x="168" y="168" width="24" height="24" rx="3" fill="#fff" stroke="var(--gold-line)"/><text x="180" y="180" fill="var(--gold)" font-size="13" font-style="italic">17</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 02 · ЗА 30 СЕКУНД ===== -->
+  <section class="chapter" id="s2">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">02 — За 30 секунд</span>
+        <h2>Главное о тебе <em>на одном развороте</em></h2>
+        <p class="ch-sub">Пять ключей к твоей матрице — читай, если торопишься.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="medallion lg"><span class="roman">X</span><span class="name">Колесо Фортуны</span></div>
+        <div class="ftxt">
+          <div class="k">Архетип · центр матрицы</div>
+          <h3>Колесо Фортуны<em>главная энергия твоей карты</em></h3>
+          <p>Ты — человек цикла. Твоя жизнь состоит из подъёмов и спадов, и твоя сила — в умении адаптироваться к переменам, а не в попытках их остановить.</p>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="dc-top"><div class="medallion sm"><span class="roman">XIII</span></div><div><div class="dc-k">Главный талант</div><div class="dc-v">Смерть<em>зона таланта</em></div></div></div>
+          <div class="dc-insight">Твой талант — завершать то, что другие бросают. Ты умеешь видеть точку, где нужно поставить точку, и не боишься «убивать» проекты, которые исчерпали себя.</div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-top"><div class="medallion sm"><span class="roman">V</span></div><div><div class="dc-k">Главный блок</div><div class="dc-v">Иерофант<em>зона комфорта</em></div></div></div>
+          <div class="dc-insight">Твоя зона комфорта превращается в блок, когда ты начинаешь жить по чужим правилам. Ты теряешь себя, когда ищешь одобрения авторитетов вместо того, чтобы доверять себе.</div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-top"><div class="medallion sm"><span class="roman">XVII</span></div><div><div class="dc-k">Предназначение</div><div class="dc-v">Звезда<em>зона портрета</em></div></div></div>
+          <div class="dc-insight">Твоё направление — создавать системы, которые помогают другим проходить через кризисы. Ты можешь быть проводником в точках перемен, где нужна ясность и структура.</div>
+        </div>
+        <div class="dash-card">
+          <div class="dc-top"><div class="medallion sm"><span class="roman">XII</span></div><div><div class="dc-k">Аркан 2026</div><div class="dc-v">Повешенный<em>год структуры</em></div></div></div>
+          <div class="dc-insight">В этом году не жди быстрых результатов. Сфокусируйся на завершении старых дел и анализе. Каждое действие должно быть точным, а не быстрым.</div>
+        </div>
+      </div>
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 03 · АРХЕТИП ЛИЧНОСТИ ===== -->
+  <section class="chapter" id="s3">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">03 — Архетип личности</span>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+          <div class="medallion"><span class="roman">X</span><span class="name">Колесо Фортуны</span></div>
+          <h2 style="margin-bottom:0;">Колесо Фортуны <em>в центре</em> карты</h2>
+        </div>
+        <p class="ch-sub">Главный аркан матрицы. Объясняет, почему ты двигаешься так, как двигаешься — и почему это работает.</p>
+      </div>
+
+      <div class="prose">
+        <p>Твой главный архетип — <strong>X. Колесо Фортуны</strong>, который стоит в центре матрицы (позиция E). Это архетип цикличности, принятия перемен и доверия к течению жизни. Ты не из тех, кто держится за стабильность любой ценой — напротив, ты интуитивно чувствуешь, что всё имеет свой ритм: взлёты сменяются падениями, а затишье — бурей.</p>
+        <div class="pull">«Я не управляю всем, но я выбираю, как реагировать на то, что происходит»</div>
+        <p><strong>Как это проявляется в решениях.</strong> Твоя стратегия — гибкость и адаптивность. Ты принимаешь решения не через жёсткое планирование, а через ощущение момента: «сейчас — время действовать, сейчас — время ждать». Это не хаос, а тонкое чутьё на правильный timing. В работе ты можешь долго наблюдать, а потом резко совершить рывок, когда чувствуешь, что «звёзды сошлись». В отношениях ты не давишь, но и не убегаешь — ты позволяешь событиям развиваться, доверяя процессу.</p>
+        <p><strong>Защитный механизм.</strong> В кризисных ситуациях твой главный щит — отстранение. Когда случается неожиданное, ты внешне кажешься спокойной, даже равнодушной, но внутри переживаешь бурю. Ты говоришь себе: «это пройдёт» — и это правда работает. Но иногда ты рискуешь обесценить собственные чувства, спрятав их за фасадом философского принятия. Снаружи это выглядит как холодность или фатализм, хотя на деле ты учишься не цепляться за то, что уже уходит.</p>
+        <p><strong>В профессии.</strong> Твой архетип даёт способность видеть циклы. Ты хороша в проектной деятельности, где каждый проект — это мини-цикл: запуск, рост, пик, завершение. Антикризисное управление, реструктуризация, перезапуск процессов — это твои зоны силы. Ты приходишь в компанию, где хаос, и вместо паники спокойно говоришь: «давайте подождём неделю, посмотрим, как развернётся». И часто оказываешься права.</p>
+        <p><strong>В близости.</strong> Ты способна принимать партнёра с его циклами: ты не требуешь постоянной яркости, понимая, что бывают периоды затишья. Твоя сила — в умении не держать человека силой, а позволять ему вернуться самому.</p>
+        <p><strong>Теневой полюс.</strong> Когда Колесо уходит в тень, ты становишься фаталистом: «что будет, то будет». Это может стать формой избегания ответственности. Ты пропускаешь важные моменты, потому что ждёшь, что жизнь сама всё расставит. Ещё одна ловушка: самооценка колеблется вместе с внешними обстоятельствами. Сегодня ты на вершине — и чувствуешь себя всемогущей. Завтра проект буксует — и ты сомневаешься в себе.</p>
+        <p><strong>Практика.</strong> Заведи дневник циклов: записывай, в какой фазе (подъём, плато, спад) ты находишься в работе, в отношениях, в самоощущении. Через месяц ты увидишь закономерности и перестанешь путать естественный спад с «я всё делаю не так».</p>
+      </div>
+
+      <div class="trait-grid">
+        <div class="trait-col trait-plus">
+          <span class="trait-col-label">Сильные стороны</span>
+          <ul class="trait-list">
+            <li>Адаптивность — вписываешься в любые обстоятельства без лишнего сопротивления</li>
+            <li>Чутьё на timing — знаешь, когда действовать, а когда ждать</li>
+            <li>Внутреннее спокойствие в хаосе, которое успокаивает людей рядом</li>
+            <li>Способность отпускать то, что отжило, без лишней драмы</li>
+            <li>Умение видеть циклы и паттерны там, где другие видят беспорядок</li>
+          </ul>
+        </div>
+        <div class="trait-col trait-minus">
+          <span class="trait-col-label">В тени</span>
+          <ul class="trait-list">
+            <li>Фатализм — «что будет, то будет», незаметное уклонение от ответственности</li>
+            <li>Обесценивание чувств за маской философского принятия</li>
+            <li>Слишком лёгкое отпускание — даже того, что стоило бы удержать</li>
+            <li>Пассивность в ожидании «нужного момента», который постоянно откладывается</li>
+            <li>Самооценка, привязанная к фазе цикла: в подъёме — хорош, в спаде — плох</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="soul-task">
+        <span class="soul-task-label">Высшая задача души</span>
+        <p>Научиться быть в потоке, не теряя воли. Колесо Фортуны — это не судьба, которая несёт тебя без спроса. Это ритм, который ты учишься слышать и использовать как союзника, а не как оправдание пассивности.</p>
+      </div>
+
+      <div class="why" id="why-s3">
+        <button class="why-btn" type="button" data-toggle="why-s3"><span class="arrow">▶</span><span>Почему я так думаю — технические данные расчёта</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Центральная позиция матрицы</span><span class="why-value">10 (Колесо Фортуны)</span></div>
+          <div class="why-line"><span class="why-comment">// Аркан небесного канала</span><span class="why-value">3 (Императрица)</span></div>
+          <div class="why-line"><span class="why-comment">// Аркан земного канала</span><span class="why-value">5 (Иерофант)</span></div>
+          <div class="why-line"><span class="why-comment">// Линия неба</span><span class="why-value">7 — 10 — 12</span></div>
+          <div class="why-line"><span class="why-comment">// Линия земли</span><span class="why-value">10 — 10 — 9</span></div>
+          <div class="why-line"><span class="why-comment">// Кармический хвост</span><span class="why-value">5 — 10 — 3</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 04 · КАРМИЧЕСКИЙ ХВОСТ ===== -->
+  <section class="chapter" id="s4">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">04 — Кармический хвост</span>
+        <h2>Что ты <em>привезла с собой</em></h2>
+        <p class="ch-sub">Не про прошлые жизни и не про вину предков — про устойчивый паттерн, который запустился задолго до твоего решения и теперь требует осознанной работы.</p>
+      </div>
+
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-rail"><div class="medallion sm"><span class="roman">5</span></div></div>
+          <div class="tl-txt"><span class="tl-tag">Причина · прошлое</span><div class="tl-arc">Аркан 5 — низ матрицы · Иерофант в тени</div><h3>Корень <em>кармического паттерна</em></h3></div>
+        </div>
+        <div class="tl-item now">
+          <div class="tl-rail"><div class="medallion sm"><span class="roman">10</span></div></div>
+          <div class="tl-txt"><span class="tl-tag">Следствие · сейчас</span><div class="tl-arc">Аркан 10 — центр матрицы · Колесо Фортуны</div><h3>Как это <em>проявляется сегодня</em></h3></div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-rail"><div class="medallion sm"><span class="roman">3</span></div></div>
+          <div class="tl-txt"><span class="tl-tag">Урок · трансформация</span><div class="tl-arc">Аркан 3 — верх матрицы · Императрица</div><h3>Путь <em>выхода из цикла</em></h3></div>
+        </div>
+      </div>
+
+      <div class="karmic-body">
+        <div class="prose">
+          <p>Кармический хвост — это три аркана, которые показывают твой ключевой цикл. Он повторяется до тех пор, пока ты не выучишь урок. Твой хвост: <strong>Иерофант (5) → Колесо Фортуны (10) → Императрица (3)</strong>. Это история о том, как ты ищешь внешнюю опору, сталкиваешься с непредсказуемостью жизни и учишься доверять внутренней интуиции.</p>
+          <div class="pull">Ты ищешь стабильность в правилах — а жизнь требует доверия к себе</div>
+          <p><strong>Причина — V. Иерофант.</strong> Твоя базовая установка: «я должна следовать правилам, чтобы быть в безопасности». Ты выросла в среде, где ценились традиции, структура, авторитеты. Возможно, в семье говорили: «делай как положено», «не высовывайся», «слушай старших». Это сформировало стратегию: искать наставника, методику, систему — что-то внешнее, что даст гарантии. Ты могла годами работать в корпорации, потому что «так принято», или вступать в отношения, потому что «пора», а не потому что действительно хочешь.</p>
+          <p><strong>Следствие — X. Колесо Фортуны.</strong> Стратегия поиска внешних гарантий приводит к тому, что жизнь постоянно переворачивает твои планы. Ты пытаешься всё контролировать через правила, но реальность оказывается непредсказуемой: ты спланировала карьеру — компания закрылась; вложилась в «надёжный» проект — он прогорел; сделала всё «как надо» в отношениях — партнёр ушёл. В результате ты чувствуешь себя жертвой: «я всё делала правильно, почему так?». Это работа хвоста: ты ищешь стабильность там, где её быть не может.</p>
+          <p><strong>Урок — III. Императрица.</strong> Тебе нужно научиться доверять себе и своей способности «рождать» новые реальности. Императрица — это не про правила, а про естественный рост, плодородие, заботу о себе. Перестань искать гарантии вовне — начни создавать жизнь из внутреннего ощущения «правильно». Это не хаос, это умение слышать свой внутренний компас и действовать из доверия к себе. Когда ты перестаёшь спрашивать разрешения у мира, цикл разрывается.</p>
+        </div>
+      </div>
+
+      <div class="why" id="why-s4">
+        <button class="why-btn" type="button" data-toggle="why-s4"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">кармический хвост: низ (G), центр (E), верх (F)</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Иерофант (5), Колесо Фортуны (10), Императрица (3)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">Кармический хвост рассказывает историю о том, как ты ищешь ответы вовне (5 аркан — причина), попадаешь в циклы удачи и неудач (10 аркан — следствие), и в итоге должен научиться доверять своей внутренней мудрости и изобилию (3 аркан — урок). Конкретный пример: ты можешь следовать советам наставника (5), но каждый раз, когда всё идёт по плану, случается неожиданный поворот (10), который разрушает твои ожидания. Урок — перестать искать гарантии и начать творить свою реальность из состояния «я уже имею всё необходимое» (3). Путь трансформации: сегодня — запиши 3 ситуации, где ты действовал по чужому сценарию; на этой неделе — сделай один выбор, основываясь только на своём желании; в этом месяце — начни проект, который приносит радость, без оглядки на мнение других.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 05 · РОДОВЫЕ ПРОГРАММЫ ===== -->
+  <section class="chapter" id="s5">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">05 — Родовые программы</span>
+        <h2>Что унаследовано <em>по линиям</em></h2>
+        <p class="ch-sub">Слабые места и сильные опоры, переданные тебе с двух сторон. Унаследовать — не значит обязательно повторять.</p>
+      </div>
+
+      <div class="lineage-row">
+        <span class="lineage-chip">Линия отца — арканы 10 — 10 — 9</span>
+        <span class="lineage-chip">Линия матери — арканы 7 — 10 — 12</span>
+      </div>
+
+      <div class="prose">
+        <p>Родовые программы — это сценарии, унаследованные от семьи. Они записаны в линиях земли: аркан G (линия отца) и аркан I (линия матери). Унаследовать — не значит обязательно повторять.</p>
+        <div class="pull">Ты не обязана повторять семейный сценарий — ты можешь его увидеть и выбрать иначе</div>
+        <p><strong>Линия отца — X. Колесо Фортуны.</strong> По мужской линии передаётся установка: «жизнь — череда взлётов и падений, будь готова ко всему». В твоей семье, вероятно, были истории о внезапных успехах и крахах. Отец или дед могли то богатеть, то терять всё. Тебе передали не только ресурс адаптивности, но и страх нестабильности. Фразы из детства: «деньги ненадёжны», «не привыкай к хорошему», «всё может измениться в любой момент».</p>
+        <p>Как это влияет сейчас: ты можешь саботировать успех, когда чувствуешь, что «слишком хорошо», потому что подсознательно ждёшь падения. Или создаёшь кризисы, чтобы подтвердить семейный сценарий. Получаешь повышение — и через месяц совершаешь ошибку. Начинаешь отношения — и неосознанно делаешь что-то, что их разрушает.</p>
+        <p><strong>Линия матери — IX. Отшельник.</strong> Это программа «одиночество как безопасность». Возможно, мать или бабушка были женщинами, которые много времени проводили в размышлениях, были замкнуты или жертвовали отношениями ради внутреннего покоя. Фразы: «лучше быть одной, чем с кем попало», «никому нельзя доверять», «правда внутри тебя».</p>
+        <p>Как это влияет: ты можешь избегать близости, уходить в себя при конфликтах, предпочитать одиночество компании. Когда в отношениях возникает напряжение, ты не решаешь его, а уходишь в «думальню», оставляя партнёра в неведении. Или выбираешь работу, где можно быть одной, даже если коллективная работа принесла бы больше.</p>
+        <p><strong>Как освободиться.</strong> По линии отца: практикуй принятие стабильности. Каждый день создавай маленький ритуал устойчивости — например, утренний чай из одной и той же чашки, запись трёх вещей, которые остались неизменными. По линии матери: раз в неделю делай шаг навстречу — позвони подруге вместо сообщения, скажи партнёру, что тебе страшно, но ты хочешь быть ближе.</p>
+      </div>
+
+      <div class="why" id="why-s5">
+        <button class="why-btn" type="button" data-toggle="why-s5"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">линия отца (G), линия матери (I)</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Колесо Фортуны (10), Отшельник (9)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">По линии отца (10 аркан) передаётся программа цикличности и нестабильности: возможно, отец часто менял работу, уходил из семьи или был «человеком настроения». Ты можешь повторять этот сценарий в карьере и отношениях. По линии матери (9 аркан) — программа одиночества и самодостаточности: мать могла быть эмоционально холодной или слишком занятой собой, что сформировало у тебя убеждение «я должен справляться сам». Эти программы влияют на твои выборы: ты можешь избегать близости (9) и одновременно бояться стабильности (10). Освободиться — значит осознанно выбирать: например, в отношениях давать себе право на зависимость, а в работе — строить долгосрочные планы, несмотря на страх перемен.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 06 · ПРЕДНАЗНАЧЕНИЕ ===== -->
+  <section class="chapter" id="s6">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">06 — Предназначение</span>
+        <h2>Твой путь <em>по матрице</em></h2>
+        <div class="emblem-row">
+          <span class="emblem-line"></span>
+          <svg class="emblem-star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/></svg>
+          <span class="emblem-line"></span>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>Твоё предназначение — не одна миссия, а вектор, объединяющий таланты, кармический дар и денежный канал. Линия неба: <strong>Колесница (7) → Колесо Фортуны (10) → Повешенный (12)</strong>. Формула: «Управляй потоком, принимая парадоксы». Ты должна стать тем, кто ведёт людей через перемены, не цепляясь за результат.</p>
+        <div class="pull">Твоя сила — вести других через хаос, сохраняя ясность, когда всё рушится</div>
+        <p><strong>Как лидер.</strong> Колесница даёт волю и амбиции, Колесо Фортуны — гибкость, Повешенный — умение видеть ситуацию с разных сторон. Ты не командир, который диктует каждый шаг. Ты — капитан в шторм: задаёшь направление, но доверяешь процессу и команде. Пример роли: руководитель реструктуризации бизнеса — ты видишь, что нужно менять, но не ломаешь всё одним ударом.</p>
+        <p><strong>В обществе.</strong> Твоя роль — быть проводником в кризисных ситуациях. Ты нужна там, где хаос и неопределённость: антикризисное управление, стартапы на этапе «бури», организационные трансформации, психология кризиса. Люди идут за тобой, потому что ты сохраняешь спокойствие, когда всё рушится.</p>
+        <p><strong>Духовный путь.</strong> Твой внутренний рост — через принятие неопределённости. Повешенный в денежном канале говорит: деньги приходят не через борьбу, а через отпускание. Ты должна перестать «дёргать ниточки» и позволить потоку нести тебя. Это сложно для Колесницы, но именно в этом парадоксе — твоя сила.</p>
+        <p><strong>Материальная реализация.</strong> Твой доход связан с проектами цикличной природы: консалтинг по циклам бизнеса, инвестиции в стартапы на разных стадиях, работа в сфере возобновляемых ресурсов. Или творческие проекты, где ты выступаешь как продюсер, запускающий и закрывающий циклы. Конкретные ниши: антикризисный консультант, операционный директор в растущей компании, наставник для предпринимателей в переходные периоды.</p>
+      </div>
+
+      <div class="stage-list">
+        <div class="stage-card">
+          <span class="stage-age">20–40 лет · Личное предназначение</span>
+          <h4>Лидерство через доверие</h4>
+          <p>Стать тем, кто ведёт людей через перемены без жёсткого контроля. Колесница (7) даёт волю и направление, Колесо (10) — гибкость и чутьё на момент, Повешенный (12) — умение видеть ситуацию с нескольких сторон одновременно.</p>
+          <div class="stage-sign">Знак выполнения: принимаешь неопределённость без тревоги и не требуешь гарантий</div>
+        </div>
+        <div class="stage-card">
+          <span class="stage-age">40–60 лет · Социальное предназначение</span>
+          <h4>Проводник в кризисных ситуациях</h4>
+          <p>Твоя роль в обществе — быть «капитаном в шторм». Ты нужен там, где хаос и неопределённость: антикризисное управление, организационные трансформации, наставничество в переходные периоды. Люди идут за тобой, потому что ты сохраняешь ясность, когда всё рушится.</p>
+          <div class="stage-sign">Знак выполнения: за советом обращаются в сложных ситуациях, а не в простых</div>
+        </div>
+        <div class="stage-card">
+          <span class="stage-age">60+ · Духовное предназначение</span>
+          <h4>Принятие непостоянства как основы жизни</h4>
+          <p>Повешенный в денежном канале указывает: духовный рост приходит не через контроль, а через умение отпускать. Парадокс — именно Колесница (воля) + Повешенный (принятие) — и есть твоя наивысшая формула. Деньги и смысл приходят через доверие потоку, а не через борьбу с ним.</p>
+          <div class="stage-sign">Знак выполнения: внутренний покой не зависит от внешних обстоятельств</div>
+        </div>
+      </div>
+
+      <div class="why" id="why-s6">
+        <button class="why-btn" type="button" data-toggle="why-s6"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">линия неба: F → E → H</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Колесница (7), Колесо Фортуны (10), Повешенный (12)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">Твоё предназначение — быть проводником перемен. Колесница (7) даёт тебе волю и направление, Колесо Фортуны (10) — чувство времени и циклов, Повешенный (12) — способность видеть ситуацию с новой перспективы и ждать. Вместе они формируют миссию: помогать другим проходить через трансформации, используя стратегию, терпение и интуицию. Конкретные сферы: кризис-консультирование, управление изменениями в организациях, духовное наставничество (без эзотерики — как психология переходов). Один день из жизни по предназначению: ты просыпаешься, проверяешь почту — клиент в кризисе, ты проводишь сессию, помогая ему увидеть выход; потом работаешь над своим проектом, который запустится в нужный момент; вечером — время для себя, чтобы восстановить энергию. Что мешает: страх, что твой путь «неправильный» (Иерофант) и убеждение, что нужно страдать, чтобы достичь цели (Повешенный в тени). Шаг сегодня: напиши список из 5 ситуаций, где ты помог кому-то изменить жизнь, и увидь в этом паттерн.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 07 · ТАЛАНТЫ ===== -->
+  <section class="chapter" id="s7">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">07 — Таланты и сильные стороны</span>
+        <h2>Что ты <em>правда умеешь</em></h2>
+        <p class="ch-sub">Не «лидерские качества» и не «коммуникабельность». Конкретные навыки, на которых стоит строить дело и репутацию.</p>
+      </div>
+
+      <div class="prose" style="margin-bottom:22px;">
+        <p>Твои сильные стороны — не случайный набор качеств, а конкретные энергии, зашифрованные в матрице. Разберём каждую.</p>
+        <div class="pull">Ты умеешь завершать и начинать без сожаления — это твой главный капитал</div>
+      </div>
+
+      <div class="row-card-list">
+        <div class="row-card">
+          <div class="medallion sm"><span class="roman">XIII</span></div>
+          <div class="rtxt"><span class="sub">Первая сила · зона талантов</span><h4>Смерть</h4>
+            <p>Это не про потери, а про способность к трансформации. Ты умеешь завершать то, что мертво, и начинать новое без сожаления. Ты уходишь с работы, которая не развивает, без драмы. Заканчиваешь отношения-привычку с пониманием, что это нужно для роста. Ты можешь работать кризис-менеджером, реструктуризатором бизнеса, коучем по завершению проектов — или запускать стартапы, зная, что через пару лет передашь их другим.</p>
+          </div>
+        </div>
+        <div class="row-card">
+          <div class="medallion sm"><span class="roman">V</span></div>
+          <div class="rtxt"><span class="sub">Вторая сила · зона комфорта</span><h4>Иерофант</h4>
+            <p>Твоя опора — в структуре, знаниях и традициях. Ты не действуешь наобум: тебе нужна система, проверенный метод. Когда начинаешь новый проект, сначала изучаешь готовую методологию — не изобретаешь велосипед. В работе это способность создавать регламенты и обучать других. Монетизация: консалтинг, обучение, написание инструкций, создание образовательных программ.</p>
+          </div>
+        </div>
+        <div class="row-card">
+          <div class="medallion sm"><span class="roman">XVII</span></div>
+          <div class="rtxt"><span class="sub">Третья сила · портретная зона</span><h4>Звезда</h4>
+            <p>Способность видеть будущее и вдохновлять своей верой. Ты не просто мечтатель — ты умеешь превращать видение в план, а план — в движение. Люди тянутся к тебе, потому что ты даёшь им ощущение, что всё возможно. Монетизация: стратегическое планирование, vision-коучинг, продюсирование творческих проектов.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="why" id="why-s7">
+        <button class="why-btn" type="button" data-toggle="why-s7"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">зона талантов (верхний угол), линия неба (F → E → H)</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Смерть (13), Колесница (7), Колесо Фортуны (10), Повешенный (12)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">Твой главный талант — способность к трансформации и обновлению (13 аркан). Ты умеешь разрушать старое, чтобы построить новое, и не боишься потерь. Линия неба (7-10-12) добавляет стратегическое мышление: ты видишь, когда нужно форсировать события (Колесница), когда отпустить контроль (Повешенный), и как использовать циклы (Колесо Фортуны). В работе это делает тебя отличным кризис-менеджером или реформатором. В общении ты вдохновляешь других на перемены, но можешь казаться резким. Монетизировать это можно через консалтинг по изменениям, управление проектами в переходные периоды или coaching по личной трансформации.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 08 · ТЕНЕВАЯ СТОРОНА ===== -->
+  <section class="chapter" id="s8">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">08 — Теневая сторона</span>
+        <h2>Цена <em>твоей силы</em></h2>
+        <p class="ch-sub">Это не недостатки — это оборотная сторона твоих сильных качеств. Их нельзя «убрать», но можно научиться видеть и не давать им рулить.</p>
+      </div>
+
+      <div class="prose" style="margin-bottom:18px;">
+        <p>Теневые стороны — это те же арканы, но в их непроработанном состоянии. Их нельзя «убрать», но можно научиться видеть и не давать им рулить.</p>
+        <div class="pull">Тень — не враг, а перегретая версия твоей же силы</div>
+      </div>
+
+      <div class="shadow-list">
+        <div class="shadow-card">
+          <h4>Тень Смерти (XIII)</h4>
+          <p>Трансформация становится разрушением без создания нового. Вместо мягкого завершения ты рубишь с плеча. Чувствуешь, что проект «не твой» — и уходишь, не передав дела. В отношениях: резко обрываешь связь, не попытавшись поговорить.</p>
+          <span class="practice-tag">Практика: когда хочется «всё бросить» — пауза 24 часа и 3 альтернативных варианта действий.</span>
+        </div>
+        <div class="shadow-card">
+          <h4>Тень Иерофанта (V)</h4>
+          <p>Догматизм и зависимость от авторитетов. Следуешь устаревшей методике — «так учил наставник». Требуешь от партнёра правил, забывая о чувствах.</p>
+          <span class="practice-tag">Практика: раз в неделю делай что-то наперекор «общепринятому».</span>
+        </div>
+        <div class="shadow-card">
+          <h4>Тень Звезды (XVII)</h4>
+          <p>Иллюзии и побег в мечты. Строишь воздушные замки вместо реальных шагов.</p>
+          <span class="practice-tag">Практика: после каждой мечты — одно конкретное действие на завтра.</span>
+        </div>
+      </div>
+
+      <div class="why" id="why-s8">
+        <button class="why-btn" type="button" data-toggle="why-s8"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">зона комфорта (нижний угол G)</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Иерофант (5)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">Твоя тень — это Иерофант в зоне комфорта. Ты можешь застревать в догмах, традициях и чужих правилах, даже когда они уже не работают. Это проявляется как страх выйти за рамки системы, потребность в одобрении авторитетов или склонность к перфекционизму в рамках установленных норм. Например, ты можешь годами работать на нелюбимой работе, потому что «так принято», или оставаться в отношениях, которые исчерпали себя, из-за чувства долга. Интегрировать тень — значит осознанно выбирать, какие правила тебе служат, а какие ограничивают, и разрешить себе их нарушать. Связь с кармическим хвостом: Иерофант как причина (низ) заставляет тебя искать внешние ответы, вместо того чтобы доверять себе.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== ✦ КАРТА ЗДОРОВЬЯ ===== -->
+  <section class="chapter" id="health">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">✦ — Карта здоровья</span>
+        <h2>7 чакр <em>энергетические центры</em></h2>
+        <p class="ch-sub">Энергетические центры организма, рассчитанные через арканы неба, земли и ключа в каждой зоне.</p>
+      </div>
+
+      <div class="chakra-card">
+        <div class="chakra-ring" style="--c:#8E44AD;">✦</div>
+        <div class="chakra-meta">
+          <div class="chakra-name-row"><h4>Сахасрара</h4><span class="skt">सहस्रार</span><span class="loc">Макушка</span></div>
+          <div class="chakra-bar-track" style="--c:#8E44AD;"><div class="chakra-bar-fill" style="--c:#8E44AD;width:60%;"></div></div>
+          <div class="chakra-positions"><span class="chakra-pos">Небо <b>17 — Звезда</b></span><span class="chakra-pos">Земля <b>12 — Повешенный</b></span><span class="chakra-pos">Ключ <b>11 — Справедливость</b></span></div>
+          <div class="chakra-organs">Органы: мозг, нервная система</div>
+          <p class="chakra-analysis">Состояние: недостаток энергии. Ты можешь чувствовать оторванность от своих ценностей, потерю смысла. Причина: Повешенный (12) в земле заставляет «зависать» в прошлом, не видеть будущего. Психосоматика: хроническая усталость, апатия, головные боли напряжения.</p>
+        </div>
+      </div>
+
+      <div class="chakra-card">
+        <div class="chakra-ring" style="--c:#7B68C8;">◉</div>
+        <div class="chakra-meta">
+          <div class="chakra-name-row"><h4>Аджна</h4><span class="skt">आज्ञा</span><span class="loc">Третий глаз</span></div>
+          <div class="chakra-bar-track" style="--c:#7B68C8;"><div class="chakra-bar-fill" style="--c:#7B68C8;width:100%;"></div></div>
+          <div class="chakra-positions"><span class="chakra-pos">Небо <b>13 — Смерть</b></span><span class="chakra-pos">Земля <b>10 — Колесо Фортуны</b></span><span class="chakra-pos">Ключ <b>5 — Иерофант</b></span></div>
+          <div class="chakra-organs">Органы: глаза, гипофиз, интуиция</div>
+          <p class="chakra-analysis">Состояние: избыток. Ты слишком много анализируешь, пытаешься контролировать будущее. Причина: Смерть (13) в небе даёт страх перемен — ты «прокручиваешь» сценарии, чтобы избежать неожиданностей. Психосоматика: ухудшение зрения, синуситы, бессонница от «шума в голове».</p>
+        </div>
+      </div>
+
+      <div class="chakra-card">
+        <div class="chakra-ring" style="--c:#4A90D9;">◇</div>
+        <div class="chakra-meta">
+          <div class="chakra-name-row"><h4>Вишудха</h4><span class="skt">विशुद्ध</span><span class="loc">Горло</span></div>
+          <div class="chakra-bar-track" style="--c:#4A90D9;"><div class="chakra-bar-fill" style="--c:#4A90D9;width:25%;"></div></div>
+          <div class="chakra-positions"><span class="chakra-pos">Небо <b>7 — Колесница</b></span><span class="chakra-pos">Земля <b>9 — Отшельник</b></span><span class="chakra-pos">Ключ <b>16 — Башня</b></span></div>
+          <div class="chakra-organs">Органы: горло, щитовидная железа, голосовые связки</div>
+          <p class="chakra-analysis">Состояние: недостаток. Ты подавляешь своё мнение, боишься конфликтов. Причина: Отшельник (9) в земле заставляет замыкаться, Колесница (7) в небе — «проглатывать» слова ради контроля. Психосоматика: частые ангины, ком в горле, проблемы с щитовидкой.</p>
+        </div>
+      </div>
+
+      <div class="chakra-card">
+        <div class="chakra-ring" style="--c:#2ECC71;">♡</div>
+        <div class="chakra-meta">
+          <div class="chakra-name-row"><h4>Анахата</h4><span class="skt">अनाहत</span><span class="loc">Сердце</span></div>
+          <div class="chakra-bar-track" style="--c:#2ECC71;"><div class="chakra-bar-fill" style="--c:#2ECC71;width:25%;"></div></div>
+          <div class="chakra-positions"><span class="chakra-pos">Небо <b>5 — Иерофант</b></span><span class="chakra-pos">Земля <b>10 — Колесо Фортуны</b></span><span class="chakra-pos">Ключ <b>15 — Дьявол</b></span></div>
+          <div class="chakra-organs">Органы: сердце, лёгкие, вилочковая железа</div>
+          <p class="chakra-analysis">Состояние: избыток контроля. Ты можешь «душить» любовью или, наоборот, бояться открыться. Причина: Дьявол (15) в ключе — страх зависимости; ты не даёшь себе расслабиться в близости. Психосоматика: тахикардия, ощущение сдавленности в груди.</p>
+        </div>
+      </div>
+
+      <div class="chakra-card">
+        <div class="chakra-ring" style="--c:#F1C40F;">☉</div>
+        <div class="chakra-meta">
+          <div class="chakra-name-row"><h4>Манипура</h4><span class="skt">मणिपूर</span><span class="loc">Солнечное сплетение</span></div>
+          <div class="chakra-bar-track" style="--c:#F1C40F;"><div class="chakra-bar-fill" style="--c:#F1C40F;width:60%;"></div></div>
+          <div class="chakra-positions"><span class="chakra-pos">Небо <b>22 — Шут</b></span><span class="chakra-pos">Земля <b>7 — Колесница</b></span><span class="chakra-pos">Ключ <b>11 — Справедливость</b></span></div>
+          <div class="chakra-organs">Органы: желудок, печень, поджелудочная железа</div>
+          <p class="chakra-analysis">Состояние: среднее. Ты колеблешься между уверенностью и сомнением, особенно в профессиональной сфере. Причина: Шут (22) в небе даёт спонтанность, но Справедливость (11) в ключе требует взвешенности — конфликт. Психосоматика: нарушения пищеварения при стрессе.</p>
+        </div>
+      </div>
+
+      <div class="chakra-card">
+        <div class="chakra-ring" style="--c:#E67E22;">☽</div>
+        <div class="chakra-meta">
+          <div class="chakra-name-row"><h4>Свадхистана</h4><span class="skt">स्वाधिष्ठान</span><span class="loc">Низ живота</span></div>
+          <div class="chakra-bar-track" style="--c:#E67E22;"><div class="chakra-bar-fill" style="--c:#E67E22;width:25%;"></div></div>
+          <div class="chakra-positions"><span class="chakra-pos">Небо <b>3 — Императрица</b></span><span class="chakra-pos">Земля <b>13 — Смерть</b></span><span class="chakra-pos">Ключ <b>16 — Башня</b></span></div>
+          <div class="chakra-organs">Органы: репродуктивная система, почки</div>
+          <p class="chakra-analysis">Состояние: недостаток. Подавленная чувственность и страх проявлять желания. Причина: Башня (16) в ключе создаёт страх разрушения при открытости, Смерть (13) в земле блокирует удовольствие. Психосоматика: гинекологические проблемы, боли в пояснице.</p>
+        </div>
+      </div>
+
+      <div class="chakra-card">
+        <div class="chakra-ring" style="--c:#E74C3C;">▣</div>
+        <div class="chakra-meta">
+          <div class="chakra-name-row"><h4>Муладхара</h4><span class="skt">मूलाधार</span><span class="loc">Корень</span></div>
+          <div class="chakra-bar-track" style="--c:#E74C3C;"><div class="chakra-bar-fill" style="--c:#E74C3C;width:60%;"></div></div>
+          <div class="chakra-positions"><span class="chakra-pos">Небо <b>5 — Иерофант</b></span><span class="chakra-pos">Земля <b>5 — Иерофант</b></span><span class="chakra-pos">Ключ <b>10 — Колесо Фортуны</b></span></div>
+          <div class="chakra-organs">Органы: позвоночник, кости, ноги, иммунитет</div>
+          <p class="chakra-analysis">Состояние: среднее. Базовая безопасность есть, но она привязана к внешним структурам (работа, деньги) — не к внутреннему ощущению опоры. Причина: двойной Иерофант (5) — чрезмерная опора на правила и традиции. Психосоматика: боли в спине, проблемы с ногами.</p>
+        </div>
+      </div>
+
+      <div class="chakra-card" style="background:var(--matrix-card);border:1px solid var(--matrix-card-border);box-shadow:none;">
+        <div class="chakra-ring" style="--c:#3A6848;">◈</div>
+        <div class="chakra-meta">
+          <div class="chakra-name-row"><h4>Организм</h4><span class="loc">Общий ресурс</span></div>
+          <div class="chakra-positions"><span class="chakra-pos">Небо <b>9</b></span><span class="chakra-pos">Земля <b>12</b></span><span class="chakra-pos">Ключ <b>21</b></span></div>
+        </div>
+      </div>
+
+      <div class="chakra-summary-grid">
+        <div class="chakra-summary-card">
+          <h4>Разбор энергетики здоровья</h4>
+          <p>Общий энергетический ресурс организма: средний, с тенденцией к истощению при стрессе. Сильные стороны: нервная система, интуиция. Зоны внимания: сердечно-сосудистая, опорно-двигательная, гормональная. Рекомендация: регулярный сон 7–8 часов, растяжка 10 минут утром.</p>
+        </div>
+        <div class="chakra-summary-card">
+          <h4>Общая практика</h4>
+          <p>Выбери одну чакру с наименьшим показателем и удели ей 5 минут в день в течение недели. Свадхистана: тёплая ванна с солью, танцуй под музыку. Вишудха: пой в душе, читай стихи вслух. Анахата: обними дерево или человека на 20 секунд дольше обычного. Записывай ощущения до и после — через неделю сравни.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 09 · ОТНОШЕНИЯ ===== -->
+  <section class="chapter" id="s9">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">09 — Отношения</span>
+        <h2>Динамика <em>твоих отношений</em></h2>
+        <p class="ch-sub">Тип партнёра, сценарий входа и выхода, и — самое полезное — с кем у вас будет ресурсный контакт, а с кем сложный.</p>
+      </div>
+
+      <div class="role-card">
+        <div class="role-icon">☽</div>
+        <div>
+          <span class="rl-label">Твоя роль в отношениях</span>
+          <div class="rl-name">Путешественник · Вдохновитель</div>
+          <div class="rl-desc">Ты не ищешь стабильного «порта» — ты ищешь со-путешественника. Твоя ценность в отношениях: динамика, развитие, ощущение живого потока.</div>
+        </div>
+      </div>
+
+      <div class="mini-grid">
+        <div class="mini-card"><span class="mc-label">Паттерн входа</span><div class="mc-title">Лёгкость и открытость</div><div class="mc-text">Шут (22) — ты начинаешь отношения без масок, с детской искренностью. Влюбляешься внезапно, без «расчёта», прыгаешь в омут с открытым сердцем.</div></div>
+        <div class="mini-card"><span class="mc-label">Паттерн выхода</span><div class="mc-title">Решительный уход</div><div class="mc-text">Колесница (7) — когда становится тесно, уходишь резко, без долгих прощаний. Можешь не дать шанса там, где стоило бы задержаться.</div></div>
+        <div class="mini-card"><span class="mc-label">Главная ловушка</span><div class="mc-title">Цикл сближения–дистанции</div><div class="mc-text">Колесо (10) в центре — ты неосознанно создаёшь волны близости и отдаления. Партнёры теряются в этом ритме и не понимают, что происходит.</div></div>
+        <div class="mini-card"><span class="mc-label">Кармический урок</span><div class="mc-title">Остаться, когда хочется уйти</div><div class="mc-text">Не каждый «тупик» — сигнал к завершению. Иногда именно в кризисе отношений происходит настоящая близость — если не убежать раньше времени.</div></div>
+      </div>
+
+      <div class="prose">
+        <p>Твой главный архетип — Колесо Фортуны (10) в центре матрицы — делает тебя человеком, который притягивает партнёров как магнит. Ты не ищешь отношения — они находят тебя, часто в моменты, когда ты меньше всего ждёшь.</p>
+        <div class="pull">Ты не ищешь стабильный «порт» — ты ищешь со-путешественника</div>
+        <p><strong>Кого ты притягиваешь.</strong> Точка отношений — Справедливость (11). Твой партнёр — человек баланса и честности: тот, кто не терпит лжи и способен на прямые взрослые разговоры. Но если ты сама не в равновесии, ты будешь притягивать партнёров, которые «уравновешивают» тебя через конфликты.</p>
+        <p><strong>Паттерн входа — Шут (22).</strong> Ты входишь в отношения легко, с открытым сердцем и верой в лучшее. Без масок, искренне, с ощущением, что это судьба. На старте — эйфория и лёгкость. Ты не проверяешь партнёра на прочность — просто прыгаешь в омут.</p>
+        <p><strong>Паттерн выхода — Колесница (7).</strong> Когда появляются обязательства и рутина, включается режим «воина»: уходишь решительно, с ощущением «это препятствие, которое нужно преодолеть». Можешь резко оборвать связь, не дав шанса на восстановление. Для тебя отношения — путь, а не точка.</p>
+        <p><strong>Главный цикл близости.</strong> Колесо Фортуны ведёт себя циклично: ты то сближаешься до полного слияния, то отдаляешься, чтобы «подышать». Партнёры иногда теряются в этом ритме. Ключ — честно предупреждать: «мне нужно личное пространство, это не про тебя».</p>
+        <p><strong>Совместимость.</strong> Тебе подходят архетипы, уважающие свободу: Шут, Звезда, Колесо. Напряжение — с теми, кто требует стабильности любой ценой: Император, Иерофант. Но именно «сложные» партнёры часто приходят как учителя — показать, где ты избегаешь глубины.</p>
+      </div>
+
+      <div class="why" id="why-s9">
+        <button class="why-btn" type="button" data-toggle="why-s9"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">точка отношений (левый угол → центр → правый угол)</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Шут (22), Колесо Фортуны (10), Колесница (7)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">В отношениях ты начинаешь как Шут (22) — с лёгкостью, открытостью и ожиданием чуда. Ты притягиваешь партнёров, которые кажутся необычными, спонтанными или свободными. Центр (Колесо Фортуны) делает отношения цикличными: периоды близости сменяются дистанцией. Правый угол (Колесница) — это твой паттерн выхода: когда становится слишком тесно или предсказуемо, ты резко уходишь, часто без объяснений, чтобы сохранить свою автономию. Ты совместим с архетипами, которые уважают твою потребность в свободе (Шут, Звезда) и не давят обязательствами. Напряжение возникает с архетипами, требующими стабильности (Императрица, Иерофант). Пример: ты можешь влюбиться в творческого, непредсказуемого человека, но через год почувствовать, что отношения стали рутиной, и уйти в новый проект или путешествие. Один шаг сейчас: честно скажи партнёру, что тебе нужно личное пространство, и договорись о ритуалах, которые сохранят новизну.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 10 · ДЕНЬГИ И КАРЬЕРА ===== -->
+  <section class="chapter" id="s10">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">10 — Деньги и карьера</span>
+        <h2>Где тебе <em>естественно</em> зарабатывать</h2>
+        <p class="ch-sub">Конкретные роли, в которых твой архетип реализуется без насилия над собой, и денежные блоки, которые важно проработать.</p>
+      </div>
+
+      <div class="money-line"><span class="lbl">Линия денег</span><div class="nums">3 — 10 — 5</div></div>
+
+      <div class="money-karma-card">
+        <span class="mk-label">Финансовая карма · Императрица → Колесо Фортуны → Иерофант</span>
+        <h3>Деньги через создание ценности и структуру</h3>
+        <p>Твой финансовый поток идёт через три канала: Императрица (3) — создание, рост, забота; Колесо Фортуны (10) — цикличный доход, умение использовать волны рынка; Иерофант (5) — монетизация знаний и системного опыта. Потенциал пассивного дохода: курсы, лицензии, абонементы — продукты, которые работают без твоего ежедневного участия.</p>
+        <div class="belief-list" style="margin-top:18px;">
+          <div class="belief-card"><span class="belief-num">01</span><div><div class="belief-old">«Мне неудобно просить деньги за свою работу» — ты занижаешь цену, откладываешь выставление счетов</div><div class="belief-new">→ «Моя ценность не зависит от того, прошу ли я. Честная цена — это уважение к своему труду»</div></div></div>
+          <div class="belief-card"><span class="belief-num">02</span><div><div class="belief-old">«Лёгкие деньги — это подозрительно, нужно зарабатывать трудом»</div><div class="belief-new">→ «Деньги могут приходить через поток и мудрое ожидание — Повешенный учит стратегическому терпению»</div></div></div>
+          <div class="belief-card"><span class="belief-num">03</span><div><div class="belief-old">«Нужно ещё подучиться, прежде чем монетизировать» — годами на курсах, но не начинаешь</div><div class="belief-new">→ «Мои знания уже достаточны. Первый платящий клиент даст больше, чем следующий курс»</div></div></div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>Твой денежный канал — Повешенный (12). Это не про пассивный доход в классическом смысле, а про доход через переосмысление, стратегическое ожидание и умение видеть то, чего не видят другие. Ты не зарабатываешь на быстрых сделках — твой доход растёт, когда ты замедляешься и смотришь на ситуацию под новым углом.</p>
+        <div class="pull">Твой доход растёт не от скорости, а от глубины взгляда</div>
+        <p><strong>Формула денег.</strong> Линия: Императрица (3) → Колесо Фортуны (10) → Иерофант (5). Деньги приходят через создание ценности, управление циклами и структурирование знаний. Ты «садовник», а не «строитель»: растишь проекты, а не возводишь их с нуля под ключ.</p>
+        <p><strong>Подходящие ниши.</strong> Операционный директор в креативном агентстве или стартапе — управляешь процессами, настраиваешь циклы. Финансовый консультант для творческих людей — структурируешь хаотичный доход. Создатель онлайн-курсов — превращаешь знания в системный продукт с цикличным доходом.</p>
+        <p><strong>Идеальная модель.</strong> Гибрид найма и бизнеса. Тебе нужна структура (найм или долгосрочные контракты), но внутри — пространство для творчества. Чистый фриланс слишком нестабилен, чистый найм — слишком скучен.</p>
+        <p><strong>Денежные блоки.</strong> Три главных: «Мне неудобно просить деньги» — ты занижаешь цену. «Нужно ещё подучиться» — годами на курсах без старта. «Лёгкие деньги — подозрительно» — установка Иерофанта, что доход должен быть «честным трудом». Работа с этими убеждениями — прямой путь к росту дохода.</p>
+      </div>
+
+      <div class="why" id="why-s10">
+        <button class="why-btn" type="button" data-toggle="why-s10"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">линия денег: верх (F) → центр (E) → низ (G)</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Императрица (3), Колесо Фортуны (10), Иерофант (5)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">Твой денежный сценарий — это сочетание изобилия (Императрица), цикличности (Колесо Фортуны) и структуры (Иерофант). Доход приходит через творчество, заботу о других или создание красоты (3 аркан), но он нестабилен — периоды больших заработков сменяются затишьем (10 аркан). Иерофант внизу линии указывает на установку, что деньги должны зарабатываться «честным трудом» в рамках системы, что может блокировать пассивный доход или нестандартные источники. Три блока: 1) «Я не могу просить больше, это не скромно» (Иерофант); 2) «Деньги приходят и уходят, я не могу их удержать» (Колесо Фортуны); 3) «Мой доход зависит от внешних обстоятельств, а не от моих действий» (Императрица в тени). Конкретные ниши: event-менеджер для премиум-клиентов, флорист-декоратор, консультант по стилю жизни. Монетизировать талант (13 аркан) можно через coaching по изменениям или управление проектами в сфере редизайна и реструктуризации. Финансовый шаг на неделе: создай отдельный счёт для «циклических» доходов и откладывай 10% с каждого крупного поступления.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 11 · ПОВТОРЯЮЩИЕСЯ СЦЕНАРИИ ===== -->
+  <section class="chapter" id="s11">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">11 — Повторяющиеся сценарии</span>
+        <h2>Что ты <em>проигрываешь</em> снова и снова</h2>
+        <p class="ch-sub">Устойчивые сюжеты, которые повторяются в жизни. Если узнаёшь себя — это не приговор, это точка для работы.</p>
+      </div>
+
+      <div class="prose" style="margin-bottom:18px;">
+        <p>Твои повторяющиеся сценарии — не случайность. Это устойчивый круг, записанный в кармическом хвосте: Иерофант (5) → Колесо Фортуны (10) → Императрица (3). Каждый раз ты проходишь один и тот же путь, пока не выучишь урок.</p>
+        <div class="pull">Ты ищешь внешнюю структуру — а нужно найти внутреннюю опору</div>
+      </div>
+
+      <div class="row-card-list">
+        <div class="row-card">
+          <div class="medallion sm"><span class="roman">5</span></div>
+          <div class="rtxt"><span class="sub">Сценарий 1</span><h4>«Я ищу одобрения и теряю себя»</h4>
+            <p>Иерофант (5) в низу хвоста заставляет искать внешнюю опору — наставника, систему, которая скажет, как «правильно». Ты можешь годами следовать за харизматичным лидером, доверять его видению — а через год понимаешь, что реализуешь чужие мечты. Уходишь — и в следующем месте история повторяется. Причина: страх самостоятельности и желание снять ответственность за выбор.</p>
+          </div>
+        </div>
+        <div class="row-card">
+          <div class="medallion sm"><span class="roman">10</span></div>
+          <div class="rtxt"><span class="sub">Сценарий 2</span><h4>«Я жду, что колесо повернётся само»</h4>
+            <p>Колесо Фортуны (10) — вера в «всё наладится само». Ты терпишь неудовлетворительную ситуацию, надеясь, что скоро грянут перемены. Остаёшься в проекте, который не развивает — «вот-вот дадут премию». Не действуешь — ждёшь. А перемены приходят не те, на которые ты надеялась. Причина: пассивность и нежелание брать штурвал.</p>
+          </div>
+        </div>
+        <div class="row-card">
+          <div class="medallion sm"><span class="roman">3</span></div>
+          <div class="rtxt"><span class="sub">Сценарий 3</span><h4>«Я подавляю свою женскую силу»</h4>
+            <p>Императрица (3) вверху хвоста — твой урок. Ты должна научиться проявлять мягкость, интуицию, заботу о себе. Но вместо этого выбираешь «мужские» стратегии: контроль, жёсткость. Хочешь начать творческий проект — и убеждаешь себя: «сначала карьера», «это несерьёзно». Выход — разрешить себе быть уязвимой и поверить, что твоё творчество имеет ценность без внешнего одобрения.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="why" id="why-s11">
+        <button class="why-btn" type="button" data-toggle="why-s11"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">центр (E), зона комфорта (G), кармический хвост (низ G)</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Колесо Фортуны (10), Иерофант (5)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">Повторяющаяся ошибка — это попытка контролировать неконтролируемое. Колесо Фортуны в центре даёт тебе опыт, что жизнь циклична, но ты снова и снова пытаешься найти стабильность через внешние структуры (Иерофант). Например, ты можешь брать кредит, чтобы «зафиксировать» доход, или вступать в брак, чтобы «закрепить» отношения, хотя внутренне знаешь, что это временно. Другая ошибка — игнорировать знаки перемен и цепляться за то, что уже исчерпало себя, из-за страха перед неизвестностью. Выход — научиться доверять циклам и не искать постоянства там, где его нет по определению.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 12 · ВНУТРЕННИЕ КОНФЛИКТЫ ===== -->
+  <section class="chapter" id="s12">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">12 — Внутренние конфликты</span>
+        <h2>Двойники <em>в диалоге</em></h2>
+        <p class="ch-sub">Пары арканов в твоей карте, которые тянут в противоположные стороны. Цель — не победа одного из них, а налаженный диалог.</p>
+      </div>
+
+      <div class="prose" style="margin-bottom:18px;">
+        <p>Твоя матрица — это поле диалога двух мощных энергий, которые тянут тебя в разные стороны. Цель не в победе одной — а в налаженном диалоге.</p>
+        <div class="pull">Не выбирай между свободой и стабильностью — подружи их</div>
+      </div>
+
+      <div class="duel-list">
+        <div class="duel-card">
+          <div class="duel-head"><div class="medallion sm"><span class="roman">10</span></div><span class="vs">vs.</span><div class="medallion sm"><span class="roman">5</span></div><h4 style="margin-left:6px;">Колесо Фортуны vs. Иерофант</h4></div>
+          <p>Колесо хочет перемен, спонтанности, риска. Иерофант — стабильности, правил. Ты хочешь бросить всё и уехать — но боишься потерять статус. Начинаешь проект с энтузиазмом, а через месяц забрасываешь. Решение: Колесо выбирает направление, Иерофант создаёт структуру. Раз в квартал — «революция», но спланированная.</p>
+        </div>
+        <div class="duel-card">
+          <div class="duel-head"><div class="medallion sm"><span class="roman">22</span></div><span class="vs">vs.</span><div class="medallion sm"><span class="roman">7</span></div><h4 style="margin-left:6px;">Шут vs. Колесница</h4></div>
+          <p>Шут хочет лёгкости и игры. Колесница — контроля и результата. В отношениях: легко знакомишься — но как только серьёзно, включаешь контроль или резко уходишь. В работе: генерируешь идеи легко, а при реализации впадаешь в перфекционизм и выгорание. Решение: Шут для старта, Колесница для финиша, между ними — пространство для игры.</p>
+        </div>
+        <div class="duel-card">
+          <div class="duel-head"><div class="medallion sm"><span class="roman">13</span></div><span class="vs">vs.</span><div class="medallion sm"><span class="roman">5</span></div><h4 style="margin-left:6px;">Смерть vs. Иерофант</h4></div>
+          <p>Ты разрываешься между «пора менять» и «надо дотерпеть». Решение: завершай маленькими порциями, меняй форму, а не суть.</p>
+        </div>
+      </div>
+
+      <div class="why" id="why-s12">
+        <button class="why-btn" type="button" data-toggle="why-s12"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">центр (E), зона талантов (верхний угол), зона комфорта (G)</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Колесо Фортуны (10), Смерть (13), Иерофант (5)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">Главный внутренний конфликт — между желанием перемен (13 аркан) и потребностью в стабильности (5 аркан). Ты чувствуешь, что пора что-то менять, но Иерофант шепчет: «А вдруг это неправильно? А что скажут люди?». Второй конфликт — между принятием цикличности (10 аркан) и стремлением всё контролировать (5 аркан). Например, ты можешь знать, что проект исчерпал себя, но продолжать его тянуть, потому что «так надо». Обе стороны хотят защитить тебя: Смерть — от застоя, Иерофант — от хаоса. Использовать их как союзников — значит планировать перемены (5 аркан) и внедрять их постепенно (13 аркан), а не ждать, что всё рухнет само.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== ✦ ВНУТРЕННИЕ БЛОКИ ===== -->
+  <section class="chapter" id="psychological-blocks">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">✦ — Почему это происходит</span>
+        <h2>Психологические <em>паттерны</em></h2>
+        <p class="ch-sub">Паттерны, которые управляют твоими решениями.</p>
+      </div>
+
+      <div class="psych-card">
+        <span class="psych-chip">3 · Императрица</span>
+        <div class="psych-block">
+          <span class="lbl">Убеждение</span>
+          <p>Ты живёшь по чужим правилам. Первый блок — из 5-го аркана Иерофант, который стоит в зоне комфорта, в кармическом хвосте (причина) и в линии денег. Убеждение: «Я должен следовать правилам и авторитетам, чтобы быть в безопасности». Конкретная формулировка: «Если я сделаю не так, как принято, меня накажут или отвергнут».</p>
+        </div>
+        <div class="psych-block">
+          <span class="lbl">Как проявляется</span>
+          <p>Пример 1: На работе ты терпишь неудобные условия, потому что «начальник сказал», хотя внутренне знаешь, что есть лучшее решение. Пример 2: В отношениях ты не говоришь о своих истинных желаниях, боясь, что партнёр осудит. Пример 3: Ты откладываешь важное решение, потому что ждёшь совета от «эксперта», хотя уже знаешь ответ.</p>
+        </div>
+        <div class="psych-block">
+          <span class="lbl">Стратегия изменения</span>
+          <p>Начни с малого: выбери одну ситуацию на неделе, где ты действуешь «как надо», а не «как хочу». Запиши её и придумай альтернативный сценарий. Например, если начальник дал задание, которое кажется неэффективным, предложи свой вариант. Постепенно ты вернёшь себе право выбора.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 13 · ЦИКЛЫ И ПРОГНОЗ ===== -->
+  <section class="chapter" id="s13">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">13 — Жизненные циклы и прогноз</span>
+        <h2>Где ты <em>сейчас</em> и куда идёт линия</h2>
+        <p class="ch-sub">Ключевые семилетние развороты в твоей карте и прогноз на ближайшие годы.</p>
+      </div>
+
+      <div class="prose" style="margin-bottom:22px;">
+        <p>Прогноз строится не на предсказаниях, а на энергиях арканов, влияющих на твою жизнь в ближайшие годы. Это не судьба — это вероятностный сценарий, который ты можешь изменить своим выбором.</p>
+        <div class="pull">Ты не жертва обстоятельств — ты капитан, знающий карту ветров</div>
+      </div>
+
+      <div class="year-list">
+        <div class="year-card">
+          <div class="year-badge"><span class="y">2026</span><span class="a">XII</span></div>
+          <div><h4>Повешенный — год «перевёрнутой перспективы»</h4><p>Карьера: не жди быстрых результатов — проекты могут тормозиться. Это время анализа. Отношения: возможен период отчуждения — он нужен, чтобы вы оба поняли чего хотят. Здоровье: сон и позвоночник. Деньги: без крупных инвестиций — доход будет, но медленно.</p></div>
+        </div>
+        <div class="year-card">
+          <div class="year-badge"><span class="y">2027</span><span class="a">IV</span></div>
+          <div><h4>Император — год структуры и порядка</h4><p>Карьера: время строить — открывай бизнес, занимай руководящую позицию. Отношения: год для серьёзных решений. Деньги: отличный период для накоплений и крупных вложений.</p></div>
+        </div>
+        <div class="year-card">
+          <div class="year-badge"><span class="y">2028</span><span class="a">V</span></div>
+          <div><h4>Иерофант — год обучения и наставничества</h4><p>Получи образование, найди ментора, войди в профессиональное сообщество. Доход через преподавание и консультации.</p></div>
+        </div>
+      </div>
+
+      <div class="age-note"><strong>Ключевые возрастные развороты.</strong> 49 лет — Смерть (XIII): глубокая личная трансформация, смена жизненного этапа. 56 лет — Справедливость (XI): подведение итогов, переход к более осмысленной деятельности.</div>
+
+      <div class="why" id="why-s13">
+        <button class="why-btn" type="button" data-toggle="why-s13"><span class="arrow">▶</span><span>Почему я так думаю</span></button>
+        <div class="why-body"><div class="why-card">
+          <div class="why-line"><span class="why-comment">// Позиции матрицы</span><span class="why-value">центр (E), текущий год (2026), следующий год (2027)</span></div>
+          <div class="why-line"><span class="why-comment">// Арканы</span><span class="why-value">Колесо Фортуны (10), Повешенный (12), Император (4)</span></div>
+          <div class="why-line"><span class="why-comment">// Логика расчёта</span><span class="why-value">2026 год под арканом Повешенный (12) — время паузы, пересмотра и отпускания. Не форсируй события, наблюдай, анализируй. В карьере возможен простой или смена направления, в отношениях — период неопределённости. Деньги могут «зависнуть», но это не кризис, а перезагрузка. 2027 год (Император, 4) — время строить структуру. После года размышлений ты сможешь заложить фундамент для нового этапа: открыть бизнес, заключить важный контракт, создать семью. Здоровье: в 2026 обрати внимание на опорно-двигательный аппарат и сон. На 3 года вперёд: 2028 (Иерофант, 5) — год обучения и наставничества, ты можешь стать экспертом или учителем. Ключевые возраста: 49 лет (Смерть) — глубокая личная трансформация, 56 лет (Справедливость) — подведение итогов и баланс.</span></div>
+        </div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 14 · СЕМЬ ДНЕЙ ===== -->
+  <section class="chapter" id="s14">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">14 — Рекомендации на 7 дней</span>
+        <h2>Начни <em>с этой недели</em></h2>
+        <p class="ch-sub">Семь конкретных коротких заданий. Каждое — на 10–20 минут. Это не «работа над собой» в патетическом смысле, это эксперимент. Отметь сделанное.</p>
+      </div>
+
+      <div class="day-list" id="week">
+        <div class="day-card" data-day="1"><div class="chk"></div><div><div class="d-meta"><span class="d-cat">💪 Тело</span><span class="d-name">Понедельник</span></div><div class="d-task">Встань на 10 минут в позу «берёзки» или сделай стойку на плечах. Аркан Повешенный (12) в твоём денежном канале даёт напряжение в плечах и шее. Перевёрнутое положение тела снимет блоки и даст приток крови к голове, что улучшит ясность мышления. Делай это каждое утро, чтобы «перевернуть» своё восприятие дня.</div></div></div>
+        <div class="day-card" data-day="2"><div class="chk"></div><div><div class="d-meta"><span class="d-cat">🧠 Ум</span><span class="d-name">Вторник</span></div><div class="d-task">Напиши список из 10 правил, по которым ты живёшь (например, «я должна быть лучшей», «нельзя просить помощи»). Аркан Иерофант (5) в кармическом хвосте создаёт жёсткие внутренние рамки. Выбери одно правило и на этой неделе намеренно его наруши. Попроси помощи у коллеги или позволь себе сделать работу «на троечку». Это ослабит власть внутреннего критика.</div></div></div>
+        <div class="day-card" data-day="3"><div class="chk"></div><div><div class="d-meta"><span class="d-cat">🧠 Ум</span><span class="d-name">Среда</span></div><div class="d-task">Дух: Сядь на 15 минут и нарисуй «карту своих циклов». Аркан Колесо Фортуны (10) в центре — твоя главная энергия. Раздели лист на 4 части: взлёты, падения, плато, кризисы. Запиши, в какие годы жизни ты проходила каждый этап. Это даст тебе ощущение, что ты не теряешь контроль, а просто находишься в определённой фазе.</div></div></div>
+        <div class="day-card" data-day="4"><div class="chk"></div><div><div class="d-meta"><span class="d-cat">🧠 Ум</span><span class="d-name">Четверг</span></div><div class="d-task">Деньги: Найди один старый проект или идею, которую ты забросила (аркан Смерть (13) в талантах — умение завершать). Доведи её до логического конца: удали файл, продай материалы, отправь клиенту финальный отчёт. Завершение высвободит энергию для нового денежного потока.</div></div></div>
+        <div class="day-card" data-day="5"><div class="chk"></div><div><div class="d-meta"><span class="d-cat">🧠 Ум</span><span class="d-name">Пятница</span></div><div class="d-task">Отношения: Сегодня скажи одному близкому человеку комплимент, который ты обычно держишь в себе. Аркан Шут (22) в левом углу — твоя лёгкость в контактах, но ты можешь бояться быть искренней. Просто скажи: «Мне нравится, как ты сегодня выглядишь» или «Я ценю твою поддержку». Это запустит цикл открытости.</div></div></div>
+        <div class="day-card" data-day="6"><div class="chk"></div><div><div class="d-meta"><span class="d-cat">🌟 Дух</span><span class="d-name">Суббота</span></div><div class="d-task">Рефлексия: Вечером запиши 3 ситуации за день, где ты действовала из привычного сценария (например, промолчала, когда хотела возразить). Аркан Колесница (7) в правом углу — твой паттерн «бежать вперёд». Остановись и спроси себя: «Что я чувствовала в тот момент? Что я хотела сделать на самом деле?» Это научит тебя выбирать осознанно.</div></div></div>
+        <div class="day-card" data-day="7"><div class="chk"></div><div><div class="d-meta"><span class="d-cat">🧠 Ум</span><span class="d-name">Воскресенье</span></div><div class="d-task">Действие: Выбери одну сферу жизни (работа, отношения, хобби) и сделай одно маленькое действие, которое ты откладывала. Например, запишись на пробное занятие по танцам или отправь резюме в компанию мечты. Аркан Императрица (3) в верхней части матрицы требует проявления. Не жди идеального момента — начни с малого.</div></div></div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== 15 · КАРТА ДНЯ ===== -->
+  <section class="chapter" id="s15">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">15 — Карта дня</span>
+        <h2>Продолжение <em>каждое утро</em></h2>
+        <p class="ch-sub">Матрица — это карта местности. Карта дня — компас, который помогает идти по ней на коротком отрезке.</p>
+      </div>
+
+      <div class="tarot-card">
+        <div class="tarot-medallion"><span class="num">20</span></div>
+        <div class="tarot-txt">
+          <span class="eyebrow">Пример карты на сегодня</span>
+          <h3>Аркан 20 <em>· твоя карта дня</em></h3>
+          <p>Каждое утро — новый аркан, новый фокус, новая энергия. Персонализированная карта дня, рассчитанная специально под твою матрицу.</p>
+          <a class="tarot-cta" href="https://t.me/Nura_ai_bot" target="_blank" rel="noopener">Получать карту дня каждое утро <span class="price">· 390 ₽/мес</span></a>
+        </div>
+      </div>
+
+      <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+    </div>
+  </section>
+
+  <!-- ===== R1 · МОИ ИНСАЙТЫ ===== -->
+  <section class="chapter" id="r1">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">• — Страница рефлексии</span>
+        <h2>Мои <em>инсайты</em></h2>
+        <p class="ch-sub">Что нового ты увидела о себе, читая этот разбор. Не нужно «правильных» формулировок — пиши своими словами, как думается.</p>
+      </div>
+      <div class="reflect-card"><div class="reflect-lines"></div></div>
+    </div>
+  </section>
+
+  <!-- ===== R2 · ЧТО Я ПОПРОБУЮ ===== -->
+  <section class="chapter" id="r2">
+    <div class="wrap">
+      <div class="ch-head">
+        <span class="nbr">• — Страница рефлексии</span>
+        <h2>Что я попробую <em>на этой неделе</em></h2>
+        <p class="ch-sub">Один-два конкретных шага. Не «начну жить иначе», а «во вторник напишу N. сообщение». Чем мельче и конкретнее, тем выше шанс, что произойдёт.</p>
+      </div>
+      <div class="reflect-card"><div class="reflect-lines"></div></div>
+
+      <div class="footer-final">
+        <span>NURA AI · Матрица Судьбы · отчёт для Анна</span>
+        <a href="https://t.me/Nura_ai_bot" target="_blank" rel="noopener">@Nura_ai_bot</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<button class="to-top" id="toTop" aria-label="Наверх">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script>
+(function(){
+  const body = document.body;
+  const drawer = document.getElementById('drawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  document.getElementById('menuBtn').addEventListener('click', () => body.classList.add('drawer-open'));
+  document.getElementById('drawerClose').addEventListener('click', () => body.classList.remove('drawer-open'));
+  backdrop.addEventListener('click', () => body.classList.remove('drawer-open'));
+  document.querySelectorAll('.drawer-nav ul').forEach(ul => {
+    ul.addEventListener('click', e => { if (e.target.closest('a')) body.classList.remove('drawer-open'); });
+  });
+
+  const sections = Array.from(document.querySelectorAll('section.chapter[id]'));
+  const navLinks = document.querySelectorAll('.drawer-nav a[data-target]');
+  const topbarSection = document.getElementById('topbarSection');
+  const progressFill = document.getElementById('progressFill');
+  const toTop = document.getElementById('toTop');
+
+  function onScroll(){
+    const probe = window.scrollY + window.innerHeight * 0.3;
+    let current = sections[0];
+    for (const s of sections){ if (s.offsetTop <= probe) current = s; }
+    if (current){
+      navLinks.forEach(a => a.classList.toggle('active', a.dataset.target === current.id));
+      const active = document.querySelector('.drawer-nav a[data-target="'+current.id+'"]');
+      if (active){
+        const num = active.querySelector('.num').textContent;
+        const name = active.querySelectorAll('span')[1].textContent;
+        topbarSection.innerHTML = '<span class="n">'+num+'</span> · '+name;
+      }
+    }
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = Math.max(0, Math.min(100, (window.scrollY / max) * 100));
+    progressFill.style.width = pct + '%';
+    toTop.classList.toggle('visible', window.scrollY > 500);
+  }
+  window.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+  toTop.addEventListener('click', () => window.scrollTo({ top:0, behavior:'smooth' }));
+
+  document.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => { document.getElementById(btn.dataset.toggle).classList.toggle('open'); });
+  });
+
+  document.querySelectorAll('#week .day-card').forEach(d => {
+    d.addEventListener('click', () => d.classList.toggle('done'));
+  });
+})();
+</script>
+
+</body>
+</html>

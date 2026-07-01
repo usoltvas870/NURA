@@ -68,18 +68,15 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
 
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
-    user = await user_repo.get_by_telegram_id(message.from_user.id)
+    user = await user_repo.get_or_create_by_telegram_id(
+        message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+    )
 
     if user and user.birth_date:
         await _show_authenticated_menu(message, user)
         return
-
-    if user is None:
-        user = await user_repo.create(
-            telegram_id=message.from_user.id,
-            username=message.from_user.username,
-            first_name=message.from_user.first_name,
-        )
 
     if not user.pd_consent_at:
         await message.answer(pd_consent_text(), reply_markup=_pd_consent_keyboard())
@@ -173,13 +170,11 @@ async def _handle_tg_auth_token(message: Message, token: str) -> None:
             await message.answer(tg_auth_success_text(), reply_markup=open_pwa_keyboard())
             return
 
-        user = await user_repo.get_by_telegram_id(message.from_user.id)
-        if user is None:
-            user = await user_repo.create(
-                telegram_id=message.from_user.id,
-                username=message.from_user.username,
-                first_name=message.from_user.first_name,
-            )
+        user = await user_repo.get_or_create_by_telegram_id(
+            message.from_user.id,
+            username=message.from_user.username,
+            first_name=message.from_user.first_name,
+        )
 
         web_session_id = uuid.uuid4().hex
         await user_repo.ensure_web_session(user.telegram_id, web_session_id)
