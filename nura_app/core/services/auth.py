@@ -306,13 +306,19 @@ class AuthService:
                 )
                 resp.raise_for_status()
                 user_info = resp.json()
+                logger.info("VK ID user_info response: %s", json.dumps(user_info, ensure_ascii=False))
 
             user_repo = UserRepository(self._session_factory)
             user = await user_repo.get_by_vk_id(vk_user_id)
 
-            first_name = user_info.get("first_name", "")
+            first_name = (
+                user_info.get("first_name")
+                or user_info.get("name")
+                or user_info.get("display_name")
+                or ""
+            )
             last_name = user_info.get("last_name", "")
-            vk_name = f"{first_name} {last_name}".strip()
+            vk_name = f"{first_name} {last_name}".strip() if last_name else first_name
             email = user_info.get("email")
             birthday = user_info.get("birthday", "")
 
