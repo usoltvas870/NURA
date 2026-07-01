@@ -23,7 +23,6 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
 <div class="loader" id="loader"></div>
 <div class="status" id="status">Выполняем вход через VK...</div>
 </div>
-<script src="https://unpkg.com/@vkid/sdk@2.6.5/dist-sdk/umd/index.js"></script>
 <script>
 (function() {
   var el = document.getElementById('status');
@@ -48,10 +47,6 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
     }
   }
 
-  function isSdkError(e) {
-    return !!(e && (e.name === 'VKIDError' || /exchangeCode|SDK|VK/i.test(String(e.message || ''))));
-  }
-
   if (error) {
     renderError('Авторизация отклонена. Попробуйте другой способ входа.');
     return;
@@ -60,57 +55,27 @@ h1{font:28px Georgia,serif;color:#eee;margin-bottom:24px;letter-spacing:2px}
     renderError('Код авторизации не получен. Попробуйте ещё раз.');
     return;
   }
-  if (!('VKIDSDK' in window)) {
-    renderError('Не удалось загрузить VK SDK. Попробуйте другой способ или обновите страницу.');
-    return;
-  }
 
-  var VKID = window.VKIDSDK;
-  VKID.Config.init({
-    app: 54660807,
-    redirectUrl: window.location.origin + window.location.pathname,
-    responseMode: VKID.ConfigResponseMode.Callback,
-    source: VKID.ConfigSource.LOWCODE,
-    scope: 'email'
+  var body = { code: code };
+  if (state) body.guest_token = state;
+
+  fetch('/api/v1/auth/vk', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    credentials: 'same-origin',
+    body: JSON.stringify(body)
+  })
+  .then(function(res) {
+    if (!res.ok) throw new Error('SERVER_ERROR');
+    return res.json();
+  })
+  .then(function(result) {
+    if (result.success) { location.href = '/app/'; }
+    else throw new Error('SERVER_ERROR');
+  })
+  .catch(function() {
+    renderError('Ошибка сервера. Попробуйте позже.');
   });
-
-  var fetchCalled = false;
-
-  VKID.Auth.exchangeCode(code, '')
-    .then(function(data) {
-      if (!data || !data.access_token || !data.user_id) {
-        throw new Error('VK_TOKEN_MISSING');
-      }
-      var body = { access_token: data.access_token, user_id: String(data.user_id) };
-      if (state) body.guest_token = state;
-      fetchCalled = true;
-      return fetch('/api/v1/auth/vk', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        credentials: 'same-origin',
-        body: JSON.stringify(body)
-      });
-    })
-    .then(function(res) {
-      if (!res.ok) {
-        throw new Error('SERVER_ERROR');
-      }
-      return res.json();
-    })
-    .then(function(result) {
-      if (result.success) { location.href = '/app/'; }
-      else throw new Error('SERVER_ERROR');
-    })
-    .catch(function(err) {
-      var msg = err && err.message ? err.message : '';
-      if (msg === 'SERVER_ERROR' || fetchCalled) {
-        renderError('Ошибка сервера. Попробуйте позже.');
-      } else if (msg === 'VK_TOKEN_MISSING' || isSdkError(err)) {
-        renderError('Не удалось авторизоваться через VK. Попробуйте другой способ.');
-      } else {
-        renderError('Не удалось войти через VK. Попробуйте ещё раз.');
-      }
-    });
 })();
 </script>
 </body>

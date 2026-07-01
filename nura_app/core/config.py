@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     telegram_bot_token: str | None = None
     bot_username: str | None = None
 
+    # Admin Bot
+    admin_bot_token: str | None = None
+    admin_telegram_id: int | None = None
+
     # YooKassa
     yookassa_shop_id: str | None = None
     yookassa_secret_key: str | None = None
@@ -91,6 +95,7 @@ class Settings(BaseSettings):
     sms_ru_api_id: str = ""  # deprecated, SMS auth removed
     vk_client_id: str = ""
     vk_client_secret: str = ""
+    vk_redirect_uri: str = "https://nura-ai.ru/vk-callback.html"
     guest_profile_ttl_days: int = 30
     magic_link_ttl_minutes: int = 15
     sms_code_ttl_minutes: int = 5  # deprecated, SMS auth removed

@@ -41,8 +41,9 @@ class VKAuthRequest(BaseModel):
 
 
 class VKTokenRequest(BaseModel):
-    access_token: str
-    user_id: str
+    access_token: str | None = None
+    user_id: str | None = None
+    code: str | None = None
     guest_token: str | None = None
 
 

@@ -289,13 +289,41 @@ class AuthService:
 
     async def vk_auth(
         self,
-        access_token: str,
-        vk_user_id: str,
+        access_token: str | None = None,
+        vk_user_id: str | None = None,
+        code: str | None = None,
         guest_token: str | None = None,
         current_user: User | None = None,
     ) -> dict:
         try:
             async with httpx.AsyncClient() as client:
+                if code:
+                    token_resp = await client.post(
+                        "https://id.vk.com/oauth2/token",
+                        data={
+                            "client_id": settings.vk_client_id,
+                            "client_secret": settings.vk_client_secret,
+                            "code": code,
+                            "redirect_uri": settings.vk_redirect_uri,
+                            "grant_type": "authorization_code",
+                        },
+                        headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    )
+                    token_resp.raise_for_status()
+                    token_data = token_resp.json()
+                    logger.info("VK token exchange response: %s", json.dumps(token_data, ensure_ascii=False))
+
+                    if not isinstance(token_data, dict) or token_data.get("error"):
+                        logger.error("VK token exchange error: %s", token_data if isinstance(token_data, dict) else type(token_data).__name__)
+                        raise ValueError("VK code exchange failed")
+
+                    access_token = token_data.get("access_token")
+                    vk_user_id = str(token_data.get("user_id")) if token_data.get("user_id") is not None else None
+
+                    if not access_token or not vk_user_id:
+                        logger.error("VK token exchange missing access_token or user_id")
+                        raise ValueError("VK code exchange failed")
+
                 resp = await client.post(
                     "https://id.vk.ru/oauth2/user_info",
                     data={
@@ -313,14 +341,10 @@ class AuthService:
                 logger.error("VK ID user_info returned error: %s", user_info if isinstance(user_info, dict) else type(user_info).__name__)
                 raise ValueError("VK user_info is invalid")
 
-            info_user_id = (
-                str(user_info.get("user_id"))
-                if user_info.get("user_id") is not None
-                else None
-            )
+            info_user_id = str(user_info.get("user_id")) if user_info.get("user_id") is not None else None
             if info_user_id is None or info_user_id != str(vk_user_id):
                 logger.error(
-                    "VK user_id mismatch: frontend=%s, user_info=%s",
+                    "VK user_id mismatch: exchange=%s, user_info=%s",
                     vk_user_id,
                     info_user_id,
                 )
@@ -384,7 +408,7 @@ class AuthService:
                 "web_session_id": web_session_id,
             }
         except httpx.HTTPStatusError as e:
-            logger.error("VK ID API error: %s", e.response.text)
+            logger.error("VK ID API error: %s", e.response.text if e.response is not None else "no response")
             raise
         except Exception:
             logger.exception("vk_auth failed")
