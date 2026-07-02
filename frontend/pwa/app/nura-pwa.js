@@ -87,7 +87,12 @@
     options = options || {};
     if (!options.credentials) options.credentials = 'same-origin';
     return fetch(url, options)
-      .then(function(r) { return r.ok ? r.json() : null; });
+      .then(function(r) {
+        if (r.ok) return r.json();
+        var err = new Error('HTTP ' + r.status);
+        err.status = r.status;
+        throw err;
+      });
   };
 
   /* ── Helpers ────────────────────────────── */

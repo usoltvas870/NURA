@@ -185,10 +185,9 @@ body{overflow:hidden;padding-bottom:0}
 
   N.fetchJSON(BASE + '/web/me')
     .then(function(d) {
-      if (!d) { location.href = '/mini.html'; return; }
       if (d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active' || d.has_matrix) { hasUnlimited = true; updateLimitNote(); }
     })
-    .catch(function() {});
+    .catch(function(err) { if (err && err.status === 401) { location.href = '/mini.html'; } });
 
   inputEl.addEventListener('input', function() {
     this.style.height = 'auto';

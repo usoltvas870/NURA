@@ -188,7 +188,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   var $ = document.getElementById.bind(document);
 
   fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
-    .then(function(r) { if (!r.ok) location.href = '/mini.html'; });
+    .then(function(r) { if (r.status === 401) location.href = '/mini.html'; });
 
   function openReport(){
     if (window.__hasFullReport) location.href = 'profile.html#reports';
@@ -204,7 +204,6 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 
   N.fetchJSON(BASE + '/web/me')
     .then(function(d) {
-      if (!d) { location.href = '/mini.html'; return; }
       if (d.name) {
         $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
       }
@@ -227,7 +226,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       else if (hasMini) $('matrix-desc').textContent = 'Мини-разбор пройден. Купи полный отчёт для детального разбора.';
       else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
     })
-    .catch(function() { $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.'; $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—'; $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных'; });
+    .catch(function(err) { if (err && err.status === 401) { location.href = '/mini.html'; return; } $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.'; $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—'; $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных'; });
 
   N.fetchJSON(BASE + '/tarot/daily-card')
     .then(function(d) {
