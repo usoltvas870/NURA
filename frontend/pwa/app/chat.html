@@ -25,7 +25,7 @@
 <link rel="stylesheet" href="/theme.css?v=9"/>
 <title>NURA · Чат</title><style>
 body{overflow:hidden;padding-bottom:0}
-.app-shell{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.app-shell{height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(var(--tabbar-h) + 8px)}
 .header{flex:0 0 auto}
 
 /* ── limit bar ── */
@@ -79,7 +79,6 @@ body{overflow:hidden;padding-bottom:0}
 
 /* ── input ── */
 .input-area{flex:0 0 auto;padding:10px 12px 12px;border-top:1px solid var(--line);background:var(--bg)}
-.tabbar-inline{position:static;left:auto;right:auto;bottom:auto;width:100%;flex:0 0 auto;height:auto}
 .input-row{display:flex;gap:8px;align-items:flex-end;background:var(--bg-card);border:1px solid var(--line);border-radius:22px;padding:8px 8px 8px 14px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .chat-input{flex:1;border:0;background:none;outline:none;font-size:14px;line-height:1.5;min-height:24px;max-height:130px;resize:none;color:var(--text);overflow-y:auto;scrollbar-width:none;align-self:center}
 .chat-input::-webkit-scrollbar{display:none}
@@ -133,13 +132,13 @@ body{overflow:hidden;padding-bottom:0}
   </div>
 </div>
 
-<nav class="tabbar tabbar-inline"><div class="tabbar-inner">
+</div>
+<nav class="tabbar"><div class="tabbar-inner">
   <a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
   <a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
   <a class="tab-item active tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
   <a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
 </div></nav>
-</div>
 
 <script src="nura-pwa.js?v=9"></script>
 <script type="text/javascript">
