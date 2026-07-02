@@ -243,7 +243,7 @@ function vkLogin() {
 <a href="/app/" class="btn btn-primary btn-full">Перейти в приложение</a>
 <a href="/" class="btn btn-soft btn-full" style="background:transparent;border-color:var(--line)">На главную</a>
 </div>
-<p class="welcome-secondary">Хочешь новый мини-разбор? <a href="#" id="new-analysis-link">Начать заново</a></p>
+
 </section>
 </div><script>
 var labels={self:'понять себя',money:'деньги и реализацию',love:'отношения',scenario:'повторяющиеся сценарии',purpose:'предназначение',unknown:'разобраться без точной формулировки'};
@@ -279,10 +279,6 @@ fetch('/api/v1/web/session-check',{method:'GET',credentials:'same-origin'})
 })
 .catch(function(){});
 
-document.getElementById('new-analysis-link').addEventListener('click',function(e){
-  e.preventDefault();
-  showStage('form');
-});
 function setLoading(btn,loading){
   if(loading){btn.classList.add('loading');btn.disabled=true;}
   else{btn.classList.remove('loading');}
