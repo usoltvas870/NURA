@@ -234,22 +234,20 @@ def mock_arcana():
 @pytest.fixture
 def mock_ai_chat():
     """Patch AIService.chat to return a canned interpretation."""
-    with patch(
-        "api.routes.tarot_pwa.AIService.chat",
-        new_callable=AsyncMock,
-    ) as mock:
-        mock.return_value = MOCK_AI_CHAT_RESPONSE
+    mock = AsyncMock()
+    mock.return_value = MOCK_AI_CHAT_RESPONSE
+    with patch("api.routes.tarot_pwa.AIService.chat", mock), \
+         patch("core.loop_specs.tarot_loop.AIService.chat", mock):
         yield mock
 
 
 @pytest.fixture
 def mock_ai_chat_yesno():
     """Patch AIService.chat for yes/no endpoint."""
-    with patch(
-        "api.routes.tarot_pwa.AIService.chat",
-        new_callable=AsyncMock,
-    ) as mock:
-        mock.return_value = MOCK_YESNO_CHAT_RESPONSE
+    mock = AsyncMock()
+    mock.return_value = MOCK_YESNO_CHAT_RESPONSE
+    with patch("api.routes.tarot_pwa.AIService.chat", mock), \
+         patch("core.loop_specs.tarot_loop.AIService.chat", mock):
         yield mock
 
 
@@ -278,11 +276,10 @@ def mock_ai_question():
 @pytest.fixture
 def mock_ai_chat_error():
     """Patch AIService.chat to raise an exception."""
-    with patch(
-        "api.routes.tarot_pwa.AIService.chat",
-        new_callable=AsyncMock,
-    ) as mock:
-        mock.side_effect = Exception("AI service unavailable")
+    mock = AsyncMock()
+    mock.side_effect = Exception("AI service unavailable")
+    with patch("api.routes.tarot_pwa.AIService.chat", mock), \
+         patch("core.loop_specs.tarot_loop.AIService.chat", mock):
         yield mock
 
 
@@ -738,7 +735,7 @@ class TestSpreadLife:
             json=self.SPREAD_BODY,
             cookies={"nura_session_id": MOCK_SESSION_ID},
         )
-        mock_ai_chat.assert_awaited_once()
+        mock_ai_chat.assert_awaited()
         call_kwargs = mock_ai_chat.call_args[1]
         assert "api_params" in call_kwargs
         assert call_kwargs["api_params"]["max_tokens"] == 500

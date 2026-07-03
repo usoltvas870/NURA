@@ -22,6 +22,7 @@ from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
 from core.services.ai import AIService
+from core.loop_specs.tarot_loop import generate_tarot_text
 
 logger = logging.getLogger(__name__)
 
@@ -118,16 +119,17 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
 
     async with animated_loading(callback.message, "🃏 Вытягиваю карту дня"):
         try:
+            user_name = user.first_name or user.username or "друг"
             prompt = AIService._load_prompt("tarot_daily_card.txt")
             filled = prompt.format(
                 arcana_number=arcana_num,
                 arcana_name=arcana_name,
                 user_archetype_number=user.main_archetype_number or arcana_num,
                 user_archetype_name=user.main_archetype or arcana_name,
-                user_name=user.first_name or user.username or "друг",
+                user_name=user_name,
                 date=today.strftime("%d.%m.%Y"),
             )
-            result_text = await AIService.chat(
+            result_text = await generate_tarot_text(
                 messages=[
                     {"role": "system", "content": (
                         "Ты — NURA, персональный психологический проводник. "
@@ -138,11 +140,12 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 400, "temperature": 0.7},
+                max_words=180,
+                user_name=user_name,
             )
-            result_text = result_text.strip().strip('"')
         except Exception:
             logger.exception("tarot daily_card AI failed")
-            result_text = "Карты молчат сегодня. Попробуй позже."
+            result_text = f"🌒 Энергия дня — {arcana_name}\n\nКарты молчат сегодня. Дай им время сложиться в узор."
 
     has_tarot = bool(user.tarot_subscription)
     user_name_display = user.first_name or user.username or "друг"
@@ -253,14 +256,14 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
                 arcana_name=arcana_name,
                 date=datetime.now().strftime("%d.%m.%Y"),
             )
-            interpretation = await AIService.chat(
+            interpretation = await generate_tarot_text(
                 messages=[
                     {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 500, "temperature": 0.7},
+                max_words=200,
             )
-            interpretation = interpretation.strip().strip('"')
         except Exception:
             logger.exception("show_sphere_result AI failed")
             await callback.message.edit_text(
@@ -323,14 +326,14 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
                 dominant_arcana_name=ARCANA[dominant]["name"],
                 date=datetime.now().strftime("%d.%m.%Y"),
             )
-            interpretation = await AIService.chat(
+            interpretation = await generate_tarot_text(
                 messages=[
                     {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 500, "temperature": 0.7},
+                max_words=220,
             )
-            interpretation = interpretation.strip().strip('"')
         except Exception:
             logger.exception("show_tarot_twins AI failed")
             await callback.message.edit_text(
@@ -385,14 +388,16 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
                 strengthen_arcana_number=strengthen,
                 strengthen_arcana_name=ARCANA[strengthen]["name"],
             )
-            interpretation = await AIService.chat(
+            interpretation = await generate_tarot_text(
                 messages=[
                     {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 500, "temperature": 0.7},
+                max_words=230,
+                use_cache=True,
+                cache_ttl=31 * 86400,
             )
-            interpretation = interpretation.strip().strip('"')
         except Exception:
             logger.exception("show_tarot_portal AI failed")
             await callback.message.edit_text(
@@ -444,7 +449,7 @@ async def show_tarot_blocks(callback: CallbackQuery) -> None:
                 solution_arcana_name=ARCANA[solution_num]["name"],
                 date=datetime.now().strftime("%d.%m.%Y"),
             )
-            interpretation = await AIService.chat(
+            interpretation = await generate_tarot_text(
                 messages=[
                     {"role": "system", "content": (
                         "Ты — NURA, психологический проводник. "
@@ -455,8 +460,8 @@ async def show_tarot_blocks(callback: CallbackQuery) -> None:
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 600, "temperature": 0.7},
+                max_words=250,
             )
-            interpretation = interpretation.strip().strip('"')
         except Exception:
             logger.exception("show_tarot_blocks AI failed")
             await callback.message.edit_text(
@@ -512,14 +517,14 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
                     arcana_name=arcana_name,
                     yes_or_no=yes_or_no,
                 )
-                interpretation = await AIService.chat(
+                interpretation = await generate_tarot_text(
                     messages=[
                         {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                         {"role": "user", "content": filled},
                     ],
                     api_params={"max_tokens": 500, "temperature": 0.7},
+                    max_words=150,
                 )
-                interpretation = interpretation.strip().strip('"')
             except Exception:
                 logger.exception("tarot yes_no AI failed")
                 await message.answer("🔮 Да/Нет\n\nКарты молчат сегодня. Попробуй позже.", reply_markup=tarot_back_keyboard())
@@ -556,14 +561,14 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
                     future_arcana=future_num,
                     future_arcana_name=future_name,
                 )
-                interpretation = await AIService.chat(
+                interpretation = await generate_tarot_text(
                     messages=[
                         {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                         {"role": "user", "content": filled},
                     ],
                     api_params={"max_tokens": 500, "temperature": 0.7},
+                    max_words=250,
                 )
-                interpretation = interpretation.strip().strip('"')
             except Exception:
                 logger.exception("tarot question AI failed")
                 await message.answer("◈ Расклад по вопросу\n\nКарты молчат сегодня. Попробуй позже.", reply_markup=tarot_back_keyboard())

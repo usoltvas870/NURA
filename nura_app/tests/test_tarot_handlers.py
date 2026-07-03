@@ -389,6 +389,7 @@ class TestTarotDailyCard:
             patch("bot.handlers.tarot._daily_arcana_number", mock_daily_arcana),
             patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("aiogram.types.InlineKeyboardMarkup") as mock_ikm,
             patch("aiogram.types.InlineKeyboardButton") as mock_ikb,
@@ -407,6 +408,7 @@ class TestTarotDailyCard:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt template {arcana_number}"
             mock_ai.chat = AsyncMock(return_value="Твоя карта дня — Иерофант. Время учиться новому.")
+            mock_loop_ai.chat = AsyncMock(return_value="Твоя карта дня — Иерофант. Время учиться новому.")
             mock_ikm.return_value = MagicMock()
             mock_ikb.return_value = MagicMock()
 
@@ -457,6 +459,7 @@ class TestTarotDailyCard:
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("aiogram.types.InlineKeyboardMarkup") as mock_ikm,
             patch("aiogram.types.InlineKeyboardButton") as mock_ikb,
@@ -477,6 +480,7 @@ class TestTarotDailyCard:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt"
             mock_ai.chat = AsyncMock(return_value="Карта дня для тебя.")
+            mock_loop_ai.chat = AsyncMock(return_value="Карта дня для тебя.")
             mock_ikm.return_value = MagicMock()
             mock_ikb.return_value = MagicMock()
 
@@ -499,6 +503,7 @@ class TestTarotDailyCard:
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("aiogram.types.InlineKeyboardMarkup") as mock_ikm,
             patch("aiogram.types.InlineKeyboardButton") as mock_ikb,
@@ -518,6 +523,7 @@ class TestTarotDailyCard:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt"
             mock_ai.chat = AsyncMock(side_effect=Exception("API error"))
+            mock_loop_ai.chat = AsyncMock(side_effect=Exception("API error"))
             mock_ikm.return_value = MagicMock()
             mock_ikb.return_value = MagicMock()
 
@@ -540,6 +546,7 @@ class TestTarotDailyCard:
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -560,6 +567,7 @@ class TestTarotDailyCard:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt"
             mock_ai.chat = AsyncMock(return_value="Карта дня готова.")
+            mock_loop_ai.chat = AsyncMock(return_value="Карта дня готова.")
             mock_trk.return_value = MagicMock()
 
             from bot.handlers.tarot import show_tarot_daily_card
@@ -798,6 +806,7 @@ class TestTarotSphereResult:
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -816,6 +825,9 @@ class TestTarotSphereResult:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt {sphere_name}"
             mock_ai.chat = AsyncMock(
+                return_value="Хороший период для денег."
+            )
+            mock_loop_ai.chat = AsyncMock(
                 return_value="Хороший период для денег."
             )
             mock_trk.return_value = MagicMock()
@@ -839,6 +851,7 @@ class TestTarotSphereResult:
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -857,6 +870,9 @@ class TestTarotSphereResult:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt {sphere_name}"
             mock_ai.chat = AsyncMock(
+                return_value="Гармония в отношениях."
+            )
+            mock_loop_ai.chat = AsyncMock(
                 return_value="Гармония в отношениях."
             )
             mock_trk.return_value = MagicMock()
@@ -879,6 +895,7 @@ class TestTarotSphereResult:
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -897,6 +914,9 @@ class TestTarotSphereResult:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt {sphere_name}"
             mock_ai.chat = AsyncMock(
+                return_value="Твоё предназначение — творить."
+            )
+            mock_loop_ai.chat = AsyncMock(
                 return_value="Твоё предназначение — творить."
             )
             mock_trk.return_value = MagicMock()
@@ -1003,6 +1023,7 @@ class TestTarotTwins:
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -1022,6 +1043,9 @@ class TestTarotTwins:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt {arcana_one_name}"
             mock_ai.chat = AsyncMock(
+                return_value="Двойственная энергия."
+            )
+            mock_loop_ai.chat = AsyncMock(
                 return_value="Двойственная энергия."
             )
             mock_trk.return_value = MagicMock()
@@ -1070,6 +1094,7 @@ class TestTarotPortal:
             patch("bot.handlers.tarot.UserRepository") as MockRepo,
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -1089,6 +1114,9 @@ class TestTarotPortal:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt {month_name}"
             mock_ai.chat = AsyncMock(
+                return_value="Энергия месяца — рост."
+            )
+            mock_loop_ai.chat = AsyncMock(
                 return_value="Энергия месяца — рост."
             )
             mock_trk.return_value = MagicMock()
@@ -1138,6 +1166,7 @@ class TestTarotBlocks:
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -1158,6 +1187,9 @@ class TestTarotBlocks:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt {block_arcana_name}"
             mock_ai.chat = AsyncMock(
+                return_value="Блок — страх перемен."
+            )
+            mock_loop_ai.chat = AsyncMock(
                 return_value="Блок — страх перемен."
             )
             mock_trk.return_value = MagicMock()
@@ -1254,6 +1286,7 @@ class TestTarotQuestionInput:
         with (
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -1271,6 +1304,7 @@ class TestTarotQuestionInput:
                 "prompt {question} {arcana_number}"
             )
             mock_ai.chat = AsyncMock(return_value="Да, сейчас хорошее время.")
+            mock_loop_ai.chat = AsyncMock(return_value="Да, сейчас хорошее время.")
             mock_trk.return_value = MagicMock()
 
             from bot.handlers.tarot import handle_question_input
@@ -1293,6 +1327,7 @@ class TestTarotQuestionInput:
         with (
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -1312,6 +1347,9 @@ class TestTarotQuestionInput:
                 "prompt {question} {past_arcana}"
             )
             mock_ai.chat = AsyncMock(
+                return_value="Прошлое готовит почву."
+            )
+            mock_loop_ai.chat = AsyncMock(
                 return_value="Прошлое готовит почву."
             )
             mock_trk.return_value = MagicMock()
@@ -1338,6 +1376,7 @@ class TestTarotQuestionInput:
         with (
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_back_keyboard") as mock_tbk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -1353,6 +1392,7 @@ class TestTarotQuestionInput:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt"
             mock_ai.chat = AsyncMock(side_effect=Exception("API error"))
+            mock_loop_ai.chat = AsyncMock(side_effect=Exception("API error"))
             mock_tbk.return_value = MagicMock()
 
             from bot.handlers.tarot import handle_question_input
@@ -1374,6 +1414,7 @@ class TestTarotQuestionInput:
         with (
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_back_keyboard") as mock_tbk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -1391,6 +1432,7 @@ class TestTarotQuestionInput:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt"
             mock_ai.chat = AsyncMock(side_effect=Exception("API error"))
+            mock_loop_ai.chat = AsyncMock(side_effect=Exception("API error"))
             mock_tbk.return_value = MagicMock()
 
             from bot.handlers.tarot import handle_question_input
@@ -2973,6 +3015,7 @@ class TestTarotEdgeCases:
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_back_keyboard") as mock_tbk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -2991,6 +3034,7 @@ class TestTarotEdgeCases:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt"
             mock_ai.chat = AsyncMock(side_effect=Exception("API error"))
+            mock_loop_ai.chat = AsyncMock(side_effect=Exception("API error"))
             mock_tbk.return_value = MagicMock()
 
             from bot.handlers.tarot import show_sphere_result
@@ -3011,6 +3055,7 @@ class TestTarotEdgeCases:
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_back_keyboard") as mock_tbk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -3029,6 +3074,7 @@ class TestTarotEdgeCases:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt"
             mock_ai.chat = AsyncMock(side_effect=Exception("API error"))
+            mock_loop_ai.chat = AsyncMock(side_effect=Exception("API error"))
             mock_tbk.return_value = MagicMock()
 
             from bot.handlers.tarot import show_tarot_twins
@@ -3047,6 +3093,7 @@ class TestTarotEdgeCases:
             patch("bot.handlers.tarot.UserRepository") as MockRepo,
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_back_keyboard") as mock_tbk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -3064,6 +3111,7 @@ class TestTarotEdgeCases:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt"
             mock_ai.chat = AsyncMock(side_effect=Exception("API error"))
+            mock_loop_ai.chat = AsyncMock(side_effect=Exception("API error"))
             mock_tbk.return_value = MagicMock()
 
             from bot.handlers.tarot import show_tarot_portal
@@ -3083,6 +3131,7 @@ class TestTarotEdgeCases:
             patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("bot.handlers.tarot.tarot_back_keyboard") as mock_tbk,
             patch("bot.handlers.tarot.ARCANA", {
@@ -3101,6 +3150,7 @@ class TestTarotEdgeCases:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt"
             mock_ai.chat = AsyncMock(side_effect=Exception("API error"))
+            mock_loop_ai.chat = AsyncMock(side_effect=Exception("API error"))
             mock_tbk.return_value = MagicMock()
 
             from bot.handlers.tarot import show_tarot_blocks
@@ -3364,6 +3414,7 @@ class TestTarotEdgeCases:
             patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
             patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
             patch("bot.handlers.tarot.AIService") as mock_ai,
+            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
             patch("bot.handlers.tarot.animated_loading") as mock_load,
             patch("aiogram.types.InlineKeyboardMarkup") as mock_ikm,
             patch("aiogram.types.InlineKeyboardButton") as mock_ikb,
@@ -3383,6 +3434,7 @@ class TestTarotEdgeCases:
             mock_load.return_value.__aexit__ = AsyncMock()
             mock_ai._load_prompt.return_value = "prompt {arcana_number}"
             mock_ai.chat = AsyncMock(return_value="Твоя сила — внутри.")
+            mock_loop_ai.chat = AsyncMock(return_value="Твоя сила — внутри.")
             mock_ikm.return_value = MagicMock()
             mock_ikb.return_value = MagicMock()
 

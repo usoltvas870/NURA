@@ -7,6 +7,7 @@ from api.deps import limiter
 from api.dependencies import get_current_web_user
 from core.models import User
 from core.services.ai import AIService
+from core.loop_specs.tarot_loop import generate_tarot_text
 from core.arcana_data import ARCANA
 from core.services.daily_arcana import calculate_daily_arcana, daily_arcana_number, personalize_arcana
 
@@ -203,15 +204,15 @@ async def _handle_life_spread(user, birth_date: str, user_name: str) -> SpreadRe
     )
 
     try:
-        interpretation = await AIService.chat(
+        interpretation = await generate_tarot_text(
             messages=[
                 {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 500, "temperature": 0.7},
             timeout=120.0,
+            max_words=200,
         )
-        interpretation = interpretation.strip().strip('"')
     except Exception:
         raise HTTPException(status_code=503, detail="AI временно недоступен")
 
@@ -243,15 +244,15 @@ async def _handle_doubles_spread(user, birth_date: str, user_name: str) -> Sprea
     )
 
     try:
-        interpretation = await AIService.chat(
+        interpretation = await generate_tarot_text(
             messages=[
                 {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 500, "temperature": 0.7},
             timeout=120.0,
+            max_words=220,
         )
-        interpretation = interpretation.strip().strip('"')
     except Exception:
         raise HTTPException(status_code=503, detail="AI временно недоступен")
 
@@ -289,15 +290,17 @@ async def _handle_portal_spread(user, birth_date: str, user_name: str) -> Spread
     )
 
     try:
-        interpretation = await AIService.chat(
+        interpretation = await generate_tarot_text(
             messages=[
                 {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 500, "temperature": 0.7},
             timeout=120.0,
+            max_words=230,
+            use_cache=True,
+            cache_ttl=31 * 86400,
         )
-        interpretation = interpretation.strip().strip('"')
     except Exception:
         raise HTTPException(status_code=503, detail="AI временно недоступен")
 
@@ -324,15 +327,15 @@ async def _handle_yesno_spread(user, birth_date: str, question: str, user_name: 
     )
 
     try:
-        interpretation = await AIService.chat(
+        interpretation = await generate_tarot_text(
             messages=[
                 {"role": "system", "content": "Ты — NURA, AI-проводник самопознания."},
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 500, "temperature": 0.7},
             timeout=120.0,
+            max_words=150,
         )
-        interpretation = interpretation.strip().strip('"')
     except Exception:
         raise HTTPException(status_code=503, detail="AI временно недоступен")
 

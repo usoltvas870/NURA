@@ -3,13 +3,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from core.schemas.carousel import (
-    BrandConfig,
-    CarouselConfig,
-    CarouselSettings,
-    CarouselSlide,
-)
-
 
 class UserCreate(BaseModel):
     telegram_id: int
@@ -235,10 +228,6 @@ class HealthResponse(BaseModel):
 
 
 __all__ = [
-    "BrandConfig",
-    "CarouselConfig",
-    "CarouselSettings",
-    "CarouselSlide",
     "UserCreate",
     "UserResponse",
     "MatrixData",

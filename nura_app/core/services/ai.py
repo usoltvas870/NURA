@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import logging
 import random
@@ -54,14 +55,63 @@ class AIService:
         return ""
 
     @staticmethod
+    def _cache_key(messages: list[dict], model: str, params: dict) -> str:
+        raw = json.dumps(
+            {"m": messages, "model": model, "p": params},
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+        return f"ai:{hashlib.md5(raw.encode()).hexdigest()}"
+
+    @staticmethod
+    def _make_retry_callback(
+        system_prompt: str,
+        user_content: str,
+        api_params: dict | None = None,
+    ) -> "Callable[[str], Coroutine[None, None, str]]":
+        async def retry(bad: str) -> str:
+            return await AIService.chat(
+                [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                    {"role": "assistant", "content": bad},
+                    {
+                        "role": "user",
+                        "content": (
+                            "Твой ответ содержит невалидный JSON. "
+                            "Исправь и выдай ТОЛЬКО валидный JSON, "
+                            "строго по схеме, без markdown-блоков."
+                        ),
+                    },
+                ],
+                api_params=api_params,
+            )
+
+        return retry
+
+    @staticmethod
     async def chat(
         messages: list[dict],
         api_params: dict | None = None,
         max_retries: int = 3,
         timeout: float = 30.0,
+        use_cache: bool = False,
+        cache_ttl: int = 86400,
     ) -> str:
         params = {**DEFAULT_PARAMS, **(api_params or {})}
         model = params.pop("model", settings.deepseek_model)
+
+        if use_cache:
+            try:
+                cache_key = AIService._cache_key(messages, model, params)
+                from core.database import get_redis
+
+                redis = get_redis()
+                cached = await redis.get(cache_key)
+                if cached is not None:
+                    return cached
+            except Exception:
+                pass
 
         headers = {
             "Authorization": f"Bearer {settings.deepseek_api_key}",
@@ -80,11 +130,43 @@ class AIService:
                     )
                     r.raise_for_status()
                     data = r.json()
-                    return data["choices"][0]["message"]["content"]
+                    content = data["choices"][0]["message"]["content"]
+
+                    if use_cache:
+                        try:
+                            redis = get_redis()
+                            await redis.setex(cache_key, cache_ttl, content)
+                        except Exception:
+                            pass
+
+                    return content
             except (httpx.TimeoutException, httpx.HTTPStatusError, httpx.RequestError) as e:
                 last_error = e
                 if attempt < max_retries - 1:
                     await asyncio.sleep(1 * (2 ** attempt))
+                continue
+
+        safe_max = params.get("max_tokens", 4000)
+        fallback_params = {
+            **params,
+            "temperature": 0.3,
+            "max_tokens": min(safe_max, 500),
+        }
+        fallback_payload = {"model": model, "messages": messages, **fallback_params}
+        for attempt in range(2):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    r = await client.post(
+                        f"{settings.deepseek_base_url}/chat/completions",
+                        headers=headers,
+                        json=fallback_payload,
+                    )
+                    r.raise_for_status()
+                    data = r.json()
+                    return data["choices"][0]["message"]["content"]
+            except (httpx.TimeoutException, httpx.HTTPStatusError, httpx.RequestError):
+                if attempt < 1:
+                    await asyncio.sleep(1)
                 continue
 
         raise last_error  # type: ignore[misc]
@@ -166,22 +248,7 @@ class AIService:
         template = AIService._load_prompt("mini_analysis.txt")
         user_content = template.format(chain_of_thought=cot, matrix_text=matrix_text)
 
-        async def _retry_callback(bad: str) -> str:
-            return await AIService.chat(
-                [
-                    {"role": "system", "content": _system_prompt()},
-                    {"role": "user", "content": user_content},
-                    {"role": "assistant", "content": bad},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Твой ответ содержит невалидный JSON. "
-                            "Исправь и выдай ТОЛЬКО валидный JSON, "
-                            "строго по схеме, без markdown-блоков."
-                        ),
-                    },
-                ]
-            )
+        retry_cb = AIService._make_retry_callback(_system_prompt(), user_content, FULL_REPORT_PARAMS)
 
         try:
             response = await AIService.chat(
@@ -192,7 +259,7 @@ class AIService:
                 api_params=FULL_REPORT_PARAMS,
                 timeout=300.0,
             )
-            result = await AIService._parse_json_response(response, _retry_callback)
+            result = await AIService._parse_json_response(response, retry_cb)
             validated = MiniAnalysisResult(**result)
             return validated.model_dump()
         except Exception as e:
@@ -226,24 +293,7 @@ class AIService:
         )
 
         async def _generate_part(user_content: str) -> dict:
-            async def _retry_callback(bad: str) -> str:
-                return await AIService.chat(
-                    [
-                        {"role": "system", "content": _system_prompt()},
-                        {"role": "user", "content": user_content},
-                        {"role": "assistant", "content": bad},
-                        {
-                            "role": "user",
-                            "content": (
-                                "Твой ответ содержит невалидный JSON. "
-                                "Исправь и выдай ТОЛЬКО валидный JSON, "
-                                "строго по схеме, без markdown-блоков."
-                            ),
-                        },
-                    ],
-                    api_params=FULL_REPORT_PARAMS,
-                )
-
+            retry_cb = AIService._make_retry_callback(_system_prompt(), user_content, FULL_REPORT_PARAMS)
             response = await AIService.chat(
                 [
                     {"role": "system", "content": _system_prompt()},
@@ -252,24 +302,29 @@ class AIService:
                 api_params=FULL_REPORT_PARAMS,
                 timeout=300.0,
             )
-            return await AIService._parse_json_response(response, _retry_callback)
+            return await AIService._parse_json_response(response, retry_cb)
 
-        try:
-            results_a, results_b = await asyncio.gather(
-                _generate_part(user_content_a),
-                _generate_part(user_content_b),
-            )
-            merged = {**results_a, **results_b}
-            conflicting = set(results_a.keys()) & set(results_b.keys())
-            if conflicting:
-                logger.warning(
-                    "full_report merge conflict: overlapping keys=%s", conflicting
-                )
-            validated = FullReportResult(**merged)
-            return validated.model_dump()
-        except Exception:
-            logger.exception("generate_full_report failed — returning FALLBACK_FULL")
+        results = await asyncio.gather(
+            _generate_part(user_content_a),
+            _generate_part(user_content_b),
+            return_exceptions=True,
+        )
+
+        merged: dict = {}
+        part_names = ["part_a", "part_b"]
+        for pname, result in zip(part_names, results):
+            if isinstance(result, dict):
+                merged.update(result)
+                logger.info("generate_full_report: %s succeeded", pname)
+            else:
+                logger.error("generate_full_report: %s failed: %s", pname, result)
+
+        if not merged:
+            logger.exception("generate_full_report failed — both parts returned fallback")
             return FALLBACK_FULL
+
+        validated = FullReportResult(**merged)
+        return validated.model_dump()
 
     @staticmethod
     async def generate_kitchen_report(
@@ -283,24 +338,14 @@ class AIService:
         template = AIService._load_prompt("kitchen_report.txt")
         user_content = template.format(chain_of_thought=cot, matrix_text=matrix_text)
 
-        async def _retry_callback(bad: str) -> str:
-            return await AIService.chat(
-                [
-                    {"role": "system", "content": _system_prompt()},
-                    {"role": "user", "content": user_content},
-                    {"role": "assistant", "content": bad},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Твой ответ содержит невалидный JSON. "
-                            "Исправь и выдай ТОЛЬКО валидный JSON, "
-                            "строго по схеме, без markdown-блоков."
-                        ),
-                    },
-                ],
-                api_params=FULL_REPORT_PARAMS,
-                timeout=300.0,
-            )
+        kitchen_params = {
+            "temperature": 0.3,
+            "max_tokens": 8000,
+            "top_p": 0.9,
+            "frequency_penalty": 0.0,
+            "presence_penalty": 0.0,
+        }
+        retry_cb = AIService._make_retry_callback(_system_prompt(), user_content, kitchen_params)
 
         try:
             response = await AIService.chat(
@@ -308,16 +353,10 @@ class AIService:
                     {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                 ],
-                api_params={
-                    "temperature": 0.3,
-                    "max_tokens": 8000,
-                    "top_p": 0.9,
-                    "frequency_penalty": 0.0,
-                    "presence_penalty": 0.0,
-                },
+                api_params=kitchen_params,
                 timeout=180.0,
             )
-            result = await AIService._parse_json_response(response, _retry_callback)
+            result = await AIService._parse_json_response(response, retry_cb)
             validated = KitchenReportResult(**result)
             return validated.model_dump()
         except Exception as e:
@@ -350,23 +389,7 @@ class AIService:
             relation_type=relation_type,
         )
 
-        async def _retry_callback(bad: str) -> str:
-            return await AIService.chat(
-                [
-                    {"role": "system", "content": _system_prompt()},
-                    {"role": "user", "content": user_content},
-                    {"role": "assistant", "content": bad},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Твой ответ содержит невалидный JSON. "
-                            "Исправь и выдай ТОЛЬКО валидный JSON, "
-                            "строго по схеме, без markdown-блоков."
-                        ),
-                    },
-                ],
-                api_params=FULL_REPORT_PARAMS,
-            )
+        retry_cb = AIService._make_retry_callback(_system_prompt(), user_content, FULL_REPORT_PARAMS)
 
         try:
             response = await AIService.chat(
@@ -377,7 +400,7 @@ class AIService:
                 api_params=FULL_REPORT_PARAMS,
                 timeout=300.0,
             )
-            result = await AIService._parse_json_response(response, _retry_callback)
+            result = await AIService._parse_json_response(response, retry_cb)
             validated = CompatibilityFullResult(**result)
             return validated.model_dump()
         except Exception:
@@ -556,23 +579,8 @@ class AIService:
             matrix_context=matrix_context if matrix_context else "(нет данных матрицы)",
         )
 
-        async def _retry_callback(bad: str) -> str:
-            return await AIService.chat(
-                [
-                    {"role": "system", "content": _system_prompt()},
-                    {"role": "user", "content": user_content},
-                    {"role": "assistant", "content": bad},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Твой ответ содержит невалидный JSON. "
-                            "Исправь и выдай ТОЛЬКО валидный JSON, "
-                            "строго по схеме, без markdown-блоков."
-                        ),
-                    },
-                ],
-                api_params={"model": TAROT_SPREAD_MODEL, **DEFAULT_PARAMS},
-            )
+        spread_params = {"model": TAROT_SPREAD_MODEL, **DEFAULT_PARAMS}
+        retry_cb = AIService._make_retry_callback(_system_prompt(), user_content, spread_params)
 
         try:
             response = await AIService.chat(
@@ -580,9 +588,9 @@ class AIService:
                     {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                 ],
-                api_params={"model": TAROT_SPREAD_MODEL, **DEFAULT_PARAMS},
+                api_params=spread_params,
             )
-            result = await AIService._parse_json_response(response, _retry_callback)
+            result = await AIService._parse_json_response(response, retry_cb)
             from core.schemas import TarotWeeklySpreadResult
 
             validated = TarotWeeklySpreadResult(**result)
@@ -610,23 +618,8 @@ class AIService:
             matrix_context=matrix_context if matrix_context else "(нет данных матрицы)",
         )
 
-        async def _retry_callback(bad: str) -> str:
-            return await AIService.chat(
-                [
-                    {"role": "system", "content": _system_prompt()},
-                    {"role": "user", "content": user_content},
-                    {"role": "assistant", "content": bad},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Твой ответ содержит невалидный JSON. "
-                            "Исправь и выдай ТОЛЬКО валидный JSON, "
-                            "строго по схеме, без markdown-блоков."
-                        ),
-                    },
-                ],
-                api_params={"model": TAROT_QUESTION_MODEL, **DEFAULT_PARAMS},
-            )
+        question_params = {"model": TAROT_QUESTION_MODEL, **DEFAULT_PARAMS}
+        retry_cb = AIService._make_retry_callback(_system_prompt(), user_content, question_params)
 
         try:
             response = await AIService.chat(
@@ -634,9 +627,9 @@ class AIService:
                     {"role": "system", "content": _system_prompt()},
                     {"role": "user", "content": user_content},
                 ],
-                api_params={"model": TAROT_QUESTION_MODEL, **DEFAULT_PARAMS},
+                api_params=question_params,
             )
-            result = await AIService._parse_json_response(response, _retry_callback)
+            result = await AIService._parse_json_response(response, retry_cb)
             from core.schemas import TarotQuestionResult
 
             validated = TarotQuestionResult(**result)

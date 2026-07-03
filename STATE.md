@@ -1,6 +1,49 @@
 # NURA — State
 
-> Последнее обновление: **02.07.2026 — Сессия 66** — DeepSeek V4 Flash
+> Последнее обновление: **03.07.2026 — Сессия 67** — DeepSeek V4 Flash
+
+---
+
+## Сессия 67 — 03.07.2026
+- Модель: DeepSeek V4 Flash (opencode-go/deepseek-v4-flash)
+- Что сделано:
+  - **Удалён VideoPipeline и всё связанное с генерацией медиа** (видео + карусели):
+    - Удалены сервисы: `video_pipeline.py`, `video_assembler.py`, `asset_validator.py`, `qa_checker.py`, `packager.py`, `carousel_assembler.py`
+    - Удалены промпты: `video_scenario.txt`, `brief_parser.txt`, `carousel_parser.txt`
+    - Удалены схемы: `core/schemas/brief.py`, `core/schemas/carousel.py`
+    - Удалены тесты: `tests/test_carousel_assembler.py`
+    - Удалены Celery-задачи: `assemble_video`, `assemble_video_job`, `assemble_carousel`, `assemble_carousel_job`
+    - Почищены импорты в `core/__init__.py`, `core/schemas/__init__.py`
+  - **Проверка**: lint — pass, tests — 315 passed, 4 xfailed
+  - **Loop Engineering — Phase 0 + Phase 2 внедрены:**
+    - **`core/services/verifier.py`** — SemanticVerifier: проверка длины, banned words, общих фраз, пустых полей, консистентности арканов, dashboard scores
+    - **`core/loop_specs/`** — папка Loop Specification
+    - **`core/loop_specs/report_loop.py`** — `generate_full_report_with_loop()`: Semantic Loop для full_report (Maker → ContentVerifier → retry до MAX_SEMANTIC_RETRIES=2)
+    - **`AIService.chat()`** — опциональный Redis cache (`use_cache`, `cache_ttl`), `_cache_key()` на основе хеша сообщений
+    - **`AIService._make_retry_callback()`** — фабрика retry-колбэка вместо 6 дублированных inline-определений (применена во всех 6 методах)
+    - **`generate_full_report()`** — `asyncio.gather(return_exceptions=True)` + partial merge (если Part A падает, Part B сохраняется). Убран monolithic `try/except`
+    - **`_process_full_report` в tasks.py** — использует `generate_full_report_with_loop` с semantic verification
+    - **27 тестов** для ContentVerifier
+  - **Проверка**: ruff — pass, pytest — 342 passed (+27 тестов), 4 xfailed
+  - **Loop Engineering — Phase 4 частично + улучшения:**
+    - **`check_name_in_text()` в ContentVerifier** — проверка обращения по имени в verify_text
+    - **Degradation ladder в `AIService.chat()`** — Level 1 (3 retries, primary) → Level 2 (2 retries, low temp, max_tokens=500) → raise
+    - **`generate_tarot_text()`** — параметр `user_name` для проверки имени
+    - **`show_tarot_daily_card`** — передаёт user_name в generate_tarot_text
+    - **Tarot fallback** — arcana-based сообщения вместо «Карты молчат»
+    - **+6 тестов** для check_name_in_text
+  - **Проверка:** ruff — pass, pytest — 348 passed, 4 xfailed
+    - **Кэширование tarot (tasks.py):**
+      - `DAILY_CARD_CACHE` — in-memory кэш `{(date, arcana)}` в `_send_daily_tarot_card_async`
+      - `use_cache=True, cache_ttl=7*86400` в `_send_weekly_tarot_spread_async`
+      - `use_cache=True, cache_ttl=31*86400` в `_send_monthly_tarot_portal_async`
+    - **`core/loop_specs/tarot_loop.py`:** `generate_tarot_text()` — semantic loop для plain-text tarot (chat → ContentVerifier.verify_text → retry до 2 раз)
+    - **`bot/handlers/tarot.py`:** 7 хендлеров переведены на `generate_tarot_text` (daily_card, spheres, twins, portal с кэшем, blocks, yes_no, question)
+    - **`api/routes/tarot_pwa.py`:** 4 хендлера переведены на `generate_tarot_text` (life, doubles, portal с кэшем, yesno)
+    - **Экономия токенов:** portal — 1 вызов/месяц вместо N, weekly — кэш по arcana_group, daily — 22 вызова/день вместо N
+  - **Проверка:** ruff — pass, pytest — 342 passed, 4 xfailed
+- Блокеры: нет
+- Следующие шаги: Loop Engineering — Phase 1 (кэширование portal/weekly), Phase 3 (tarot plain-text loops)
 
 ---
 

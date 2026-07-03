@@ -259,7 +259,8 @@ async def _process_full_report(
 
     matrix = MatrixService.calculate(birth_date)
     from asyncio import gather
-    analysis_task = AIService.generate_full_report(birth_date, matrix, name=user_name)
+    from core.loop_specs.report_loop import generate_full_report_with_loop
+    analysis_task = generate_full_report_with_loop(birth_date, matrix, name=user_name)
     kitchen_task = AIService.generate_kitchen_report(birth_date, matrix)
     analysis, kitchen_analysis = await gather(analysis_task, kitchen_task)
     token = report_token or ReportService.generate_token()
@@ -496,6 +497,9 @@ def send_daily_card() -> dict:
 # Cache daily-card AI text by arcana number so each archetype calls AI once
 ARCANE_CACHE: dict[tuple[date, int], str] = {}
 
+# Cache daily-tarot-card AI text by (today, arcana_num) — same archetype shares cache
+DAILY_CARD_CACHE: dict[tuple[date, int], str] = {}
+
 
 async def _send_daily_card_async() -> dict:
     session_factory = get_async_sessionmaker()
@@ -619,21 +623,29 @@ async def _send_daily_tarot_card_async() -> dict:
         arcana_name = ARCANA[arcana_num]
         user_name = user.first_name or user.username or "друг"
 
-        try:
-            card_text = await AIService().generate_tarot_daily_card(
-                arcana_number=arcana_num,
-                arcana_name=arcana_name,
-                date_str=today.strftime("%d.%m.%Y"),
-                user_name=user_name,
-                user_archetype_number=user.main_archetype_number or arcana_num,
-                user_archetype_name=user.main_archetype or arcana_name,
-            )
-        except Exception:
-            logger.exception(
-                "Daily tarot card AI failed for user %s", user.id
-            )
-            failed += 1
-            return False
+        if (today, arcana_num) not in DAILY_CARD_CACHE:
+            try:
+                card_text = await AIService().generate_tarot_daily_card(
+                    arcana_number=arcana_num,
+                    arcana_name=arcana_name,
+                    date_str=today.strftime("%d.%m.%Y"),
+                    user_name=user_name,
+                    user_archetype_number=user.main_archetype_number or arcana_num,
+                    user_archetype_name=user.main_archetype or arcana_name,
+                )
+                DAILY_CARD_CACHE[(today, arcana_num)] = card_text
+            except Exception:
+                logger.exception(
+                    "Daily tarot card AI failed for arcana %s, using fallback",
+                    arcana_num,
+                )
+                DAILY_CARD_CACHE[(today, arcana_num)] = (
+                    f"🌒 Карта дня — {arcana_name} ({arcana_num})\n\n"
+                    f"{FALLBACK_TAROT_DAILY['interpretation']}"
+                )
+                failed += 1
+
+        card_text = DAILY_CARD_CACHE[(today, arcana_num)]
 
         text = (
             f"🌒 <b>Карта дня для {user_name}</b>\n"
@@ -670,6 +682,10 @@ async def _send_daily_tarot_card_async() -> dict:
                 )
                 failed += 1
                 return False
+
+    stale_keys = [k for k in DAILY_CARD_CACHE if k[0] != today]
+    for k in stale_keys:
+        DAILY_CARD_CACHE.pop(k, None)
 
     await asyncio.gather(*[_send_one(u) for u in users])
     logger.info(
@@ -724,6 +740,8 @@ async def _send_weekly_tarot_spread_async() -> dict:
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 600, "temperature": 0.7},
+                use_cache=True,
+                cache_ttl=7 * 86400,
             )
             card_text = response.strip().strip('"')
         except Exception:
@@ -813,6 +831,8 @@ async def _send_monthly_tarot_portal_async() -> dict:
                     {"role": "user", "content": filled},
                 ],
                 api_params={"max_tokens": 500, "temperature": 0.7},
+                use_cache=True,
+                cache_ttl=31 * 86400,
             )
             card_text = response.strip().strip('"')
         except Exception:
@@ -977,119 +997,6 @@ async def _downgrade_expired_subscriptions_async() -> dict:
         await session.commit()
 
     return {"downgraded": downgraded, "total_expired": len(users)}
-
-
-@celery_app.task(name="core.tasks.assemble_video")
-def assemble_video(scenario_name: str) -> dict:
-    import json
-
-    from core.services.video_assembler import NURA_ROOT, ScenarioConfig, assemble
-
-    scenario_path = NURA_ROOT / "scenarios" / f"{scenario_name}.json"
-    if not scenario_path.exists():
-        raise FileNotFoundError(f"Scenario not found: {scenario_path}")
-
-    raw = json.loads(scenario_path.read_text("utf-8"))
-    cfg = ScenarioConfig.model_validate(raw)
-    output = assemble(cfg)
-    return {"output": str(output)}
-
-
-@celery_app.task(name="core.tasks.assemble_video_job")
-def assemble_video_job(job_dir: str) -> dict:
-    import json
-    from pathlib import Path
-
-    from core.services.video_assembler import ScenarioConfig, assemble
-    from core.services.asset_validator import (
-        validate_job_assets,
-        format_asset_report,
-    )
-    from core.services.qa_checker import check_video_output, format_qa_result
-    from core.services.packager import build_package
-
-    job_path = Path(job_dir)
-    scenario_path = job_path / "input" / "scenario.json"
-    if not scenario_path.exists():
-        raise FileNotFoundError(f"Scenario not found: {scenario_path}")
-
-    asset_report = validate_job_assets(job_path, scenario_path)
-    logger.info("Asset validation:\n%s", format_asset_report(asset_report))
-    if not asset_report.passed:
-        return {
-            "output": None,
-            "error": "Asset validation failed",
-            "asset_report": format_asset_report(asset_report),
-        }
-
-    raw = json.loads(scenario_path.read_text("utf-8"))
-    cfg = ScenarioConfig.model_validate(raw)
-    output_path = assemble(cfg, job_dir=job_path)
-
-    qa = check_video_output(output_path)
-    logger.info("QA check:\n%s", format_qa_result(qa))
-
-    pkg = build_package(
-        job_path,
-        video_path=output_path,
-        carousel_dir=job_path / "output" / "carousel",
-    )
-
-    return {
-        "output": str(output_path),
-        "qa_passed": qa.passed,
-        "qa_report": format_qa_result(qa),
-        "package_dir": str(pkg.output_dir),
-    }
-
-
-@celery_app.task(name="core.tasks.assemble_carousel")
-def assemble_carousel(scenario_name: str) -> dict:
-    import json
-
-    from core.schemas.carousel import CarouselConfig
-    from core.services.carousel_assembler import NURA_ROOT, CarouselAssembler
-
-    carousel_path = NURA_ROOT / "scenarios" / f"{scenario_name}.carousel.json"
-    if not carousel_path.exists():
-        raise FileNotFoundError(f"Carousel config not found: {carousel_path}")
-
-    raw = json.loads(carousel_path.read_text("utf-8"))
-    cfg = CarouselConfig.model_validate(raw)
-    paths = _run_async(CarouselAssembler.assemble(cfg))
-    return {"output": [str(p) for p in paths], "count": len(paths)}
-
-
-@celery_app.task(name="core.tasks.assemble_carousel_job")
-def assemble_carousel_job(job_dir: str) -> dict:
-    import json
-    from pathlib import Path
-
-    from core.schemas.carousel import CarouselConfig
-    from core.services.carousel_assembler import CarouselAssembler
-    from core.services.qa_checker import check_carousel_output, format_qa_result
-
-    job_path = Path(job_dir)
-    carousel_path = job_path / "input" / f"{job_path.name}.carousel.json"
-    if not carousel_path.exists():
-        carousel_paths = sorted(job_path.glob("input/*.carousel.json"))
-        if not carousel_paths:
-            return {"output": None, "error": "No carousel config found"}
-        carousel_path = carousel_paths[0]
-
-    raw = json.loads(carousel_path.read_text("utf-8"))
-    cfg = CarouselConfig.model_validate(raw)
-
-    out_dir = job_path / "output" / "carousel"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    CarouselAssembler.OUTPUT_DIR = out_dir
-
-    paths = _run_async(CarouselAssembler.assemble(cfg))
-
-    qa = check_carousel_output(out_dir)
-    logger.info("Carousel QA:\n%s", format_qa_result(qa, "Carousel"))
-
-    return {"output": [str(p) for p in paths], "count": len(paths), "qa_passed": qa.passed}
 
 
 @celery_app.task(name="core.tasks.send_broadcast", bind=True)
