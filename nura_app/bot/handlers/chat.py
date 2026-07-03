@@ -1,3 +1,4 @@
+import json
 import logging
 
 from aiogram import F, Router
@@ -28,6 +29,12 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 FREE_MESSAGES_LIMIT = 5
+CHAT_HISTORY_TTL = 7 * 86400
+CHAT_HISTORY_MAX_MESSAGES = 20
+
+
+def _history_key(uid: int) -> str:
+    return f"chat:history:{uid}"
 
 
 async def _get_user_matrix_data(telegram_id: int):
@@ -82,8 +89,18 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
     name = user.first_name or user.username or "пользователь"
     archetype_name = user.main_archetype or "Неизвестный"
 
+    redis = get_redis()
+    history_key = _history_key(callback.from_user.id)
+    raw_history = await redis.get(history_key)
+    chat_history: list[dict] = []
+    if raw_history:
+        try:
+            chat_history = json.loads(raw_history)
+        except (json.JSONDecodeError, TypeError):
+            chat_history = []
+
     await state.set_state(ChatStates.chatting)
-    await state.update_data(chat_history=[])
+    await state.update_data(chat_history=chat_history)
 
     if matrix_report and matrix_report.matrix_data:
         await state.update_data(matrix_data=matrix_report.matrix_data)
@@ -152,7 +169,19 @@ async def chat_message(message: Message, state: FSMContext) -> None:
     )
 
     chat_history.append({"role": "assistant", "content": response})
+    if len(chat_history) > CHAT_HISTORY_MAX_MESSAGES:
+        chat_history = chat_history[-CHAT_HISTORY_MAX_MESSAGES:]
     await state.update_data(chat_history=chat_history)
+
+    try:
+        redis = get_redis()
+        await redis.setex(
+            _history_key(message.from_user.id),
+            CHAT_HISTORY_TTL,
+            json.dumps(chat_history, ensure_ascii=False),
+        )
+    except Exception:
+        pass
 
     if messages_left > 0:
         redis = get_redis()
@@ -202,4 +231,9 @@ async def exit_chat(event: Message | CallbackQuery, state: FSMContext) -> None:
 async def clear_chat(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
     await state.update_data(chat_history=[])
+    try:
+        redis = get_redis()
+        await redis.delete(_history_key(callback.from_user.id))
+    except Exception:
+        pass
     await callback.message.answer(history_cleared_text())

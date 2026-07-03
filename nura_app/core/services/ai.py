@@ -4,6 +4,7 @@ import json
 import logging
 import random
 import re
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -97,9 +98,12 @@ class AIService:
         timeout: float = 30.0,
         use_cache: bool = False,
         cache_ttl: int = 86400,
+        method_name: str = "chat",
     ) -> str:
         params = {**DEFAULT_PARAMS, **(api_params or {})}
         model = params.pop("model", settings.deepseek_model)
+        start_time = time.perf_counter()
+        cache_hit = False
 
         if use_cache:
             try:
@@ -109,6 +113,23 @@ class AIService:
                 redis = get_redis()
                 cached = await redis.get(cache_key)
                 if cached is not None:
+                    cache_hit = True
+                    duration_ms = int((time.perf_counter() - start_time) * 1000)
+                    logger.info(
+                        "AI chat cache hit: method=%s model=%s duration_ms=%d cached=True status=cached",
+                        method_name, model, duration_ms,
+                        extra={
+                            "method": method_name,
+                            "model": model,
+                            "tokens": 0,
+                            "prompt_tokens": 0,
+                            "completion_tokens": 0,
+                            "total_tokens": 0,
+                            "duration_ms": duration_ms,
+                            "cached": True,
+                            "status": "cached",
+                        },
+                    )
                     return cached
             except Exception:
                 pass
@@ -131,6 +152,24 @@ class AIService:
                     r.raise_for_status()
                     data = r.json()
                     content = data["choices"][0]["message"]["content"]
+                    usage = data.get("usage", {})
+
+                    duration_ms = int((time.perf_counter() - start_time) * 1000)
+                    logger.info(
+                        "AI chat success: method=%s model=%s tokens=%d duration_ms=%d cached=%s status=success",
+                        method_name, model, usage.get("total_tokens", 0), duration_ms, cache_hit,
+                        extra={
+                            "method": method_name,
+                            "model": model,
+                            "prompt_tokens": usage.get("prompt_tokens", 0),
+                            "completion_tokens": usage.get("completion_tokens", 0),
+                            "total_tokens": usage.get("total_tokens", 0),
+                            "duration_ms": duration_ms,
+                            "cached": cache_hit,
+                            "status": "success",
+                            "attempt": attempt + 1,
+                        },
+                    )
 
                     if use_cache:
                         try:
@@ -163,12 +202,47 @@ class AIService:
                     )
                     r.raise_for_status()
                     data = r.json()
-                    return data["choices"][0]["message"]["content"]
+                    content = data["choices"][0]["message"]["content"]
+                    usage = data.get("usage", {})
+
+                    duration_ms = int((time.perf_counter() - start_time) * 1000)
+                    logger.info(
+                        "AI chat fallback success: method=%s model=%s tokens=%d duration_ms=%d cached=%s status=fallback",
+                        method_name, model, usage.get("total_tokens", 0), duration_ms, cache_hit,
+                        extra={
+                            "method": method_name,
+                            "model": model,
+                            "prompt_tokens": usage.get("prompt_tokens", 0),
+                            "completion_tokens": usage.get("completion_tokens", 0),
+                            "total_tokens": usage.get("total_tokens", 0),
+                            "duration_ms": duration_ms,
+                            "cached": cache_hit,
+                            "status": "fallback",
+                            "attempt": attempt + 1,
+                        },
+                    )
+                    return content
             except (httpx.TimeoutException, httpx.HTTPStatusError, httpx.RequestError):
                 if attempt < 1:
                     await asyncio.sleep(1)
                 continue
 
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        logger.error(
+            "AI chat failure: method=%s model=%s duration_ms=%d cached=%s status=failure",
+            method_name, model, duration_ms, cache_hit,
+            extra={
+                "method": method_name,
+                "model": model,
+                "tokens": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "duration_ms": duration_ms,
+                "cached": cache_hit,
+                "status": "failure",
+            },
+        )
         raise last_error  # type: ignore[misc]
 
     @staticmethod
@@ -258,6 +332,7 @@ class AIService:
                 ],
                 api_params=FULL_REPORT_PARAMS,
                 timeout=300.0,
+                method_name="mini_analysis",
             )
             result = await AIService._parse_json_response(response, retry_cb)
             validated = MiniAnalysisResult(**result)
@@ -292,7 +367,7 @@ class AIService:
             birth_date=birth_date,
         )
 
-        async def _generate_part(user_content: str) -> dict:
+        async def _generate_part(user_content: str, part_label: str) -> dict:
             retry_cb = AIService._make_retry_callback(_system_prompt(), user_content, FULL_REPORT_PARAMS)
             response = await AIService.chat(
                 [
@@ -301,26 +376,35 @@ class AIService:
                 ],
                 api_params=FULL_REPORT_PARAMS,
                 timeout=300.0,
+                method_name=f"full_report_{part_label}",
             )
             return await AIService._parse_json_response(response, retry_cb)
 
-        results = await asyncio.gather(
-            _generate_part(user_content_a),
-            _generate_part(user_content_b),
-            return_exceptions=True,
-        )
-
         merged: dict = {}
-        part_names = ["part_a", "part_b"]
-        for pname, result in zip(part_names, results):
-            if isinstance(result, dict):
-                merged.update(result)
-                logger.info("generate_full_report: %s succeeded", pname)
+
+        try:
+            part_a_result = await _generate_part(user_content_a, "part_a")
+            if isinstance(part_a_result, dict):
+                merged.update(part_a_result)
+                logger.info("generate_full_report: part_a succeeded")
             else:
-                logger.error("generate_full_report: %s failed: %s", pname, result)
+                logger.error("generate_full_report: part_a returned non-dict: %s", type(part_a_result))
+        except Exception as e:
+            logger.error("generate_full_report: part_a failed: %s — skipping part_b", e)
+            return FALLBACK_FULL
+
+        try:
+            part_b_result = await _generate_part(user_content_b, "part_b")
+            if isinstance(part_b_result, dict):
+                merged.update(part_b_result)
+                logger.info("generate_full_report: part_b succeeded")
+            else:
+                logger.error("generate_full_report: part_b returned non-dict: %s", type(part_b_result))
+        except Exception as e:
+            logger.error("generate_full_report: part_b failed: %s", e)
 
         if not merged:
-            logger.exception("generate_full_report failed — both parts returned fallback")
+            logger.exception("generate_full_report failed — both parts returned empty")
             return FALLBACK_FULL
 
         validated = FullReportResult(**merged)
@@ -355,6 +439,7 @@ class AIService:
                 ],
                 api_params=kitchen_params,
                 timeout=180.0,
+                method_name="kitchen_report",
             )
             result = await AIService._parse_json_response(response, retry_cb)
             validated = KitchenReportResult(**result)
@@ -399,6 +484,7 @@ class AIService:
                 ],
                 api_params=FULL_REPORT_PARAMS,
                 timeout=300.0,
+                method_name="compatibility",
             )
             result = await AIService._parse_json_response(response, retry_cb)
             validated = CompatibilityFullResult(**result)
@@ -440,6 +526,7 @@ class AIService:
                     {"role": "user", "content": "Сгенерируй инсайт дня на основе моих данных."},
                 ],
                 api_params={**DEFAULT_PARAMS, "max_tokens": 800},
+                method_name="daily_insight",
             )
             result = await AIService._parse_json_response(response)
             validated = DailyInsightResult(**result)
@@ -557,6 +644,7 @@ class AIService:
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 400, "temperature": 0.7},
+            method_name="tarot_daily_card",
         )
         return result.strip().strip('"')
 
@@ -589,6 +677,7 @@ class AIService:
                     {"role": "user", "content": user_content},
                 ],
                 api_params=spread_params,
+                method_name="tarot_weekly_spread",
             )
             result = await AIService._parse_json_response(response, retry_cb)
             from core.schemas import TarotWeeklySpreadResult
@@ -628,6 +717,7 @@ class AIService:
                     {"role": "user", "content": user_content},
                 ],
                 api_params=question_params,
+                method_name="tarot_question",
             )
             result = await AIService._parse_json_response(response, retry_cb)
             from core.schemas import TarotQuestionResult
@@ -655,7 +745,7 @@ class AIService:
         ]
 
         try:
-            return await AIService.chat(messages, api_params=CHAT_PARAMS)
+            return await AIService.chat(messages, api_params=CHAT_PARAMS, method_name="chat_response")
         except Exception:
             return FALLBACK_CHAT
 

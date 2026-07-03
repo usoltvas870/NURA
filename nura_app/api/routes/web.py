@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -321,6 +322,12 @@ class ChatResponse(BaseModel):
 
 
 _WEB_CHAT_FREE_LIMIT = 5
+_WEB_CHAT_HISTORY_TTL = 7 * 86400
+_WEB_CHAT_HISTORY_MAX = 20
+
+
+def _web_history_key(uid) -> str:
+    return f"chat:history:{uid}"
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -340,6 +347,16 @@ async def web_chat(
     )
     redis = get_redis()
     counter_key = f"chat_count:{user.id}"
+
+    history_key = _web_history_key(user.id)
+    raw_history = await redis.get(history_key)
+    if raw_history:
+        try:
+            server_history: list[dict] = json.loads(raw_history)
+        except (json.JSONDecodeError, TypeError):
+            server_history = body.history[-10:]
+    else:
+        server_history = body.history[-10:]
 
     if not has_unlimited:
         raw = await redis.get(counter_key)
@@ -364,12 +381,26 @@ async def web_chat(
     try:
         reply = await AIService.chat_response(
             user_message=body.message,
-            chat_history=body.history[-10:],
+            chat_history=server_history[-10:],
             matrix_data=matrix_data,
             user_name=user_name,
         )
     except Exception:
         raise HTTPException(status_code=503, detail="AI временно недоступен")
+
+    server_history.append({"role": "user", "content": body.message})
+    server_history.append({"role": "assistant", "content": reply})
+    if len(server_history) > _WEB_CHAT_HISTORY_MAX:
+        server_history = server_history[-_WEB_CHAT_HISTORY_MAX:]
+
+    try:
+        await redis.setex(
+            history_key,
+            _WEB_CHAT_HISTORY_TTL,
+            json.dumps(server_history, ensure_ascii=False),
+        )
+    except Exception:
+        pass
 
     messages_left = -1
     if not has_unlimited:

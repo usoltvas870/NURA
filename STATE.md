@@ -1,6 +1,28 @@
 # NURA — State
 
-> Последнее обновление: **03.07.2026 — Сессия 67** — DeepSeek V4 Flash
+> Последнее обновление: **04.07.2026 — Сессия 68** — DeepSeek V4 Pro
+
+---
+
+## Сессия 68 — 04.07.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано:
+  - **Chat history persistence в Redis**:
+    - `bot/handlers/chat.py`: при входе — загрузка истории из Redis по ключу `chat:history:{telegram_id}`, при каждом сообщении — сохранение в Redis с TTL 7 дней, при очистке — удаление ключа. История ограничена 20 сообщениями.
+    - `api/routes/web.py`: серверная история в Redis — приоритет над клиентской, сохранение после каждого ответа. Клиентская история используется как fallback если в Redis пусто.
+  - **AI metrics — structured logging**:
+    - `AIService.chat()`: параметр `method_name` (default "chat"), `time.perf_counter()` для замеров
+    - Логирование `logger.info/error` с structured `extra`: method, model, prompt_tokens, completion_tokens, total_tokens, duration_ms, cached, status (success/fallback/failure/cached), attempt
+    - Все 9 вызовов в `ai.py` передают уникальный `method_name`: mini_analysis, full_report_part_a/b, kitchen_report, compatibility, daily_insight, tarot_daily_card, tarot_weekly_spread, tarot_question, chat_response
+    - Кэш-хиты логируются отдельно (status=cached, tokens=0)
+  - **Circuit Breaker для full_report**:
+    - `generate_full_report()`: замена параллельного `asyncio.gather` на последовательное выполнение
+    - Если Part A падает с ошибкой → Part B не вызывается, сразу возвращается FALLBACK_FULL (экономия токенов)
+    - Если Part A успешна → вызывается Part B, при ошибке Part B — частичный merge сохранённого Part A
+    - `_generate_part()` принимает `part_label` для логирования
+  - **Проверка**: ruff — pass, pytest — 242 passed
+- Блокеры: нет
+- Следующие шаги: tarot FSM → Redis, сквозная трассировка ошибок (Sentry + structured logs)
 
 ---
 
