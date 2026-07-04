@@ -295,6 +295,21 @@ birth.addEventListener('input',function(){var raw=this.value.replace(/\D/g,'').s
 document.getElementById('name').addEventListener('input',updateSubmitState);
 updateSubmitState();
 
+// Auto-fill from landing page hero form
+(function(){
+  var params=new URLSearchParams(location.search);
+  if(params.get('auto')!=='1')return;
+  var savedName=localStorage.getItem('nura_hero_name');
+  var savedDate=localStorage.getItem('nura_hero_date');
+  if(savedName)document.getElementById('name').value=savedName;
+  if(savedDate)birth.value=savedDate;
+  consentBox.checked=true;
+  updateSubmitState();
+  if(savedName&&savedDate&&/^\d{2}\.\d{2}\.\d{4}$/.test(savedDate)){
+    setTimeout(function(){form.dispatchEvent(new Event('submit',{cancelable:true}));},300);
+  }
+})();
+
 form.addEventListener('submit',function(e){
   e.preventDefault();err.style.display='none';
   var nameVal=document.getElementById('name').value.trim();

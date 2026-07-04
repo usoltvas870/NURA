@@ -99,6 +99,19 @@ nav.scrolled{box-shadow:0 1px 0 var(--line),0 14px 36px rgba(44,42,30,.12);paddi
 .hero-meta{margin-top:24px;font-size:13px;color:var(--text-s);display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600}
 .hero-meta span.dot{width:4px;height:4px;background:var(--terra);border-radius:50%;display:inline-block}
 
+.hero-form{margin-bottom:8px}
+.hero-form-row{display:flex;gap:10px;margin-bottom:10px}
+.hero-input{flex:1;height:48px;border:1px solid var(--line-strong);background:var(--bg-card);color:var(--text);border-radius:var(--r-sm);outline:none;font-size:15px;padding:0 16px;transition:border-color .2s,box-shadow .2s;font-family:var(--font-sans)}
+.hero-input:focus{border-color:rgba(184,116,63,.42);box-shadow:0 0 0 3px rgba(184,116,63,.10)}
+.hero-input::placeholder{color:var(--text-s)}
+.hero-form .btn{min-height:48px}
+.hero-form .loader{display:none;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.hero-form .btn.loading .loader{display:inline-block}
+.hero-form .btn.loading .btn-text{display:none}
+.hero-form .btn.loading{pointer-events:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:480px){.hero-form-row{flex-direction:column}}
+
 .pain-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:64px}
 .pain-card{background:var(--bg-card);border-radius:var(--r-lg);padding:36px 40px;display:flex;flex-direction:column;box-shadow:var(--shadow-card);transition:all 0.35s var(--ease);position:relative}
 .pain-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card-hover)}
@@ -317,12 +330,18 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
         <p class="hero-desc">
           NURA строит твою <strong>Матрицу Судьбы</strong> — личный цифровой чертёж на основе 22 Старших Арканов — и даёт <strong>ежедневные Таро-расклады</strong>, которые отслеживают эти сценарии в реальном времени.
         </p>
-        <div class="cta-group">
-          <a href="https://nura-ai.ru/mini.html" class="btn btn-primary">✨ Попробовать бесплатно</a>
-          <a href="#preview" class="btn btn-outline">Пример отчёта →</a>
-        </div>
+        <form class="hero-form" id="hero-form" novalidate>
+          <div class="hero-form-row">
+            <input class="hero-input" type="text" id="hero-name" placeholder="Имя" autocomplete="given-name" required>
+            <input class="hero-input" type="text" id="hero-date" placeholder="ДД.ММ.ГГГГ" autocomplete="bday" required>
+          </div>
+          <button class="btn btn-primary btn-full" type="submit" id="hero-submit" disabled>
+            <span class="btn-text">Узнать свой архетип — бесплатно</span>
+            <span class="loader"></span>
+          </button>
+        </form>
         <div class="hero-meta">
-          Имя и дата рождения <span class="dot"></span> без регистрации <span class="dot"></span> 2 минуты
+          Без регистрации <span class="dot"></span> 2 минуты <span class="dot"></span> результат сразу
         </div>
         <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--ink-mute);">
           Уже пользуешься? <a href="/app/" style="color:var(--gold);font-weight:500;text-decoration:none;">Открыть приложение →</a>
@@ -540,7 +559,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           <li>Прогноз на 2026–2028 по трём сферам</li>
         </ul>
         <a href="https://nura-ai.ru/mini.html" class="btn btn-primary btn-full">Купить Матрицу — 890 ₽</a>
-        <a href="https://nura-ai.ru/mini.html" class="checkout-ghost">← Сначала попробовать бесплатно</a>
+        <a href="#top" class="checkout-ghost">← Сначала попробовать бесплатно</a>
         <p class="checkout-note">🔒 Имя и дата рождения. Без спама.</p>
       </div>
     </div>
@@ -624,8 +643,8 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
     <div class="steps-row">
       <div class="step-node active reveal">
         <div class="step-head-line"><div class="step-circle">1</div><div class="step-connector"></div></div>
-        <h4 class="step-title">Нажми «Попробовать бесплатно»</h4>
-        <p class="step-desc">Никакой регистрации, никакого email. Ты уже на странице — один клик, и начинается разбор.</p>
+        <h4 class="step-title">Введи имя и дату рождения</h4>
+        <p class="step-desc">Прямо на главной странице — два поля, и ты уже получаешь свой разбор. Без регистрации, без email.</p>
       </div>
       <div class="step-node reveal reveal-delay-1">
         <div class="step-head-line"><div class="step-circle">2</div><div class="step-connector"></div></div>
@@ -759,7 +778,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           Что нужно для старта?
           <span class="faq-icon">+</span>
         </button>
-        <div class="faq-a">Имя и дата рождения. Никакого телефона или email. Нажми «Попробовать бесплатно» — и через 2 минуты получишь бесплатный мини-разбор прямо на сайте. Для тех, кто пришёл через Telegram: запусти @ai_nura_bot и нажми «Старт».</div>
+        <div class="faq-a">Имя и дата рождения. Никакого телефона или email. Введи их прямо на главной странице — и через 2 минуты получишь бесплатный мини-разбор. Для тех, кто пришёл через Telegram: запусти @ai_nura_bot и нажми «Старт».</div>
       </div>
 
       <div class="faq-item">
@@ -789,7 +808,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <h2 class="cta-title">Твой сценарий — не <em>приговор</em>. Это карта.</h2>
       <p class="cta-sub">Начни с бесплатного мини-разбора. 2 минуты — и ты уже будешь знать о себе больше, чем раньше.</p>
       <div class="cta-group" style="justify-content:center">
-        <a href="https://nura-ai.ru/mini.html" class="btn btn-primary">✨ Попробовать бесплатно</a>
+        <a href="#top" class="btn btn-primary">✨ Узнать свой архетип</a>
         <a href="https://t.me/ai_nura_bot" class="btn btn-outline">🃏 Получить карту дня</a>
       </div>
       <div class="cta-pills">
@@ -845,6 +864,39 @@ window.switchTab = function(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
 };
+
+// ── HERO FORM ───────────────────────────────
+var heroForm = document.getElementById('hero-form');
+var heroName = document.getElementById('hero-name');
+var heroDate = document.getElementById('hero-date');
+var heroSubmit = document.getElementById('hero-submit');
+
+function updateHeroSubmit(){
+  var n = heroName.value.trim();
+  var d = heroDate.value.trim();
+  heroSubmit.disabled = !(n && /^\d{2}\.\d{2}\.\d{4}$/.test(d));
+}
+heroName.addEventListener('input', updateHeroSubmit);
+heroDate.addEventListener('input', function(){
+  var raw = this.value.replace(/\D/g,'').slice(0,8);
+  var p = [];
+  if(raw.length>0) p.push(raw.slice(0,2));
+  if(raw.length>2) p.push(raw.slice(2,4));
+  if(raw.length>4) p.push(raw.slice(4,8));
+  this.value = p.join('.');
+  updateHeroSubmit();
+});
+
+heroForm.addEventListener('submit', function(e){
+  e.preventDefault();
+  var n = heroName.value.trim();
+  var d = heroDate.value.trim();
+  if(!n || !/^\d{2}\.\d{2}\.\d{4}$/.test(d)) return;
+  localStorage.setItem('nura_hero_name', n);
+  localStorage.setItem('nura_hero_date', d);
+  heroSubmit.classList.add('loading');
+  window.location.href = '/mini.html?auto=1';
+});
 
 // ── REVEAL ON SCROLL ────────────────────────
 var reveals = document.querySelectorAll('.reveal');

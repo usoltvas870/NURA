@@ -24,7 +24,7 @@ class PaymentService:
         payment = YooPayment.create(
             {
                 "amount": {
-                    "value": f"{settings.subscription_price_rub}.00",
+                    "value": f"{settings.tarot_subscription_price_rub}.00",
                     "currency": "RUB",
                 },
                 "confirmation": {
@@ -191,6 +191,37 @@ class PaymentService:
             "payment_id": "test_matrix_payment",
             "confirmation_url": None,
             "status": "test",
+        }
+
+    @staticmethod
+    async def create_recurring_payment(
+        payment_method_id: str,
+        amount_rub: int,
+        description: str,
+        metadata: dict,
+    ) -> dict:
+        idempotence_key = uuid.uuid4().hex[:32]
+        payment = YooPayment.create(
+            {
+                "amount": {
+                    "value": f"{amount_rub}.00",
+                    "currency": "RUB",
+                },
+                "payment_method_id": payment_method_id,
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": f"{settings.report_base_url}/success",
+                },
+                "capture": True,
+                "description": description,
+                "metadata": metadata,
+            },
+            idempotence_key,
+        )
+        return {
+            "id": payment.id,
+            "status": payment.status,
+            "payment_method_id": payment_method_id,
         }
 
     @staticmethod

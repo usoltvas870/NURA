@@ -1,6 +1,27 @@
 # NURA — State
 
-> Последнее обновление: **04.07.2026 — Сессия 69** — DeepSeek V4 Pro
+> Последнее обновление: **04.07.2026 — Сессия 70** — mimo-v2.5
+
+---
+
+## Сессия 70 — 04.07.2026
+- Модель: mimo-v2.5
+- Что сделано:
+  - **Recurring-задача для автопродления подписок:**
+    - `core/repositories/user.py`: новый метод `get_users_for_recurring_charge()` — выбирает пользователей с `payment_method_id`, у которых подписка истекает в ближайшие 24ч
+    - `core/services/payment.py`: новый метод `create_recurring_payment()` — создаёт платёж через YooKassa с сохранённым `payment_method_id`
+    - `core/tasks.py`: новая задача `charge_recurring_subscriptions` — обрабатывает tarot и premium подписки, логирует результат, уведомляет админа при ошибках
+    - Beat-schedule: задача запускается каждые 6 часов
+  - **Исправлена цена подписки:**
+    - `core/config.py`: удалён legacy-параметр `subscription_price_rub = 590` (не использовался корректно)
+    - `core/services/payment.py`: `create_subscription()` теперь использует `tarot_subscription_price_rub` (390₽) вместо удалённого параметра (было 590₽, кнопка в боте показывала 390₽ — рассинхрон)
+  - **Тесты:** все 30 тестов `test_payment.py` пройдены, ruff check без ошибок
+- Блокеры: нет
+- Следующие шаги:
+  - Заполнить `YOKASSA_SHOP_ID` и `YOKASSA_SECRET_KEY` в `.env` на VPS
+  - Заполнить `YOKASSA_IP_WHITELIST` (IP-адреса YooKassa)
+  - Реализовать Pydantic-схемы для валидации входящих вебхуков
+  - Добавить отправку подтверждения в TG для subscription/tarot платежей в `process_webhook()`
 
 ---
 

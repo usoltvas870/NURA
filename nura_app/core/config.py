@@ -72,7 +72,6 @@ class Settings(BaseSettings):
     report_token_ttl_days: int = 90
 
     # Pricing
-    subscription_price_rub: int = 590
     tarot_subscription_price_rub: int = 390
     matrix_one_time_price_rub: int = 890
 

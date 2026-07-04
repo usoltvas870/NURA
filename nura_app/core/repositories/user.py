@@ -537,3 +537,38 @@ class UserRepository(SQLAlchemyRepository[User]):
             user.first_name = None
             await session.commit()
             return True
+
+    async def get_users_for_recurring_charge(self) -> list[User]:
+        now = datetime.now(timezone.utc)
+        threshold = now + timedelta(hours=24)
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User)
+                .options(
+                    load_only(
+                        User.id,
+                        User.telegram_id,
+                        User.first_name,
+                        User.username,
+                        User.payment_method_id,
+                        User.subscription_status,
+                        User.subscription_until,
+                        User.tarot_subscription,
+                        User.tarot_subscription_until,
+                    )
+                )
+                .where(
+                    User.payment_method_id.isnot(None),
+                    (
+                        (
+                            (User.tarot_subscription == True)  # noqa: E712
+                            & (User.tarot_subscription_until <= threshold)
+                        )
+                        | (
+                            (User.subscription_status == "premium")
+                            & (User.subscription_until <= threshold)
+                        )
+                    ),
+                )
+            )
+            return list(result.scalars().all())

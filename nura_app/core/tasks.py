@@ -71,6 +71,10 @@ celery_app.conf.beat_schedule = {
         "task": "core.tasks.downgrade_expired_subscriptions",
         "schedule": 60 * 60 * 24,
     },
+    "charge-recurring-subscriptions": {
+        "task": "core.tasks.charge_recurring_subscriptions",
+        "schedule": 60 * 60 * 6,
+    },
     "cleanup-expired-guests": {
         "task": "core.tasks.cleanup_expired_guest_profiles",
         "schedule": 60 * 60 * 24,
@@ -999,6 +1003,113 @@ async def _downgrade_expired_subscriptions_async() -> dict:
         await session.commit()
 
     return {"downgraded": downgraded, "total_expired": len(users)}
+
+
+@celery_app.task(name="core.tasks.charge_recurring_subscriptions")
+def charge_recurring_subscriptions() -> dict:
+    return _run_async(_charge_recurring_subscriptions_async())
+
+
+async def _charge_recurring_subscriptions_async() -> dict:
+    from core.services.payment import PaymentService
+    from core.repositories.payment import PaymentRepository
+
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    payment_repo = PaymentRepository(session_factory)
+    users = await user_repo.get_users_for_recurring_charge()
+
+    now = datetime.now(timezone.utc)
+    charged = 0
+    failed = 0
+
+    for user in users:
+        is_tarot = (
+            user.tarot_subscription
+            and user.tarot_subscription_until
+            and user.tarot_subscription_until <= now + timedelta(hours=24)
+        )
+        is_premium = (
+            user.subscription_status == "premium"
+            and user.subscription_until
+            and user.subscription_until <= now + timedelta(hours=24)
+        )
+
+        if is_tarot and user.payment_method_id:
+            try:
+                result = await PaymentService.create_recurring_payment(
+                    payment_method_id=user.payment_method_id,
+                    amount_rub=settings.tarot_subscription_price_rub,
+                    description="NURA — Таро-ритуалы (продление)",
+                    metadata={
+                        "user_id": str(user.id),
+                        "payment_type": "tarot",
+                        "recurring": "true",
+                    },
+                )
+                await payment_repo.create(
+                    user_id=user.id,
+                    amount=settings.tarot_subscription_price_rub,
+                    yookassa_id=result["id"],
+                    payment_type="tarot",
+                )
+                until = now + timedelta(days=30)
+                await user_repo.update_tarot_subscription(user.id, True, until)
+                charged += 1
+                logger.info(
+                    "recurring: charged tarot for user %s, payment %s",
+                    user.id, result["id"],
+                )
+            except Exception:
+                logger.exception(
+                    "recurring: failed to charge tarot for user %s", user.id
+                )
+                failed += 1
+
+        elif is_premium and user.payment_method_id:
+            try:
+                result = await PaymentService.create_recurring_payment(
+                    payment_method_id=user.payment_method_id,
+                    amount_rub=settings.tarot_subscription_price_rub,
+                    description="NURA — Ежедневные инсайты (продление)",
+                    metadata={
+                        "telegram_id": user.telegram_id,
+                        "payment_type": "subscription",
+                        "recurring": "true",
+                    },
+                )
+                await payment_repo.create(
+                    user_id=user.id,
+                    amount=settings.tarot_subscription_price_rub,
+                    yookassa_id=result["id"],
+                    payment_type="subscription",
+                )
+                until = now + timedelta(days=30)
+                await user_repo.update_subscription(user.id, "premium", until)
+                charged += 1
+                logger.info(
+                    "recurring: charged premium for user %s, payment %s",
+                    user.id, result["id"],
+                )
+            except Exception:
+                logger.exception(
+                    "recurring: failed to charge premium for user %s", user.id
+                )
+                failed += 1
+
+    if failed > 0:
+        admin_id = settings.admin_telegram_id
+        if admin_id:
+            await _send_message(
+                admin_id,
+                f"⚠️ Recurring charge: {failed} failed out of {len(users)} users",
+            )
+
+    logger.info(
+        "charge_recurring_subscriptions: charged=%d failed=%d total=%d",
+        charged, failed, len(users),
+    )
+    return {"charged": charged, "failed": failed, "total": len(users)}
 
 
 @celery_app.task(name="core.tasks.send_broadcast", bind=True)
