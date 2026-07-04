@@ -5,12 +5,12 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3142 nodes · 5114 edges · 345 communities (243 shown, 102 thin omitted)
+- 3135 nodes · 5114 edges · 338 communities (243 shown, 95 thin omitted)
 - Extraction: 75% EXTRACTED · 25% INFERRED · 0% AMBIGUOUS · INFERRED: 1255 edges (avg confidence: 0.62)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `d8c18a42`
+- Built from commit: `5c491fad`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -118,7 +118,6 @@
 - [[_COMMUNITY_Content Scoring|Content Scoring]]
 - [[_COMMUNITY_Tarot Date Tests|Tarot Date Tests]]
 - [[_COMMUNITY_AI Chat Trimming|AI Chat Trimming]]
-- [[_COMMUNITY_UI Design System|UI Design System]]
 - [[_COMMUNITY_Community 106|Community 106]]
 - [[_COMMUNITY_Community 107|Community 107]]
 - [[_COMMUNITY_Tarot Formatting|Tarot Formatting]]
@@ -136,7 +135,6 @@
 - [[_COMMUNITY_API Testing Tools|API Testing Tools]]
 - [[_COMMUNITY_Community 121|Community 121]]
 - [[_COMMUNITY_DevOps Automation|DevOps Automation]]
-- [[_COMMUNITY_Video Analysis|Video Analysis]]
 - [[_COMMUNITY_Technical Writing|Technical Writing]]
 - [[_COMMUNITY_Year Forecast Tests|Year Forecast Tests]]
 - [[_COMMUNITY_Integrity Check Script|Integrity Check Script]]
@@ -160,7 +158,6 @@
 - [[_COMMUNITY_FFmpeg|FFmpeg]]
 - [[_COMMUNITY_Full Report Result|Full Report Result]]
 - [[_COMMUNITY_Init Module|Init Module]]
-- [[_COMMUNITY_Community 151|Community 151]]
 - [[_COMMUNITY_Matrix Service|Matrix Service]]
 - [[_COMMUNITY_Matrix States|Matrix States]]
 - [[_COMMUNITY_Mini Analysis Result|Mini Analysis Result]]
@@ -187,10 +184,8 @@
 - [[_COMMUNITY_Video Scenario Prompt|Video Scenario Prompt]]
 - [[_COMMUNITY_Trend Researcher Agent|Trend Researcher Agent]]
 - [[_COMMUNITY_UI Designer Agent|UI Designer Agent]]
-- [[_COMMUNITY_UX Architect Agent|UX Architect Agent]]
 - [[_COMMUNITY_WCAG Auditor Agent|WCAG Auditor Agent]]
 - [[_COMMUNITY_Workflow Architect Agent|Workflow Architect Agent]]
-- [[_COMMUNITY_Community 182|Community 182]]
 - [[_COMMUNITY_Community 183|Community 183]]
 - [[_COMMUNITY_Report Health Map|Report Health Map]]
 - [[_COMMUNITY_Community 185|Community 185]]
@@ -272,8 +267,6 @@
 - [[_COMMUNITY_Community 272|Community 272]]
 - [[_COMMUNITY_Community 273|Community 273]]
 - [[_COMMUNITY_Community 274|Community 274]]
-- [[_COMMUNITY_Community 275|Community 275]]
-- [[_COMMUNITY_Community 276|Community 276]]
 - [[_COMMUNITY_Community 277|Community 277]]
 - [[_COMMUNITY_Community 278|Community 278]]
 - [[_COMMUNITY_Community 279|Community 279]]
@@ -349,7 +342,7 @@
 - 1-file cycle: `nura_app/core/repositories/user.py -> nura_app/core/repositories/user.py`
 - 1-file cycle: `nura_app/core/repositories/guest.py -> nura_app/core/repositories/guest.py`
 
-## Communities (345 total, 102 thin omitted)
+## Communities (338 total, 95 thin omitted)
 
 ### Community 0 - "Carousel Configuration Models"
 Cohesion: 0.10
@@ -1160,19 +1153,19 @@ Cohesion: 0.50
 Nodes (4): 9. Доставка отчёта, URL продакшена, Права доступа, Флоу доставки
 
 ## Knowledge Gaps
-- **996 isolated node(s):** `Сессия 75 — 04.07.2026`, `Сессия 74 — 04.07.2026`, `Сессия 73 — 04.07.2026`, `Сессия 72 — 04.07.2026`, `Сессия 71 — 04.07.2026` (+991 more)
+- **989 isolated node(s):** `Stack`, `Подключение`, `Ключевые токены (`theme.css`)`, `Классы типографики`, `Кнопки` (+984 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **102 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **95 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `UserRepository` connect `SQLAlchemy Repository Base` to `Community 128`, `Payment Access Tests`, `Payment Webhook Logic`, `Report & Matrix Services`, `User Profile Handlers`, `Tarot Menu Handlers`, `Daily Card & Spread Tests`, `Tarot Handler Tests`, `Tarot Error Cases`, `Payment & Tarot Routes`, `User Repository`, `Aiogram Bot Framework`, `Community 279`, `Community 156`, `Daily Card API Tests`, `Community 287`, `Compatibility Handlers`, `Chat Handlers`, `Tarot Spread Response Models`, `Spread Request Validation`, `Community 299`, `Admin Panel Interface`, `Community 305`, `Community 183`, `Community 194`, `Community 68`, `Community 325`, `Community 217`, `Community 218`, `Community 222`, `Question Spread Edge Cases`, `Community 235`, `Community 112`, `Community 240`?**
-  _High betweenness centrality (0.111) - this node is a cross-community bridge._
+  _High betweenness centrality (0.108) - this node is a cross-community bridge._
 - **Why does `MatrixService` connect `Community 305` to `Compatibility Handlers`, `Tarot Date Tests`, `Date Calculation Edge Cases`, `Community 239`, `Admin Panel Interface`, `Community 337`, `Matrix Destiny Calculation`, `Community 336`, `Matrix Format Prompt Tests`, `Payment & Tarot Routes`, `Community 210`, `Aiogram Bot Framework`, `Matrix Arcana Tests`, `Life Periods Calculation Tests`, `Year Forecast Tests`, `Year Arcana Calculation Tests`?**
-  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+  _High betweenness centrality (0.060) - this node is a cross-community bridge._
 - **Why does `User` connect `Admin Panel Interface` to `Community 128`, `Tarot PWA Tests`, `User Profile Handlers`, `Tarot Spread API Tests`, `Daily Card & Spread Tests`, `Webhook & Dependencies`, `Daily Card API Tests`, `Chat Handlers`, `Tarot Spread Response Models`, `Spread Request Validation`, `Question & YesNo Spread Tests`, `Community 299`, `SQLAlchemy Repository Base`, `Community 305`, `Community 310`, `Community 183`, `Community 311`, `Spread Error Handling Tests`, `AIService Mock Verification`, `Spread Subscription & Life Tests`, `Community 68`, `Start Command Tests`, `Compatibility Handler Tests`, `Community 206`, `Community 218`, `Test Configuration Fixtures`, `Community 93`, `Community 98`, `Tarot Date Tests`, `Community 110`, `Community 239`, `Day Parsing Script`, `Community 121`?**
-  _High betweenness centrality (0.039) - this node is a cross-community bridge._
+  _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **Are the 166 inferred relationships involving `UserRepository` (e.g. with `get_current_web_user()` and `get_optional_web_user()`) actually correct?**
   _`UserRepository` has 166 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 96 inferred relationships involving `User` (e.g. with `AdminAuth` and `PaymentAdmin`) actually correct?**

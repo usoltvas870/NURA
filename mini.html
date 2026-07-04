@@ -85,62 +85,110 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
   }
 }
 
-/* ── Mobile burger bar ── */
+/* ── Mobile controls ── */
+.mini-mobile-menu-btn{
+  display:none;
+  position:fixed;
+  top:calc(env(safe-area-inset-top,0px) + 12px);
+  left:12px;
+  z-index:72;
+  width:48px;
+  height:48px;
+  border-radius:16px;
+  background:var(--bg-card);
+  border:1px solid rgba(255,255,255,.74);
+  box-shadow:var(--shadow-card);
+  color:var(--text);
+  align-items:center;
+  justify-content:center;
+}
+.mini-mobile-menu-btn .ti{font-size:22px;color:var(--text)}
+[data-theme="dark"] .mini-mobile-menu-btn{border-color:var(--line)}
 .mini-mobile-bar{
-  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  position:fixed;bottom:0;left:0;right:0;z-index:65;
   background:var(--bg-card);
   border-top:1px solid var(--line);
   box-shadow:0 -4px 24px rgba(0,0,0,.10);
   padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));
   display:flex;align-items:center;gap:8px;
 }
-@media(min-width:768px){.mini-mobile-bar{display:none}}
+@media(min-width:768px){.mini-mobile-menu-btn,.mini-mobile-bar{display:none!important}}
 .mini-mobile-bar button{
   flex:1;min-height:44px;
   border-radius:10px;font-size:13px;font-weight:700;
   display:flex;align-items:center;justify-content:center;gap:6px;
   transition:background .15s,color .15s;
 }
-.mini-mobile-bar .bar-burger{
-  flex:none;width:44px;
-  background:var(--bg-card-soft);border:1px solid var(--line);color:var(--text-m);
-}
 .mini-mobile-bar .bar-prev,.mini-mobile-bar .bar-next{
   background:var(--bg-card-soft);border:1px solid var(--line);color:var(--text-m);
 }
 .mini-mobile-bar .bar-prev:disabled,.mini-mobile-bar .bar-next:disabled{opacity:.35;cursor:default}
 
-/* ── Mobile nav dropdown ── */
+/* ── Mobile nav drawer ── */
 .mini-mobile-dropdown{
-  display:none;position:fixed;bottom:0;left:0;right:0;z-index:60;
-  background:var(--bg-card);
-  border-top:1px solid var(--line);
-  box-shadow:0 -8px 32px rgba(0,0,0,.18);
-  padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));
-  border-radius:20px 20px 0 0;
-  max-height:60vh;overflow-y:auto;
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:70;
+  padding:calc(env(safe-area-inset-top,0px) + 68px) 16px 24px;
+  pointer-events:none;
 }
-.mini-mobile-dropdown.open{display:block;animation:slideUp .25s ease}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.mini-mobile-dropdown.open{display:block;pointer-events:auto}
+.mini-mobile-dropdown .dd-panel{
+  position:relative;
+  width:min(320px,calc(100vw - 32px));
+  max-height:calc(100dvh - env(safe-area-inset-top,0px) - 92px);
+  overflow-y:auto;
+  background:var(--bg-card);
+  border:1px solid rgba(255,255,255,.78);
+  box-shadow:var(--shadow-soft);
+  border-radius:var(--r-lg);
+  padding:14px 14px 16px;
+  animation:drawerIn .22s ease;
+}
+@keyframes drawerIn{from{opacity:0;transform:translateY(-8px) scale(.98)}to{opacity:1;transform:none}}
+.mini-mobile-dropdown .dd-head{
+  padding:6px 6px 10px;
+  border-bottom:1px solid var(--line);
+  margin-bottom:8px;
+}
+.mini-mobile-dropdown .dd-title{
+  font-family:var(--font-serif);
+  font-size:22px;
+  line-height:1.1;
+  color:var(--text);
+}
+.mini-mobile-dropdown .dd-copy{
+  margin-top:6px;
+  font-size:12.5px;
+  line-height:1.5;
+  color:var(--text-m);
+}
 .mini-mobile-dropdown .dd-item{
   display:flex;align-items:baseline;gap:10px;
-  padding:14px 12px;border-radius:10px;
-  font-size:14px;color:var(--text-m);cursor:pointer;
-  transition:background .15s;
+  padding:14px 12px;border-radius:12px;
+  font-size:14px;color:var(--text);cursor:pointer;
+  transition:background .15s,color .15s;
 }
 .mini-mobile-dropdown .dd-item:hover{background:var(--bg-card-soft)}
-.mini-mobile-dropdown .dd-item.active{background:rgba(184,116,63,.10);color:var(--terra)}
+.mini-mobile-dropdown .dd-item.active{background:rgba(184,116,63,.10);color:var(--text)}
 .mini-mobile-dropdown .dd-item .num{font-family:var(--font-serif);font-size:12px;color:var(--text-s);width:22px}
 .mini-mobile-dropdown .dd-item.active .num{color:var(--terra)}
 .mini-mobile-dropdown .dd-close{
   display:block;width:100%;margin-top:12px;padding:12px;
   border-radius:10px;background:var(--bg-card-soft);
   border:1px solid var(--line);font-size:13px;font-weight:700;
-  color:var(--text-m);text-align:center;
+  color:var(--text);text-align:center;
 }
 .mini-mobile-dropdown .dd-backdrop{
-  position:fixed;inset:0;z-index:-1;background:rgba(0,0,0,.3);
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  background:rgba(26,26,26,.24);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
 }
+[data-theme="dark"] .mini-mobile-dropdown .dd-panel{border-color:var(--line)}
 
 /* ── Form card ── */
 .card{background:var(--bg-card);border:1px solid rgba(255,255,255,.64);border-radius:var(--r-lg);box-shadow:var(--shadow-card);overflow:hidden;position:relative}
@@ -299,6 +347,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 }
 .result-topbar .topbar-section-name .n{color:var(--terra);font-weight:600}
 [data-theme="dark"] .result-topbar{background:rgba(18,16,14,.92)}
+@media(max-width:767px){.result-topbar{padding-left:64px;min-height:48px}}
 
 /* ── CTA block ── */
 .result-cta{
@@ -370,7 +419,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 <div style="display:flex;gap:10px;align-items:flex-start;margin-top:12px">
 <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
 <input type="checkbox" id="pd_consent" style="margin-top:3px;flex-shrink:0;width:18px;height:18px;accent-color:var(--terra)">
-<span class="small" style="line-height:1.5">Согласен с <a href="/privacy.html" style="color:var(--terra);text-decoration:underline">обработкой персональных данных</a> и условиями <a href="/offer.html" style="color:var(--terra);text-decoration:underline">Публичной оферты</a></span>
+<span class="small" style="line-height:1.5">Я принимаю условия <a href="/offer.html" style="color:var(--terra);text-decoration:underline">Публичной оферты</a>, соглашаюсь с <a href="/privacy.html" style="color:var(--terra);text-decoration:underline">Политикой обработки персональных данных</a> и даю <a href="/personal-data-consent.html" style="color:var(--terra);text-decoration:underline">согласие на обработку персональных данных</a>.</span>
 </label>
 </div>
 </form>
@@ -490,9 +539,10 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 </div><!-- .mini-main-inner -->
 </div><!-- .mini-main -->
 
+<button class="mini-mobile-menu-btn" id="bar-burger" aria-label="Навигация по мини-разбору" aria-expanded="false" style="display:none"><i class="ti ti-menu-2"></i></button>
+
 <!-- ── Mobile burger bar ── -->
 <div class="mini-mobile-bar" id="mobile-bar" style="display:none">
-  <button class="bar-burger" id="bar-burger" aria-label="Навигация"><i class="ti ti-menu-2"></i></button>
   <button class="bar-prev" id="bar-prev" disabled>← Назад</button>
   <button class="bar-next" id="bar-next">Далее →</button>
 </div>
@@ -500,12 +550,18 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 <!-- ── Mobile dropdown ── -->
 <div class="mini-mobile-dropdown" id="mobile-dropdown">
   <div class="dd-backdrop" id="dd-backdrop"></div>
-  <a class="dd-item" data-section="s-archetype"><span class="num">01</span><span>Архетип</span></a>
-  <a class="dd-item" data-section="s-strength"><span class="num">02</span><span>Сила</span></a>
-  <a class="dd-item" data-section="s-conflict"><span class="num">03</span><span>Конфликт</span></a>
-  <a class="dd-item" data-section="s-relations"><span class="num">04</span><span>Отношения</span></a>
-  <a class="dd-item" data-section="s-finance"><span class="num">05</span><span>Деньги</span></a>
-  <button class="dd-close" id="dd-close">Закрыть</button>
+  <div class="dd-panel" role="dialog" aria-modal="true" aria-label="Навигация по мини-разбору">
+    <div class="dd-head">
+      <div class="dd-title">Мини-разбор</div>
+      <div class="dd-copy">Быстро переходи между разделами и возвращайся к нужному блоку без долгой прокрутки.</div>
+    </div>
+    <a class="dd-item" data-section="s-archetype"><span class="num">01</span><span>Архетип</span></a>
+    <a class="dd-item" data-section="s-strength"><span class="num">02</span><span>Сила</span></a>
+    <a class="dd-item" data-section="s-conflict"><span class="num">03</span><span>Конфликт</span></a>
+    <a class="dd-item" data-section="s-relations"><span class="num">04</span><span>Отношения</span></a>
+    <a class="dd-item" data-section="s-finance"><span class="num">05</span><span>Деньги</span></a>
+    <button class="dd-close" id="dd-close">Закрыть</button>
+  </div>
 </div>
 
 </div><!-- .mini-layout -->
@@ -537,14 +593,24 @@ function showStage(name){
     stageForm.classList.add('active');
     document.getElementById('sidebar').style.display='none';
     document.getElementById('mobile-bar').style.display='none';
+    document.getElementById('bar-burger').style.display='none';
+    setMobileMenuOpen(false);
   }
   if(name==='result'){
     stageResult.classList.add('active');
     document.getElementById('sidebar').style.display=isMobile?'none':'flex';
     document.getElementById('mobile-bar').style.display=isMobile?'flex':'none';
+    document.getElementById('bar-burger').style.display=isMobile?'grid':'none';
     updateNavState();
   }
   err.style.display='none';
+}
+
+function setMobileMenuOpen(isOpen){
+  var dropdown=document.getElementById('mobile-dropdown');
+  var burger=document.getElementById('bar-burger');
+  dropdown.classList.toggle('open',!!isOpen);
+  burger.setAttribute('aria-expanded',isOpen?'true':'false');
 }
 
 /* ── Navigation state ── */
@@ -616,18 +682,18 @@ document.getElementById('bar-next').addEventListener('click',function(){
 
 /* ── Burger menu ── */
 document.getElementById('bar-burger').addEventListener('click',function(){
-  document.getElementById('mobile-dropdown').classList.toggle('open');
+  setMobileMenuOpen(!document.getElementById('mobile-dropdown').classList.contains('open'));
 });
 document.getElementById('dd-close').addEventListener('click',function(){
-  document.getElementById('mobile-dropdown').classList.remove('open');
+  setMobileMenuOpen(false);
 });
 document.getElementById('dd-backdrop').addEventListener('click',function(){
-  document.getElementById('mobile-dropdown').classList.remove('open');
+  setMobileMenuOpen(false);
 });
 document.querySelectorAll('#mobile-dropdown .dd-item').forEach(function(a){
   a.addEventListener('click',function(){
     scrollToSection(this.getAttribute('data-section'));
-    document.getElementById('mobile-dropdown').classList.remove('open');
+    setMobileMenuOpen(false);
   });
 });
 
@@ -654,7 +720,12 @@ window.addEventListener('resize',function(){
     var isMobile=window.innerWidth<768;
     document.getElementById('sidebar').style.display=isMobile?'none':'flex';
     document.getElementById('mobile-bar').style.display=isMobile?'flex':'none';
+    document.getElementById('bar-burger').style.display=isMobile?'grid':'none';
+    if(!isMobile)setMobileMenuOpen(false);
   }
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape')setMobileMenuOpen(false);
 });
 
 /* ── Text formatting ── */

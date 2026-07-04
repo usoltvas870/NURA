@@ -40,6 +40,11 @@ li{margin-bottom:6px}
 .contact-list li{margin-bottom:8px}
 strong{color:var(--text);font-weight:700}
 a.link{color:var(--terra);font-weight:700;text-decoration:underline}
+.legal-nav{margin-top:32px;padding-top:18px;border-top:1px solid var(--line)}
+.legal-nav-title{font-size:12px;color:var(--text-s);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em}
+.legal-nav-grid{display:flex;flex-wrap:wrap;gap:10px}
+.legal-pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:var(--bg-soft);color:var(--text);font-size:13px;line-height:1.35;transition:border-color .2s,color .2s,transform .2s}
+.legal-pill:hover{border-color:var(--terra);color:var(--terra);transform:translateY(-1px)}
 </style>
 </head><body>
 <div class="wrap">
@@ -479,6 +484,16 @@ a.link{color:var(--terra);font-weight:700;text-decoration:underline}
   <li><strong>Email:</strong> <a href="mailto:bayzelai87@gmail.com" class="link">bayzelai87@gmail.com</a></li>
   <li><strong>Сайт:</strong> <a href="https://nura-ai.ru" class="link">nura-ai.ru</a></li>
 </ul>
+
+<div class="legal-nav">
+  <div class="legal-nav-title">Юридические документы</div>
+  <div class="legal-nav-grid">
+    <a href="/offer.html" class="legal-pill">Публичная оферта</a>
+    <a href="/privacy.html" class="legal-pill">Политика обработки данных</a>
+    <a href="/personal-data-consent.html" class="legal-pill">Согласие на обработку данных</a>
+    <a href="/marketing-consent.html" class="legal-pill">Согласие на рассылки</a>
+  </div>
+</div>
 
 <p class="small" style="margin-top:32px;padding-top:18px;border-top:1px solid var(--line)">NURA AI · 2026 · Все права защищены</p>
 </section>

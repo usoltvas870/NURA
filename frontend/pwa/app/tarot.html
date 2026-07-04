@@ -250,11 +250,43 @@
   var N = window.NURA;
   var BASE = N.BASE;
   var $ = document.getElementById.bind(document);
+  var __isGuest = false;
+
+  function promptGuestAccess() {
+    N.showAuthModal({
+      title: 'Войди, чтобы открыть Таро',
+      copy: 'Карта дня, расширенные расклады и чат NURA работают внутри личного аккаунта.'
+    });
+  }
+
+  function applyGuestMode() {
+    __isGuest = true;
+    $('hero-num').classList.remove('skeleton', 'skeleton-num');
+    $('hero-num').textContent = '✦';
+    $('hero-name').classList.remove('skeleton', 'skeleton-name');
+    $('hero-name').textContent = 'Таро откроется после входа';
+    $('hero-phrase').textContent = 'Сохрани свой контекст в NURA, чтобы видеть персональную карту дня и практики.';
+    $('hero-advice').classList.remove('skeleton', 'skeleton-line');
+    $('hero-advice').textContent = 'Войди через email или VK, чтобы карта дня связалась с твоей Матрицей.';
+    $('hero-streak').style.display = 'none';
+    $('hero-matrix-context').style.display = 'none';
+    document.querySelector('.hero-day').onclick = function() {
+      promptGuestAccess();
+    };
+    ['p-weekly', 'p-question', 'p-life', 'p-doubles', 'p-portal', 'p-yesno'].forEach(function(id) {
+      var el = $(id);
+      if (!el) return;
+      el.classList.add('locked');
+      el.onclick = function() {
+        promptGuestAccess();
+      };
+    });
+  }
 
   fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
     .then(function(r) {
       if (r.status === 403) { location.href = '/app/?blocked=1'; return; }
-      if (r.status === 401) location.href = '/mini.html';
+      if (r.status === 401) { applyGuestMode(); return; }
     });
 
   var dateStr = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
@@ -310,7 +342,11 @@
       localStorage.setItem(cacheKey, JSON.stringify({ d: d, ts: Date.now() }));
       applyCardData(d);
     })
-    .catch(function() {
+    .catch(function(err) {
+      if (err && err.status === 401) {
+        applyGuestMode();
+        return;
+      }
       if (!cardData) {
         document.getElementById('hero-num').classList.remove('skeleton','skeleton-num');
         document.getElementById('hero-num').textContent = '—';
@@ -345,10 +381,14 @@
     })
     .catch(function(err) {
       if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
-      if (err && err.status === 401) { location.href = '/mini.html'; }
+      if (err && err.status === 401) { applyGuestMode(); }
     });
 
   window.openCardDetail = function() {
+    if (__isGuest) {
+      promptGuestAccess();
+      return;
+    }
     if (!cardData) return;
     $('sheet-date').textContent = dateStr;
     $('sheet-num').textContent = cardData.num;
@@ -382,11 +422,19 @@
   };
 
   window.askNura = function(text) {
+    if (N.requireAuth(__isGuest, {
+      title: 'Войди, чтобы задать вопрос NURA',
+      copy: 'После входа чат свяжет вопрос с твоей Матрицей и картой дня.'
+    })) return;
     localStorage.setItem('nura_pending_question', text);
     location.href = 'chat.html?question=' + encodeURIComponent(text);
   };
 
   window.shareDayCard = function() {
+    if (__isGuest) {
+      promptGuestAccess();
+      return;
+    }
     var name = $('hero-name').textContent || '';
     var phrase = $('hero-phrase').textContent || '';
     var text = name + '\n' + phrase + '\n\nУзнай свою карту дня в NURA:';
@@ -404,6 +452,10 @@
   });
 
   window.subscribeTarot = function() {
+    if (N.requireAuth(__isGuest, {
+      title: 'Войди, чтобы оформить подписку',
+      copy: 'Подписка привяжется к твоему аккаунту и откроет ежедневные практики внутри PWA.'
+    })) return;
     var btn = document.getElementById('pw-subscribe-btn');
     btn.disabled = true;
     btn.textContent = 'Загрузка...';
@@ -434,6 +486,10 @@
   }
 
   window.openSpread = function(type) {
+    if (__isGuest) {
+      promptGuestAccess();
+      return;
+    }
     if (type === 'question' || type === 'yesno') {
       openQuestionPrompt(type);
       return;

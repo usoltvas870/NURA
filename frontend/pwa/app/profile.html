@@ -122,6 +122,8 @@
 <div id="tg-link-container"><article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()"><div class="list-icon"><i class="ti ti-brand-telegram"></i></div><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="chevron">›</span></article></div>
 <article class="card list-card" role="button" tabindex="0" id="themeToggle2" onclick="document.getElementById('themeToggle').click()"><div class="list-icon"><i class="ti ti-sun-moon"></i></div><div><div class="list-title">Тема</div><div class="list-sub" id="theme-label">Светлая</div></div><span class="chevron">›</span></article>
 <article class="card list-card" role="button" tabindex="0" onclick="location.href='/privacy.html'"><div class="list-icon"><i class="ti ti-shield-lock"></i></div><div><div class="list-title">Политика обработки персональных данных</div></div><span class="chevron">›</span></article>
+<article class="card list-card" role="button" tabindex="0" onclick="location.href='/personal-data-consent.html'"><div class="list-icon"><i class="ti ti-id-badge-2"></i></div><div><div class="list-title">Согласие на обработку данных</div></div><span class="chevron">›</span></article>
+<article class="card list-card" role="button" tabindex="0" onclick="location.href='/marketing-consent.html'"><div class="list-icon"><i class="ti ti-bell-ringing"></i></div><div><div class="list-title">Согласие на рассылки</div><div class="list-sub">Уведомления, новости и предложения</div></div><span class="chevron">›</span></article>
 <article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div class="list-icon"><i class="ti ti-message-2"></i></div><div><div class="list-title">Обратная связь</div></div><span class="chevron">›</span></article>
 <article class="card list-card" role="button" tabindex="0" onclick="logout()"><div class="list-icon danger"><i class="ti ti-logout"></i></div><div><div class="list-title" style="color:var(--danger)">Выйти из аккаунта</div></div></article>
 <article class="card list-card" role="button" tabindex="0" onclick="deleteAccount()"><div class="list-icon danger"><i class="ti ti-trash"></i></div><div><div class="list-title" style="color:var(--danger)">Удалить аккаунт</div><div class="list-sub">Удалит все данные безвозвратно</div></div></article>
@@ -139,6 +141,7 @@
   var N = window.NURA;
   var BASE = N.BASE;
   var $ = document.getElementById.bind(document);
+  var __isGuest = false;
 
   document.querySelectorAll('.tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -157,6 +160,42 @@
   }
 
   var userReports = [];
+
+  function promptGuestAccess() {
+    N.showAuthModal({
+      title: 'Войди, чтобы открыть профиль',
+      copy: 'Профиль, отчёты, подписка и настройки появляются после входа в аккаунт NURA.'
+    });
+  }
+
+  function applyGuestMode() {
+    __isGuest = true;
+    $('profile-name').textContent = 'Гость';
+    $('profile-dob').textContent = 'Войди через email или VK, чтобы открыть профиль и отчёты.';
+    $('profile-archetype').textContent = '✦ Гостевой режим';
+    $('avatar-initials').textContent = 'N';
+    renderReports([]);
+    $('static-matrix-card').style.display = '';
+    $('matrix-report-status').textContent = 'Мини-разбор';
+    $('matrix-open-btn').style.display = 'none';
+    $('matrix-buy-btn').textContent = 'Пройти';
+    $('matrix-buy-btn').onclick = function() { location.href = '/mini.html'; };
+    $('subscribe-btn').textContent = 'Войти в NURA';
+    $('subscribe-btn').disabled = false;
+    $('subscribe-btn').classList.remove('btn-soft');
+    $('subscribe-btn').classList.add('btn-primary');
+    $('subscribe-status').style.display = 'block';
+    $('subscribe-status').style.color = 'var(--text-m)';
+    $('subscribe-status').textContent = 'После входа здесь появятся подписка, карта дня и чат.';
+    document.querySelectorAll('input[data-notif-key]').forEach(function(input) {
+      input.checked = false;
+      input.disabled = true;
+    });
+    document.querySelectorAll('[onclick="logout()"], [onclick="deleteAccount()"]').forEach(function(el) {
+      el.style.display = 'none';
+    });
+    renderTgRow(false);
+  }
 
   N.fetchJSON(BASE + '/web/me')
     .then(function(d) {
@@ -185,7 +224,7 @@
     })
     .catch(function(err) {
       if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
-      if (err && err.status === 401) { location.href = '/mini.html'; }
+      if (err && err.status === 401) { applyGuestMode(); }
     });
 
   var notifPrefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
@@ -195,6 +234,12 @@
   });
 
   window.saveNotif = function(key, val) {
+    if (__isGuest) {
+      var inp = document.querySelector('input[data-notif-key="' + key + '"]');
+      if (inp) inp.checked = false;
+      promptGuestAccess();
+      return;
+    }
     var prefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
     prefs[key] = val;
     localStorage.setItem('nura_notif_prefs', JSON.stringify(prefs));
@@ -226,7 +271,9 @@
     if (!container) return;
 
     if (!reports || !reports.length) {
-      container.innerHTML = '<article class="empty-state"><div class="empty-state-icon"><i class="ti ti-report"></i></div><div class="empty-state-title">Нет отчётов</div><div class="empty-state-copy">У тебя пока нет отчётов. Пройди мини-разбор, чтобы получить первый.</div></article>';
+      container.innerHTML = __isGuest
+        ? '<article class="empty-state"><div class="empty-state-icon"><i class="ti ti-lock"></i></div><div class="empty-state-title">Профиль ждёт вход</div><div class="empty-state-copy">После входа здесь появятся твои отчёты, история и персональные материалы.</div></article>'
+        : '<article class="empty-state"><div class="empty-state-icon"><i class="ti ti-report"></i></div><div class="empty-state-title">Нет отчётов</div><div class="empty-state-copy">У тебя пока нет отчётов. Пройди мини-разбор, чтобы получить первый.</div></article>';
       return;
     }
 
@@ -278,6 +325,10 @@
   };
 
   window.openReport = function(id) {
+    if (__isGuest) {
+      promptGuestAccess();
+      return;
+    }
     var report = null;
     for (var i = 0; i < userReports.length; i++) {
       if (userReports[i].report_type === id) { report = userReports[i]; break; }
@@ -289,11 +340,27 @@
     }
   };
 
-  window.editProfile = function() { location.href = 'https://t.me/ai_nura_bot'; };
+  window.editProfile = function() {
+    if (__isGuest) {
+      promptGuestAccess();
+      return;
+    }
+    location.href = 'https://t.me/ai_nura_bot';
+  };
 
   window.renderTgRow = function(linked) {
     var container = $('tg-link-container');
     if (!container) return;
+    if (__isGuest) {
+      container.innerHTML =
+        '<article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="promptProfileAuth()">' +
+          '<div class="list-icon"><i class="ti ti-brand-telegram"></i></div>' +
+          '<div><div class="list-title">Подключить Telegram</div>' +
+          '<div class="list-sub" id="tg-link-status">доступно после входа</div></div>' +
+          '<span class="chevron">›</span>' +
+        '</article>';
+      return;
+    }
     if (linked) {
       container.innerHTML =
         '<article class="card list-card" id="tg-linked-item">' +
@@ -312,8 +379,13 @@
         '</article>';
     }
   };
+  window.promptProfileAuth = promptGuestAccess;
 
   window.linkTelegram = async function() {
+    if (__isGuest) {
+      promptGuestAccess();
+      return;
+    }
     var el = $('tg-link-status'); if (el) el.textContent = '…';
     try {
       var res = await fetch(BASE + '/web/generate-link-token', {
@@ -375,6 +447,10 @@
   };
 
   window.activateSubscription = function() {
+    if (__isGuest) {
+      promptGuestAccess();
+      return;
+    }
     var btn = $('subscribe-btn');
     var status = $('subscribe-status');
     btn.disabled = true;

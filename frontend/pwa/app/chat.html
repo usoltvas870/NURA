@@ -130,6 +130,7 @@ body{overflow:hidden;padding-bottom:0}
       limitNote = document.getElementById('limit-note'),
       chatLog = JSON.parse(localStorage.getItem('nura_chat_log') || '[]'),
       typingEl = null;
+  var __isGuest = false;
 
   var FREE_LIMIT = 5;
   var today = new Date().toISOString().slice(0, 10);
@@ -145,6 +146,11 @@ body{overflow:hidden;padding-bottom:0}
   }
 
   function updateLimitNote(exhausted) {
+    if (__isGuest) {
+      limitNote.className = 'limit-bar warn';
+      limitNote.innerHTML = '<i class="ti ti-lock" style="font-size:13px"></i> Гостевой режим · войди, чтобы чат отвечал по твоей Матрице';
+      return;
+    }
     if (hasUnlimited) {
       limitNote.className = 'limit-bar ok';
       limitNote.innerHTML = '<i class="ti ti-infinity" style="font-size:13px"></i> Безлимитный чат · подписка активна';
@@ -161,13 +167,30 @@ body{overflow:hidden;padding-bottom:0}
   }
   updateLimitNote();
 
+  function applyGuestMode() {
+    __isGuest = true;
+    hasUnlimited = false;
+    updateLimitNote();
+    document.getElementById('status-text').textContent = 'требуется вход для персонального ответа';
+    if (!chatLog.length) {
+      emptyState.style.display = 'grid';
+    }
+  }
+
+  function promptGuestAccess() {
+    N.showAuthModal({
+      title: 'Войди, чтобы открыть чат',
+      copy: 'После входа NURA ответит с учётом твоей Матрицы, отчётов и текущего контекста.'
+    });
+  }
+
   N.fetchJSON(BASE + '/web/me')
     .then(function(d) {
       if (d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active' || d.has_matrix) { hasUnlimited = true; updateLimitNote(); }
     })
     .catch(function(err) {
       if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
-      if (err && err.status === 401) { location.href = '/mini.html'; }
+      if (err && err.status === 401) { applyGuestMode(); }
     });
 
   inputEl.addEventListener('input', function() {
@@ -204,6 +227,14 @@ body{overflow:hidden;padding-bottom:0}
   window.sendMessage = function(retryText) {
     var text = retryText || inputEl.value.trim();
     if (!text) return;
+    if (__isGuest) {
+      if (!retryText) {
+        emptyState.style.display = 'none';
+        addBubble('user', text, N.now(), true);
+      }
+      promptGuestAccess();
+      return;
+    }
     if (!retryText) { inputEl.value = ''; inputEl.style.height = 'auto'; sendBtn.disabled = true; }
     emptyState.style.display = 'none';
     var t = N.now();
@@ -222,7 +253,12 @@ body{overflow:hidden;padding-bottom:0}
     .then(function(r) {
       if (r.status === 402 || r.status === 429) return { _limit: true };
       if (r.status === 403) { location.href = '/app/?blocked=1'; return { _gone: true }; }
-      if (r.status === 401) { location.href = '/mini.html'; return { _gone: true }; }
+      if (r.status === 401) {
+        hideTyping();
+        applyGuestMode();
+        promptGuestAccess();
+        return { _gone: true };
+      }
       return r.json().then(function(j) { return r.ok ? j : Object.assign({ _status: r.status }, j); }).catch(function() { return { _status: r.status }; });
     })
     .then(function(d) {
@@ -275,7 +311,7 @@ body{overflow:hidden;padding-bottom:0}
     msgs.appendChild(typingEl); scrollBottom();
   }
   function hideTyping() {
-    document.getElementById('status-text').textContent = 'отвечает на основе твоей Матрицы';
+    document.getElementById('status-text').textContent = __isGuest ? 'требуется вход для персонального ответа' : 'отвечает на основе твоей Матрицы';
     if (typingEl) { typingEl.remove(); typingEl = null; }
   }
 

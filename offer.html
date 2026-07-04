@@ -38,11 +38,16 @@ ul li{margin-bottom:6px}
 .requisites{background:var(--bg-card);border:1px solid var(--line);border-radius:var(--r-md);padding:24px;margin-top:8px}
 .req-row{display:flex;gap:12px;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px}
 .req-row:last-child{border-bottom:none;padding-bottom:0}
-.req-label{color:var(--text-s);white-space:nowrap}
-.req-value{color:var(--text);font-weight:500;text-align:right}
-@media (max-width:480px){
-  .requisites{padding:18px}
-  .req-row{display:block}
+  .req-label{color:var(--text-s);white-space:nowrap}
+  .req-value{color:var(--text);font-weight:500;text-align:right}
+  .legal-nav{margin-top:32px;padding-top:24px;border-top:1px solid var(--line)}
+  .legal-nav-title{font-size:12px;color:var(--text-s);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+  .legal-nav-grid{display:flex;flex-wrap:wrap;gap:10px}
+  .legal-pill{display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border:1px solid var(--line);border-radius:999px;background:var(--bg-soft);color:var(--text);font-size:13px;line-height:1.35;transition:border-color .2s,color .2s,transform .2s}
+  .legal-pill:hover{border-color:var(--terra);color:var(--terra);transform:translateY(-1px)}
+  @media (max-width:480px){
+    .requisites{padding:18px}
+    .req-row{display:block}
   .req-label{display:block;margin-bottom:3px}
   .req-value{display:block;text-align:left;overflow-wrap:anywhere}
 }
@@ -311,6 +316,15 @@ ul li{margin-bottom:6px}
     <div class="req-row"><span class="req-label">ИНН</span><span class="req-value">543124616164</span></div>
     <div class="req-row"><span class="req-label">Сайт</span><span class="req-value">nura-ai.ru</span></div>
     <div class="req-row"><span class="req-label">Email для обращений</span><span class="req-value"><a href="mailto:bayzelai87@gmail.com">bayzelai87@gmail.com</a></span></div>
+  </div>
+  <div class="legal-nav">
+    <div class="legal-nav-title">Юридические документы</div>
+    <div class="legal-nav-grid">
+      <a href="/offer.html" class="legal-pill">Публичная оферта</a>
+      <a href="/privacy.html" class="legal-pill">Политика обработки данных</a>
+      <a href="/personal-data-consent.html" class="legal-pill">Согласие на обработку данных</a>
+      <a href="/marketing-consent.html" class="legal-pill">Согласие на рассылки</a>
+    </div>
   </div>
 </div>
 </body></html>
