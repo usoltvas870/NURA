@@ -24,17 +24,116 @@
 <link rel="stylesheet" href="/theme.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;scroll-behavior:smooth}
 body{
   min-height:100dvh;
   background:var(--bg);
   color:var(--text);font-family:var(--font-sans);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden;
-  display:flex;align-items:center;justify-content:center;padding-bottom:0;
 }
 a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;background:none;color:inherit;cursor:pointer}
-.mini-wrap{width:min(100%,460px);padding:28px 16px}
-@media(min-width:768px){.mini-wrap{width:min(100%,680px);padding:40px 24px}}
-@media(min-width:1024px){.mini-wrap{width:min(100%,760px);padding:48px 32px}}
+
+/* ── Layout ── */
+.mini-layout{display:flex;min-height:100dvh}
+.mini-sidebar{
+  display:none;
+  position:fixed;top:0;left:0;bottom:0;
+  width:260px;
+  background:var(--bg-card);
+  border-right:1px solid var(--line);
+  padding:32px 20px;
+  flex-direction:column;
+  z-index:40;
+}
+@media(min-width:768px){.mini-sidebar{display:flex}}
+.mini-sidebar-brand{display:flex;align-items:center;gap:8px;margin-bottom:32px}
+.mini-sidebar-brand .mark{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,var(--terra),var(--terra-d));
+  color:#fff;display:grid;place-items:center;
+  font-family:var(--font-serif);font-weight:600;font-size:13px;
+}
+.mini-sidebar-brand .name{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--text-m)}
+.mini-sidebar-nav{flex:1;display:flex;flex-direction:column;gap:2px}
+.mini-sidebar-link{
+  display:flex;align-items:baseline;gap:10px;
+  padding:10px 12px;border-radius:10px;
+  font-size:13px;color:var(--text-m);
+  transition:background .15s,color .15s;cursor:pointer;
+}
+.mini-sidebar-link:hover{background:var(--bg-card-soft);color:var(--text)}
+.mini-sidebar-link.active{background:rgba(184,116,63,.10);color:var(--terra)}
+.mini-sidebar-link .num{font-family:var(--font-serif);font-size:12px;color:var(--text-s);width:22px;flex:none}
+.mini-sidebar-link.active .num{color:var(--terra)}
+.mini-sidebar-foot{margin-top:auto;padding-top:16px;border-top:1px solid var(--line);font-size:11px;color:var(--text-s);line-height:1.5}
+
+.mini-main{
+  flex:1;
+  padding:24px 16px 120px;
+}
+@media(min-width:768px){.mini-main{margin-left:260px;padding:40px 32px 60px}}
+@media(min-width:1024px){.mini-main{padding:48px 48px 60px}}
+
+.mini-main-inner{max-width:660px;margin:0 auto}
+@media(min-width:768px){.mini-main-inner{max-width:720px}}
+
+/* ── Mobile burger bar ── */
+.mini-mobile-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:var(--bg-card);
+  border-top:1px solid var(--line);
+  box-shadow:0 -4px 24px rgba(0,0,0,.10);
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));
+  display:flex;align-items:center;gap:8px;
+}
+@media(min-width:768px){.mini-mobile-bar{display:none}}
+.mini-mobile-bar button{
+  flex:1;min-height:44px;
+  border-radius:10px;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:background .15s,color .15s;
+}
+.mini-mobile-bar .bar-burger{
+  flex:none;width:44px;
+  background:var(--bg-card-soft);border:1px solid var(--line);color:var(--text-m);
+}
+.mini-mobile-bar .bar-prev,.mini-mobile-bar .bar-next{
+  background:var(--bg-card-soft);border:1px solid var(--line);color:var(--text-m);
+}
+.mini-mobile-bar .bar-prev:disabled,.mini-mobile-bar .bar-next:disabled{opacity:.35;cursor:default}
+
+/* ── Mobile nav dropdown ── */
+.mini-mobile-dropdown{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:60;
+  background:var(--bg-card);
+  border-top:1px solid var(--line);
+  box-shadow:0 -8px 32px rgba(0,0,0,.18);
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));
+  border-radius:20px 20px 0 0;
+  max-height:60vh;overflow-y:auto;
+}
+.mini-mobile-dropdown.open{display:block;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.mini-mobile-dropdown .dd-item{
+  display:flex;align-items:baseline;gap:10px;
+  padding:14px 12px;border-radius:10px;
+  font-size:14px;color:var(--text-m);cursor:pointer;
+  transition:background .15s;
+}
+.mini-mobile-dropdown .dd-item:hover{background:var(--bg-card-soft)}
+.mini-mobile-dropdown .dd-item.active{background:rgba(184,116,63,.10);color:var(--terra)}
+.mini-mobile-dropdown .dd-item .num{font-family:var(--font-serif);font-size:12px;color:var(--text-s);width:22px}
+.mini-mobile-dropdown .dd-item.active .num{color:var(--terra)}
+.mini-mobile-dropdown .dd-close{
+  display:block;width:100%;margin-top:12px;padding:12px;
+  border-radius:10px;background:var(--bg-card-soft);
+  border:1px solid var(--line);font-size:13px;font-weight:700;
+  color:var(--text-m);text-align:center;
+}
+.mini-mobile-dropdown .dd-backdrop{
+  position:fixed;inset:0;z-index:-1;background:rgba(0,0,0,.3);
+}
+
+/* ── Form card ── */
 .card{background:var(--bg-card);border:1px solid rgba(255,255,255,.64);border-radius:var(--r-lg);box-shadow:var(--shadow-card);overflow:hidden;position:relative}
 [data-theme="dark"] .card{border-color:var(--line)}
 .eyebrow{font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;color:var(--terra)}
@@ -46,19 +145,11 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 .btn-primary{background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,116,63,.32)}
 .btn-primary:hover{background:var(--terra-d);transform:translateY(-2px);box-shadow:0 14px 32px rgba(184,116,63,.4)}
 .btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
-.btn-vk{background:#0077FF;color:#fff;box-shadow:0 6px 20px rgba(0,119,255,.30);gap:10px}
-.btn-vk:hover{background:#0066DD;transform:translateY(-2px);box-shadow:0 12px 28px rgba(0,119,255,.38)}
 .btn-full{width:100%}
 .btn:disabled{opacity:.55;cursor:not-allowed}
-.auth-form{display:none;grid-template-columns:1fr;gap:12px;margin-top:16px}
-.auth-form.show{display:grid}
-.auth-success{margin-top:16px;text-align:center;display:grid;gap:12px}
-.auth-hint{font-size:12px;color:var(--text-s);line-height:1.5;text-align:center;margin-top:6px}
 .input{width:100%;height:52px;border:1px solid var(--line-strong);background:var(--bg-card);color:var(--text);border-radius:var(--r-md);outline:none;font-size:15px;padding:0 16px;transition:border-color .2s,box-shadow .2s}
 .input:focus{border-color:rgba(184,116,63,.42);box-shadow:0 0 0 3px rgba(184,116,63,.10)}
-.input:-webkit-autofill,
-.input:-webkit-autofill:hover,
-.input:-webkit-autofill:focus{
+.input:-webkit-autofill,.input:-webkit-autofill:hover,.input:-webkit-autofill:focus{
   -webkit-text-fill-color:var(--text);
   -webkit-box-shadow:0 0 0 1000px var(--bg-card) inset;
   box-shadow:0 0 0 1000px var(--bg-card) inset;
@@ -82,43 +173,172 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 .chip input:checked+span{background:rgba(184,116,63,.10);border-color:rgba(184,116,63,.28);color:var(--terra)}
 .stage{display:none}.stage.active{display:block;animation:fadeUp .36s ease both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.result-blocks{display:grid;gap:10px;margin:20px 0}
-.result-block{display:grid;grid-template-columns:40px 1fr;gap:12px;padding:14px;background:var(--bg-card-soft);border:1px solid var(--line);border-radius:var(--r-md)}
-.result-icon{width:40px;height:40px;border-radius:14px;background:rgba(184,116,63,.09);color:var(--terra);display:grid;place-items:center;font-family:var(--font-serif);font-size:20px}
-.result-label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--terra);font-weight:800;margin-bottom:3px}
-.result-text{font-family:var(--font-serif);font-size:18px;line-height:1.35;color:var(--text)}
-
-.result-carousel{margin:20px 0}
-.result-slide{display:none;animation:resultFadeIn .3s ease both}
-.result-slide.active{display:block}
-@keyframes resultFadeIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
-
-.result-nav{display:flex;align-items:center;justify-content:space-between;margin:16px 0 20px}
-.result-nav-btn{background:none;border:none;color:var(--terra);font-size:13px;font-weight:700;cursor:pointer;padding:8px 4px;transition:opacity .2s}
-.result-nav-btn:disabled{opacity:.35;cursor:default}
-.result-nav-btn:hover:not(:disabled){opacity:.7}
-.result-dots{display:flex;gap:6px}
-.result-dots .dot{width:8px;height:8px;border-radius:50%;background:var(--line);transition:background .2s}
-.result-dots .dot.active{background:var(--terra)}
-.nav-footer{display:flex;flex-direction:column;gap:8px;margin-top:14px;text-align:center}
-.nav-footer a{display:block;font-size:13px;color:var(--text-m);font-weight:700;padding:6px 0}
-.welcome-icon{width:80px;height:80px;border-radius:50%;background:rgba(184,116,63,.12);color:var(--terra);display:grid;place-items:center;font-size:36px;margin:0 auto 24px}
-.welcome-name{font-family:var(--font-serif);font-size:clamp(28px,6vw,36px);line-height:1.1;font-weight:400;margin-bottom:16px}
-.welcome-name em{color:var(--terra);font-style:italic}
-.welcome-text{color:var(--text-m);font-size:15px;line-height:1.6;margin-bottom:32px}
-.welcome-actions{display:grid;gap:12px}
-.welcome-secondary{font-size:13px;color:var(--text-m);text-align:center;margin-top:16px}
-.welcome-secondary a{color:var(--terra);text-decoration:underline;font-weight:600}
 .loader{display:none;width:20px;height:20px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 .btn.loading .loader{display:inline-block}.btn.loading .btn-text{display:none}.btn.loading{pointer-events:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:380px){.chips{grid-template-columns:1fr}}
+
+/* ── Result sections (report-style) ── */
+.result-section{
+  scroll-margin-top:24px;
+  margin-bottom:48px;
+}
+@media(min-width:768px){.result-section{margin-bottom:64px}}
+.result-section-head{
+  margin-bottom:24px;
+}
+@media(min-width:768px){.result-section-head{margin-bottom:32px}}
+.result-section-head .sec-nbr{
+  font-family:var(--font-serif);font-style:italic;
+  font-size:13px;color:var(--terra);
+  letter-spacing:.1em;margin-bottom:10px;display:block;
+}
+.result-section-head h2{
+  font-family:var(--font-serif);font-size:clamp(24px,6vw,36px);
+  line-height:1.1;font-weight:400;color:var(--text);margin:0 0 8px;
+}
+.result-section-head h2 em{color:var(--terra);font-style:italic}
+.result-section-head .sec-icon{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:10px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--terra);
+  background:rgba(184,116,63,.08);padding:5px 12px;
+  border-radius:999px;margin-bottom:12px;
+}
+
+/* ── Prose card (text formatting) ── */
+.prose-card{
+  background:var(--bg-card);
+  border-radius:var(--r-md);
+  padding:22px 18px;
+  box-shadow:var(--shadow-card);
+  border:1px solid var(--line);
+}
+@media(min-width:768px){.prose-card{padding:28px 32px}}
+.prose-card p{
+  font-family:var(--font-sans);
+  font-size:15px;line-height:1.7;
+  color:var(--text);margin:0 0 16px;
+}
+.prose-card p:last-child{margin-bottom:0}
+.prose-card strong{color:var(--text);font-weight:700}
+.prose-card em{color:var(--terra);font-family:var(--font-serif);font-size:1.03em}
+.prose-card blockquote{
+  margin:20px 0;padding:12px 0 12px 18px;
+  border-left:3px solid var(--terra);
+  font-family:var(--font-serif);font-style:italic;
+  font-size:17px;line-height:1.45;color:var(--text);
+}
+
+/* ── Section nav (between sections) ── */
+.section-nav{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:32px;padding-top:16px;border-top:1px solid var(--line);
+  font-size:13px;
+}
+.section-nav a{
+  display:inline-flex;align-items:center;gap:6px;
+  color:var(--terra);font-weight:700;
+  transition:opacity .2s;
+}
+.section-nav a:hover{opacity:.7}
+.section-nav .prev{color:var(--text-m)}
+
+/* ── Disclaimer ── */
+.disclaimer{
+  margin-top:32px;padding-top:14px;
+  border-top:1px solid var(--line);
+  font-size:11px;color:var(--text-s);font-style:italic;
+  line-height:1.5;
+}
+
+/* ── Progress bar ── */
+.progress-bar{
+  position:fixed;top:0;left:0;right:0;z-index:55;
+  height:3px;background:var(--line);
+}
+.progress-bar .fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--terra),var(--terra-d));
+  transition:width .2s ease;
+}
+
+/* ── Topbar (result stage) ── */
+.result-topbar{
+  position:sticky;top:3px;z-index:45;
+  background:rgba(var(--bg-rgb,239,238,233),.92);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+  padding:10px 16px;
+  display:flex;align-items:center;gap:12px;
+  margin:-24px -16px 24px;
+}
+@media(min-width:768px){.result-topbar{margin:-40px -32px 32px;padding:12px 0}}
+.result-topbar .topbar-brand{display:flex;align-items:center;gap:8px;flex:none}
+.result-topbar .topbar-brand .mark{
+  width:24px;height:24px;border-radius:50%;
+  background:linear-gradient(135deg,var(--terra),var(--terra-d));
+  color:#fff;display:grid;place-items:center;
+  font-family:var(--font-serif);font-weight:600;font-size:11px;
+}
+.result-topbar .topbar-brand .name{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--text-m)}
+.result-topbar .topbar-section-name{
+  margin-left:auto;font-size:12px;color:var(--text-s);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.result-topbar .topbar-section-name .n{color:var(--terra);font-weight:600}
+[data-theme="dark"] .result-topbar{background:rgba(18,16,14,.92)}
+
+/* ── CTA block ── */
+.result-cta{
+  margin-top:40px;padding:28px 22px;
+  background:radial-gradient(circle at 86% 0%,rgba(194,164,118,.18),transparent 40%),var(--bg-card);
+  border:1px solid var(--line);border-radius:var(--r-lg);
+  text-align:center;
+}
+@media(min-width:768px){.result-cta{padding:36px 40px}}
+.result-cta h3{
+  font-family:var(--font-serif);font-size:clamp(22px,5vw,28px);
+  font-weight:400;margin-bottom:8px;color:var(--text);
+}
+.result-cta h3 em{color:var(--terra);font-style:italic}
+.result-cta p{font-size:14px;color:var(--text-m);line-height:1.6;margin-bottom:20px}
+.result-cta .cta-actions{display:grid;gap:10px}
+@media(min-width:480px){.result-cta .cta-actions{grid-template-columns:1fr 1fr}}
+
+/* ── Skeleton ── */
+.skeleton{background:var(--bg-card-soft);border-radius:6px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.6}50%{opacity:.3}}
+.skeleton-line{display:block;height:14px;margin-bottom:8px;border-radius:6px}
+.skeleton-line:last-child{margin-bottom:0}
 </style>
-<script src="/assets/vendor/vkid-sdk.js" defer></script>
 <script src="/metrika.js" defer></script>
 </head><body>
 <noscript><div><img src="https://mc.yandex.ru/watch/109200181" style="position:absolute;left:-9999px" alt=""/></div></noscript>
-<div class="mini-wrap">
+
+<div class="mini-layout">
+
+<!-- ── Desktop sidebar (shown only on result stage) ── -->
+<aside class="mini-sidebar" id="sidebar" style="display:none">
+  <div class="mini-sidebar-brand">
+    <span class="mark">N</span>
+    <span class="name">NURA AI</span>
+  </div>
+  <nav class="mini-sidebar-nav" id="sidebar-nav">
+    <a class="mini-sidebar-link" data-section="s-archetype"><span class="num">01</span><span>Архетип</span></a>
+    <a class="mini-sidebar-link" data-section="s-strength"><span class="num">02</span><span>Сила</span></a>
+    <a class="mini-sidebar-link" data-section="s-conflict"><span class="num">03</span><span>Конфликт</span></a>
+    <a class="mini-sidebar-link" data-section="s-relations"><span class="num">04</span><span>Отношения</span></a>
+    <a class="mini-sidebar-link" data-section="s-finance"><span class="num">05</span><span>Деньги</span></a>
+  </nav>
+  <div class="mini-sidebar-foot">Мини-разбор · NURA AI</div>
+</aside>
+
+<!-- ── Main content ── -->
+<div class="mini-main">
+<div class="mini-main-inner">
+
+<!-- ═══════ STAGE: FORM ═══════ -->
 <section class="card mini-card stage active" id="stage-form">
 <a href="/" class="small">← На главную</a>
 <div style="margin-top:18px" class="eyebrow">Бесплатный мини-разбор</div>
@@ -145,194 +365,294 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 </form>
 <div class="small" id="error-msg" style="display:none;margin-top:14px;color:#C45C5C;text-align:center">Введи дату в формате ДД.ММ.ГГГГ</div>
 </section>
-<section class="card mini-card stage" id="stage-result">
-<a href="/" class="small">← На главную</a>
-<div style="margin-top:18px" class="eyebrow">Твой первый фрагмент</div>
-<h1 class="title" style="margin-top:10px">Архетип — <em id="res-archetype-name">…</em></h1>
-<p class="lead" style="margin-top:12px" id="request-line">Загрузка результатов…</p>
 
-<div class="result-carousel" id="result-carousel">
-  <div class="result-slide active" data-slide="0">
-    <div class="result-block">
-      <div class="result-icon">◈</div>
-      <div>
-        <div class="result-label">Описание архетипа</div>
-        <div class="result-text" id="res-archetype-full" style="font-family:var(--font-sans);font-size:14.5px;line-height:1.6;font-style:normal">Загрузка…</div>
-      </div>
-    </div>
+<!-- ═══════ STAGE: RESULT ═══════ -->
+<section class="stage" id="stage-result">
+
+<div class="progress-bar" id="progress-bar"><div class="fill" id="progress-fill"></div></div>
+
+<div class="result-topbar">
+  <div class="topbar-brand"><span class="mark">N</span><span class="name">NURA</span></div>
+  <div class="topbar-section-name" id="topbar-section-name"><span class="n">01</span> · Архетип</div>
+</div>
+
+<!-- Section 01 — Архетип -->
+<div class="result-section" id="s-archetype">
+  <div class="result-section-head">
+    <div class="sec-icon">◈ Архетип</div>
+    <span class="sec-nbr">01 — Архетип личности</span>
+    <h2>Твой главный архетип — <em id="res-archetype-name">…</em></h2>
   </div>
-  <div class="result-slide" data-slide="1">
-    <div class="result-block">
-      <div class="result-icon">✦</div>
-      <div>
-        <div class="result-label">Ключевая сила</div>
-        <div class="result-text" id="val-core">…</div>
-      </div>
-    </div>
+  <div class="prose-card" id="res-archetype-prose">
+    <p>Загрузка…</p>
   </div>
-  <div class="result-slide" data-slide="2">
-    <div class="result-block">
-      <div class="result-icon">◈</div>
-      <div>
-        <div class="result-label">Внутренний конфликт</div>
-        <div class="result-text" id="val-conflict">…</div>
-      </div>
-    </div>
-  </div>
-  <div class="result-slide" data-slide="3">
-    <div class="result-block">
-      <div class="result-icon">∞</div>
-      <div>
-        <div class="result-label">Паттерн отношений</div>
-        <div class="result-text" id="val-relations">…</div>
-      </div>
-    </div>
-  </div>
-  <div class="result-slide" data-slide="4">
-    <div class="result-block">
-      <div class="result-icon">₽</div>
-      <div>
-        <div class="result-label">Финансовый блок</div>
-        <div class="result-text" id="val-finance">…</div>
-      </div>
-    </div>
+  <p class="lead" style="margin-top:14px" id="request-line"></p>
+  <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+  <div class="section-nav">
+    <span></span>
+    <a href="#s-strength" class="next" data-nav="s-strength">02 · Сила →</a>
   </div>
 </div>
 
-<div class="result-nav">
-  <button class="result-nav-btn" id="result-prev" disabled>← Назад</button>
-  <div class="result-dots" id="result-dots">
-    <span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+<!-- Section 02 — Сила -->
+<div class="result-section" id="s-strength">
+  <div class="result-section-head">
+    <div class="sec-icon">✦ Ключевая сила</div>
+    <span class="sec-nbr">02 — Ключевая сила</span>
+    <h2>Твоя <em>внутренняя сила</em></h2>
   </div>
-  <button class="result-nav-btn" id="result-next">Далее →</button>
+  <div class="prose-card" id="res-strength-prose">
+    <p>Загрузка…</p>
+  </div>
+  <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+  <div class="section-nav">
+    <a href="#s-archetype" class="prev" data-nav="s-archetype">← 01 · Архетип</a>
+    <a href="#s-conflict" class="next" data-nav="s-conflict">03 · Конфликт →</a>
+  </div>
 </div>
 
-<button class="btn btn-primary btn-full" id="pay-btn"><span class="btn-text">Получить полный отчёт — 890 ₽</span><span class="loader"></span></button>
-<div class="nav-footer" style="margin-top:18px;padding-top:18px;border-top:1px solid var(--line);display:grid;gap:8px">
-<a href="/app/" class="btn btn-soft btn-full">Открыть приложение NURA</a>
-<a href="/" class="small" style="text-align:center;margin-top:4px">← Вернуться на лендинг</a>
+<!-- Section 03 — Конфликт -->
+<div class="result-section" id="s-conflict">
+  <div class="result-section-head">
+    <div class="sec-icon">◈ Внутренний конфликт</div>
+    <span class="sec-nbr">03 — Внутренний конфликт</span>
+    <h2>Что <em>блокирует</em> твой рост</h2>
+  </div>
+  <div class="prose-card" id="res-conflict-prose">
+    <p>Загрузка…</p>
+  </div>
+  <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+  <div class="section-nav">
+    <a href="#s-strength" class="prev" data-nav="s-strength">← 02 · Сила</a>
+    <a href="#s-relations" class="next" data-nav="s-relations">04 · Отношения →</a>
+  </div>
 </div>
+
+<!-- Section 04 — Отношения -->
+<div class="result-section" id="s-relations">
+  <div class="result-section-head">
+    <div class="sec-icon">∞ Паттерн отношений</div>
+    <span class="sec-nbr">04 — Отношения</span>
+    <h2>Твой паттерн <em>в отношениях</em></h2>
+  </div>
+  <div class="prose-card" id="res-relations-prose">
+    <p>Загрузка…</p>
+  </div>
+  <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+  <div class="section-nav">
+    <a href="#s-conflict" class="prev" data-nav="s-conflict">← 03 · Конфликт</a>
+    <a href="#s-finance" class="next" data-nav="s-finance">05 · Деньги →</a>
+  </div>
+</div>
+
+<!-- Section 05 — Деньги -->
+<div class="result-section" id="s-finance">
+  <div class="result-section-head">
+    <div class="sec-icon">₽ Финансовый блок</div>
+    <span class="sec-nbr">05 — Деньги</span>
+    <h2>Финансовый <em>блок</em></h2>
+  </div>
+  <div class="prose-card" id="res-finance-prose">
+    <p>Загрузка…</p>
+  </div>
+  <div class="disclaimer">Этот разбор — инструмент самопознания, не предсказание будущего.</div>
+  <div class="section-nav">
+    <a href="#s-relations" class="prev" data-nav="s-relations">← 04 · Отношения</a>
+    <span></span>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="result-cta">
+  <h3>Хочешь <em>полный разбор</em>?</h3>
+  <p>Полный отчёт раскрывает все линии матрицы: кармический хвост, предназначение, здоровье, прогноз на год.</p>
+  <div class="cta-actions">
+    <button class="btn btn-primary" id="pay-btn"><span class="btn-text">Получить полный отчёт — 890 ₽</span><span class="loader"></span></button>
+    <a href="/app/" class="btn btn-soft">Открыть приложение NURA</a>
+  </div>
+  <a href="/" class="small" style="display:block;margin-top:16px;text-align:center">← Вернуться на лендинг</a>
+</div>
+
 </section>
-<section class="card mini-card stage" id="stage-auth">
-<a href="/" class="small">← На главную</a>
-<h1 class="title" style="margin-top:24px">Забери <em>свой отчёт</em></h1>
-<p class="lead" style="margin-top:16px;line-height:1.7">Создай аккаунт за один клик — и полный отчёт откроется в приложении.</p>
-<div style="margin-top:24px">
-<button class="btn btn-primary btn-full" id="auth-email-btn" type="button">Зарегистрироваться через Email</button>
-<div class="auth-hint" style="margin-top:8px">Без пароля — вход по ссылке</div>
+
+</div><!-- .mini-main-inner -->
+</div><!-- .mini-main -->
+
+<!-- ── Mobile burger bar ── -->
+<div class="mini-mobile-bar" id="mobile-bar" style="display:none">
+  <button class="bar-burger" id="bar-burger" aria-label="Навигация"><i class="ti ti-menu-2"></i></button>
+  <button class="bar-prev" id="bar-prev" disabled>← Назад</button>
+  <button class="bar-next" id="bar-next">Далее →</button>
 </div>
-<div class="auth-form" id="auth-email-form" style="margin-top:16px">
-<input class="input" type="email" id="auth-email-input" placeholder="you@example.com" autocomplete="email">
-<button class="btn btn-soft btn-full" id="auth-email-submit" type="button" style="margin-top:12px"><span class="btn-text">Создать аккаунт</span><span class="loader"></span></button>
+
+<!-- ── Mobile dropdown ── -->
+<div class="mini-mobile-dropdown" id="mobile-dropdown">
+  <div class="dd-backdrop" id="dd-backdrop"></div>
+  <a class="dd-item" data-section="s-archetype"><span class="num">01</span><span>Архетип</span></a>
+  <a class="dd-item" data-section="s-strength"><span class="num">02</span><span>Сила</span></a>
+  <a class="dd-item" data-section="s-conflict"><span class="num">03</span><span>Конфликт</span></a>
+  <a class="dd-item" data-section="s-relations"><span class="num">04</span><span>Отношения</span></a>
+  <a class="dd-item" data-section="s-finance"><span class="num">05</span><span>Деньги</span></a>
+  <button class="dd-close" id="dd-close">Закрыть</button>
 </div>
-<div class="auth-success" id="auth-success" style="display:none;margin-top:16px"></div>
-<div class="small" id="auth-error-msg" style="display:none;margin-top:16px;color:#C45C5C;text-align:center"></div>
-<div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--line);text-align:center">
-<div class="small" style="margin-bottom:16px">Или войти через</div>
-<div id="vk-auth-container" style="display:inline-block">
-        <button class="btn btn-vk" id="vk-login-btn" type="button" onclick="vkLogin()" style="min-width:220px"><svg style="width:20px;height:20px;flex-shrink:0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.16 17.5c-5.46 0-9.13-3.74-9.29-9.96h2.76c.11 4.57 2.32 6.49 4.05 6.89V7.54h2.61v3.96c1.71-.18 3.5-1.95 4.1-3.96h2.58c-.43 2.43-2.36 4.2-3.71 4.93 1.35.6 3.56 2.14 4.4 4.93h-2.86c-.65-2.03-2.27-3.6-4.51-3.81v3.81h-.31z"/></svg><span>Войти через VK</span></button>
-</div>
-</div>
-<div style="text-align:center;margin-top:20px">
-<a href="/app/" class="small" style="color:var(--text-m);text-decoration:underline">Уже есть аккаунт? Войти →</a>
-</div>
+
+</div><!-- .mini-layout -->
+
 <script>
-function randomUrlSafe(byteLength) {
-  var bytes = new Uint8Array(byteLength || 32);
-  crypto.getRandomValues(bytes);
-  var binary = '';
-  for (var i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
-}
-
-function vkLogin() {
-  var SDK = window.VKIDSDK;
-  if (!SDK) {
-    authError('Не удалось загрузить модуль входа VK.');
-    return;
-  }
-
-  var btn = document.getElementById('vk-login-btn');
-  btn.disabled = true;
-  btn.classList.add('loading');
-
-  var state = randomUrlSafe(32);
-  var codeVerifier = randomUrlSafe(64);
-
-  sessionStorage.setItem('nura_vk_state', state);
-  sessionStorage.setItem('nura_vk_code_verifier', codeVerifier);
-  sessionStorage.setItem('nura_vk_started_at', String(Date.now()));
-
-  SDK.Config.init({
-    app: 54660807,
-    redirectUrl: 'https://nura-ai.ru/vk-callback.html',
-    state: state,
-    codeVerifier: codeVerifier,
-    scope: 'email'
-  });
-
-  SDK.Auth.login().catch(function() {
-    authError('Не удалось открыть вход через VK. Попробуйте ещё раз.');
-  }).finally(function() {
-    btn.disabled = false;
-    btn.classList.remove('loading');
-  });
-}
-</script>
-</section>
-<section class="card mini-card stage" id="stage-welcome">
-<a href="/" class="small">← На главную</a>
-<div class="welcome-icon">✦</div>
-<h1 class="welcome-name">С возвращением<em id="welcome-user-name">!</em></h1>
-<p class="welcome-text">Твой профиль уже здесь. Перейди в приложение, чтобы продолжить работу с разборами и получить полный отчёт.</p>
-<div class="welcome-actions">
-<a href="/app/" class="btn btn-primary btn-full">Перейти в приложение</a>
-<a href="/" class="btn btn-soft btn-full" style="background:transparent;border-color:var(--line)">На главную</a>
-</div>
-
-</section>
-</div><script>
 var labels={self:'понять себя',money:'деньги и реализацию',love:'отношения',scenario:'повторяющиеся сценарии',purpose:'предназначение',unknown:'разобраться без точной формулировки'};
-var stageForm=document.getElementById('stage-form'),stageResult=document.getElementById('stage-result'),stageAuth=document.getElementById('stage-auth'),stageWelcome=document.getElementById('stage-welcome');
+var stageForm=document.getElementById('stage-form'),stageResult=document.getElementById('stage-result');
 var birth=document.getElementById('birth_date'),form=document.getElementById('mini-form'),err=document.getElementById('error-msg'),submitBtn=document.getElementById('submit-btn');
 var consentBox=document.getElementById('pd_consent');
 
+var sectionIds=['s-archetype','s-strength','s-conflict','s-relations','s-finance'];
+var sectionNames={};
+sectionNames['s-archetype']='Архетип';
+sectionNames['s-strength']='Сила';
+sectionNames['s-conflict']='Конфликт';
+sectionNames['s-relations']='Отношения';
+sectionNames['s-finance']='Деньги';
+var sectionNums={};
+sectionNums['s-archetype']='01';
+sectionNums['s-strength']='02';
+sectionNums['s-conflict']='03';
+sectionNums['s-relations']='04';
+sectionNums['s-finance']='05';
+
 function showStage(name){
-  stageForm.classList.remove('active');stageResult.classList.remove('active');stageAuth.classList.remove('active');stageWelcome.classList.remove('active');
-  if(name==='form')stageForm.classList.add('active');
-  if(name==='result')stageResult.classList.add('active');
-  if(name==='auth')stageAuth.classList.add('active');
-  if(name==='welcome')stageWelcome.classList.add('active');
+  stageForm.classList.remove('active');stageResult.classList.remove('active');
+  if(name==='form'){stageForm.classList.add('active');document.getElementById('sidebar').style.display='';document.getElementById('mobile-bar').style.display='';}
+  if(name==='result'){
+    stageResult.classList.add('active');
+    if(window.innerWidth>=768)document.getElementById('sidebar').style.display='flex';
+    document.getElementById('mobile-bar').style.display='';
+    updateNavState();
+  }
   err.style.display='none';
 }
 
-// Проверка сессии — если пользователь уже авторизован, показать welcome-экран
-fetch('/api/v1/web/session-check',{method:'GET',credentials:'same-origin'})
-.then(function(res){if(res.ok)return res.json();throw new Error('no session');})
-.then(function(data){
-  if(data&&data.authenticated){
-    // Получаем имя пользователя для персонализации
-    fetch('/api/v1/web/me',{method:'GET',credentials:'same-origin'})
-    .then(function(res){if(res.ok)return res.json();return null;})
-    .then(function(user){
-      if(user&&user.name&&user.name!=='Гость'&&user.name!=='Пользователь'){
-        document.getElementById('welcome-user-name').textContent=', '+user.name+'!';
-      }
-    })
-    .catch(function(){});
-    showStage('welcome');
+/* ── Navigation state ── */
+function getCurrentSection(){
+  var sections=sectionIds.map(function(id){return document.getElementById(id);});
+  var scrollY=window.scrollY+120;
+  var current=sectionIds[0];
+  for(var i=sections.length-1;i>=0;i--){
+    if(sections[i]&&sections[i].offsetTop<=scrollY){current=sectionIds[i];break;}
   }
-})
-.catch(function(){});
+  return current;
+}
 
+function updateNavState(){
+  var current=getCurrentSection();
+  var idx=sectionIds.indexOf(current);
+
+  // Sidebar links
+  document.querySelectorAll('#sidebar-nav .mini-sidebar-link').forEach(function(a){
+    a.classList.toggle('active',a.getAttribute('data-section')===current);
+  });
+
+  // Mobile dropdown items
+  document.querySelectorAll('#mobile-dropdown .dd-item').forEach(function(a){
+    a.classList.toggle('active',a.getAttribute('data-section')===current);
+  });
+
+  // Topbar section name
+  var topbarName=document.getElementById('topbar-section-name');
+  topbarName.innerHTML='<span class="n">'+sectionNums[current]+'</span> · '+sectionNames[current];
+
+  // Progress bar
+  var pct=((idx+1)/sectionIds.length)*100;
+  document.getElementById('progress-fill').style.width=pct+'%';
+
+  // Mobile bar prev/next
+  var prevBtn=document.getElementById('bar-prev');
+  var nextBtn=document.getElementById('bar-next');
+  prevBtn.disabled=idx===0;
+  nextBtn.textContent=idx===sectionIds.length-1?'Готово':'Далее →';
+}
+
+/* ── Scroll to section ── */
+function scrollToSection(id){
+  var el=document.getElementById(id);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ── Sidebar click ── */
+document.querySelectorAll('#sidebar-nav .mini-sidebar-link').forEach(function(a){
+  a.addEventListener('click',function(e){
+    e.preventDefault();
+    scrollToSection(this.getAttribute('data-section'));
+  });
+});
+
+/* ── Mobile bar buttons ── */
+document.getElementById('bar-prev').addEventListener('click',function(){
+  var current=getCurrentSection();
+  var idx=sectionIds.indexOf(current);
+  if(idx>0)scrollToSection(sectionIds[idx-1]);
+});
+document.getElementById('bar-next').addEventListener('click',function(){
+  var current=getCurrentSection();
+  var idx=sectionIds.indexOf(current);
+  if(idx<sectionIds.length-1)scrollToSection(sectionIds[idx+1]);
+  else document.getElementById('pay-btn').scrollIntoView({behavior:'smooth'});
+});
+
+/* ── Burger menu ── */
+document.getElementById('bar-burger').addEventListener('click',function(){
+  document.getElementById('mobile-dropdown').classList.toggle('open');
+});
+document.getElementById('dd-close').addEventListener('click',function(){
+  document.getElementById('mobile-dropdown').classList.remove('open');
+});
+document.getElementById('dd-backdrop').addEventListener('click',function(){
+  document.getElementById('mobile-dropdown').classList.remove('open');
+});
+document.querySelectorAll('#mobile-dropdown .dd-item').forEach(function(a){
+  a.addEventListener('click',function(){
+    scrollToSection(this.getAttribute('data-section'));
+    document.getElementById('mobile-dropdown').classList.remove('open');
+  });
+});
+
+/* ── Section nav links ── */
+document.querySelectorAll('.section-nav a[data-nav]').forEach(function(a){
+  a.addEventListener('click',function(e){
+    e.preventDefault();
+    scrollToSection(this.getAttribute('data-nav'));
+  });
+});
+
+/* ── Scroll listener ── */
+var scrollTicking=false;
+window.addEventListener('scroll',function(){
+  if(!scrollTicking){
+    requestAnimationFrame(function(){updateNavState();scrollTicking=false;});
+    scrollTicking=true;
+  }
+},{passive:true});
+
+/* ── Text formatting ── */
+function formatProse(text){
+  if(!text)return'<p>Нет данных</p>';
+  var paragraphs=text.split(/\n\n+/);
+  var html='';
+  paragraphs.forEach(function(p){
+    p=p.trim();
+    if(!p)return;
+    // Wrap in <p> with <strong> for sentences starting with key patterns
+    p=p.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+    p=p.replace(/«(.*?)»/g,'«$1»');
+    // Line breaks within paragraph
+    p=p.replace(/\n/g,'<br>');
+    html+='<p>'+p+'</p>';
+  });
+  return html||'<p>Нет данных</p>';
+}
+
+/* ── Form logic ── */
 function setLoading(btn,loading){
   if(loading){btn.classList.add('loading');btn.disabled=true;}
-  else{btn.classList.remove('loading');}
+  else{btn.classList.remove('loading');btn.disabled=false;}
 }
 
 function updateSubmitState(){
@@ -398,11 +718,11 @@ form.addEventListener('submit',function(e){
       var nameMatch=fullArchetype.match(/[—-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)*)\s*\(/);
       var archetypeName=nameMatch?nameMatch[1]:fullArchetype.split('.')[0];
       document.getElementById('res-archetype-name').textContent=archetypeName||'…';
-      document.getElementById('res-archetype-full').textContent=fullArchetype;
-      document.getElementById('val-core').textContent=data.core_strength||'…';
-      document.getElementById('val-conflict').textContent=data.emotional_conflict||'…';
-      document.getElementById('val-relations').textContent=data.relationship_pattern||'…';
-      document.getElementById('val-finance').textContent=data.financial_block||'…';
+      document.getElementById('res-archetype-prose').innerHTML=formatProse(fullArchetype);
+      document.getElementById('res-strength-prose').innerHTML=formatProse(data.core_strength);
+      document.getElementById('res-conflict-prose').innerHTML=formatProse(data.emotional_conflict);
+      document.getElementById('res-relations-prose').innerHTML=formatProse(data.relationship_pattern);
+      document.getElementById('res-finance-prose').innerHTML=formatProse(data.financial_block);
       document.getElementById('request-line').textContent='Запрос: '+labels[req]+'. Полный отчёт раскрывает именно эту линию глубже.';
       showStage('result');
       window.scrollTo({top:0,behavior:'smooth'});
@@ -417,76 +737,6 @@ form.addEventListener('submit',function(e){
 
 document.getElementById('pay-btn').addEventListener('click',function(){
   window.location.href='/app/';
-});
-
-// Result carousel
-(function(){
-  var slides=document.querySelectorAll('#result-carousel .result-slide');
-  var dots=document.querySelectorAll('#result-dots .dot');
-  var prevBtn=document.getElementById('result-prev');
-  var nextBtn=document.getElementById('result-next');
-  var current=0;
-  var total=slides.length;
-
-  function showSlide(n){
-    if(n<0||n>=total)return;
-    slides[current].classList.remove('active');
-    dots[current].classList.remove('active');
-    current=n;
-    slides[current].classList.add('active');
-    dots[current].classList.add('active');
-    prevBtn.disabled=current===0;
-    nextBtn.textContent=current===total-1?'Готово':'Далее →';
-  }
-
-  prevBtn.addEventListener('click',function(){showSlide(current-1);});
-  nextBtn.addEventListener('click',function(){
-    if(current===total-1){document.getElementById('pay-btn').scrollIntoView({behavior:'smooth'});return;}
-    showSlide(current+1);
-  });
-  dots.forEach(function(dot,i){dot.addEventListener('click',function(){showSlide(i);});});
-
-  // Swipe support
-  var carousel=document.getElementById('result-carousel');
-  var startX=0;
-  carousel.addEventListener('touchstart',function(e){startX=e.touches[0].clientX;},{passive:true});
-  carousel.addEventListener('touchend',function(e){
-    var dx=e.changedTouches[0].clientX-startX;
-    if(Math.abs(dx)>40){dx<0?showSlide(current+1):showSlide(current-1);}
-  },{passive:true});
-})();
-
-var authErr=document.getElementById('auth-error-msg');
-var authEmailForm=document.getElementById('auth-email-form');
-var authSuccess=document.getElementById('auth-success');
-function authError(msg){authErr.textContent=msg;authErr.style.display='block';}
-function showAuthSuccess(msgHtml){
-  authEmailForm.style.display='none';
-  authSuccess.style.display='grid';
-  authSuccess.innerHTML=msgHtml;
-}
-var guestToken=function(){return localStorage.getItem('nura_guest_token');};
-
-document.getElementById('auth-email-btn').addEventListener('click',function(){
-  authErr.style.display='none';
-  if(authEmailForm.classList.contains('show')){authEmailForm.classList.remove('show');authEmailForm.style.display='none';return;}
-  authSuccess.style.display='none';
-  authEmailForm.classList.add('show');authEmailForm.style.display='grid';
-  document.getElementById('auth-email-input').focus();
-});
-document.getElementById('auth-email-submit').addEventListener('click',function(){
-  var btn=this;setLoading(btn,true);authErr.style.display='none';
-  var email=document.getElementById('auth-email-input').value.trim();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setLoading(btn,false);authError('Проверь адрес почты — что-то не так');return;}
-  fetch('/api/v1/auth/email/send',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    credentials:'same-origin',
-    body:JSON.stringify({email:email,guest_token:guestToken()||undefined})
-  })
-  .then(function(res){if(!res.ok)throw new Error('send error');return res.json();})
-  .then(function(){setLoading(btn,false);showAuthSuccess('<p class="lead">Аккаунт создан. Проверь почту — там ссылка для подтверждения входа.</p><a href="/app/" class="btn btn-primary btn-full">Открыть приложение NURA</a>');})
-  .catch(function(){setLoading(btn,false);authError('Не удалось отправить письмо. Попробуй ещё раз');});
 });
 </script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
@@ -505,18 +755,4 @@ document.getElementById('auth-email-submit').addEventListener('click',function()
   </div>
 </div>
 <script src="/pwa-install.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  var params=new URLSearchParams(location.search);
-  var token=params.get('token');
-  var onVerify=(location.pathname.indexOf('/auth/verify')!==-1)||(params.has('token')&&location.pathname.indexOf('verify')!==-1);
-  if(!onVerify||!token)return;
-  document.body.innerHTML='<div style="min-height:100dvh;display:grid;place-items:center;padding:24px;text-align:center"><div><div style="font-size:40px;color:var(--terra);margin-bottom:12px">✦</div><p class="lead" id="verify-status" style="color:var(--text)">Проверяем ссылку…</p></div></div>';
-  var st=document.getElementById('verify-status');
-  fetch('/api/v1/auth/email/verify?token='+encodeURIComponent(token),{method:'GET',credentials:'same-origin'})
-  .then(function(res){if(!res.ok)throw new Error('verify failed');return res.json();})
-  .then(function(data){if(data&&data.success){st.textContent='Готово. Открываем приложение…';setTimeout(function(){location.href='/app/';},600);}else{st.textContent='Ссылка недействительна или истекла.';}})
-  .catch(function(){st.textContent='Ссылка недействительна или истекла.';});
-});
-</script>
 </body></html>

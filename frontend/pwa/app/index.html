@@ -22,6 +22,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<script src="/assets/vendor/vkid-sdk.js" defer></script>
 <link rel="stylesheet" href="nura-pwa.css?v=9"/>
 <link rel="stylesheet" href="/theme.css?v=9"/>
 <title>NURA · Главная</title><meta name="description" content="Личный центр NURA после мини-разбора или покупки отчёта."><style>
@@ -187,10 +188,15 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 
   var $ = document.getElementById.bind(document);
 
+  var __isGuest = false;
+
   fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
-    .then(function(r) { if (r.status === 401) location.href = '/mini.html'; });
+    .then(function(r) {
+      if (r.status === 401) { __isGuest = true; applyGuestMode(); }
+    });
 
   function openReport(){
+    if (__isGuest) { showAuthModal(); return; }
     if (window.__hasFullReport) location.href = 'profile.html#reports';
     else location.href = 'profile.html#subscription';
   }
@@ -226,7 +232,12 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       else if (hasMini) $('matrix-desc').textContent = 'Мини-разбор пройден. Купи полный отчёт для детального разбора.';
       else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
     })
-    .catch(function(err) { if (err && err.status === 401) { location.href = '/mini.html'; return; } $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.'; $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—'; $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных'; });
+    .catch(function(err) {
+      if (err && err.status === 401) { __isGuest = true; applyGuestMode(); return; }
+      $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.';
+      $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—';
+      $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных';
+    });
 
   N.fetchJSON(BASE + '/tarot/daily-card')
     .then(function(d) {
@@ -241,6 +252,132 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     var next = N.toggleTheme();
     this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
   });
+
+  /* ── Guest mode ── */
+  function applyGuestMode() {
+    __isGuest = true;
+    $('report-cta').textContent = 'Получить мини-разбор';
+    $('report-cta').onclick = function() { location.href = '/mini.html'; };
+    $('status-copy').textContent = 'Пройди бесплатный мини-разбор, чтобы узнать свой архетип.';
+  }
+
+  /* ── Auth modal ── */
+  function showAuthModal() {
+    if (document.getElementById('nura-auth-modal')) return;
+    var backdrop = document.createElement('div');
+    backdrop.id = 'nura-auth-modal';
+    backdrop.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px';
+
+    var card = document.createElement('div');
+    card.style.cssText = 'width:min(100%,400px);background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative;max-height:90vh;overflow-y:auto';
+
+    card.innerHTML =
+      '<button id="auth-modal-close" aria-label="Закрыть" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--bg-card-soft);color:var(--text-m);font-size:16px;cursor:pointer;display:grid;place-items:center">✕</button>' +
+      '<div style="text-align:center;margin-bottom:20px">' +
+        '<div style="width:56px;height:56px;border-radius:50%;background:rgba(184,116,63,.12);color:var(--terra);display:grid;place-items:center;font-size:28px;margin:0 auto 16px">✦</div>' +
+        '<h3 style="font-family:var(--font-serif);font-size:24px;color:var(--text);margin-bottom:8px;font-weight:400">Войди в NURA</h3>' +
+        '<p style="font-size:13.5px;color:var(--text-m);line-height:1.5">Создай аккаунт, чтобы получить полный отчёт и все функции приложения</p>' +
+      '</div>' +
+      '<div style="display:grid;gap:10px">' +
+        '<button class="btn btn-primary btn-full" id="auth-email-btn" type="button" style="min-height:50px"><span class="btn-text">Зарегистрироваться через Email</span><span class="loader"></span></button>' +
+        '<div style="font-size:11px;color:var(--text-s);text-align:center;margin-top:-2px">Без пароля — вход по ссылке</div>' +
+        '<div id="auth-email-form" style="display:none;grid-template-columns:1fr;gap:10px">' +
+          '<input class="input" type="email" id="auth-email-input" placeholder="you@example.com" autocomplete="email" style="height:48px">' +
+          '<button class="btn btn-soft btn-full" id="auth-email-submit" type="button" style="min-height:48px"><span class="btn-text">Отправить ссылку</span><span class="loader"></span></button>' +
+        '</div>' +
+        '<div id="auth-success" style="display:none;text-align:center;padding:8px 0"></div>' +
+        '<div id="auth-error" style="display:none;color:#C45C5C;font-size:12px;text-align:center;margin-top:4px"></div>' +
+        '<div style="display:flex;align-items:center;gap:12px;margin:8px 0">' +
+          '<div style="flex:1;height:1px;background:var(--line)"></div>' +
+          '<span style="font-size:11px;color:var(--text-s)">или</span>' +
+          '<div style="flex:1;height:1px;background:var(--line)"></div>' +
+        '</div>' +
+        '<button class="btn btn-vk btn-full" id="auth-vk-btn" type="button" style="min-height:50px;background:#0077FF;color:#fff;gap:10px">' +
+          '<svg style="width:20px;height:20px;flex-shrink:0" viewBox="0 0 24 24" fill="currentColor"><path d="M13.16 17.5c-5.46 0-9.13-3.74-9.29-9.96h2.76c.11 4.57 2.32 6.49 4.05 6.89V7.54h2.61v3.96c1.71-.18 3.5-1.95 4.1-3.96h2.58c-.43 2.43-2.36 4.2-3.71 4.93 1.35.6 3.56 2.14 4.4 4.93h-2.86c-.65-2.03-2.27-3.6-4.51-3.81v3.81h-.31z"/></svg>' +
+          '<span>Войти через VK</span>' +
+        '</button>' +
+      '</div>';
+
+    backdrop.appendChild(card);
+    document.body.appendChild(backdrop);
+
+    // Close
+    document.getElementById('auth-modal-close').addEventListener('click', function() { backdrop.remove(); });
+    backdrop.addEventListener('click', function(e) { if (e.target === backdrop) backdrop.remove(); });
+
+    // Email flow
+    var emailForm = document.getElementById('auth-email-form');
+    var emailSuccess = document.getElementById('auth-success');
+    var emailError = document.getElementById('auth-error');
+    var emailBtn = document.getElementById('auth-email-btn');
+    var emailSubmit = document.getElementById('auth-email-submit');
+
+    emailBtn.addEventListener('click', function() {
+      emailError.style.display = 'none';
+      if (emailForm.style.display === 'grid') { emailForm.style.display = 'none'; return; }
+      emailSuccess.style.display = 'none';
+      emailForm.style.display = 'grid';
+      document.getElementById('auth-email-input').focus();
+    });
+
+    emailSubmit.addEventListener('click', function() {
+      var btn = this;
+      var email = document.getElementById('auth-email-input').value.trim();
+      emailError.style.display = 'none';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        emailError.textContent = 'Проверь адрес почты';
+        emailError.style.display = 'block';
+        return;
+      }
+      btn.classList.add('loading'); btn.disabled = true;
+      var guestToken = localStorage.getItem('nura_guest_token');
+      fetch(BASE + '/auth/email/send', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'same-origin',
+        body: JSON.stringify({email: email, guest_token: guestToken || undefined})
+      })
+      .then(function(r) { if (!r.ok) throw new Error('send error'); return r.json(); })
+      .then(function() {
+        btn.classList.remove('loading'); btn.disabled = false;
+        emailForm.style.display = 'none';
+        emailSuccess.style.display = 'block';
+        emailSuccess.innerHTML = '<p style="font-size:14px;color:var(--text-m);line-height:1.5;margin-bottom:12px">Письмо отправлено. Проверь почту — там ссылка для входа.</p>';
+      })
+      .catch(function() {
+        btn.classList.remove('loading'); btn.disabled = false;
+        emailError.textContent = 'Не удалось отправить письмо. Попробуй ещё раз';
+        emailError.style.display = 'block';
+      });
+    });
+
+    // VK flow
+    document.getElementById('auth-vk-btn').addEventListener('click', function() {
+      var SDK = window.VKIDSDK;
+      if (!SDK) { emailError.textContent = 'Не удалось загрузить модуль входа VK.'; emailError.style.display = 'block'; return; }
+      var btn = this; btn.disabled = true;
+      var bytes = new Uint8Array(32); crypto.getRandomValues(bytes);
+      var binary = ''; for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      var state = btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
+      bytes = new Uint8Array(64); crypto.getRandomValues(bytes);
+      binary = ''; for (var j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
+      var codeVerifier = btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
+      sessionStorage.setItem('nura_vk_state', state);
+      sessionStorage.setItem('nura_vk_code_verifier', codeVerifier);
+      sessionStorage.setItem('nura_vk_started_at', String(Date.now()));
+      SDK.Config.init({app:54660807,redirectUrl:'https://nura-ai.ru/vk-callback.html',state:state,codeVerifier:codeVerifier,scope:'email'});
+      SDK.Auth.login().catch(function() {
+        emailError.textContent = 'Не удалось открыть вход через VK.'; emailError.style.display = 'block';
+      }).finally(function() { btn.disabled = false; });
+    });
+  }
+  window.showAuthModal = showAuthModal;
+
+  function requireAuth(action) {
+    if (__isGuest) { showAuthModal(); return true; }
+    return false;
+  }
+  window.requireAuth = requireAuth;
 })();
 </script>
 </body></html>
