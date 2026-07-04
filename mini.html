@@ -180,10 +180,10 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 
 /* ── Result sections (report-style) ── */
 .result-section{
-  scroll-margin-top:24px;
+  scroll-margin-top:60px;
   margin-bottom:48px;
 }
-@media(min-width:768px){.result-section{margin-bottom:64px}}
+@media(min-width:768px){.result-section{margin-bottom:64px;scroll-margin-top:70px}}
 .result-section-head{
   margin-bottom:24px;
 }
@@ -217,8 +217,8 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 @media(min-width:768px){.prose-card{padding:28px 32px}}
 .prose-card p{
   font-family:var(--font-sans);
-  font-size:15px;line-height:1.7;
-  color:var(--text);margin:0 0 16px;
+  font-size:15px;line-height:1.75;
+  color:var(--text-m);margin:0 0 18px;
 }
 .prose-card p:last-child{margin-bottom:0}
 .prose-card strong{color:var(--text);font-weight:700}
@@ -269,11 +269,11 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
   background:rgba(var(--bg-rgb,239,238,233),.92);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   border-bottom:1px solid var(--line);
-  padding:10px 16px;
+  padding:10px 0;
   display:flex;align-items:center;gap:12px;
-  margin:-24px -16px 24px;
+  margin-bottom:20px;
 }
-@media(min-width:768px){.result-topbar{margin:-40px -32px 32px;padding:12px 0}}
+@media(min-width:768px){.result-topbar{margin-bottom:32px;padding:12px 0}}
 .result-topbar .topbar-brand{display:flex;align-items:center;gap:8px;flex:none}
 .result-topbar .topbar-brand .mark{
   width:24px;height:24px;border-radius:50%;
@@ -520,11 +520,16 @@ sectionNums['s-finance']='05';
 
 function showStage(name){
   stageForm.classList.remove('active');stageResult.classList.remove('active');
-  if(name==='form'){stageForm.classList.add('active');document.getElementById('sidebar').style.display='';document.getElementById('mobile-bar').style.display='';}
+  var isMobile=window.innerWidth<768;
+  if(name==='form'){
+    stageForm.classList.add('active');
+    document.getElementById('sidebar').style.display='none';
+    document.getElementById('mobile-bar').style.display='none';
+  }
   if(name==='result'){
     stageResult.classList.add('active');
-    if(window.innerWidth>=768)document.getElementById('sidebar').style.display='flex';
-    document.getElementById('mobile-bar').style.display='';
+    document.getElementById('sidebar').style.display=isMobile?'none':'flex';
+    document.getElementById('mobile-bar').style.display=isMobile?'flex':'none';
     updateNavState();
   }
   err.style.display='none';
@@ -631,22 +636,48 @@ window.addEventListener('scroll',function(){
   }
 },{passive:true});
 
+/* ── Resize handler ── */
+window.addEventListener('resize',function(){
+  if(stageResult.classList.contains('active')){
+    var isMobile=window.innerWidth<768;
+    document.getElementById('sidebar').style.display=isMobile?'none':'flex';
+    document.getElementById('mobile-bar').style.display=isMobile?'flex':'none';
+  }
+});
+
 /* ── Text formatting ── */
 function formatProse(text){
   if(!text)return'<p>Нет данных</p>';
-  var paragraphs=text.split(/\n\n+/);
+  // Normalize: replace single \n between sentences (not inside words) with \n\n
+  // This handles API returning text with only \n separators
+  text=text.replace(/\n(?=[А-ЯЁA-Z])/g,'\n\n');
+  // Split into paragraphs
+  var raw=text.split(/\n\n+/);
   var html='';
-  paragraphs.forEach(function(p){
+  raw.forEach(function(p){
     p=p.trim();
     if(!p)return;
-    // Wrap in <p> with <strong> for sentences starting with key patterns
+    // Bold markers
     p=p.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    p=p.replace(/«(.*?)»/g,'«$1»');
+    // Quotes
+    p=p.replace(/«(.*?)»/g,'<strong>«$1»</strong>');
+    // Numbered items: "1. Текст" → bold number
+    p=p.replace(/^(\d+)\.\s/g,'<strong>$1.</strong> ');
+    // Bullet-like patterns: "— Текст" at start
+    p=p.replace(/^— /g,'<strong>—</strong> ');
+    // Sentences that start with key analytical patterns → bold first sentence
+    p=p.replace(/^(Как |В |Твой |Твоя |Твоё |Твои |Это |Если |Когда |Сила |Слабость |Конфликт |Паттерн |Рекомендация|Практика|Шаг|Важно|Главное|Обрати|Заметь|Попробуй)/,'<strong>$1');
+    // Close the bold at end of first sentence if we opened one
+    if(p.indexOf('<strong>')!==-1&&p.indexOf('</strong>')===-1){
+      var dotIdx=p.indexOf('. ');
+      if(dotIdx===-1)dotIdx=p.indexOf('.');
+      if(dotIdx>0)p=p.substring(0,dotIdx+1)+'</strong>'+p.substring(dotIdx+1);
+    }
     // Line breaks within paragraph
     p=p.replace(/\n/g,'<br>');
     html+='<p>'+p+'</p>';
   });
-  return html||'<p>Нет данных</p>';
+  return html||'<p>'+text.replace(/\n/g,'<br>')+'</p>';
 }
 
 /* ── Form logic ── */
