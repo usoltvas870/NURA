@@ -11,10 +11,6 @@ cp offer.html /var/www/nura-ai.ru/offer.html 2>/dev/null || true
 cp contacts.html /var/www/nura-ai.ru/contacts.html 2>/dev/null || true
 cp theme.css /var/www/nura-ai.ru/theme.css 2>/dev/null || true
 
-echo "→ Copying static assets..."
-cp nura-ds.css /var/www/nura-ai.ru/static/nura-ds.css 2>/dev/null || true
-cp nura-ds.css /var/www/nura-ai.ru/nura-ds.css 2>/dev/null || true
-
 echo "→ Copying PWA app..."
 cp -r frontend/pwa/app/* /var/www/nura-ai.ru/app/ 2>/dev/null || true
 cp -r frontend/pwa/*.js /var/www/nura-ai.ru/ 2>/dev/null || true

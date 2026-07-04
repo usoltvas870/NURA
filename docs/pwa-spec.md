@@ -212,8 +212,6 @@ var STATIC_ASSETS = [
   '/app/nura-pwa.js',
   '/manifest.json',
   '/pwa-install.js',
-  '/nura-ds.css',
-  '/static/nura-ds.css',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/apple-touch-icon.png'

@@ -1,16 +1,16 @@
 # Graph Report - NURA  (2026-07-04)
 
 ## Corpus Check
-- 233 files · ~1,164,857 words
+- 233 files · ~1,174,016 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3090 nodes · 5021 edges · 332 communities (236 shown, 96 thin omitted)
-- Extraction: 76% EXTRACTED · 24% INFERRED · 0% AMBIGUOUS · INFERRED: 1219 edges (avg confidence: 0.62)
+- 3142 nodes · 5114 edges · 345 communities (243 shown, 102 thin omitted)
+- Extraction: 75% EXTRACTED · 25% INFERRED · 0% AMBIGUOUS · INFERRED: 1255 edges (avg confidence: 0.62)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `765a06f9`
+- Built from commit: `d8c18a42`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -199,6 +199,7 @@
 - [[_COMMUNITY_Community 189|Community 189]]
 - [[_COMMUNITY_Community 192|Community 192]]
 - [[_COMMUNITY_OpenCode Security|OpenCode Security]]
+- [[_COMMUNITY_Community 194|Community 194]]
 - [[_COMMUNITY_Init Module|Init Module]]
 - [[_COMMUNITY_Window Data Management|Window Data Management]]
 - [[_COMMUNITY_Community 202|Community 202]]
@@ -214,6 +215,7 @@
 - [[_COMMUNITY_Community 212|Community 212]]
 - [[_COMMUNITY_Community 213|Community 213]]
 - [[_COMMUNITY_Community 215|Community 215]]
+- [[_COMMUNITY_Community 217|Community 217]]
 - [[_COMMUNITY_Community 218|Community 218]]
 - [[_COMMUNITY_Community 219|Community 219]]
 - [[_COMMUNITY_Community 220|Community 220]]
@@ -276,6 +278,7 @@
 - [[_COMMUNITY_Community 278|Community 278]]
 - [[_COMMUNITY_Community 279|Community 279]]
 - [[_COMMUNITY_Community 280|Community 280]]
+- [[_COMMUNITY_Community 281|Community 281]]
 - [[_COMMUNITY_Community 282|Community 282]]
 - [[_COMMUNITY_Community 283|Community 283]]
 - [[_COMMUNITY_Community 284|Community 284]]
@@ -284,10 +287,12 @@
 - [[_COMMUNITY_Community 287|Community 287]]
 - [[_COMMUNITY_Community 288|Community 288]]
 - [[_COMMUNITY_Community 289|Community 289]]
+- [[_COMMUNITY_Community 299|Community 299]]
 - [[_COMMUNITY_Community 300|Community 300]]
 - [[_COMMUNITY_Community 301|Community 301]]
 - [[_COMMUNITY_Community 302|Community 302]]
 - [[_COMMUNITY_Community 303|Community 303]]
+- [[_COMMUNITY_Community 304|Community 304]]
 - [[_COMMUNITY_Community 305|Community 305]]
 - [[_COMMUNITY_Community 309|Community 309]]
 - [[_COMMUNITY_Community 310|Community 310]]
@@ -301,28 +306,31 @@
 - [[_COMMUNITY_Community 319|Community 319]]
 - [[_COMMUNITY_Community 320|Community 320]]
 - [[_COMMUNITY_Community 321|Community 321]]
+- [[_COMMUNITY_Community 324|Community 324]]
 - [[_COMMUNITY_Community 325|Community 325]]
-- [[_COMMUNITY_Community 326|Community 326]]
-- [[_COMMUNITY_Community 327|Community 327]]
 - [[_COMMUNITY_Community 329|Community 329]]
 - [[_COMMUNITY_Community 330|Community 330]]
 - [[_COMMUNITY_Community 336|Community 336]]
-- [[_COMMUNITY_Community 338|Community 338]]
+- [[_COMMUNITY_Community 337|Community 337]]
 - [[_COMMUNITY_Community 339|Community 339]]
-- [[_COMMUNITY_Community 341|Community 341]]
+- [[_COMMUNITY_Community 340|Community 340]]
 - [[_COMMUNITY_Community 343|Community 343]]
+- [[_COMMUNITY_Community 344|Community 344]]
+- [[_COMMUNITY_Community 345|Community 345]]
+- [[_COMMUNITY_Community 346|Community 346]]
+- [[_COMMUNITY_Community 347|Community 347]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `UserRepository` - 205 edges
-2. `User` - 96 edges
+1. `UserRepository` - 212 edges
+2. `User` - 99 edges
 3. `ReportRepository` - 88 edges
-4. `get_async_sessionmaker()` - 79 edges
-5. `AIService` - 66 edges
-6. `ReportType` - 65 edges
-7. `MatrixService` - 57 edges
-8. `GuestProfileRepository` - 47 edges
-9. `NURA — State` - 41 edges
-10. `Report` - 40 edges
+4. `get_async_sessionmaker()` - 80 edges
+5. `ReportType` - 67 edges
+6. `AIService` - 67 edges
+7. `MatrixService` - 58 edges
+8. `GuestProfileRepository` - 48 edges
+9. `NURA — State` - 46 edges
+10. `Report` - 41 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Video Assembler` --references--> `scenarios/example.json`  [EXTRACTED]
@@ -331,21 +339,21 @@
   docs/engineering/video-assembler.md → scenarios/stock_test.json
 - `Prompt Spec` --references--> `nura_app/core/services/matrix.py`  [EXTRACTED]
   docs/prompt-spec.md → nura_app/core/services/matrix.py
-- `TelegramObject` --uses--> `UserRepository`  [INFERRED]
-  nura_app/bot/middlewares/registration.py → nura_app/core/repositories/user.py
-- `User` --uses--> `PaymentService`  [INFERRED]
-  nura_app/core/tasks.py → nura_app/core/services/payment.py
+- `AsyncHTTPTransport` --uses--> `AdminBotConfig`  [INFERRED]
+  nura_app/admin_bot/services/docker_client.py → nura_app/admin_bot/config.py
+- `Any` --uses--> `AdminBotConfig`  [INFERRED]
+  nura_app/admin_bot/services/docker_client.py → nura_app/admin_bot/config.py
 
 ## Import Cycles
 - 1-file cycle: `nura_app/core/repositories/report.py -> nura_app/core/repositories/report.py`
 - 1-file cycle: `nura_app/core/repositories/user.py -> nura_app/core/repositories/user.py`
 - 1-file cycle: `nura_app/core/repositories/guest.py -> nura_app/core/repositories/guest.py`
 
-## Communities (332 total, 96 thin omitted)
+## Communities (345 total, 102 thin omitted)
 
 ### Community 0 - "Carousel Configuration Models"
-Cohesion: 0.20
-Nodes (11): cmd_profile(), _show_profile(), Message, cmd_profile показывает профиль., cmd_profile для ненайденного пользователя., profile_full_text(), profile_mini_text(), profile_no_matrix_text() (+3 more)
+Cohesion: 0.10
+Nodes (11): Крайние случаи для tarot., show_tarot_spheres: пользователь не найден., callback_profile: пользователь не найден., cancel_subscription_do: пользователь не найден., buy_matrix: ValueError., manage_subscription: пользователь не найден., back_to_profile: пользователь не найден., view_reports: пользователь не найден. (+3 more)
 
 ### Community 1 - "Background Task Workers"
 Cohesion: 0.05
@@ -361,7 +369,7 @@ Nodes (10): _mock_yoo_payment(), Мокаем YooKassa.Payment.create и про�
 
 ### Community 6 - "Tarot PWA Tests"
 Cohesion: 0.06
-Nodes (32): .opencode/skills/error-handling/SKILL.md, FastAPI, Telegram Bot (aiogram), app(), _build_mock_user(), mock_ai_chat(), mock_ai_chat_yesno(), mock_ai_question() (+24 more)
+Nodes (31): app(), _build_mock_user(), mock_ai_chat(), mock_ai_chat_yesno(), mock_ai_question(), mock_ai_weekly(), mock_arcana(), mock_get_user() (+23 more)
 
 ### Community 7 - "Configuration Settings"
 Cohesion: 0.05
@@ -372,28 +380,24 @@ Cohesion: 0.07
 Nodes (16): Проверка логики webhook через PaymentService.process_webhook., Любой event кроме payment.succeeded → ignored., payment.canceled тоже игнорируем., Нет telegram_id и yookassa_id → needs_review., Есть telegram_id, но нет yookassa_id → needs_review., telegram_id не число → needs_review., Платёж с таким yookassa_id нет в БД → ValueError 404., Платёж уже succeeded → idempotent skip. (+8 more)
 
 ### Community 9 - "Report & Matrix Services"
-Cohesion: 0.18
-Nodes (20): chat_command_exit(), chat_message(), clear_chat(), enter_chat(), exit_chat(), _get_user_matrix_data(), _has_chat_access(), _has_unlimited_chat() (+12 more)
-
-### Community 10 - "User Profile Handlers"
-Cohesion: 0.17
-Nodes (21): BaseModel, PushUnsubscribe, CompatibilityFullResult, CompatibilityMiniResult, DailyInsightResult, FullReportResult, HealthResponse, KitchenEntry (+13 more)
+Cohesion: 0.21
+Nodes (18): chat_command_exit(), chat_message(), clear_chat(), enter_chat(), exit_chat(), _get_user_matrix_data(), _has_chat_access(), _has_unlimited_chat() (+10 more)
 
 ### Community 11 - "Tarot Menu Handlers"
-Cohesion: 0.20
-Nodes (32): CallbackQuery, FSMContext, _get_user(), handle_question_input(), _paywall_text(), show_sphere_result(), show_tarot_blocks(), show_tarot_daily_card() (+24 more)
+Cohesion: 0.19
+Nodes (32): _get_user(), handle_question_input(), _paywall_text(), show_sphere_result(), show_tarot_blocks(), show_tarot_daily_card(), show_tarot_menu(), show_tarot_more() (+24 more)
 
 ### Community 12 - "Tarot Spread API Tests"
 Cohesion: 0.20
 Nodes (6): POST /api/v1/tarot/spread — doubles (двойники)., 200 — расклад Двойники успешно возвращается., 200 — арканы рассчитываются на основе daily arcana., 200 — ответ проходит валидацию SpreadResponse., 503 — AI временно недоступен., TestSpreadDoubles
 
 ### Community 13 - "Database Migrations"
-Cohesion: 0.05
-Nodes (6): Alembic, _resolve_url(), run_migrations_offline(), run_migrations_online(), Docker, .github/instructions/infrastructure.instructions.md
+Cohesion: 0.07
+Nodes (3): Alembic, Docker, .github/instructions/infrastructure.instructions.md
 
 ### Community 14 - "Code Integrity Checks"
-Cohesion: 0.47
-Nodes (3): AdminAuth, AuthenticationBackend, Request
+Cohesion: 0.08
+Nodes (24): 1. Подключение, 2. Тема (светлая / тёмная), 3. Цветовая палитра, 4. Типографика, 5. Радиусы, 6. Компоненты лендинга, 7. PWA-компоненты, 8. Медиа-запросы (+16 more)
 
 ### Community 15 - "Development Prompts & Routes"
 Cohesion: 0.14
@@ -404,40 +408,40 @@ Cohesion: 0.11
 Nodes (13): Unified 22 Major Arcana definitions — single source of truth.  Used by:   - core, MatrixData, date, parse_birth_date(), Matrix of Destiny full calculation service. Based on birth date numerology mappi, sum_digits(), 1999 → 1+9+9+9=28 → 2+8=10., Отрицательные числа не проходят редукцию (< 22). (+5 more)
 
 ### Community 17 - "Daily Card & Spread Tests"
-Cohesion: 0.33
-Nodes (4): Affirmation field in spread responses., 200 — weekly response does not include affirmation., 200 — life response does not include affirmation., TestSpreadAffirmation
+Cohesion: 0.13
+Nodes (26): BaseModel, Request, User, PushSubscription, PushUnsubscribe, subscribe(), unsubscribe(), CompatibilityFullResult (+18 more)
 
 ### Community 18 - "Tarot Handler Tests"
 Cohesion: 0.05
-Nodes (33): TarotStates, mock_callback(), mock_command(), mock_premium_user(), mock_tarot_user(), mock_user(), patch_get_sessionmaker(), patch_settings_test_mode() (+25 more)
+Nodes (34): Message, TarotStates, mock_callback(), mock_command(), mock_premium_user(), mock_tarot_user(), mock_user(), patch_get_sessionmaker() (+26 more)
 
 ### Community 19 - "Profile Handler Tests"
 Cohesion: 0.11
-Nodes (21): back_to_profile(), callback_profile(), cancel_subscription_confirm(), cancel_subscription_do(), _get_user_and_reports(), manage_subscription(), show_subscription(), show_support() (+13 more)
+Nodes (10): Тесты profile handler., callback_profile показывает профиль., view_reports без отчётов., view_reports с отчётами., manage_subscription показывает управление., cancel_subscription_confirm показывает подтверждение., cancel_subscription_do отменяет подписку., show_support показывает контакты поддержки. (+2 more)
 
 ### Community 20 - "Tarot Error Cases"
-Cohesion: 0.10
-Nodes (11): Крайние случаи для tarot., show_tarot_spheres: пользователь не найден., callback_profile: пользователь не найден., cancel_subscription_do: пользователь не найден., buy_matrix: ValueError., manage_subscription: пользователь не найден., back_to_profile: пользователь не найден., view_reports: пользователь не найден. (+3 more)
+Cohesion: 0.28
+Nodes (14): callback_sample_report(), cmd_delete_account(), cmd_help(), cmd_start(), _delete_account_keyboard(), _handle_link_token(), _handle_referral(), _handle_tg_auth_token() (+6 more)
 
 ### Community 21 - "Payment & Tarot Routes"
-Cohesion: 0.11
-Nodes (16): date, async_sessionmaker, get_daily_card(), calculate_daily_arcana(), calculate_spread_arcanas(), daily_arcana_number(), get_today_arcana_with_name(), personalize_arcana() (+8 more)
+Cohesion: 0.16
+Nodes (5): async_sessionmaker, format_line_nums(), int_to_roman(), Парсит ai_recommendations в список до 7 элементов.         Ожидаемые форматы:, ReportService
 
 ### Community 22 - "User Repository"
-Cohesion: 0.12
-Nodes (29): Celery, charge_recurring_subscriptions(), _charge_recurring_subscriptions_async(), check_expiring_subscriptions(), check_inactive_users(), cleanup_expired_guest_profiles(), downgrade_expired_subscriptions(), generate_compatibility_report() (+21 more)
+Cohesion: 0.08
+Nodes (40): Celery, block_inactive_users(), charge_recurring_subscriptions(), _charge_recurring_subscriptions_async(), check_expiring_subscriptions(), _check_expiring_subscriptions_async(), check_inactive_users(), _check_inactive_users_async() (+32 more)
 
 ### Community 23 - "Aiogram Bot Framework"
-Cohesion: 0.24
-Nodes (13): get_async_sessionmaker(), _check_expiring_subscriptions_async(), _check_inactive_users_async(), _downgrade_expired_subscriptions_async(), _send_broadcast_async(), show_compat_details(), async_sessionmaker, delete_promo_code() (+5 more)
+Cohesion: 0.29
+Nodes (7): handle_calculate_matrix(), show_kitchen_callback(), show_my_matrix(), CallbackQuery, FSMContext, mini_analysis_text(), my_matrix_text()
 
 ### Community 24 - "Webhook & Dependencies"
-Cohesion: 0.13
-Nodes (11): DailyCardResponse, Unit tests for response Pydantic models., DailyCardResponse — корректная инициализация., SpreadCard может содержать advice., SpreadCard может не содержать advice., Extra portal coverage., 200 — возвращает арканы для текущего месяца., Yes/No polarity edge cases. (+3 more)
+Cohesion: 0.33
+Nodes (4): Life spread with various arcana values., 200 — arcana=1 (Маг)., 200 — arcana=22 (Шут)., TestSpreadLifeArcanaVariations
 
 ### Community 25 - "Bot Start Commands"
-Cohesion: 0.18
-Nodes (5): _full_json(), _mini_json(), TestDailyInsight, TestFullReport, TestMiniAnalysis
+Cohesion: 0.26
+Nodes (11): FreeTypeFont, ImageDraw, _draw_rounded_rect(), _draw_star(), _find_font(), generate_compat_card(), Генератор share-карточки NURA. PNG 1080×1080, тёмный фон, золотой акцент. Возв, Генерирует share-карточку совместимости.     Возвращает PNG bytes. (+3 more)
 
 ### Community 26 - "Project Specification Docs"
 Cohesion: 0.50
@@ -452,32 +456,32 @@ Cohesion: 0.11
 Nodes (17): 1. Таблица заражённых файлов, 2. Реально существующие vs упомянутые в заражённых файлах пути, 3. Дополнительные проверки, 4. Файлы Astro Insight, не существующие в NURA (по данным REVIEW_PLAN.md), 5. Вывод, 6. Приложение: ложные совпадения, не требующие правок, Audit: Astro Insight Contamination in NURA Repository, `docs/page-blueprints/` — не существует (+9 more)
 
 ### Community 29 - "Daily Card API Tests"
-Cohesion: 0.09
-Nodes (12): GET /api/v1/tarot/daily-card — карта дня., 200 — карта дня успешно возвращается., 200 — аркан рассчитывается на основе даты рождения., 200 — date_label формируется корректно., 401 — сессия не найдена., 400 — дата рождения не указана., 401 — отсутствие cookie возвращает 401., 200 — ответ соответствует схеме DailyCardResponse. (+4 more)
+Cohesion: 0.08
+Nodes (14): DailyCardResponse, DailyCardResponse — корректная инициализация., GET /api/v1/tarot/daily-card — карта дня., 200 — карта дня успешно возвращается., 200 — аркан рассчитывается на основе даты рождения., 200 — date_label формируется корректно., 401 — сессия не найдена., 400 — дата рождения не указана. (+6 more)
 
 ### Community 31 - "Chat Handlers"
-Cohesion: 0.10
-Nodes (34): clear_session_cookie(), get_current_web_user(), get_optional_web_user(), set_session_cookie(), get_redis(), EmailAuthRequest, GuestProfileCreate, MergeGuestRequest (+26 more)
+Cohesion: 0.11
+Nodes (33): set_session_cookie(), get_redis(), EmailAuthRequest, GuestConvertRequest, GuestProfileCreate, MergeGuestRequest, Request, Response (+25 more)
 
 ### Community 32 - "Compatibility Handlers"
-Cohesion: 0.21
-Nodes (10): ask_compatibility(), _has_unlimited_compat(), process_partner_date(), process_partner_name(), process_relation_type(), send_compat_card(), validate_date(), FSMContext (+2 more)
+Cohesion: 0.18
+Nodes (16): ask_compatibility(), _has_unlimited_compat(), process_partner_date(), process_partner_name(), process_relation_type(), send_compat_card(), show_compat_details(), CallbackQuery (+8 more)
 
 ### Community 33 - "Code Integrity Validation"
 Cohesion: 0.19
 Nodes (19): check(), check_field_validations(), count_cot_steps(), count_json_schema_fields(), extract_class_fields(), extract_css_classes(), extract_css_selectors(), extract_dict_keys() (+11 more)
 
 ### Community 34 - "Tarot Spread Response Models"
-Cohesion: 0.36
-Nodes (11): get_tarot_spread(), _handle_doubles_spread(), _handle_life_spread(), _handle_portal_spread(), _handle_question_spread(), _handle_weekly_spread(), _handle_yesno_spread(), SpreadCard (+3 more)
+Cohesion: 0.23
+Nodes (15): get_tarot_spread(), _handle_doubles_spread(), _handle_life_spread(), _handle_portal_spread(), _handle_question_spread(), _handle_weekly_spread(), _handle_yesno_spread(), SpreadCard (+7 more)
 
 ### Community 35 - "Tarot State & Callbacks"
-Cohesion: 0.26
-Nodes (11): FreeTypeFont, ImageDraw, _draw_rounded_rect(), _draw_star(), _find_font(), generate_compat_card(), Генератор share-карточки NURA. PNG 1080×1080, тёмный фон, золотой акцент. Возв, Генерирует share-карточку совместимости.     Возвращает PNG bytes. (+3 more)
+Cohesion: 0.12
+Nodes (10): Тесты download_pdf — callback_data.startswith('download_pdf:')., Показывает ссылку на PDF., Тесты ask_compatibility — callback_data == 'compatibility'., Пользователь не найден., Без матрицы — предложение купить., Бесплатный расклад уже использован., Запускает поток совместимости., Пользователь с таро имеет безлимит. (+2 more)
 
 ### Community 36 - "Kitchen Analysis Tests"
-Cohesion: 0.17
-Nodes (3): Fallback-тексты для AI-сервисов NURA.  Содержит все FALLBACK_* словари, вынесенн, generate_full_report_with_loop(), TestChatRestrictions
+Cohesion: 0.21
+Nodes (7): AdminBotConfig, main(), AdminOnlyMiddleware, AdminBotConfig, CallbackQuery, Message, AdminBotConfig
 
 ### Community 37 - "TikTok Data Collector"
 Cohesion: 0.05
@@ -492,7 +496,7 @@ Cohesion: 0.06
 Nodes (33): 1. Лендинг (nura-ai.ru), 2.1 Меню и навигация, 2.2 Семь раскладов, 2.3 Тон интерпретации по раскладам, 2.4 Пейволл Таро, 2.5 Бесплатная карта дня, 2.6 Ежедневное уведомление (Celery beat), 2.7 Автоматические расклады для подписчиков (+25 more)
 
 ### Community 40 - "Spread Request Validation"
-Cohesion: 0.20
+Cohesion: 0.21
 Nodes (9): SpreadRequest, Unit tests for SpreadRequest schema., Все допустимые spread_type проходят валидацию., Недопустимый spread_type вызывает ValidationError., question длиннее 200 символов вызывает ValidationError., question ровно 200 символов — допустимо., spread_type — обязательное поле., question по умолчанию None. (+1 more)
 
 ### Community 41 - "Question & YesNo Spread Tests"
@@ -512,8 +516,8 @@ Cohesion: 0.50
 Nodes (6): Request, _is_expired(), _render_report_by_type(), serve_kitchen_analysis(), serve_report(), serve_report_pdf()
 
 ### Community 45 - "SQLAlchemy Repository Base"
-Cohesion: 0.10
-Nodes (4): datetime, User, UUID, UserRepository
+Cohesion: 0.08
+Nodes (9): get_current_web_user(), get_optional_web_user(), Response, User, datetime, User, UUID, UserRepository (+1 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.05
@@ -524,16 +528,16 @@ Cohesion: 0.13
 Nodes (6): format_for_prompt содержит все ключевые секции., Секция «Жизненные периоды»., Секция «Прогноз по годам»., Секция «Карта здоровья (чакры)»., При передаче dict format_for_prompt возвращает те же секции., TestFormatForPromptCompleteness
 
 ### Community 48 - "Admin Panel Interface"
-Cohesion: 0.11
-Nodes (56): PaymentAdmin, ReportAdmin, UserAdmin, Payment, PromoCode, Report, ReportType, User (+48 more)
+Cohesion: 0.10
+Nodes (55): PaymentAdmin, ReportAdmin, UserAdmin, get_async_sessionmaker(), Payment, Report, ReportType, User (+47 more)
 
 ### Community 49 - "TikTok Trend Radar"
 Cohesion: 0.20
 Nodes (14): DeepSeek API, Radar Commands, Competitors Config, Hashtags Config, Keywords Config, Radar Guide, Scoring Logic, NURA TikTok Trend Radar (+6 more)
 
 ### Community 51 - "Community 51"
-Cohesion: 0.24
-Nodes (5): _process_mini_report(), send_daily_card(), _send_daily_card_async(), TestDailyInsights, TestMiniReport
+Cohesion: 0.33
+Nodes (6): invalid_format_text(), loading_step_1(), loading_step_2(), loading_step_3(), loading_step_4(), loading_steps()
 
 ### Community 52 - "Community 52"
 Cohesion: 0.07
@@ -588,12 +592,12 @@ Cohesion: 0.17
 Nodes (7): POST /api/v1/tarot/spread — weekly (расклад недели)., 200 — недельный расклад успешно возвращается., 200 — каждая карта содержит practice как advice., 200 — ответ проходит валидацию SpreadResponse., 402 — требуется подписка Таро., 503 — AI временно недоступен., TestSpreadWeekly
 
 ### Community 66 - "Arcana Data & Matrix Service"
-Cohesion: 0.18
-Nodes (8): ReferralReward, async_sessionmaker, UUID, Payment, PaymentRepository, Atomically fetch and mark payment as succeeded.          Uses SELECT ... FOR U, Пользователь не найден → revert платежа в pending., web_tarot — активация таро-подписки.
+Cohesion: 0.33
+Nodes (4): async_sessionmaker, UUID, ReferralReward, ReferralRepository
 
 ### Community 68 - "Community 68"
-Cohesion: 0.36
-Nodes (9): _call(), fake_report_factory(), test_is_expired_future_not_expired(), test_is_expired_null_never_expires(), test_is_expired_past_expired(), test_repo_create_sets_default_expires_at(), test_repo_is_expired_true_for_past(), test_serve_report_expired_returns_410() (+1 more)
+Cohesion: 0.26
+Nodes (13): Request, User, date, get_daily_card(), calculate_daily_arcana(), calculate_spread_arcanas(), daily_arcana_number(), get_today_arcana_with_name() (+5 more)
 
 ### Community 69 - "Rotational File Check & Search"
 Cohesion: 0.09
@@ -623,10 +627,6 @@ Nodes (9): Path, _download(), match_local_stock(), _pexels_search(), Stock media
 Cohesion: 0.20
 Nodes (6): Граничные даты для calculate: високосный год, древние даты., Високосный год 29.02.2024 — корректный расчёт., 01.01.0001 — минимальная дата., 31.12.9999 — максимальная дата без ошибок., Дата с однозначным днём и месяцем без ведущего нуля., TestCalculateEdgeCases
 
-### Community 76 - "Start Command Tests"
-Cohesion: 0.33
-Nodes (3): AntiFloodMiddleware, CallbackQuery, Message
-
 ### Community 77 - "Tarot Menu Tests"
 Cohesion: 0.20
 Nodes (6): Тесты show_tarot_menu — callback_data == 'tarot_menu'., Свободный пользователь видит меню с бесплатной картой дня., Пользователь с таро-подпиской видит 'все расклады доступны'., Пользователь не найден — показываем 'начни с /start'., Проверяем, что tarot_menu_keyboard вызывается с правильным флагом., TestTarotMenu
@@ -636,8 +636,8 @@ Cohesion: 0.25
 Nodes (5): Edge cases for doubles spread., 200 — daily arcana = 22 → arcana_two = 22 % 22 + 1 = 1., 200 — daily arcana = 1 → arcana_two = 1 % 22 + 1 = 2., 200 — daily arcana вне диапазона → card[0] fallback на ARCANA[1],         card[1, TestSpreadDoublesEdgeCases
 
 ### Community 79 - "Community 79"
-Cohesion: 0.36
-Nodes (4): Request, _client_ip(), payment_webhook(), _whitelist_networks()
+Cohesion: 0.14
+Nodes (10): .opencode/skills/error-handling/SKILL.md, FastAPI, _kitchen_from_matrix(), Request, _client_ip(), payment_webhook(), _whitelist_networks(), get_vapid_public_key() (+2 more)
 
 ### Community 81 - "Bot Text Formatting"
 Cohesion: 0.24
@@ -667,6 +667,10 @@ Nodes (5): Тесты show_sphere_result — сферы жизни., Free-пол
 Cohesion: 0.39
 Nodes (8): Carousel Slide Base Template, Carousel Slide Logo Partial, Carousel Slide Styles, Carousel Cover Slide Template, Carousel CTA Slide Template, Carousel List Slide Template, Carousel Quote Slide Template, Carousel Text Image Slide Template
 
+### Community 90 - "Test Configuration Fixtures"
+Cohesion: 0.33
+Nodes (4): Affirmation field in spread responses., 200 — weekly response does not include affirmation., 200 — life response does not include affirmation., TestSpreadAffirmation
+
 ### Community 91 - "Life Periods Calculation Tests"
 Cohesion: 0.25
 Nodes (5): calculate_life_periods — проверка структуры., Ключи age_0 … age_70 с шагом 7., Все значения арканов в диапазоне 1-22., Проверка конкретных значений для 01.01.2000., TestCalculateLifePeriods
@@ -684,12 +688,12 @@ Cohesion: 0.10
 Nodes (19): bot-ux-map.md — Патч под PWA-архитектуру, Добавить deep-link кнопку после результата, Изменение: После покупки матрицы — уведомление, Изменение: Путь 2 — Главное меню, Изменение: Путь 3 — После мини-разбора, Изменение: Путь 4 — Совместимость, результат, Изменение: Путь 6 — Подписка, Изменение: Путь 9 — Чат после лимита (+11 more)
 
 ### Community 95 - "Question Spread Edge Cases"
-Cohesion: 0.60
-Nodes (5): .opencode/commands/build-fix.md, .github/agents/nura.agent.md, pytest, Ruff, .opencode/commands/tdd.md
+Cohesion: 0.20
+Nodes (6): Тестируем роутер через TestClient (мокаем PaymentService.process_webhook)., Успешный webhook → 200 + ok., ValueError из сервиса → 404., Валидный JSON, но событие не payment.succeeded → 200 + ignored., IP не в whitelist → 403, сервис не вызывается., TestPaymentWebhookEndpoint
 
 ### Community 97 - "Community 97"
-Cohesion: 0.06
-Nodes (34): AdminBotConfig, main(), AdminOnlyMiddleware, AsyncHTTPTransport, cmd_cache(), _ai_answer(), _detect_action(), _detect_cache_clear() (+26 more)
+Cohesion: 0.14
+Nodes (13): cmd_cache(), cmd_cache(), cmd_db(), cmd_deploy(), cmd_logs(), cmd_restart(), cmd_status(), Message (+5 more)
 
 ### Community 98 - "Community 98"
 Cohesion: 0.25
@@ -708,16 +712,16 @@ Cohesion: 0.20
 Nodes (10): 10. Метрики успеха, 1. Контекст и обоснование, 4.1 Путь через соцсети (основной), 4.2 Путь через Telegram, 4.3 Путь через Яндекс Директ, 4. Пути пользователя, 7.1 Что происходит при полной блокировке Telegram, 7.2 Вывод (+2 more)
 
 ### Community 102 - "Tarot Date Tests"
-Cohesion: 0.22
-Nodes (3): core/schemas/, VerificationResult, TestInsightsHandler
+Cohesion: 0.11
+Nodes (13): Exception, show_sphere_result: ошибка AI., show_tarot_twins: ошибка AI., show_tarot_portal: ошибка AI., show_tarot_blocks: ошибка AI., buy_subscription: общая ошибка., buy_tarot_subscription: ошибка., mock_ai_chat_error() (+5 more)
 
 ### Community 103 - "AI Chat Trimming"
 Cohesion: 0.11
 Nodes (18): 4. Структура полного отчёта (V2), R1 — Мои инсайты ✅, R2 — Что я попробую ✅, S10 — Деньги и карьера ✅, S11 — Повторяющиеся сценарии ✅, S12 — Внутренние конфликты ✅, S13 — Жизненные циклы и прогноз ✅, S14 — Семь дней ✅ (+10 more)
 
-### Community 105 - "UI Design System"
-Cohesion: 0.33
-Nodes (5): AI-Driven Dynamic Landing, Bento Grid Showcase, Horizontal Scroll Journey, Interactive 3D Configurator, Soft UI Evolution
+### Community 106 - "Community 106"
+Cohesion: 0.18
+Nodes (5): _full_json(), _mini_json(), TestDailyInsight, TestFullReport, TestMiniAnalysis
 
 ### Community 107 - "Community 107"
 Cohesion: 0.08
@@ -736,8 +740,8 @@ Cohesion: 0.14
 Nodes (8): 200 — при чётном аркане возвращается 'Нет'., 200 — ответ проходит валидацию SpreadResponse., 400 — вопрос обязателен для spread_type=yesno., 503 — AI временно недоступен., 402 — требуется подписка Таро., POST /api/v1/tarot/spread — yesno (да/нет)., 200 — да/нет успешно возвращается., TestSpreadYesNo
 
 ### Community 111 - "Life Spread Arcana"
-Cohesion: 0.33
-Nodes (4): Тесты show_tarot_spheres — callback_data == 'tarot_spheres'., Free-пользователь видит пэйволл., Пользователь с таро видит клавиатуру сфер., TestTarotSpheres
+Cohesion: 0.24
+Nodes (3): AsyncHTTPTransport, Any, Response
 
 ### Community 112 - "Community 112"
 Cohesion: 0.18
@@ -768,8 +772,8 @@ Cohesion: 0.50
 Nodes (4): API Tester, k6, OWASP API Security Top 10, Playwright
 
 ### Community 121 - "Community 121"
-Cohesion: 0.11
-Nodes (13): Exception, show_sphere_result: ошибка AI., show_tarot_twins: ошибка AI., show_tarot_portal: ошибка AI., show_tarot_blocks: ошибка AI., buy_subscription: общая ошибка., buy_tarot_subscription: ошибка., mock_ai_chat_error() (+5 more)
+Cohesion: 0.47
+Nodes (3): AdminAuth, AuthenticationBackend, Request
 
 ### Community 122 - "DevOps Automation"
 Cohesion: 0.50
@@ -788,8 +792,8 @@ Cohesion: 0.67
 Nodes (3): Market Research, Market Research, Матрица судьбы (Fate Matrix)
 
 ### Community 128 - "Community 128"
-Cohesion: 0.50
-Nodes (4): 9. Доставка отчёта, URL продакшена, Права доступа, Флоу доставки
+Cohesion: 0.20
+Nodes (11): cmd_profile(), _show_profile(), Message, cmd_profile показывает профиль., cmd_profile для ненайденного пользователя., profile_full_text(), profile_mini_text(), profile_no_matrix_text() (+3 more)
 
 ### Community 129 - "OpenCode Tools"
 Cohesion: 0.67
@@ -800,8 +804,8 @@ Cohesion: 0.12
 Nodes (16): 1. Корректность генерации filter_complex, 2. Транзишены, 3. Easing на zoom, 4. SRT, 5. PiP / Image overlays, 6. Безопасность и краевые случаи, 7. GPU detection, 8. Совместимость (+8 more)
 
 ### Community 131 - "Community 131"
-Cohesion: 0.20
-Nodes (6): Тестируем роутер через TestClient (мокаем PaymentService.process_webhook)., Успешный webhook → 200 + ok., ValueError из сервиса → 404., Валидный JSON, но событие не payment.succeeded → 200 + ignored., IP не в whitelist → 403, сервис не вызывается., TestPaymentWebhookEndpoint
+Cohesion: 0.33
+Nodes (4): Тесты start_tarot_question — callback_data == 'tarot_question'., Free-пользователь видит пэйволл., Пользователь с таро переходит в состояние waiting_for_question., TestTarotQuestion
 
 ### Community 133 - "Deploy Script"
 Cohesion: 0.18
@@ -811,13 +815,17 @@ Nodes (10): 1. Secrets (Settings → Secrets and variables → Actions → New r
 Cohesion: 0.13
 Nodes (15): 5.10. Расклад «Двойники» (подписчик), 5.11. Расклад «Портал месяца» (подписчик), 5.12. Расклад «Да / Нет» (подписчик, FSM), 5.13. FSM-состояния Таро, 5.14. Callback_data Таро, 5.1. Flow — бесплатный пользователь, 5.2. Flow — подписчик, 5.3. Текст — экран Таро (бесплатный пользователь) (+7 more)
 
+### Community 140 - "Community 140"
+Cohesion: 0.29
+Nodes (4): Тесты open_report — callback_data.startswith('open_report:')., Открывает отчёт с кнопками., Если есть kitchen_analysis — показываем кнопку., TestOpenReport
+
 ### Community 141 - "Arcana Details Script"
 Cohesion: 0.15
 Nodes (13): 4.10. Пейволл — нет матрицы, 4.11. Пейволл — лимит исчерпан (есть матрица, нет таро), 4.12. Генерация share-текста, 4.1. FSM-состояние, 4.2. Логика доступа (лимитная модель), 4.3. Flow, 4.4. Текст — объяснение фичи (при наличии доступа), 4.5. Текст — запрос даты (+5 more)
 
 ### Community 144 - "Compatibility Full Result"
-Cohesion: 0.23
-Nodes (11): process_onboarding_birth_date(), callback_pd_consent_no(), callback_pd_consent_yes(), FSMContext, ask_birth_date_onboarding_text(), delete_account_warning_text(), invalid_format_onboarding_text(), onboarding_done_text() (+3 more)
+Cohesion: 0.14
+Nodes (11): show_subscription(), compatibility_paywall_keyboard(), open_pwa_keyboard(), profile_keyboard(), pwa_cta_keyboard(), Личный кабинет — управление подпиской, поддержка, меню.     Кнопки «Мои отчёты», reports_keyboard(), subscription_keyboard() (+3 more)
 
 ### Community 145 - "Compatibility Mini Result"
 Cohesion: 0.17
@@ -831,10 +839,6 @@ Nodes (6): 6.1 Главное правило, 6.2 Логика выбора ка
 Cohesion: 0.17
 Nodes (11): Admin Bot — спецификация, Docker (опционально), .env переменные, Авто-мониторинг (Celery), Команды, Концепция, Нужно создать в BotFather, Порядок реализации (+3 more)
 
-### Community 151 - "Community 151"
-Cohesion: 0.48
-Nodes (6): Request, User, get_vapid_public_key(), PushSubscription, subscribe(), unsubscribe()
-
 ### Community 153 - "Matrix States"
 Cohesion: 0.33
 Nodes (6): 8.1 Оплата, 8.2 Отчёты, 8.3 Deep-link из бота, 8.4 Push-уведомления, 8.5 Новые функции, 8. Правила для разработки
@@ -844,28 +848,28 @@ Cohesion: 0.18
 Nodes (10): 12. Полный реестр callback_data и их обработчики, 13. Структура файлов бота (рекомендуемая), 14. Изменения в модели User (дополнительные поля), 15.1. Цены, 15.2. Арканы (22 штуки), 15. Константы, 16. Приоритет реализации, 17.1. Share после совместимости (+2 more)
 
 ### Community 156 - "Community 156"
-Cohesion: 0.17
-Nodes (5): async_sessionmaker, UUID, PaymentModel, PaymentService, YooKassa
+Cohesion: 0.19
+Nodes (4): async_sessionmaker, UUID, PaymentModel, PaymentService
+
+### Community 158 - "Brief Parser Prompt"
+Cohesion: 0.50
+Nodes (7): _ai_answer(), _detect_action(), _detect_cache_clear(), _detect_restart(), _execute_action(), handle_text(), Message
 
 ### Community 159 - "Carousel Parser Prompt"
 Cohesion: 0.33
 Nodes (5): Done, Ideas, Next, Now, NURA — Plan
 
-### Community 182 - "Community 182"
-Cohesion: 0.07
-Nodes (28): buy_matrix(), download_pdf(), _get_report_by_token(), _get_user(), initiate_subscription(), initiate_tarot_subscription(), open_report(), show_kitchen_analysis() (+20 more)
-
 ### Community 183 - "Community 183"
-Cohesion: 0.08
-Nodes (17): Base, GuestProfile, DeclarativeBase, GuestProfile, ModelType, async_sessionmaker, async_sessionmaker, datetime (+9 more)
+Cohesion: 0.09
+Nodes (16): Base, GuestProfile, DeclarativeBase, GuestProfile, ModelType, async_sessionmaker, async_sessionmaker, datetime (+8 more)
 
 ### Community 185 - "Community 185"
-Cohesion: 0.13
-Nodes (12): CommandObject, cmd_start(), CompatibilityStates, OnboardingStates, StatesGroup, Тесты cmd_start — команда /start., Новый пользователь без birth_date — видит онбординг., Существующий пользователь с birth_date — сразу в меню. (+4 more)
+Cohesion: 0.20
+Nodes (6): Тесты cmd_start — команда /start., Новый пользователь без birth_date — видит онбординг., Существующий пользователь с birth_date — сразу в меню., Реферальная ссылка start=ref_ обрабатывается., Ссылка link_ обрабатывается., TestCmdStart
 
-### Community 192 - "Community 192"
-Cohesion: 0.13
-Nodes (3): TestCheckGenericPhrases, TestCheckLength, TestVerifyText
+### Community 194 - "Community 194"
+Cohesion: 0.14
+Nodes (18): process_onboarding_birth_date(), callback_delete_account_cancel(), callback_delete_account_confirm(), callback_pd_consent_no(), callback_pd_consent_yes(), validate_date(), CallbackQuery, FSMContext (+10 more)
 
 ### Community 196 - "Init Module"
 Cohesion: 0.18
@@ -896,24 +900,28 @@ Cohesion: 0.33
 Nodes (4): Дополнительные граничные случаи get_archetype_name., 23 вне ARCANA → 'Неизвестный'., Все числа 1-22 возвращают имя (не пустое и не 'Неизвестный')., TestGetArchetypeNameEdgeCases
 
 ### Community 211 - "Community 211"
-Cohesion: 0.06
-Nodes (35): NURA — State, ⚡ Video Assembler — Quick Start for Agent, 🔴 Известные блокеры, 📅 История сессий (хронология), Сессия 41 — 29.06.2026, Сессия 42 — 29.06.2026, Сессия 43 — 29.06.2026, Сессия 44 — 29.06.2026 (+27 more)
+Cohesion: 0.05
+Nodes (40): NURA — State, ⚡ Video Assembler — Quick Start for Agent, 🔴 Известные блокеры, 📅 История сессий (хронология), Сессия 41 — 29.06.2026, Сессия 42 — 29.06.2026, Сессия 43 — 29.06.2026, Сессия 44 — 29.06.2026 (+32 more)
 
 ### Community 215 - "Community 215"
 Cohesion: 0.20
 Nodes (10): tarot-integration-plan.md — Патч под PWA-архитектуру, Обновление §2 — Telegram-бот: актуальные статусы, Обновление §6 — Сводка трудозатрат, Обновление §7 — Совместимость в воронке Таро, Обновление §9 — Виральная механика «Поделиться», Обновление: Архитектура — четыре поверхности, Обновление заголовка документа, Обновлённая механика (3 кнопки вместо 1) (+2 more)
 
+### Community 217 - "Community 217"
+Cohesion: 0.18
+Nodes (8): ReferralReward, async_sessionmaker, UUID, Payment, PaymentRepository, Atomically fetch and mark payment as succeeded.          Uses SELECT ... FOR U, Пользователь не найден → revert платежа в pending., web_tarot — активация таро-подписки.
+
 ### Community 218 - "Community 218"
-Cohesion: 0.19
-Nodes (10): _handle_link_token(), _handle_referral(), _handle_tg_auth_token(), open_pwa_keyboard(), Message, async_sessionmaker, UUID, ReferralReward (+2 more)
+Cohesion: 0.15
+Nodes (11): User, can_access_full_report(), app(), _make_user(), matrix_payment_in_db(), payment_in_db(), Изолированное FastAPI-приложение с роутером payment, без лимитера., Создаём реальный Payment в БД для webhook-тестов. (+3 more)
 
 ### Community 220 - "Community 220"
 Cohesion: 0.33
 Nodes (4): Тесты show_tarot_portal — callback_data == 'tarot_portal'., Free-пользователь видит пэйволл., Успешный расклад энергии месяца., TestTarotPortal
 
 ### Community 222 - "Community 222"
-Cohesion: 0.15
-Nodes (11): User, can_access_full_report(), app(), _make_user(), matrix_payment_in_db(), payment_in_db(), Изолированное FastAPI-приложение с роутером payment, без лимитера., Создаём реальный Payment в БД для webhook-тестов. (+3 more)
+Cohesion: 0.33
+Nodes (4): Подделанный webhook не должен что-либо выдавать., find_one вернул статус != succeeded → ничего не активируется., find_one бросает исключение → verification_unavailable, ничего не активируется., TestWebhookVerification
 
 ### Community 223 - "Community 223"
 Cohesion: 0.25
@@ -937,27 +945,23 @@ Nodes (9): 1. Арканы: справочник, 2.1 Свёртка числа 
 
 ### Community 232 - "Community 232"
 Cohesion: 0.33
-Nodes (4): Life spread with various arcana values., 200 — arcana=1 (Маг)., 200 — arcana=22 (Шут)., TestSpreadLifeArcanaVariations
+Nodes (4): cmd_errors(), Message, Any, AIAdvisor
 
 ### Community 233 - "Community 233"
-Cohesion: 0.29
-Nodes (6): Minimal example: Home screen, NURA Design System — Conventions, Setup required in every app shell, Styling idiom: CSS custom properties, Typography class vocabulary, Where the source lives
+Cohesion: 0.20
+Nodes (9): NURA Design System — Conventions, Stack, Анимация, Карточки, Классы типографики, Ключевые токены (`theme.css`), Кнопки, Медиа-запросы (+1 more)
 
 ### Community 235 - "Community 235"
-Cohesion: 0.10
-Nodes (15): BaseMiddleware, main(), .opencode/skills/context-budget/SKILL.md, create_engine(), core/prompts/, core/repositories/, core/services/, DeepSeek AI (+7 more)
+Cohesion: 0.13
+Nodes (10): BaseMiddleware, main(), create_engine(), AntiFloodMiddleware, UserRegistrationMiddleware, ThrottlingMiddleware, CallbackQuery, Message (+2 more)
 
 ### Community 238 - "Community 238"
 Cohesion: 0.50
 Nodes (4): 3.1 Все внешние источники → лендинг nura-ai.ru, 3.2 Почему не ведём напрямую в бота из соцсетей, 3.3 Роль Telegram-канала, 3. Источники трафика
 
-### Community 239 - "Community 239"
-Cohesion: 0.27
-Nodes (5): Request, User, AIService, _chat_system_prompt_template(), _system_prompt()
-
 ### Community 240 - "Community 240"
-Cohesion: 0.20
-Nodes (6): Тесты ask_compatibility — callback_data == 'compatibility'., Без матрицы — предложение купить., Бесплатный расклад уже использован., Запускает поток совместимости., Пользователь с таро имеет безлимит., TestCompatibility
+Cohesion: 0.06
+Nodes (30): buy_matrix(), download_pdf(), _get_report_by_token(), _get_user(), initiate_subscription(), initiate_tarot_subscription(), open_report(), show_kitchen_analysis() (+22 more)
 
 ### Community 241 - "Community 241"
 Cohesion: 0.25
@@ -1039,21 +1043,17 @@ Nodes (6): 2.1. Текст приветствия, 2.2. Клавиатура, 2.
 Cohesion: 0.33
 Nodes (6): 5. Секции [PLANNED] — не реализованы в V2, P1 — Психологические блоки 📋, P2 — Карта здоровья 📋, P3 — Kitchen-аккордеон для всех секций 📋, P4 — Таро-блок 📋, P5 — Практики 📋
 
-### Community 275 - "Community 275"
-Cohesion: 0.22
-Nodes (9): 6. Полный пример расчёта, Шаг 1: Разбор, Шаг 2: Углы, Шаг 3: Центр, Шаг 4: Производные зоны, Шаг 5: Кармический хвост, Шаг 6: Внутренние точки, Шаг 7: Линии (+1 more)
-
-### Community 276 - "Community 276"
-Cohesion: 0.33
-Nodes (4): Тесты show_kitchen_analysis — callback_data.startswith('kitchen:')., Отчёт не найден или нет kitchen_analysis., Показывает кухонный слой., TestKitchenAnalysis
-
 ### Community 279 - "Community 279"
-Cohesion: 0.40
-Nodes (4): ARCANA_DATA, matrix_calculate_full, parse_birth_date, sum_digits
+Cohesion: 0.33
+Nodes (4): CommandObject, ChatStates, OnboardingStates, StatesGroup
 
 ### Community 280 - "Community 280"
 Cohesion: 0.33
 Nodes (6): Daily Tarot Card, Matrix One-Time Payment, Question Tarot Spread, Tarot Integration, Tarot Subscription, Weekly Tarot Spread
+
+### Community 281 - "Community 281"
+Cohesion: 0.33
+Nodes (4): Тесты show_tarot_spheres — callback_data == 'tarot_spheres'., Free-пользователь видит пэйволл., Пользователь с таро видит клавиатуру сфер., TestTarotSpheres
 
 ### Community 282 - "Community 282"
 Cohesion: 0.40
@@ -1061,11 +1061,11 @@ Nodes (5): 3. CSS Design System, CSS-переменные, @media print (WeasyPr
 
 ### Community 284 - "Community 284"
 Cohesion: 0.50
-Nodes (4): 1. Общая архитектура, URL и доступ, Рендеринг (диспетчеризация), Форматы
+Nodes (4): PushSubscriptionExpired, 410 Gone — подписка перманентно невалидна, нужно сбросить., send_web_push(), WebPushException
 
 ### Community 285 - "Community 285"
-Cohesion: 0.50
-Nodes (4): 2.2 AI-поля (FullReportResult), 2.3 Kitchen-данные (KitchenReportResult), 2. Данные для подстановки, Парсинг AI-полей
+Cohesion: 0.10
+Nodes (6): Fallback-тексты для AI-сервисов NURA.  Содержит все FALLBACK_* словари, вынесенн, core/schemas/, generate_full_report_with_loop(), _chat_system_prompt_template(), TestChatRestrictions, TestInsightsHandler
 
 ### Community 287 - "Community 287"
 Cohesion: 0.28
@@ -1075,41 +1075,45 @@ Nodes (6): cmd_menu(), Тесты cmd_menu — команда /menu., Польз
 Cohesion: 0.33
 Nodes (3): Any, LogParser, Extract traceback context around an error line.
 
+### Community 299 - "Community 299"
+Cohesion: 0.42
+Nodes (9): back_to_profile(), callback_profile(), cancel_subscription_confirm(), cancel_subscription_do(), _get_user_and_reports(), manage_subscription(), show_support(), view_reports() (+1 more)
+
 ### Community 300 - "Community 300"
 Cohesion: 0.33
 Nodes (6): 🟡 В процессе / незакрытые задачи, Документация (обновление из Сессии 18), Критический путь (блокирует монетизацию), Продукт — PWA (новые задачи из ADR-001), Продукт — Telegram-бот, Технический долг
 
 ### Community 301 - "Community 301"
-Cohesion: 0.33
-Nodes (4): Тесты start_tarot_question — callback_data == 'tarot_question'., Free-пользователь видит пэйволл., Пользователь с таро переходит в состояние waiting_for_question., TestTarotQuestion
+Cohesion: 0.83
+Nodes (3): _resolve_url(), run_migrations_offline(), run_migrations_online()
 
 ### Community 302 - "Community 302"
-Cohesion: 0.23
-Nodes (9): show_my_matrix(), invalid_format_text(), loading_step_1(), loading_step_2(), loading_step_3(), loading_step_4(), loading_steps(), mini_analysis_text() (+1 more)
+Cohesion: 0.33
+Nodes (6): .opencode/skills/context-budget/SKILL.md, core/prompts/, core/repositories/, core/services/, DeepSeek AI, .github/instructions/tests.instructions.md
 
 ### Community 303 - "Community 303"
-Cohesion: 0.43
-Nodes (6): compatibility_paywall_keyboard(), profile_keyboard(), Личный кабинет — управление подпиской, поддержка, меню.     Кнопки «Мои отчёты», reports_keyboard(), subscription_keyboard(), InlineKeyboardMarkup
+Cohesion: 0.36
+Nodes (9): _call(), fake_report_factory(), test_is_expired_future_not_expired(), test_is_expired_null_never_expires(), test_is_expired_past_expired(), test_repo_create_sets_default_expires_at(), test_repo_is_expired_true_for_past(), test_serve_report_expired_returns_410() (+1 more)
+
+### Community 304 - "Community 304"
+Cohesion: 0.22
+Nodes (9): 6. Полный пример расчёта, Шаг 1: Разбор, Шаг 2: Углы, Шаг 3: Центр, Шаг 4: Производные зоны, Шаг 5: Кармический хвост, Шаг 6: Внутренние точки, Шаг 7: Линии (+1 more)
 
 ### Community 305 - "Community 305"
-Cohesion: 0.14
-Nodes (40): Environment, Request, Response, User, GuestProfileRepository, auth_check(), auth_start(), AuthCheckResponse (+32 more)
+Cohesion: 0.16
+Nodes (46): clear_session_cookie(), PromoCode, Environment, Request, Response, User, Message, PromoCode (+38 more)
 
 ### Community 310 - "Community 310"
-Cohesion: 0.40
-Nodes (5): 3.1 Углы квадрата, 3.2 Центр (главный архетип), 3.3 Производные зоны, 3.4 Кармический хвост, 3. Основные позиции матрицы (базовый квадрат)
+Cohesion: 0.18
+Nodes (7): .opencode/commands/build-fix.md, .github/agents/nura.agent.md, pytest, Ruff, .opencode/commands/tdd.md, test_report(), test_user()
 
 ### Community 311 - "Community 311"
-Cohesion: 0.40
-Nodes (5): 4.1 Линия неба (духовное предназначение), 4.2 Линия земли (материальное предназначение), 4.3 Линия отношений, 4.4 Линия денег (финансовый канал), 4. Расширенные позиции (внутренний квадрат)
+Cohesion: 0.50
+Nodes (3): Extra portal coverage., 200 — возвращает арканы для текущего месяца., TestSpreadPortalExtra
 
 ### Community 312 - "Community 312"
 Cohesion: 0.40
 Nodes (5): 🆕 ADR-001 — PWA как ядро продукта (09.06.2026), 🆕 ADR-002 — Дедупликация уведомлений (09.06.2026), 🆕 ADR-003 — Связка аккаунтов PWA ↔ Telegram (09.06.2026), 🏗 Архитектурные решения (ADRs), Действующие
-
-### Community 314 - "Community 314"
-Cohesion: 0.33
-Nodes (6): _notify_user(), User, PushSubscriptionExpired, 410 Gone — подписка перманентно невалидна, нужно сбросить., send_web_push(), WebPushException
 
 ### Community 315 - "Community 315"
 Cohesion: 0.50
@@ -1121,46 +1125,58 @@ Nodes (3): Deploy commands, Docker контейнеры, 🖥 VPS
 
 ### Community 320 - "Community 320"
 Cohesion: 0.33
-Nodes (4): Подделанный webhook не должен что-либо выдавать., find_one вернул статус != succeeded → ничего не активируется., find_one бросает исключение → verification_unavailable, ничего не активируется., TestWebhookVerification
+Nodes (4): Успешный расклад теневых сторон., Тесты show_tarot_twins — callback_data == 'tarot_twins'., Free-пользователь видит пэйволл., TestTarotTwins
+
+### Community 324 - "Community 324"
+Cohesion: 0.33
+Nodes (4): Тесты show_kitchen_analysis — callback_data.startswith('kitchen:')., Отчёт не найден или нет kitchen_analysis., Показывает кухонный слой., TestKitchenAnalysis
 
 ### Community 325 - "Community 325"
 Cohesion: 0.20
-Nodes (6): Тесты initiate_tarot_subscription — callback_data == 'buy_tarot_subscription'., Пользователь не найден., Таро-подписка уже активна., Тестовый режим активирует таро., Создаёт платёж для таро., TestBuyTarotSubscription
+Nodes (8): callback_main_menu(), Тесты callback_main_menu — callback_data == 'main_menu'., Показывает главное меню., Без birth_date — просьба ввести /start., TestCallbackMainMenu, help_text(), unknown_message_text(), welcome_back_text()
 
-### Community 326 - "Community 326"
-Cohesion: 0.15
-Nodes (17): callback_delete_account_cancel(), callback_delete_account_confirm(), callback_main_menu(), callback_sample_report(), cmd_delete_account(), cmd_help(), _delete_account_keyboard(), _pd_consent_keyboard() (+9 more)
-
-### Community 336 - "Community 336"
-Cohesion: 0.25
-Nodes (5): ask_partner_date_text(), ask_partner_name_text(), ask_relation_type_text(), compat_details_text(), mini_compatibility_text()
-
-### Community 338 - "Community 338"
-Cohesion: 0.33
-Nodes (4): Успешный расклад теневых сторон., Тесты show_tarot_twins — callback_data == 'tarot_twins'., Free-пользователь видит пэйволл., TestTarotTwins
+### Community 337 - "Community 337"
+Cohesion: 0.40
+Nodes (4): ARCANA_DATA, matrix_calculate_full, parse_birth_date, sum_digits
 
 ### Community 339 - "Community 339"
-Cohesion: 0.33
-Nodes (4): Тесты show_tarot_blocks — callback_data == 'tarot_blocks'., Free-пользователь видит пэйволл., Успешный расклад 'Что мешает'., TestTarotBlocks
+Cohesion: 0.40
+Nodes (5): 3.1 Углы квадрата, 3.2 Центр (главный архетип), 3.3 Производные зоны, 3.4 Кармический хвост, 3. Основные позиции матрицы (базовый квадрат)
+
+### Community 340 - "Community 340"
+Cohesion: 0.40
+Nodes (5): 4.1 Линия неба (духовное предназначение), 4.2 Линия земли (материальное предназначение), 4.3 Линия отношений, 4.4 Линия денег (финансовый канал), 4. Расширенные позиции (внутренний квадрат)
+
+### Community 343 - "Community 343"
+Cohesion: 0.50
+Nodes (4): 1. Общая архитектура, URL и доступ, Рендеринг (диспетчеризация), Форматы
+
+### Community 344 - "Community 344"
+Cohesion: 0.50
+Nodes (4): 2.2 AI-поля (FullReportResult), 2.3 Kitchen-данные (KitchenReportResult), 2. Данные для подстановки, Парсинг AI-полей
+
+### Community 345 - "Community 345"
+Cohesion: 0.50
+Nodes (4): 9. Доставка отчёта, URL продакшена, Права доступа, Флоу доставки
 
 ## Knowledge Gaps
-- **965 isolated node(s):** `Сессия 70 — 04.07.2026`, `Сессия 69 — 04.07.2026`, `Сессия 68 — 04.07.2026`, `Сессия 67 — 03.07.2026`, `Сессия 66 — 02.07.2026` (+960 more)
+- **996 isolated node(s):** `Сессия 75 — 04.07.2026`, `Сессия 74 — 04.07.2026`, `Сессия 73 — 04.07.2026`, `Сессия 72 — 04.07.2026`, `Сессия 71 — 04.07.2026` (+991 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **96 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **102 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `UserRepository` connect `SQLAlchemy Repository Base` to `Carousel Configuration Models`, `Community 131`, `Payment Access Tests`, `Payment Webhook Logic`, `Report & Matrix Services`, `User Profile Handlers`, `Tarot Menu Handlers`, `Community 140`, `Compatibility Full Result`, `Profile Handler Tests`, `Payment & Tarot Routes`, `User Repository`, `Aiogram Bot Framework`, `Community 151`, `Webhook & Dependencies`, `Community 156`, `Community 287`, `Compatibility Handlers`, `Chat Handlers`, `Tarot Spread Response Models`, `Spread Request Validation`, `Community 302`, `Admin Panel Interface`, `Community 305`, `Community 51`, `Community 182`, `Community 183`, `Community 185`, `Community 314`, `Community 320`, `Arcana Data & Matrix Service`, `Community 326`, `Community 218`, `Community 222`, `Community 235`, `Community 112`?**
-  _High betweenness centrality (0.107) - this node is a cross-community bridge._
-- **Why does `MatrixService` connect `Community 305` to `Compatibility Handlers`, `Community 106`, `Date Calculation Edge Cases`, `Community 239`, `Admin Panel Interface`, `Matrix Destiny Calculation`, `Matrix Format Prompt Tests`, `Community 210`, `Payment & Tarot Routes`, `Community 279`, `Community 121`, `Life Periods Calculation Tests`, `Year Forecast Tests`, `Year Arcana Calculation Tests`, `Matrix Arcana Tests`?**
-  _High betweenness centrality (0.080) - this node is a cross-community bridge._
-- **Why does `User` connect `Admin Panel Interface` to `Carousel Configuration Models`, `Tarot PWA Tests`, `User Profile Handlers`, `Tarot Spread API Tests`, `Code Integrity Checks`, `Daily Card & Spread Tests`, `Profile Handler Tests`, `Community 151`, `Webhook & Dependencies`, `Daily Card API Tests`, `Chat Handlers`, `Tarot Spread Response Models`, `Spread Request Validation`, `Question & YesNo Spread Tests`, `SQLAlchemy Repository Base`, `Community 305`, `Community 183`, `Spread Error Handling Tests`, `AIService Mock Verification`, `Spread Subscription & Life Tests`, `Compatibility Handler Tests`, `Community 206`, `Community 341`, `Test Configuration Fixtures`, `Community 93`, `Community 222`, `Community 98`, `Community 232`, `Community 110`, `Community 239`, `Day Parsing Script`, `Community 121`?**
-  _High betweenness centrality (0.043) - this node is a cross-community bridge._
-- **Are the 162 inferred relationships involving `UserRepository` (e.g. with `get_current_web_user()` and `get_optional_web_user()`) actually correct?**
-  _`UserRepository` has 162 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 93 inferred relationships involving `User` (e.g. with `AdminAuth` and `PaymentAdmin`) actually correct?**
-  _`User` has 93 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `UserRepository` connect `SQLAlchemy Repository Base` to `Community 128`, `Payment Access Tests`, `Payment Webhook Logic`, `Report & Matrix Services`, `User Profile Handlers`, `Tarot Menu Handlers`, `Daily Card & Spread Tests`, `Tarot Handler Tests`, `Tarot Error Cases`, `Payment & Tarot Routes`, `User Repository`, `Aiogram Bot Framework`, `Community 279`, `Community 156`, `Daily Card API Tests`, `Community 287`, `Compatibility Handlers`, `Chat Handlers`, `Tarot Spread Response Models`, `Spread Request Validation`, `Community 299`, `Admin Panel Interface`, `Community 305`, `Community 183`, `Community 194`, `Community 68`, `Community 325`, `Community 217`, `Community 218`, `Community 222`, `Question Spread Edge Cases`, `Community 235`, `Community 112`, `Community 240`?**
+  _High betweenness centrality (0.111) - this node is a cross-community bridge._
+- **Why does `MatrixService` connect `Community 305` to `Compatibility Handlers`, `Tarot Date Tests`, `Date Calculation Edge Cases`, `Community 239`, `Admin Panel Interface`, `Community 337`, `Matrix Destiny Calculation`, `Community 336`, `Matrix Format Prompt Tests`, `Payment & Tarot Routes`, `Community 210`, `Aiogram Bot Framework`, `Matrix Arcana Tests`, `Life Periods Calculation Tests`, `Year Forecast Tests`, `Year Arcana Calculation Tests`?**
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+- **Why does `User` connect `Admin Panel Interface` to `Community 128`, `Tarot PWA Tests`, `User Profile Handlers`, `Tarot Spread API Tests`, `Daily Card & Spread Tests`, `Webhook & Dependencies`, `Daily Card API Tests`, `Chat Handlers`, `Tarot Spread Response Models`, `Spread Request Validation`, `Question & YesNo Spread Tests`, `Community 299`, `SQLAlchemy Repository Base`, `Community 305`, `Community 310`, `Community 183`, `Community 311`, `Spread Error Handling Tests`, `AIService Mock Verification`, `Spread Subscription & Life Tests`, `Community 68`, `Start Command Tests`, `Compatibility Handler Tests`, `Community 206`, `Community 218`, `Test Configuration Fixtures`, `Community 93`, `Community 98`, `Tarot Date Tests`, `Community 110`, `Community 239`, `Day Parsing Script`, `Community 121`?**
+  _High betweenness centrality (0.039) - this node is a cross-community bridge._
+- **Are the 166 inferred relationships involving `UserRepository` (e.g. with `get_current_web_user()` and `get_optional_web_user()`) actually correct?**
+  _`UserRepository` has 166 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 96 inferred relationships involving `User` (e.g. with `AdminAuth` and `PaymentAdmin`) actually correct?**
+  _`User` has 96 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 80 inferred relationships involving `ReportRepository` (e.g. with `CommandObject` and `_process_compatibility_report()`) actually correct?**
   _`ReportRepository` has 80 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 2 inferred relationships involving `get_async_sessionmaker()` (e.g. with `._get_matrix_context()` and `.run_db_query()`) actually correct?**

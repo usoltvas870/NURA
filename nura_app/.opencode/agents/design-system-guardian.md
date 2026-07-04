@@ -140,7 +140,7 @@ After every audit, generate a structured report:
 
 ## Workflow
 
-1. Read the DS specification from the project's design documents (e.g., `frontend/design-system.css`)
+1. Read the DS specification from the project's design documents (`theme.css`)
 2. Scan all `*.html`, `*.css`, `*.js` files in the project
 3. Apply replacement rules with context awareness
 4. Generate audit report

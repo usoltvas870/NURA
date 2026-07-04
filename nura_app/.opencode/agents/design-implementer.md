@@ -12,7 +12,7 @@
 
 ```bash
 # Текущий CSS и HTML
-cat frontend/design-system.css
+cat theme.css
 cat frontend/index.html
 
 # Шаблоны отчётов (Jinja2)
@@ -45,7 +45,7 @@ ls templates/reports/
 
 **Порядок действий для каждой страницы:**
 
-1. **design-system.css** — если на скриншоте новые цвета/тени/радиусы → добавить CSS-переменные
+1. **theme.css** — если на скриншоте новые цвета/тени/радиусы → добавить CSS-переменные
 2. **index.html или соответствующий HTML** — layout, секции, элементы, классы
 3. **pwa-install.js / sw.js** — если нужны PWA-изменения
 

@@ -331,11 +331,11 @@ grep -i "target\|audience\|goal\|objective" ai/memory-bank/site-setup.md
 ## 🏗️ CSS Architecture
 
 ### Design System Variables
-**File**: `css/design-system.css`
-- Color palette with semantic naming
-- Typography scale with consistent ratios
-- Spacing system based on 4px grid
-- Component tokens for reusability
+**File**: `theme.css`
+- Color palette with semantic naming (--terra, --sage, --gold, --violet)
+- Typography: Playfair Display (headings) + Manrope (body)
+- Shadows: 2-layer warm shadows for cards
+- Dark mode via `[data-theme="dark"]`
 
 ### Layout Framework
 **File**: `css/layout.css`
@@ -390,7 +390,7 @@ grep -i "target\|audience\|goal\|objective" ai/memory-bank/site-setup.md
 ### File Structure
 ```
 css/
-├── design-system.css    # Variables and tokens (includes theme system)
+├── theme.css            # Variables and tokens (includes dark/light themes)
 ├── layout.css          # Grid and container system
 ├── components.css      # Reusable component styles (includes theme toggle)
 ├── utilities.css       # Helper classes and utilities
