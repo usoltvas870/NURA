@@ -15,65 +15,53 @@
   (function(){
     var t = localStorage.getItem('nura-theme') || 'light';
     document.documentElement.setAttribute('data-theme', t);
-})();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
+  })();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-<link rel="stylesheet" href="nura-pwa.css?v=9"/>
+<link rel="stylesheet" href="nura-pwa.css?v=11"/>
 <link rel="stylesheet" href="/theme.css?v=9"/>
-<title>NURA · Практики</title><style>
-
-/* ── photo card system (shared with index) ── */
-.photo-card{position:relative;overflow:hidden;border-radius:var(--r-xl);-webkit-tap-highlight-color:transparent}
-.photo-card-img{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s ease}
-.photo-card:active .photo-card-img{transform:scale(1.03)}
-.photo-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.97) 0%,rgba(18,16,14,.75) 35%,rgba(18,16,14,.50) 62%,rgba(18,16,14,.32) 100%)}
-.photo-card-body{position:relative;z-index:1;padding:22px 20px 20px;display:flex;flex-direction:column;justify-content:flex-end}
-
-/* ── hero card of the day ── */
-.hero-day{min-height:280px;cursor:default}
-.hero-day-eyebrow{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.90);background:rgba(0,0,0,.38);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);padding:4px 10px;border-radius:999px;margin-bottom:14px}
-.arcane-roman{font-family:var(--font-serif);font-size:72px;line-height:.88;color:#D4956A;font-weight:600;margin-bottom:6px;text-shadow:0 2px 20px rgba(0,0,0,.55)}
-.arcane-name{font-family:var(--font-serif);font-size:28px;line-height:1.1;font-weight:400;color:#fff;margin-bottom:10px;text-shadow:0 1px 10px rgba(0,0,0,.55)}
-.arcane-phrase{font-size:13px;line-height:1.6;color:rgba(255,255,255,.85);margin-bottom:14px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
-.arcane-advice{font-size:12px;line-height:1.5;color:rgba(212,149,106,.90);padding-top:12px;border-top:1px solid rgba(255,255,255,.14);text-shadow:0 1px 4px rgba(0,0,0,.4)}
-.share-row{margin-top:16px}
-.btn-ghost-sm{border:1px solid rgba(255,255,255,.30);color:rgba(255,255,255,.85);background:rgba(255,255,255,.07);backdrop-filter:blur(4px);padding:8px 14px;border-radius:999px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
-
-/* ── section head ── */
-.section-head-plain{padding:20px 0 10px;display:flex;align-items:baseline;gap:8px}
-.section-head-plain .section-title{font-size:14px;font-weight:800;color:var(--text)}
-
-/* ── practice grid with photos ── */
-.practice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.practice-photo{min-height:148px;cursor:pointer}
-.practice-photo .photo-card-overlay{background:linear-gradient(to top,rgba(18,16,14,.88) 0%,rgba(18,16,14,.20) 60%,transparent 100%)}
-.practice-photo.locked .photo-card-overlay{background:linear-gradient(to top,rgba(18,16,14,.93) 0%,rgba(18,16,14,.50) 60%,rgba(18,16,14,.25) 100%)}
-.practice-photo-body{position:relative;z-index:1;padding:14px 12px 12px;display:flex;flex-direction:column;justify-content:flex-end;height:100%;min-height:148px}
-.practice-tag{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.70);margin-bottom:6px;text-shadow:0 1px 4px rgba(0,0,0,.5)}
-.practice-label{font-size:13px;font-weight:800;color:#fff;line-height:1.25;margin-bottom:3px;text-shadow:0 1px 8px rgba(0,0,0,.6)}
-.practice-sub-txt{font-size:11px;color:rgba(255,255,255,.75);line-height:1.35;text-shadow:0 1px 4px rgba(0,0,0,.5)}
-.lock-badge{position:absolute;top:10px;right:10px;z-index:2;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(18,16,14,.55);border:1px solid rgba(255,255,255,.18);font-size:11px;color:rgba(255,255,255,.65)}
-
-/* ── wide practice card (full width) ── */
-.practice-wide{grid-column:1/-1;min-height:120px}
-.practice-wide .photo-card-overlay{background:linear-gradient(to right,rgba(18,16,14,.92) 0%,rgba(18,16,14,.30) 60%,rgba(18,16,14,.10) 100%)}
-.practice-wide .practice-photo-body{padding:20px}
-
-/* ── disclaimer card ── */
+<title>NURA · Практики</title>
+<style>
+.hero-day{padding:20px;display:grid;gap:16px;cursor:pointer}
+.hero-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.hero-day-eyebrow{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--terra)}
+.hero-share{align-self:flex-start}
+.hero-body{display:grid;gap:14px}
+.arcane-row{display:flex;gap:14px;align-items:flex-start}
+.arcane-badge{width:82px;height:82px;border-radius:24px;display:grid;place-items:center;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.16);color:var(--terra);flex-shrink:0}
+.arcane-roman{font-family:var(--font-serif);font-size:42px;line-height:1;font-weight:600}
+.arcane-name{font-family:var(--font-serif);font-size:30px;line-height:1.05;font-weight:400;color:var(--text);margin-bottom:8px}
+.arcane-phrase{font-size:13.5px;line-height:1.65;color:var(--text-m)}
+.arcane-advice{padding:14px 16px;border-radius:var(--r-md);background:rgba(184,116,63,.07);border-left:3px solid var(--terra);font-size:12.5px;line-height:1.6;color:var(--text-m)}
+.matrix-context{font-size:11px;line-height:1.5;color:var(--text-s)}
+.practice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.practice-card{min-height:154px;cursor:pointer}
+.practice-card .quick-action-icon{background:rgba(194,164,118,.14);color:var(--gold-ink)}
+.practice-card.locked{position:relative}
+.practice-card.locked::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,transparent 0%,rgba(194,164,118,.04) 100%)}
+.practice-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.practice-tag{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-s)}
+.practice-label{font-size:15px;font-weight:800;line-height:1.25;color:var(--text);margin-top:2px}
+.practice-sub-txt{font-size:12.5px;line-height:1.55;color:var(--text-m);margin-top:auto}
+.practice-wide{grid-column:1/-1;min-height:132px}
 .disclaimer-card{padding:16px 18px;border-left:3px solid var(--terra)}
-.disclaimer-card p{font-size:12px;line-height:1.6;color:var(--text-m);margin-top:6px}
-
-/* ── paywall sheet ── */
+.disclaimer-card p{font-size:12.5px;line-height:1.6;color:var(--text-m);margin-top:6px}
 .sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.38);backdrop-filter:blur(4px);z-index:60;opacity:0;pointer-events:none;transition:.25s}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--bg);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:.3s var(--ease)}
-.sheet-inner{width:min(100%,520px);margin:0 auto}.sheet.open{transform:none}.sheet-backdrop.open{opacity:1;pointer-events:auto}
+.sheet-inner{width:min(100%,520px);margin:0 auto}
+.sheet.open{transform:none}
+.sheet-backdrop.open{opacity:1;pointer-events:auto}
 .handle{width:42px;height:4px;border-radius:99px;background:var(--line-strong);margin:0 auto 20px}
-
-@media(max-width:360px){.practice-grid{grid-template-columns:1fr}.practice-wide{grid-column:auto}}
+.sheet-highlight{padding:14px 16px;background:rgba(184,116,63,.07);border-radius:var(--r-md);border-left:3px solid var(--terra);margin-bottom:16px}
+.sheet-tip{padding:14px 16px;background:var(--bg-card-soft);border-radius:var(--r-md);margin-bottom:16px;font-size:12px;line-height:1.55;color:var(--text-m)}
+@media(max-width:360px){
+  .practice-grid{grid-template-columns:1fr}
+  .practice-wide{grid-column:auto}
+}
 </style></head><body><div class="app-shell"><header class="header">
 <a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a>
 <span class="header-title">Практики</span>
@@ -81,28 +69,33 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 </header>
 
 <main class="page">
-
-  <!-- hero: card of the day -->
-  <div class="photo-card hero-day" onclick="openCardDetail()" style="cursor:pointer">
-    <div class="photo-card-img" style="background-image:url('images/tarot-hero.webp')"></div>
-    <div class="photo-card-overlay"></div>
-    <div class="photo-card-body">
-      <div class="hero-day-eyebrow">Карта дня · <span id="hero-date">сегодня</span><span id="hero-streak" style="display:none;margin-left:6px"></span></div>
-      <div class="arcane-roman skeleton skeleton-num" id="hero-num"></div>
-      <div class="arcane-name skeleton skeleton-name" id="hero-name"></div>
-      <div class="arcane-phrase" id="hero-phrase"><span class="skeleton skeleton-line" style="width:100%"></span><span class="skeleton skeleton-line" style="width:75%"></span></div>
-      <div class="arcane-advice skeleton skeleton-line" id="hero-advice"></div>
-      <div class="matrix-context" id="hero-matrix-context" style="display:none;margin-top:8px;font-size:11px;color:rgba(212,149,106,.70);text-shadow:0 1px 4px rgba(0,0,0,.4)">
-        Этот аркан резонирует с твоим архетипом <strong id="matrix-archetype-name"></strong>
+  <section class="card soft-accent hero-day" onclick="openCardDetail()">
+    <div class="hero-top">
+      <div class="hero-day-eyebrow">
+        <span>Карта дня</span>
+        <span>·</span>
+        <span id="hero-date">сегодня</span>
+        <span id="hero-streak" class="status-pill is-gold" style="display:none"></span>
       </div>
-      <div class="share-row" style="display:flex;gap:8px;align-items:center">
-        <button class="btn-ghost-sm" onclick="event.stopPropagation();shareDayCard()"><i class="ti ti-share-3"></i> Поделиться</button>
-        <span style="font-size:11px;color:rgba(255,255,255,.50);display:flex;align-items:center;gap:4px"><i class="ti ti-info-circle" style="font-size:13px"></i> нажми для разбора</span>
-      </div>
+      <button class="btn btn-secondary hero-share" type="button" onclick="event.stopPropagation();shareDayCard()"><i class="ti ti-share-3"></i> Поделиться</button>
     </div>
-  </div>
+    <div class="hero-body">
+      <div class="arcane-row">
+        <div class="arcane-badge"><span class="arcane-roman skeleton skeleton-num" id="hero-num"></span></div>
+        <div style="min-width:0;flex:1">
+          <div class="arcane-name skeleton skeleton-name" id="hero-name"></div>
+          <div class="arcane-phrase" id="hero-phrase"><span class="skeleton skeleton-line" style="width:100%"></span><span class="skeleton skeleton-line" style="width:75%"></span></div>
+        </div>
+      </div>
+      <div class="arcane-advice" id="hero-advice"><span class="skeleton skeleton-line" style="width:100%"></span></div>
+      <div class="matrix-context" id="hero-matrix-context" style="display:none">Этот аркан резонирует с твоим архетипом <strong id="matrix-archetype-name"></strong></div>
+      <div class="action-row">
+        <button class="btn btn-primary" type="button" onclick="event.stopPropagation();askNura('Помоги применить мою карту дня на практике')">Задать вопрос NURA</button>
+      </div>
+      <div class="small">Нажми на карточку, чтобы открыть полный инсайт и перейти к разбору через NURA.</div>
+    </div>
+  </section>
 
-  <!-- onboarding -->
   <div id="tarot-onboarding" class="card" style="display:none">
     <div class="card-pad">
       <div class="eyebrow">Добро пожаловать в Таро</div>
@@ -111,96 +104,81 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     </div>
   </div>
 
-  <!-- practices section -->
-  <div class="section-head-plain">
-    <span class="section-title">Таро-ритуалы</span>
-  </div>
+  <section class="section-block">
+    <div class="section-head">
+      <span class="section-title">Таро-ритуалы</span>
+      <span class="small">Спокойный фокус на день</span>
+    </div>
 
-  <div class="practice-grid">
-
-    <!-- 1. weekly -->
-    <article class="photo-card practice-photo practice-wide locked" role="button" tabindex="0" onclick="openPaywall('Расклад недели')" id="p-weekly">
-      <div class="photo-card-img" style="background-image:url('images/practice-journal.webp')"></div>
-      <div class="photo-card-overlay"></div>
-      <span class="lock-badge"><i class="ti ti-lock"></i></span>
-      <div class="practice-photo-body">
+    <div class="practice-grid">
+      <article class="card quick-action-card practice-card practice-wide locked" role="button" tabindex="0" onclick="openPaywall('Расклад недели')" id="p-weekly">
+        <div class="practice-card-head">
+          <div class="quick-action-icon"><i class="ti ti-calendar-week"></i></div>
+          <span class="status-pill is-gold lock-badge"><i class="ti ti-lock"></i> Premium</span>
+        </div>
         <div class="practice-tag">✦ Тело · Ум · Дух</div>
         <div class="practice-label">Расклад недели</div>
-        <div class="practice-sub-txt">7 дней с фокусом по сферам</div>
-      </div>
-    </article>
+        <div class="practice-sub-txt">7 дней с фокусом по сферам и понятный вектор на ближайшие дни.</div>
+      </article>
 
-    <!-- 2. question -->
-    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall('По вопросу')" id="p-question">
-      <div class="photo-card-img" style="background-image:url('images/practice-meditation.webp')"></div>
-      <div class="photo-card-overlay"></div>
-      <span class="lock-badge"><i class="ti ti-lock"></i></span>
-      <div class="practice-photo-body">
-        <div class="practice-tag">◈ Прошлое / Настоящее / Будущее</div>
+      <article class="card quick-action-card practice-card locked" role="button" tabindex="0" onclick="openPaywall('По вопросу')" id="p-question">
+        <div class="practice-card-head">
+          <div class="quick-action-icon"><i class="ti ti-message-question"></i></div>
+          <span class="status-pill is-gold lock-badge"><i class="ti ti-lock"></i></span>
+        </div>
+        <div class="practice-tag">◀ Прошлое / Настоящее / Будущее</div>
         <div class="practice-label">По вопросу</div>
-        <div class="practice-sub-txt">3 аркана для твоей ситуации</div>
-      </div>
-    </article>
+        <div class="practice-sub-txt">3 аркана для твоей ситуации.</div>
+      </article>
 
-    <!-- 3. life -->
-    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall('Сферы жизни')" id="p-life">
-      <div class="photo-card-img" style="background-image:url('images/practice-body.webp')"></div>
-      <div class="photo-card-overlay"></div>
-      <span class="lock-badge"><i class="ti ti-lock"></i></span>
-      <div class="practice-photo-body">
+      <article class="card quick-action-card practice-card locked" role="button" tabindex="0" onclick="openPaywall('Сферы жизни')" id="p-life">
+        <div class="practice-card-head">
+          <div class="quick-action-icon"><i class="ti ti-hexagons"></i></div>
+          <span class="status-pill is-gold lock-badge"><i class="ti ti-lock"></i></span>
+        </div>
         <div class="practice-tag">✶ Деньги / Отношения / Предназначение</div>
         <div class="practice-label">Сферы жизни</div>
-        <div class="practice-sub-txt">Твой фокус по трём каналам</div>
-      </div>
-    </article>
+        <div class="practice-sub-txt">Твой фокус по трём каналам.</div>
+      </article>
 
-    <!-- 4. doubles -->
-    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall('Двойники')" id="p-doubles">
-      <div class="photo-card-img" style="background-image:url('images/practice-nature.webp')"></div>
-      <div class="photo-card-overlay"></div>
-      <span class="lock-badge"><i class="ti ti-lock"></i></span>
-      <div class="practice-photo-body">
+      <article class="card quick-action-card practice-card locked" role="button" tabindex="0" onclick="openPaywall('Двойники')" id="p-doubles">
+        <div class="practice-card-head">
+          <div class="quick-action-icon"><i class="ti ti-git-merge"></i></div>
+          <span class="status-pill is-gold lock-badge"><i class="ti ti-lock"></i></span>
+        </div>
         <div class="practice-tag">☯ Внутренний диалог</div>
         <div class="practice-label">Двойники</div>
-        <div class="practice-sub-txt">Два аркана — две стороны тебя</div>
-      </div>
-    </article>
+        <div class="practice-sub-txt">Два аркана — две стороны тебя.</div>
+      </article>
 
-    <!-- 5. portal -->
-    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall('Портал месяца')" id="p-portal">
-      <div class="photo-card-img" style="background-image:url('images/practice-breath.webp')"></div>
-      <div class="photo-card-overlay"></div>
-      <span class="lock-badge"><i class="ti ti-lock"></i></span>
-      <div class="practice-photo-body">
-        <div class="practice-tag">🌅 Чему научит / Что отпустить / Что усилить</div>
+      <article class="card quick-action-card practice-card locked" role="button" tabindex="0" onclick="openPaywall('Портал месяца')" id="p-portal">
+        <div class="practice-card-head">
+          <div class="quick-action-icon"><i class="ti ti-sun-high"></i></div>
+          <span class="status-pill is-gold lock-badge"><i class="ti ti-lock"></i></span>
+        </div>
+        <div class="practice-tag">🌤 Чему научить / Что отпустить / Что усилить</div>
         <div class="practice-label">Портал месяца</div>
-        <div class="practice-sub-txt">Энергия текущего цикла</div>
-      </div>
-    </article>
+        <div class="practice-sub-txt">Энергия текущего цикла в мягком, понятном формате.</div>
+      </article>
 
-    <!-- 6. yesno -->
-    <article class="photo-card practice-photo locked" role="button" tabindex="0" onclick="openPaywall('Да / Нет')" id="p-yesno">
-      <div class="photo-card-img" style="background-image:url('images/practice-meditation.webp');filter:hue-rotate(160deg) saturate(.7)"></div>
-      <div class="photo-card-overlay" style="background:linear-gradient(to top,rgba(18,32,24,.93) 0%,rgba(18,32,24,.45) 60%,transparent 100%)"></div>
-      <span class="lock-badge"><i class="ti ti-lock"></i></span>
-      <div class="practice-photo-body">
-        <div class="practice-tag" style="color:rgba(107,180,120,.65)">👁 Направление энергии</div>
+      <article class="card quick-action-card practice-card locked" role="button" tabindex="0" onclick="openPaywall('Да / Нет')" id="p-yesno">
+        <div class="practice-card-head">
+          <div class="quick-action-icon" style="background:rgba(107,128,104,.12);color:var(--sage)"><i class="ti ti-binary-tree-2"></i></div>
+          <span class="status-pill is-sage lock-badge"><i class="ti ti-lock"></i></span>
+        </div>
+        <div class="practice-tag">👁 Направление энергии</div>
         <div class="practice-label">Да / Нет</div>
-        <div class="practice-sub-txt">Один аркан — тебе ответ</div>
-      </div>
-    </article>
+        <div class="practice-sub-txt">Один аркан — короткий ответ на важный запрос.</div>
+      </article>
+    </div>
+  </section>
 
-  </div>
-
-  <!-- disclaimer -->
-  <div class="card disclaimer-card" style="margin-top:10px">
+  <div class="card disclaimer-card">
     <div class="eyebrow">Зеркало, а не предсказание</div>
     <p>Твоя карта дня — не предсказание, а зеркало. Возьми главный вопрос дня и примерь к нему смысл аркана.</p>
   </div>
-
 </main></div>
 
-<!-- card detail sheet -->
 <div class="sheet-backdrop" id="card-backdrop" onclick="closeCardDetail()"></div>
 <div class="sheet" id="card-sheet" style="max-height:88dvh;overflow-y:auto"><div class="sheet-inner">
   <div class="handle"></div>
@@ -209,7 +187,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     <span style="font-family:var(--font-serif);font-size:60px;line-height:.9;color:var(--terra);font-weight:600" id="sheet-num"></span>
     <span style="font-family:var(--font-serif);font-size:26px;line-height:1.1;color:var(--text)" id="sheet-name"></span>
   </div>
-  <div style="padding:14px 16px;background:rgba(184,116,63,.07);border-radius:var(--r-md);border-left:3px solid var(--terra);margin-bottom:16px">
+  <div class="sheet-highlight">
     <div class="eyebrow" style="margin-bottom:6px">Значение карты</div>
     <p id="sheet-phrase" style="font-size:14px;line-height:1.65;color:var(--text);margin:0"></p>
   </div>
@@ -217,7 +195,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     <div class="eyebrow" style="margin-bottom:8px;color:var(--terra)">Совет на сегодня</div>
     <p id="sheet-advice" style="font-size:14px;line-height:1.65;color:var(--text-m);margin:0"></p>
   </div>
-  <div style="padding:14px 16px;background:var(--bg-card-soft);border-radius:var(--r-md);margin-bottom:16px;font-size:12px;line-height:1.55;color:var(--text-m)">
+  <div class="sheet-tip">
     <strong style="color:var(--text);display:block;margin-bottom:4px">Как использовать карту?</strong>
     Возьми главный вопрос своего дня и примерь к нему смысл карты. NURA поможет сделать это через контекст твоей Матрицы.
   </div>
@@ -225,18 +203,17 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   <button class="btn btn-soft btn-full" style="margin-top:8px" onclick="closeCardDetail()">Закрыть</button>
 </div></div>
 
-<!-- paywall sheet -->
 <div class="sheet-backdrop" id="pw-backdrop" onclick="closePaywall()"></div>
 <div class="sheet" id="pw-sheet"><div class="sheet-inner">
   <div class="handle"></div>
   <div class="eyebrow" id="pw-practice-title">Подписка · 390 ₽/мес</div>
   <h2 class="title" style="font-size:28px;margin-top:8px"><em id="pw-practice-name">Ежедневные практики</em></h2>
-  <p class="lead" style="margin:12px 0 14px">✦ Расклад недели · ◈ По вопросу · ✶ Сферы жизни · ☯ Двойники · 🌅 Портал месяца · 👁 Да / Нет</p>
+  <p class="lead" style="margin:12px 0 14px">✦ Расклад недели · ◀ По вопросу · ✶ Сферы жизни · ☯ Двойники · 🌤 Портал месяца · 👁 Да / Нет</p>
   <button class="btn btn-primary btn-full" id="pw-subscribe-btn" onclick="subscribeTarot()">Подключить подписку</button>
+  <p class="small" style="margin-top:10px;text-align:center">Нажимая кнопку, ты принимаешь условия <a href="/offer.html">Публичной оферты</a> и <a href="/privacy.html">Политики обработки персональных данных</a>.</p>
   <button class="btn btn-soft btn-full" style="margin-top:10px" onclick="closePaywall()">Не сейчас</button>
 </div></div>
 
-<!-- spread sheet -->
 <div class="sheet-backdrop" id="spread-backdrop" onclick="closeSpread()"></div>
 <div class="sheet" id="spread-sheet" style="max-height:88dvh;overflow-y:auto"><div class="sheet-inner">
   <div class="handle"></div>
@@ -284,7 +261,6 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   $('hero-date').textContent = dateStr;
 
   var cardData = null;
-
   var cacheKey = 'tarot_daily_card_' + new Date().toISOString().slice(0, 10);
   var cached = localStorage.getItem(cacheKey);
   var cacheAge = 0;
@@ -304,24 +280,23 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 
   function applyCardData(d) {
     cardData = { num: d.arcana_number, name: d.arcana_name, phrase: d.key_phrase, advice: d.advice };
-    if (d.arcana_number) { 
-      var el = document.getElementById('hero-num'); 
-      el.textContent = d.arcana_number; 
-      el.classList.remove('skeleton','skeleton-num'); 
+    if (d.arcana_number) {
+      var numEl = document.getElementById('hero-num');
+      numEl.textContent = d.arcana_number;
+      numEl.classList.remove('skeleton','skeleton-num');
     }
-    if (d.arcana_name) { 
-      var el = document.getElementById('hero-name'); 
-      el.textContent = d.arcana_name; 
-      el.classList.remove('skeleton','skeleton-name'); 
+    if (d.arcana_name) {
+      var nameEl = document.getElementById('hero-name');
+      nameEl.textContent = d.arcana_name;
+      nameEl.classList.remove('skeleton','skeleton-name');
     }
-    if (d.key_phrase) { 
-      var el = document.getElementById('hero-phrase'); 
-      el.textContent = d.key_phrase; 
+    if (d.key_phrase) {
+      document.getElementById('hero-phrase').textContent = d.key_phrase;
     }
-    if (d.advice) { 
-      var el = document.getElementById('hero-advice'); 
-      el.textContent = 'Совет: ' + d.advice; 
-      el.classList.remove('skeleton','skeleton-line'); 
+    if (d.advice) {
+      var adviceEl = document.getElementById('hero-advice');
+      adviceEl.textContent = 'Совет: ' + d.advice;
+      adviceEl.classList.remove('skeleton','skeleton-line');
     }
     if (d.user_archetype_name) {
       document.getElementById('matrix-archetype-name').textContent = d.user_archetype_name;
@@ -335,7 +310,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       localStorage.setItem(cacheKey, JSON.stringify({ d: d, ts: Date.now() }));
       applyCardData(d);
     })
-    .catch(function() { 
+    .catch(function() {
       if (!cardData) {
         document.getElementById('hero-num').classList.remove('skeleton','skeleton-num');
         document.getElementById('hero-num').textContent = '—';
@@ -351,12 +326,12 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     .then(function(d) {
       if (!d.has_tarot) return;
       var map = {
-        'p-weekly':  'weekly',
+        'p-weekly': 'weekly',
         'p-question': 'question',
-        'p-life':    'life',
+        'p-life': 'life',
         'p-doubles': 'doubles',
-        'p-portal':  'portal',
-        'p-yesno':   'yesno'
+        'p-portal': 'portal',
+        'p-yesno': 'yesno'
       };
       Object.keys(map).forEach(function(id) {
         var el = $(id);
@@ -387,6 +362,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     $('card-backdrop').classList.add('open');
     $('card-sheet').classList.add('open');
   };
+
   window.closeCardDetail = function() {
     $('card-backdrop').classList.remove('open');
     $('card-sheet').classList.remove('open');
@@ -399,14 +375,17 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     $('pw-backdrop').classList.add('open');
     $('pw-sheet').classList.add('open');
   };
+
   window.closePaywall = function() {
     $('pw-backdrop').classList.remove('open');
     $('pw-sheet').classList.remove('open');
   };
+
   window.askNura = function(text) {
     localStorage.setItem('nura_pending_question', text);
     location.href = 'chat.html?question=' + encodeURIComponent(text);
   };
+
   window.shareDayCard = function() {
     var name = $('hero-name').textContent || '';
     var phrase = $('hero-phrase').textContent || '';
@@ -431,11 +410,18 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     fetch(N.BASE + '/web/subscribe', { method: 'POST', credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(d) {
-        if (d.payment_url) { window.location.href = d.payment_url; }
-        else { showToast('Ошибка создания платежа'); btn.disabled = false; btn.textContent = 'Подключить подписку'; }
+        if (d.payment_url) {
+          window.location.href = d.payment_url;
+        } else {
+          showToast('Ошибка создания платежа');
+          btn.disabled = false;
+          btn.textContent = 'Подключить подписку';
+        }
       })
       .catch(function() {
-        showToast('Ошибка соединения'); btn.disabled = false; btn.textContent = 'Подключить подписку';
+        showToast('Ошибка соединения');
+        btn.disabled = false;
+        btn.textContent = 'Подключить подписку';
       });
   };
 
@@ -469,7 +455,12 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     document.getElementById('spread-backdrop').classList.add('open');
     sheet.classList.add('open');
 
-    var req = { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ spread_type: type, question: question || undefined }) };
+    var req = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ spread_type: type, question: question || undefined })
+    };
 
     fetch(N.BASE + '/tarot/spread', req)
       .then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { throw e; }); })
@@ -477,7 +468,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         if (d.detail && d.detail.indexOf('402') !== -1) { openPaywall(); closeSpread(); return; }
         renderSpread(d);
       })
-      .catch(function(e) {
+      .catch(function() {
         body.innerHTML = '<p style="color:var(--text-m);text-align:center;padding:40px 0">Не удалось загрузить расклад. Попробуй позже.</p>';
       });
   }
@@ -500,7 +491,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     if (d.affirmation) {
       html += '<div style="padding:14px 16px;background:var(--bg-card-soft);border-radius:var(--r-md);margin-bottom:12px"><div class="eyebrow" style="margin-bottom:6px">Аффирмация</div><p style="font-size:13px;line-height:1.6;color:var(--terra);margin:0;font-style:italic">' + N.escHtml(d.affirmation) + '</p></div>';
     }
-    html += '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost-sm" onclick="shareSpread()" style="flex:1"><i class="ti ti-share-3"></i> Поделиться</button><button class="btn btn-soft btn-full" style="flex:1;min-height:36px;font-size:12px;padding:8px 12px" onclick="closeSpread()">Закрыть</button></div>';
+    html += '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-secondary" onclick="shareSpread()" style="flex:1"><i class="ti ti-share-3"></i> Поделиться</button><button class="btn btn-soft btn-full" style="flex:1;min-height:36px;font-size:12px;padding:8px 12px" onclick="closeSpread()">Закрыть</button></div>';
     body.innerHTML = html;
     document.getElementById('spread-sheet').scrollTop = 0;
   }
@@ -539,7 +530,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     if (lastDate === todayStr) {
       streakCount = streak;
     } else if (lastDate) {
-      var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+      var yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
       if (lastDate === yesterday.toISOString().slice(0, 10)) {
         streakCount = streak + 1;
       } else {
@@ -567,6 +559,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   if (localStorage.getItem('tarot_onboarding_done') !== '1') {
     document.getElementById('tarot-onboarding').style.display = '';
   }
+
   window.dismissOnboarding = function() {
     document.getElementById('tarot-onboarding').style.display = 'none';
     localStorage.setItem('tarot_onboarding_done', '1');

@@ -9,10 +9,12 @@
   --bg-tab:        #FFFFFF;
 
   --gold:          #C2A476;
+  --gold-ink:      #9B7B4C;
   --terra:         #B8743F;
   --terra-d:       #9C5F30;
   --sage:          #6B8068;
   --sage-d:        #56684F;
+  --danger:        #C45C5C;
   --violet:        #7B6FE8;
   --violet-d:      #5B50C0;
 
@@ -50,10 +52,12 @@
   --bg-tab:        #1E1A16;
 
   --gold:          #C9A55C;
+  --gold-ink:      #D2B17A;
   --terra:         #C9874A;
   --terra-d:       #B8743F;
   --sage:          #7A9275;
   --sage-d:        #657D62;
+  --danger:        #E28080;
   --violet:        #8D84E8;
   --violet-d:      #7B6FE8;
 

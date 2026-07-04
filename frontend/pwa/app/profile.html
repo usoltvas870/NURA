@@ -15,86 +15,116 @@
   (function(){
     var t = localStorage.getItem('nura-theme') || 'light';
     document.documentElement.setAttribute('data-theme', t);
-})();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
+  })();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-<link rel="stylesheet" href="nura-pwa.css?v=9"/>
+<link rel="stylesheet" href="nura-pwa.css?v=11"/>
 <link rel="stylesheet" href="/theme.css?v=9"/>
-<title>NURA · Профиль</title><style>
-.profile-hero{position:relative;overflow:hidden;min-height:190px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:var(--r-xl);border:none!important}
-.profile-hero-bg{position:absolute;inset:0;background-image:url('images/hero-greeting.webp');background-size:cover;background-position:center 30%}
-.profile-hero-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.97) 0%,rgba(18,16,14,.72) 40%,rgba(18,16,14,.38) 75%,rgba(18,16,14,.18) 100%)}
-.profile-hero-body{position:relative;z-index:1;padding:20px 20px 18px}
-.avatar{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.28);color:#fff;font-weight:800;font-size:18px;margin-bottom:12px;flex-shrink:0}
-.profile-name{font-family:var(--font-serif);font-size:32px;line-height:1.05;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.5);margin-bottom:3px}
-.badge{display:inline-flex;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.20);color:rgba(255,255,255,.85);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
-.mini-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:rgba(255,255,255,.70);font-size:11px;font-weight:800;cursor:pointer}
+<title>NURA · Профиль</title>
+<style>
+.profile-hero{padding:22px 20px;display:grid;gap:16px}
+.profile-top{display:flex;gap:14px;align-items:flex-start}
+.avatar{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.16);color:var(--terra);font-weight:800;font-size:20px;flex-shrink:0}
+.profile-name{font-family:var(--font-serif);font-size:34px;line-height:1.02;color:var(--text);margin-bottom:4px}
+.profile-dob{font-size:12.5px;color:var(--text-m)}
+.profile-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.16);color:var(--terra);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.mini-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:var(--bg-card-soft);border:1px solid var(--line);color:var(--text-m);font-size:11px;font-weight:800;cursor:pointer}
 .report-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px}
 .report-status.ok{background:rgba(107,128,104,.12);color:var(--sage)}
 .report-status.buy{background:rgba(184,116,63,.10);color:var(--terra)}
-.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:14px 0 2px}.tabs::-webkit-scrollbar{display:none}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:4px 0 2px}
+.tabs::-webkit-scrollbar{display:none}
 .tab-btn{flex:0 0 auto;padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card);color:var(--text-m);font-size:12px;font-weight:800;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
-.tab-btn.active{background:var(--terra);color:white;border-color:var(--terra);box-shadow:0 4px 14px rgba(184,116,63,.28)}
-.panel{display:none;gap:10px}.panel.active{display:grid}
-.list-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:16px}.list-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-size:18px;flex-shrink:0}.list-icon.danger{background:rgba(196,92,92,.10);color:#C45C5C}
+.tab-btn.active{background:var(--terra);color:#fff;border-color:var(--terra);box-shadow:0 4px 14px rgba(184,116,63,.28)}
+.panel{display:none;gap:10px}
+.panel.active{display:grid}
+.list-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:16px}
+.list-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-size:18px;flex-shrink:0}
+.list-icon.danger{background:rgba(196,92,92,.10);color:var(--danger)}
 .list-title{font-size:14px;font-weight:800;margin-bottom:4px}
-.list-sub{font-size:12px;color:var(--text-m);line-height:1.4}
+.list-sub{font-size:12px;color:var(--text-m);line-height:1.45}
 .price{font-family:var(--font-serif);font-size:30px;color:var(--terra);line-height:1}
 .toggle-row{display:grid;grid-template-columns:auto 1fr 44px;gap:12px;align-items:center;padding:15px 16px;border-bottom:1px solid var(--line)}
-.toggle-row:last-child{border-bottom:0}.toggle-icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-size:16px;flex-shrink:0}
-.switch{position:relative;width:44px;height:26px}.switch input{opacity:0;width:0;height:0}
+.toggle-row:last-child{border-bottom:0}
+.toggle-icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-size:16px;flex-shrink:0}
+.switch{position:relative;width:44px;height:26px}
+.switch input{opacity:0;width:0;height:0}
 .track{position:absolute;inset:0;border-radius:99px;background:var(--line-strong)}
 .thumb{position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:var(--bg-card);box-shadow:var(--shadow-card);transition:.2s}
-.switch input:checked+.track{background:rgba(107,128,104,.42)}
-.switch input:checked+.track .thumb{transform:translateX(18px);background:var(--sage)}
-.btn{min-height:46px;border-radius:var(--r-sm);display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;font-size:13.5px;font-weight:800;line-height:1.2;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s var(--ease)}
-.btn:active{transform:scale(.98)}
-.btn-primary{background:var(--terra);color:#fff;box-shadow:0 8px 24px rgba(184,116,63,.26)}
-.btn-primary:hover{background:var(--terra-d)}
-.btn-soft{background:var(--bg-card-soft);color:var(--text);border:1px solid var(--line)}
-.btn-full{width:100%}
+.switch input:checked + .track{background:rgba(107,128,104,.42)}
+.switch input:checked + .track .thumb{transform:translateX(18px);background:var(--sage)}
 .chevron{color:var(--text-m);font-size:19px;line-height:1;flex-shrink:0}
-</style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><span class="header-title">Профиль</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page"><section class="card profile-hero" style="padding:0">
-  <div class="profile-hero-bg"></div>
-  <div class="profile-hero-overlay"></div>
-  <div class="profile-hero-body">
+</style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><span class="header-title">Профиль</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page">
+<section class="card soft-accent profile-hero">
+  <div class="profile-top">
     <div class="avatar" id="avatar-initials">А</div>
-    <div class="profile-name" id="profile-name">Алина</div>
-    <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:3px" id="profile-dob">дата рождения</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
-      <span class="badge" id="profile-archetype">✦ Загрузка…</span>
-      <button class="mini-btn" onclick="location.href='/mini.html'"><i class="ti ti-file-text" style="font-size:12px"></i> Мини-разбор</button>
+    <div style="min-width:0;flex:1">
+      <div class="profile-name" id="profile-name">Алина</div>
+      <div class="profile-dob" id="profile-dob">дата рождения</div>
     </div>
   </div>
-</section><div class="tabs"><button class="tab-btn active" data-tab="reports">Отчёты</button><button class="tab-btn" data-tab="subscription">Подписка</button><button class="tab-btn" data-tab="notifications">Уведомления</button><button class="tab-btn" data-tab="settings">Настройки</button></div>
+  <div class="profile-meta">
+    <span class="badge" id="profile-archetype">✦ Загрузка…</span>
+    <button class="mini-btn" onclick="location.href='/mini.html'"><i class="ti ti-file-text" style="font-size:12px"></i> Мини-разбор</button>
+  </div>
+</section>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="reports">Отчёты</button>
+  <button class="tab-btn" data-tab="subscription">Подписка</button>
+  <button class="tab-btn" data-tab="notifications">Уведомления</button>
+  <button class="tab-btn" data-tab="settings">Настройки</button>
+</div>
+
 <section class="panel active" id="tab-reports">
-<div id="reports-list"></div>
-<article class="card list-card" id="static-matrix-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы <span class="report-status buy" id="matrix-report-status">Купить</span></div><div class="list-sub">Полный разбор 22 арканов · разовая покупка · навсегда</div></div><button class="btn btn-soft" id="matrix-open-btn" onclick="openReport('matrix-full')" style="display:none">Открыть</button><button class="btn btn-primary" id="matrix-buy-btn" onclick="location.href='https://t.me/ai_nura_bot'">Купить</button></article>
-<article class="card list-card"><div class="list-icon"><i class="ti ti-heart-handshake"></i></div><div><div class="list-title">Совместимость</div><div class="list-sub">Разбор пары по двум датам рождения</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
-<article class="card list-card"><div class="list-icon"><i class="ti ti-trending-up"></i></div><div><div class="list-title">Прогноз на год</div><div class="list-sub">Циклы, риски, возможности</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
+  <div id="reports-list"></div>
+  <article class="card list-card" id="static-matrix-card">
+    <div class="list-icon"><i class="ti ti-grid-dots"></i></div>
+    <div>
+      <div class="list-title">Матрица Судьбы <span class="report-status buy" id="matrix-report-status">Купить</span></div>
+      <div class="list-sub">Полный разбор 22 арканов · разовая покупка · навсегда</div>
+    </div>
+    <button class="btn btn-soft" id="matrix-open-btn" onclick="openReport('matrix-full')" style="display:none">Открыть</button>
+    <button class="btn btn-primary" id="matrix-buy-btn" onclick="location.href='https://t.me/ai_nura_bot'">Купить</button>
+  </article>
+  <article class="card list-card"><div class="list-icon"><i class="ti ti-heart-handshake"></i></div><div><div class="list-title">Совместимость</div><div class="list-sub">Разбор пары по двум датам рождения</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
+  <article class="card list-card"><div class="list-icon"><i class="ti ti-trending-up"></i></div><div><div class="list-title">Прогноз на год</div><div class="list-sub">Циклы, риски, возможности</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
 </section>
+
 <section class="panel" id="tab-subscription">
-<article class="card card-pad accent-left"><div class="eyebrow">Подписка</div><h2 class="title" style="font-size:32px;margin-top:8px">Ежедневные практики</h2><div style="margin:10px 0 14px"><span class="price">390 ₽</span> <span class="small">/ месяц</span></div><p class="lead">Карта дня, фокус недели и расширенный чат с NURA. Матрица — разовая покупка, не входит в ежемесячный платёж.</p><div style="margin-top:12px"><input type="text" id="promoCodeField" placeholder="Промокод (если есть)" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);color:var(--text);font-family:var(--font-sans);font-size:13px;outline:none"></div><button class="btn btn-primary btn-full" id="subscribe-btn" style="margin-top:16px" onclick="activateSubscription()">Подключить подписку</button><div id="subscribe-status" style="margin-top:10px;font-size:12px;color:var(--sage);display:none"></div></article>
-<article class="card list-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы</div><div class="list-sub">Разовая покупка · отчёт навсегда</div></div><button class="btn btn-soft" id="matrix-status-btn">Куплена</button></article>
+  <article class="card card-pad accent-left">
+    <div class="eyebrow">Подписка</div>
+    <h2 class="title" style="font-size:32px;margin-top:8px">Ежедневные практики</h2>
+    <div style="margin:10px 0 14px"><span class="price">390 ₽</span> <span class="small">/ месяц</span></div>
+    <p class="lead">Карта дня, фокус недели и расширенный чат с NURA. Матрица — разовая покупка, не входит в ежемесячный платёж.</p>
+    <div style="margin-top:12px"><input type="text" id="promoCodeField" class="input" placeholder="Промокод (если есть)"></div>
+    <button class="btn btn-primary btn-full" id="subscribe-btn" style="margin-top:16px" onclick="activateSubscription()">Подключить подписку</button>
+    <p class="small" style="margin-top:10px;text-align:center">Нажимая кнопку, ты принимаешь условия <a href="/offer.html">Публичной оферты</a> и <a href="/privacy.html">Политики обработки персональных данных</a>.</p>
+    <div id="subscribe-status" style="margin-top:10px;font-size:12px;color:var(--sage);display:none"></div>
+  </article>
+  <article class="card list-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы</div><div class="list-sub">Разовая покупка · отчёт навсегда</div></div><button class="btn btn-soft" id="matrix-status-btn">Куплена</button></article>
 </section>
+
 <section class="panel" id="tab-notifications"><div class="card">
 <label class="toggle-row"><div class="toggle-icon"><i class="ti ti-cards"></i></div><div><div class="list-title">Карта дня</div><div class="list-sub">Утром в 8:00</div></div><span class="switch"><input type="checkbox" checked data-notif-key="daily_card" onchange="saveNotif('daily_card', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
 <label class="toggle-row"><div class="toggle-icon"><i class="ti ti-calendar-week"></i></div><div><div class="list-title">Фокус недели</div><div class="list-sub">В понедельник утром</div></div><span class="switch"><input type="checkbox" checked data-notif-key="weekly_spread" onchange="saveNotif('weekly_spread', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
 <label class="toggle-row"><div class="toggle-icon"><i class="ti ti-bell"></i></div><div><div class="list-title">Практики из отчёта</div><div class="list-sub">Мягкие напоминания 7 дней</div></div><span class="switch"><input type="checkbox" data-notif-key="practices" onchange="saveNotif('practices', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
 <label class="toggle-row"><div class="toggle-icon"><i class="ti ti-speakerphone"></i></div><div><div class="list-title">Новости NURA</div><div class="list-sub">Обновления и новые функции</div></div><span class="switch"><input type="checkbox" data-notif-key="news" onchange="saveNotif('news', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
 </div></section>
+
 <section class="panel" id="tab-settings">
 <article class="card list-card" role="button" tabindex="0" onclick="editProfile()"><div class="list-icon"><i class="ti ti-user-edit"></i></div><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="chevron">›</span></article>
 <div id="tg-link-container"><article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()"><div class="list-icon"><i class="ti ti-brand-telegram"></i></div><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="chevron">›</span></article></div>
 <article class="card list-card" role="button" tabindex="0" id="themeToggle2" onclick="document.getElementById('themeToggle').click()"><div class="list-icon"><i class="ti ti-sun-moon"></i></div><div><div class="list-title">Тема</div><div class="list-sub" id="theme-label">Светлая</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div class="list-icon"><i class="ti ti-shield-lock"></i></div><div><div class="list-title">Политика конфиденциальности</div></div><span class="chevron">›</span></article>
+<article class="card list-card" role="button" tabindex="0" onclick="location.href='/privacy.html'"><div class="list-icon"><i class="ti ti-shield-lock"></i></div><div><div class="list-title">Политика обработки персональных данных</div></div><span class="chevron">›</span></article>
 <article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div class="list-icon"><i class="ti ti-message-2"></i></div><div><div class="list-title">Обратная связь</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="logout()"><div class="list-icon danger"><i class="ti ti-logout"></i></div><div><div class="list-title" style="color:#C45C5C">Выйти из аккаунта</div></div></article>
-<article class="card list-card" role="button" tabindex="0" onclick="deleteAccount()"><div class="list-icon danger"><i class="ti ti-trash"></i></div><div><div class="list-title" style="color:#C45C5C">Удалить аккаунт</div><div class="list-sub">Удалит все данные безвозвратно</div></div></article>
+<article class="card list-card" role="button" tabindex="0" onclick="logout()"><div class="list-icon danger"><i class="ti ti-logout"></i></div><div><div class="list-title" style="color:var(--danger)">Выйти из аккаунта</div></div></article>
+<article class="card list-card" role="button" tabindex="0" onclick="deleteAccount()"><div class="list-icon danger"><i class="ti ti-trash"></i></div><div><div class="list-title" style="color:var(--danger)">Удалить аккаунт</div><div class="list-sub">Удалит все данные безвозвратно</div></div></article>
 </section>
 </main></div>
 <nav class="tabbar"><div class="tabbar-inner">
@@ -196,7 +226,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     if (!container) return;
 
     if (!reports || !reports.length) {
-      container.innerHTML = '<article class="card list-card"><div class="list-icon" style="background:rgba(107,128,104,.10);color:var(--sage)"><i class="ti ti-report"></i></div><div><div class="list-title">Нет отчётов</div><div class="list-sub">У тебя пока нет отчётов. Пройди мини-разбор чтобы получить первый.</div></div></article>';
+      container.innerHTML = '<article class="empty-state"><div class="empty-state-icon"><i class="ti ti-report"></i></div><div class="empty-state-title">Нет отчётов</div><div class="empty-state-copy">У тебя пока нет отчётов. Пройди мини-разбор, чтобы получить первый.</div></article>';
       return;
     }
 
@@ -270,7 +300,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
           '<div class="list-icon"><i class="ti ti-brand-telegram"></i></div>' +
           '<div><div class="list-title">Telegram</div>' +
           '<div class="list-sub" id="tg-link-status">подключён</div></div>' +
-          '<button class="btn btn-soft" onclick="unlinkTelegram()" style="color:#C45C5C;border-color:rgba(196,92,92,.24)">Отключить</button>' +
+          '<button class="btn btn-soft" onclick="unlinkTelegram()" style="color:var(--danger);border-color:rgba(196,92,92,.24)">Отключить</button>' +
         '</article>';
     } else {
       container.innerHTML =
@@ -381,7 +411,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       btn.disabled = false;
       btn.textContent = 'Подключить подписку';
       status.textContent = (err && err.message) || 'Нет соединения';
-      status.style.color = '#C45C5C';
+      status.style.color = 'var(--danger)';
       status.style.display = 'block';
     });
   };

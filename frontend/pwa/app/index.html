@@ -15,156 +15,373 @@
   (function(){
     var t = localStorage.getItem('nura-theme') || 'light';
     document.documentElement.setAttribute('data-theme', t);
-})();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
+  })();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
 <script src="/assets/vendor/vkid-sdk.js" defer></script>
-<link rel="stylesheet" href="nura-pwa.css?v=9"/>
+<link rel="stylesheet" href="nura-pwa.css?v=11"/>
 <link rel="stylesheet" href="/theme.css?v=9"/>
-<title>NURA · Главная</title><meta name="description" content="Личный центр NURA после мини-разбора или покупки отчёта."><style>
-
-/* ── Photo card base ── */
-.photo-card{position:relative;overflow:hidden;border-radius:var(--r-xl);-webkit-tap-highlight-color:transparent;cursor:pointer}
-.photo-card-img{position:absolute;inset:0;background-size:cover;background-position:center;transition:transform .5s ease}
-.photo-card:active .photo-card-img{transform:scale(1.03)}
-.photo-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.97) 0%,rgba(18,16,14,.75) 35%,rgba(18,16,14,.50) 62%,rgba(18,16,14,.32) 100%)}
-.photo-card-body{position:relative;z-index:1;padding:22px 20px 20px;display:flex;flex-direction:column;justify-content:flex-end}
-.eyebrow-light{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.90);background:rgba(0,0,0,.38);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);padding:4px 10px;border-radius:999px;margin-bottom:12px}
-
-/* ── Hero greeting ── */
-.hero-photo{min-height:256px}
-.hero-photo .photo-card-body{min-height:256px}
-.greeting-title{font-family:var(--font-serif);font-size:clamp(36px,9vw,50px);line-height:1.05;font-weight:400;color:#fff;margin:0;text-shadow:0 2px 16px rgba(0,0,0,.6),0 1px 4px rgba(0,0,0,.4)}
-.greeting-title em{color:#D4956A;font-style:italic}
-.greeting-sub{font-size:13px;color:rgba(255,255,255,.82);margin-top:7px;line-height:1.55;text-shadow:0 1px 8px rgba(0,0,0,.6)}
-.hero-cta{margin-top:16px;align-self:flex-start}
-
-/* ── Matrix card ── */
-.matrix-photo{min-height:210px}
-.matrix-photo .photo-card-overlay{background:linear-gradient(150deg,rgba(18,16,14,.55) 0%,rgba(18,16,14,.94) 100%)}
-.matrix-photo .photo-card-body{min-height:210px;padding:20px}
-.arcane{display:flex;gap:10px;align-items:baseline;margin:6px 0 8px}
-.arcane-num{font-family:var(--font-serif);font-size:74px;line-height:.88;color:#D4956A;font-weight:600;text-shadow:0 2px 20px rgba(0,0,0,.5)}
-.arcane-name{font-family:var(--font-serif);font-size:28px;line-height:1.1;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.5)}
-.matrix-desc{font-size:13px;color:rgba(255,255,255,.75);line-height:1.55;margin-bottom:14px;text-shadow:0 1px 6px rgba(0,0,0,.4)}
-.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btn-ghost{border:1px solid rgba(255,255,255,.35);color:#fff;background:rgba(255,255,255,.07);backdrop-filter:blur(4px)}
-.btn-ghost:active{background:rgba(255,255,255,.14)}
-
-/* ── Day card ── */
-.day-card-new{display:flex;gap:16px;align-items:center;padding:18px 20px}
-.day-symbol-new{width:66px;height:66px;border-radius:18px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-family:var(--font-serif);font-size:32px;flex-shrink:0;border:1px solid rgba(184,116,63,.16)}
-.day-name-new{font-family:var(--font-serif);font-size:22px;margin-bottom:5px;color:var(--text)}
-.day-phrase-new{font-size:13px;line-height:1.5;color:var(--text-m)}
-
-/* ── Quick grid ── */
-.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.quick-card{padding:18px 16px 16px;min-height:122px;display:flex;flex-direction:column;justify-content:flex-end;border-top:2px solid var(--terra)}
-.quick-num{font-family:var(--font-serif);font-size:30px;color:rgba(184,116,63,.22);font-weight:600;line-height:1;margin-bottom:10px}
-.quick-title{font-size:14px;font-weight:800;margin-bottom:4px;color:var(--text)}
-.quick-sub{font-size:11.5px;color:var(--text-m);line-height:1.4}
-
-/* ── Section head ── */
+<title>NURA · Главная</title>
+<meta name="description" content="Личный центр NURA после мини-разбора или покупки отчёта.">
+<style>
+.home-page{gap:16px}
+.home-hero{
+  position:relative;
+  padding:22px 20px 20px;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at top right, rgba(194,164,118,.22), transparent 42%),
+    radial-gradient(circle at left center, rgba(107,128,104,.14), transparent 38%),
+    linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(251,250,246,.96) 100%);
+  box-shadow:var(--shadow-soft);
+}
+[data-theme="dark"] .home-hero{
+  background:
+    radial-gradient(circle at top right, rgba(201,165,92,.16), transparent 42%),
+    radial-gradient(circle at left center, rgba(122,146,117,.12), transparent 38%),
+    linear-gradient(180deg, rgba(30,26,22,.98) 0%, rgba(24,21,17,.96) 100%);
+}
+.home-hero::after{
+  content:"";
+  position:absolute;
+  right:-34px;
+  top:-34px;
+  width:138px;
+  height:138px;
+  border-radius:50%;
+  background:rgba(184,116,63,.08);
+  filter:blur(1px);
+}
+.hero-chip{
+  position:relative;
+  z-index:1;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.75);
+  border:1px solid rgba(184,116,63,.14);
+  color:var(--terra);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+[data-theme="dark"] .hero-chip{background:rgba(255,255,255,.04)}
+.hero-title{
+  position:relative;
+  z-index:1;
+  margin-top:14px;
+  font-family:var(--font-serif);
+  font-size:clamp(34px,9vw,46px);
+  line-height:1.02;
+  font-weight:400;
+  letter-spacing:-.03em;
+}
+.hero-title em{color:var(--terra);font-style:italic}
+.hero-copy{
+  position:relative;
+  z-index:1;
+  margin-top:10px;
+  font-size:14px;
+  line-height:1.65;
+  color:var(--text-m);
+  max-width:34ch;
+}
+.hero-actions{
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:18px;
+}
+.hero-actions .btn{padding:0 16px;min-height:48px}
+.hero-points{
+  position:relative;
+  z-index:1;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:16px;
+}
+.hero-point{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,.72);
+  border:1px solid var(--line);
+  color:var(--text-m);
+  font-size:11.5px;
+  font-weight:700;
+}
+[data-theme="dark"] .hero-point{background:rgba(255,255,255,.04)}
 .section-head-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .section-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-s)}
 .section-link{font-size:12px;color:var(--terra);font-weight:700}
-
-@media(max-width:360px){.btn-row,.quick-grid{grid-template-columns:1fr}}
+.today-card{
+  padding:20px;
+  display:grid;
+  gap:18px;
+  background:linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(251,250,246,.96) 100%);
+}
+[data-theme="dark"] .today-card{background:linear-gradient(180deg, rgba(30,26,22,.98) 0%, rgba(24,21,17,.96) 100%)}
+.today-top{display:flex;gap:14px;align-items:flex-start}
+.today-symbol{
+  width:72px;
+  height:72px;
+  border-radius:22px;
+  display:grid;
+  place-items:center;
+  background:rgba(184,116,63,.10);
+  border:1px solid rgba(184,116,63,.16);
+  color:var(--terra);
+  font-family:var(--font-serif);
+  font-size:34px;
+  flex-shrink:0;
+}
+.today-meta{min-width:0;flex:1}
+.today-kicker{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--terra);margin-bottom:6px}
+.today-name{
+  font-family:var(--font-serif);
+  font-size:26px;
+  line-height:1.08;
+  color:var(--text);
+  margin-bottom:8px;
+}
+.today-phrase{font-size:13px;line-height:1.6;color:var(--text-m)}
+.today-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.today-actions .btn{padding:0 14px}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quick-link{
+  padding:18px 16px;
+  min-height:136px;
+  display:grid;
+  align-content:start;
+  gap:12px;
+  cursor:pointer;
+  transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease);
+}
+.quick-link:active{transform:scale(.985)}
+.quick-link:hover{transform:translateY(-2px);box-shadow:var(--shadow-soft);border-color:rgba(184,116,63,.18)}
+.quick-icon{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  background:rgba(184,116,63,.10);
+  color:var(--terra);
+  font-size:20px;
+}
+.quick-link.day .quick-icon{background:rgba(194,164,118,.16);color:var(--gold-ink)}
+.quick-link.chat .quick-icon{background:rgba(107,128,104,.14);color:var(--sage)}
+.quick-link.profile .quick-icon{background:rgba(26,26,26,.06);color:var(--text)}
+[data-theme="dark"] .quick-link.profile .quick-icon{background:rgba(255,255,255,.08);color:var(--text)}
+.quick-title{font-size:15px;font-weight:800;line-height:1.25;color:var(--text)}
+.quick-copy{font-size:12.5px;line-height:1.5;color:var(--text-m)}
+.matrix-card-clean{
+  padding:20px;
+  display:grid;
+  gap:16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(250,247,241,.94) 100%);
+}
+[data-theme="dark"] .matrix-card-clean{
+  background:
+    linear-gradient(180deg, rgba(30,26,22,.98) 0%, rgba(24,21,17,.94) 100%);
+}
+.matrix-row{display:flex;gap:14px;align-items:flex-start}
+.matrix-badge{
+  width:78px;
+  height:78px;
+  border-radius:24px;
+  display:grid;
+  place-items:center;
+  background:rgba(184,116,63,.10);
+  border:1px solid rgba(184,116,63,.16);
+  color:var(--terra);
+  flex-shrink:0;
+}
+.matrix-badge-value{
+  font-family:var(--font-serif);
+  font-size:38px;
+  line-height:1;
+  font-weight:600;
+}
+.matrix-kicker{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--terra);margin-bottom:5px}
+.matrix-name-clean{
+  font-family:var(--font-serif);
+  font-size:28px;
+  line-height:1.08;
+  color:var(--text);
+  margin-bottom:8px;
+}
+.matrix-copy{font-size:13px;line-height:1.6;color:var(--text-m)}
+.matrix-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.matrix-actions .btn{padding:0 14px}
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.status-card{
+  padding:18px 16px;
+  min-height:148px;
+  display:grid;
+  align-content:start;
+  gap:10px;
+}
+.status-label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-s)}
+.status-state{
+  font-family:var(--font-serif);
+  font-size:24px;
+  line-height:1.08;
+  color:var(--text);
+}
+.status-copy-small{font-size:12.5px;line-height:1.55;color:var(--text-m)}
+.status-card.report{border-top:2px solid rgba(184,116,63,.34)}
+.status-card.subscription{border-top:2px solid rgba(107,128,104,.34)}
+@media(max-width:380px){
+  .today-top{align-items:center}
+}
+@media(max-width:360px){
+  .hero-actions,
+  .today-actions,
+  .quick-grid,
+  .matrix-actions,
+  .status-grid{grid-template-columns:1fr}
+  .today-top,
+  .matrix-row{align-items:flex-start}
+}
 </style></head><body>
-<div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header>
-<main class="page">
+<div class="app-shell">
+<header class="header">
+  <a href="index.html" class="nura-text-logo" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a>
+  <div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div>
+</header>
 
-<!-- Hero greeting photo card -->
-<div class="photo-card hero-photo">
-  <div class="photo-card-img" style="background-image:url('images/hero-greeting.webp')"></div>
-  <div class="photo-card-overlay"></div>
-  <div class="photo-card-body">
-    <div class="eyebrow-light">Личный центр</div>
-    <h1 class="greeting-title" id="greeting-name">Привет, <em>Алина</em></h1>
-    <p class="greeting-sub" id="status-copy">Твой отчёт, карта дня и вопросы к NURA собраны в одном месте.</p>
-    <button class="btn btn-primary hero-cta" id="report-cta" onclick="openReport()">Получить полный отчёт</button>
-  </div>
-</div>
-
-<!-- Matrix photo card -->
-<div class="photo-card matrix-photo">
-  <div class="photo-card-img" style="background-image:url('images/matrix-card.webp')"></div>
-  <div class="photo-card-overlay"></div>
-  <div class="photo-card-body">
-    <div class="eyebrow-light">Матрица Судьбы · центр</div>
-    <div class="arcane">
-      <span class="arcane-num skeleton skeleton-num" id="matrix-num"></span>
-      <span class="arcane-name skeleton skeleton-name" id="matrix-name"></span>
+<main class="page home-page">
+  <section class="card home-hero">
+    <div class="hero-chip"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Личный экран</div>
+    <h1 class="hero-title" id="greeting-name">Привет, <em>Алина</em></h1>
+    <p class="hero-copy" id="status-copy">Здесь собраны твой отчёт, карта дня и быстрый вход в чат с NURA.</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary" id="report-cta" onclick="openReport()">Открыть мой отчёт</button>
+      <button class="btn btn-soft" type="button" onclick="askNura('С чего мне лучше начать сегодня?')">Спросить NURA</button>
     </div>
-    <p class="matrix-desc" id="matrix-desc"><span class="skeleton skeleton-line" style="width:88%"></span><span class="skeleton skeleton-line" style="width:62%"></span></p>
-    <div class="btn-row">
-      <button class="btn btn-primary" onclick="openReport()">Открыть разбор</button>
-      <button class="btn btn-ghost" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button>
+    <div class="hero-points">
+      <span class="hero-point"><i class="ti ti-sparkles"></i> Без лишнего шума</span>
+      <span class="hero-point"><i class="ti ti-cards"></i> Фокус на сегодня</span>
+      <span class="hero-point"><i class="ti ti-message-circle"></i> Быстрый доступ к чату</span>
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- Day card -->
-<section class="section-block">
-  <div class="section-head-row">
-    <span class="section-label">Карта дня · твой архетип</span>
-    <a href="tarot.html" class="section-link">все практики →</a>
-  </div>
-  <article class="card day-card-new" role="button" tabindex="0" onclick="location.href='tarot.html'" style="position:relative">
-    <div class="day-symbol-new" id="day-symbol"><span class="skeleton skeleton-icon"></span></div>
-    <div style="flex:1;min-width:0">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--terra);margin-bottom:4px">Аркан дня</div>
-      <div class="day-name-new skeleton skeleton-name" id="day-name"></div>
-      <div class="day-phrase-new" id="day-phrase">
-        <span class="skeleton skeleton-line" style="width:100%"></span>
-        <span class="skeleton skeleton-line" style="width:75%"></span>
+  <section class="section-block">
+    <div class="section-head-row">
+      <span class="section-label">Сегодня для тебя</span>
+      <a href="tarot.html" class="section-link">открыть раздел →</a>
+    </div>
+    <article class="card today-card">
+      <div class="today-top">
+        <div class="today-symbol" id="day-symbol"><span class="skeleton skeleton-icon"></span></div>
+        <div class="today-meta">
+          <div class="today-kicker">Карта дня</div>
+          <div class="today-name skeleton skeleton-name" id="day-name"></div>
+          <div class="today-phrase" id="day-phrase">
+            <span class="skeleton skeleton-line" style="width:100%"></span>
+            <span class="skeleton skeleton-line" style="width:72%"></span>
+          </div>
+        </div>
       </div>
+      <div class="today-actions">
+        <button class="btn btn-primary" type="button" onclick="location.href='tarot.html'">Открыть карту дня</button>
+        <button class="btn btn-soft" type="button" onclick="askNura('Помоги применить мою карту дня на практике')">Задать вопрос NURA</button>
+      </div>
+    </article>
+  </section>
+
+  <section class="section-block">
+    <div class="section-head-row">
+      <span class="section-label">Быстрый доступ</span>
     </div>
-    <span style="color:var(--text-m);font-size:22px;flex-shrink:0">›</span>
-  </article>
-</section>
+    <div class="quick-grid">
+      <article class="card quick-link" role="button" tabindex="0" onclick="openReport()">
+        <div class="quick-icon"><i class="ti ti-grid-dots"></i></div>
+        <div class="quick-title">Моя матрица</div>
+        <div class="quick-copy" id="quick-matrix-copy">Открыть отчёт и ключевые энергии</div>
+      </article>
+      <article class="card quick-link day" role="button" tabindex="0" onclick="location.href='tarot.html'">
+        <div class="quick-icon"><i class="ti ti-cards"></i></div>
+        <div class="quick-title">Карта дня</div>
+        <div class="quick-copy">Мягкий фокус и практика на сегодня</div>
+      </article>
+      <article class="card quick-link chat" role="button" tabindex="0" onclick="location.href='chat.html'">
+        <div class="quick-icon"><i class="ti ti-message-circle"></i></div>
+        <div class="quick-title">Чат с NURA</div>
+        <div class="quick-copy" id="quick-chat-copy">Разобрать вопрос про себя, отношения или деньги</div>
+      </article>
+      <article class="card quick-link profile" role="button" tabindex="0" onclick="location.href='profile.html'">
+        <div class="quick-icon"><i class="ti ti-user-circle"></i></div>
+        <div class="quick-title">Профиль</div>
+        <div class="quick-copy" id="quick-profile-copy">Подписка, отчёты и настройки доступа</div>
+      </article>
+    </div>
+  </section>
 
-<!-- Quick questions -->
-<section class="section-block">
-  <div class="section-head-row">
-    <span class="section-label">Спроси NURA</span>
-  </div>
-  <div class="quick-grid">
-    <article class="card quick-card" role="button" tabindex="0" onclick="askNura('Какой мой главный шаг на сегодня?')">
-      <div class="quick-num">01</div>
-      <div class="quick-title">Шаг на сегодня</div>
-      <div class="quick-sub">Короткий совет по твоей матрице</div>
+  <section class="section-block">
+    <div class="section-head-row">
+      <span class="section-label">Моя матрица</span>
+    </div>
+    <article class="card matrix-card-clean">
+      <div class="matrix-row">
+        <div class="matrix-badge"><span class="matrix-badge-value skeleton skeleton-num" id="matrix-num"></span></div>
+        <div style="min-width:0;flex:1">
+          <div class="matrix-kicker">Центральный архетип</div>
+          <div class="matrix-name-clean skeleton skeleton-name" id="matrix-name"></div>
+          <p class="matrix-copy" id="matrix-desc">
+            <span class="skeleton skeleton-line" style="width:92%"></span>
+            <span class="skeleton skeleton-line" style="width:68%"></span>
+          </p>
+        </div>
+      </div>
+      <div class="matrix-actions">
+        <button class="btn btn-primary" type="button" onclick="openReport()">Открыть отчёт</button>
+        <button class="btn btn-soft" type="button" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button>
+      </div>
     </article>
-    <article class="card quick-card" role="button" tabindex="0" onclick="askNura('Что сейчас блокирует мой рост?')">
-      <div class="quick-num">02</div>
-      <div class="quick-title">Что блокирует рост?</div>
-      <div class="quick-sub">Один внутренний узел</div>
-    </article>
-    <article class="card quick-card" role="button" tabindex="0" onclick="askNura('Что мне важно понять про деньги?')">
-      <div class="quick-num">03</div>
-      <div class="quick-title">Деньги</div>
-      <div class="quick-sub">Где утекает энергия дохода</div>
-    </article>
-    <article class="card quick-card" role="button" tabindex="0" onclick="askNura('Что мне важно понять про отношения?')">
-      <div class="quick-num">04</div>
-      <div class="quick-title">Отношения</div>
-      <div class="quick-sub">Повторяющийся сценарий</div>
-    </article>
-  </div>
-</section>
+  </section>
 
+  <section class="section-block">
+    <div class="section-head-row">
+      <span class="section-label">Статус</span>
+    </div>
+    <div class="status-grid">
+      <article class="card status-card report">
+        <div class="status-label">Отчёт</div>
+        <div class="status-state" id="report-status-state">Проверяем</div>
+        <div class="status-copy-small" id="report-status-copy">Смотрим, какой уровень отчёта уже доступен для тебя.</div>
+      </article>
+      <article class="card status-card subscription">
+        <div class="status-label">Подписка</div>
+        <div class="status-state" id="subscription-status-state">Проверяем</div>
+        <div class="status-copy-small" id="subscription-status-copy">Уточняем доступ к карте дня, практикам и чату.</div>
+      </article>
+    </div>
+  </section>
 </main></div>
+
 <nav class="tabbar"><div class="tabbar-inner">
 <a class="tab-item active" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
 <a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
 <a class="tab-item tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
 <a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
 </div></nav>
-<script src="nura-pwa.js?v=9"></script>
+
+<script src="nura-pwa.js?v=10"></script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
 <div id="pwa-ios-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
   <div style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
@@ -185,12 +402,31 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 (function() {
   var N = window.NURA;
   var BASE = N.BASE;
-
   var $ = document.getElementById.bind(document);
 
   var __isGuest = false;
 
-  /* ── Capture guest_token from URL ── */
+  function renderGreetingName(name) {
+    var safeName = name ? N.escHtml(name) : 'друг';
+    $('greeting-name').innerHTML = 'Привет, <em>' + safeName + '</em>';
+  }
+
+  function setReportSummary(state, copy) {
+    $('report-status-state').textContent = state;
+    $('report-status-copy').textContent = copy;
+  }
+
+  function setSubscriptionSummary(state, copy) {
+    $('subscription-status-state').textContent = state;
+    $('subscription-status-copy').textContent = copy;
+  }
+
+  function setQuickCopies(matrixCopy, chatCopy, profileCopy) {
+    $('quick-matrix-copy').textContent = matrixCopy;
+    $('quick-chat-copy').textContent = chatCopy;
+    $('quick-profile-copy').textContent = profileCopy;
+  }
+
   var params = new URLSearchParams(location.search);
   var urlGuestToken = params.get('guest_token');
   if (urlGuestToken) {
@@ -198,7 +434,6 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     history.replaceState(null, '', location.pathname);
   }
 
-  /* ── Init: convert guest or auth flow ── */
   var guestToken = localStorage.getItem('nura_guest_token');
 
   if (guestToken) {
@@ -207,7 +442,6 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     initAuthenticatedFlow();
   }
 
-  /* ── Convert guest to user ── */
   function convertGuest(token) {
     fetch(BASE + '/auth/guest/convert', {
       method: 'POST',
@@ -220,12 +454,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       if (r.ok) return r.json();
       return null;
     })
-    .then(function(data) {
-      if (data && data.success) {
-        initAuthenticatedFlow();
-      } else {
-        initAuthenticatedFlow();
-      }
+    .then(function() {
+      initAuthenticatedFlow();
     })
     .catch(function() {
       localStorage.removeItem('nura_guest_token');
@@ -233,7 +463,6 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     });
   }
 
-  /* ── Authenticated flow ── */
   function initAuthenticatedFlow() {
     fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
       .then(function(r) {
@@ -248,42 +477,102 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     N.fetchJSON(BASE + '/web/me')
       .then(function(d) {
         if (d.name) {
-          $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
+          renderGreetingName(d.name);
         }
-        var hasFull = d.has_matrix;
+
+        var hasFull = !!d.has_matrix;
+        var hasMini = !!(d.reports && d.reports.length > 0);
+        var hasTarot = !!(d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active');
+
         window.__hasFullReport = hasFull;
-        var hasMini = d.reports && d.reports.length > 0;
-        if (hasFull) {
-          $('status-copy').textContent = 'Полный отчёт готов. Начни с главного вывода или задай вопрос по любой главе.';
+        window.__hasTarotSubscription = hasTarot;
+
+        if (hasFull && hasTarot) {
+          $('status-copy').textContent = 'Полный отчёт под рукой, карта дня обновлена, а чат с NURA открыт без лишних шагов.';
           $('report-cta').textContent = 'Продолжить отчёт';
+        } else if (hasFull) {
+          $('status-copy').textContent = 'Полный отчёт готов. Начни с главного вывода по Матрице или открой карту дня.';
+          $('report-cta').textContent = 'Продолжить отчёт';
+        } else if (hasMini && hasTarot) {
+          $('status-copy').textContent = 'Мини-разбор уже готов. Теперь можно продолжить через карту дня, чат или оформить полный отчёт.';
+          $('report-cta').textContent = 'Открыть профиль';
         } else if (hasMini) {
-          $('status-copy').textContent = 'Мини-разбор готов. Хочешь полную Матрицу?';
+          $('status-copy').textContent = 'Мини-разбор уже готов. Следующий шаг — полный отчёт по Матрице.';
           $('report-cta').textContent = 'Купить полный отчёт';
+        } else if (hasTarot) {
+          $('status-copy').textContent = 'Карта дня и чат уже доступны. Когда будешь готова, можно собрать и полный отчёт по Матрице.';
+          $('report-cta').textContent = 'Открыть профиль';
         } else {
-          $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
+          $('status-copy').textContent = 'Это твой личный экран самопонимания: начни с мини-разбора, карты дня или вопроса к NURA.';
           $('report-cta').textContent = 'Получить полный отчёт';
         }
-        if (d.archetype_number) { $('matrix-num').textContent = d.archetype_number; $('matrix-num').classList.remove('skeleton'); }
-        if (d.archetype) { $('matrix-name').textContent = d.archetype; $('matrix-name').classList.remove('skeleton'); }
-        if (d.archetype) $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype;
-        else if (hasMini) $('matrix-desc').textContent = 'Мини-разбор пройден. Купи полный отчёт для детального разбора.';
-        else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
+
+        if (hasFull) {
+          setReportSummary('Готов', 'Полный разбор уже доступен в профиле и сохранён для тебя.');
+        } else if (hasMini) {
+          setReportSummary('Есть мини-разбор', 'Основной контур уже собран. Полный отчёт добавит детали по Матрице.');
+        } else {
+          setReportSummary('Ещё не создан', 'Пройди мини-разбор или оформи полный отчёт, чтобы открыть личную Матрицу.');
+        }
+
+        if (hasTarot) {
+          setSubscriptionSummary('Активна', 'Карта дня, практики и чат доступны в расширенном режиме.');
+        } else {
+          setSubscriptionSummary('Не активна', 'Подписка открывает практики, карту дня и более глубокий диалог с NURA.');
+        }
+
+        setQuickCopies(
+          hasFull ? 'Вернуться к отчёту и главным энергиям' : 'Собрать Матрицу и открыть личный отчёт',
+          hasTarot ? 'Продолжить диалог с NURA без лимита' : 'Спросить про день, отношения или деньги',
+          hasTarot ? 'Подписка активна, настройки и отчёты внутри' : 'Подписка, отчёты и настройки доступа'
+        );
+
+        if (d.archetype_number) {
+          $('matrix-num').textContent = d.archetype_number;
+          $('matrix-num').classList.remove('skeleton', 'skeleton-num');
+        }
+        if (d.archetype) {
+          $('matrix-name').textContent = d.archetype;
+          $('matrix-name').classList.remove('skeleton', 'skeleton-name');
+        }
+
+        if (d.archetype && hasFull) {
+          $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype + '. Открой отчёт, чтобы пройтись по главным выводам и практикам.';
+        } else if (d.archetype && hasMini) {
+          $('matrix-desc').textContent = 'Мини-разбор уже подсветил архетип ' + d.archetype + '. Полный отчёт добавит детали по ролям, энергиям и связям.';
+        } else if (hasMini) {
+          $('matrix-desc').textContent = 'Мини-разбор уже пройден. Полный отчёт откроет твой центральный архетип и полную Матрицу.';
+        } else {
+          $('matrix-desc').textContent = 'Здесь появится твой центральный архетип после мини-разбора или полного отчёта.';
+        }
       })
       .catch(function(err) {
         if (err && err.status === 403) { applyBlockedMode(); return; }
         if (err && err.status === 401) { applyGuestMode(); return; }
+        setReportSummary('Нет данных', 'Не удалось загрузить статус отчёта. Попробуй обновить страницу.');
+        setSubscriptionSummary('Нет данных', 'Не удалось уточнить статус подписки.');
         $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.';
-        $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—';
-        $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных';
+        $('matrix-num').classList.remove('skeleton', 'skeleton-num');
+        $('matrix-num').textContent = '—';
+        $('matrix-name').classList.remove('skeleton', 'skeleton-name');
+        $('matrix-name').textContent = 'Нет данных';
       });
   }
 
   N.fetchJSON(BASE + '/tarot/daily-card')
     .then(function(d) {
       if (!d) return;
-      if (d.arcana_symbol) { $('day-symbol').textContent = d.arcana_symbol; $('day-symbol').classList.remove('skeleton'); }
-      if (d.arcana_name) { $('day-name').textContent = d.arcana_name; $('day-name').classList.remove('skeleton'); }
-      if (d.key_phrase) { $('day-phrase').textContent = d.key_phrase; }
+      if (d.arcana_symbol) {
+        $('day-symbol').textContent = d.arcana_symbol;
+        $('day-symbol').classList.remove('skeleton');
+      }
+      if (d.arcana_name) {
+        $('day-name').textContent = d.arcana_name;
+        $('day-name').classList.remove('skeleton', 'skeleton-name');
+      }
+      if (d.key_phrase) {
+        $('day-phrase').textContent = d.key_phrase;
+      }
     })
     .catch(function() {
       if (__isGuest) {
@@ -293,8 +582,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         $('day-phrase').textContent = 'Не удалось загрузить карту дня.';
         $('day-name').textContent = 'Нет данных';
       }
-      $('day-symbol').classList.remove('skeleton'); $('day-symbol').textContent = '—';
-      $('day-name').classList.remove('skeleton');
+      $('day-symbol').classList.remove('skeleton');
+      $('day-symbol').textContent = '—';
+      $('day-name').classList.remove('skeleton', 'skeleton-name');
     });
 
   document.getElementById('themeToggle').addEventListener('click', function() {
@@ -302,45 +592,75 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
   });
 
-  function openReport(){
+  function openReport() {
     if (__isGuest) { showAuthModal(); return; }
-    if (window.__hasFullReport) location.href = 'profile.html#reports';
-    else location.href = 'profile.html#subscription';
+    if (window.__hasFullReport) {
+      location.href = 'profile.html#reports';
+      return;
+    }
+    if (window.__hasTarotSubscription) {
+      location.href = 'profile.html';
+      return;
+    }
+    location.href = 'profile.html#subscription';
   }
   window.openReport = openReport;
 
-  function askNura(text){
+  function askNura(text) {
     if (__isGuest) { showAuthModal(); return; }
     localStorage.setItem('nura_pending_question', text);
     location.href = 'chat.html?question=' + encodeURIComponent(text);
   }
   window.askNura = askNura;
 
-  /* ── Guest mode (no guest_token) ── */
   function applyGuestMode() {
     __isGuest = true;
+    window.__hasFullReport = false;
+    window.__hasTarotSubscription = false;
     $('report-cta').textContent = 'Получить мини-разбор';
     $('report-cta').onclick = function() { location.href = '/mini.html'; };
-    $('status-copy').textContent = 'Пройди бесплатный мини-разбор, чтобы узнать свой архетип.';
+    $('status-copy').textContent = 'Сначала мини-разбор, потом личный экран: так NURA соберёт твой контекст для карты дня и чата.';
+    setReportSummary('Гостевой режим', 'Мини-разбор откроет твой первый персональный сценарий внутри NURA.');
+    setSubscriptionSummary('Не активна', 'После регистрации можно включить карту дня, практики и расширенный чат.');
+    setQuickCopies(
+      'Сначала мини-разбор, затем полный отчёт по Матрице',
+      'После входа можно задавать вопросы через личный контекст',
+      'Здесь появятся подписка, отчёты и настройки'
+    );
+    $('matrix-desc').textContent = 'Пройди мини-разбор, чтобы на этом экране появился твой архетип и краткая расшифровка.';
+    $('matrix-num').classList.remove('skeleton', 'skeleton-num');
+    $('matrix-num').textContent = '—';
+    $('matrix-name').classList.remove('skeleton', 'skeleton-name');
+    $('matrix-name').textContent = 'Личный архетип';
   }
 
-  /* ── Blocked mode (inactive 14+ days) ── */
   function applyBlockedMode() {
     __isGuest = true;
-    $('greeting-name').innerHTML = 'Привет, <em>друг</em>';
-    $('status-copy').textContent = 'Твой аккаунт заблокирован за неактивность. Войди, чтобы восстановить доступ.';
+    window.__hasFullReport = false;
+    window.__hasTarotSubscription = false;
+    renderGreetingName('друг');
+    $('status-copy').textContent = 'Твой аккаунт временно недоступен из-за неактивности. Войди снова, чтобы вернуть доступ ко всем данным.';
     $('report-cta').textContent = 'Войти в NURA';
     $('report-cta').onclick = function() { showAuthModal(); };
-    $('matrix-desc').textContent = 'Войди через email или VK, чтобы восстановить свой мини-разбор.';
-    $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '?';
-    $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Требуется вход';
+    setReportSummary('Доступ закрыт', 'После входа снова появятся отчёт, история и личные материалы.');
+    setSubscriptionSummary('Требуется вход', 'Статус подписки и карты дня станет виден после авторизации.');
+    setQuickCopies(
+      'Войди снова, чтобы вернуть доступ к Матрице',
+      'После входа можно продолжить диалог с NURA',
+      'Профиль и настройки восстановятся после авторизации'
+    );
+    $('matrix-desc').textContent = 'Войди через email или VK, чтобы восстановить свой личный экран и мини-разбор.';
+    $('matrix-num').classList.remove('skeleton', 'skeleton-num');
+    $('matrix-num').textContent = '?';
+    $('matrix-name').classList.remove('skeleton', 'skeleton-name');
+    $('matrix-name').textContent = 'Требуется вход';
     $('day-phrase').textContent = 'Войди в аккаунт, чтобы открыть карту дня.';
     $('day-name').textContent = 'Требуется вход';
-    $('day-name').classList.remove('skeleton');
-    $('day-symbol').classList.remove('skeleton'); $('day-symbol').textContent = '?';
+    $('day-name').classList.remove('skeleton', 'skeleton-name');
+    $('day-symbol').classList.remove('skeleton');
+    $('day-symbol').textContent = '?';
   }
 
-  /* ── Auth modal ── */
   function showAuthModal() {
     if (document.getElementById('nura-auth-modal')) return;
     var backdrop = document.createElement('div');
@@ -365,7 +685,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
           '<button class="btn btn-soft btn-full" id="auth-email-submit" type="button" style="min-height:48px"><span class="btn-text">Отправить ссылку</span><span class="loader"></span></button>' +
         '</div>' +
         '<div id="auth-success" style="display:none;text-align:center;padding:8px 0"></div>' +
-        '<div id="auth-error" style="display:none;color:#C45C5C;font-size:12px;text-align:center;margin-top:4px"></div>' +
+        '<div id="auth-error" style="display:none;color:var(--danger);font-size:12px;text-align:center;margin-top:4px"></div>' +
         '<div style="display:flex;align-items:center;gap:12px;margin:8px 0">' +
           '<div style="flex:1;height:1px;background:var(--line)"></div>' +
           '<span style="font-size:11px;color:var(--text-s)">или</span>' +
@@ -380,11 +700,9 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     backdrop.appendChild(card);
     document.body.appendChild(backdrop);
 
-    // Close
     document.getElementById('auth-modal-close').addEventListener('click', function() { backdrop.remove(); });
     backdrop.addEventListener('click', function(e) { if (e.target === backdrop) backdrop.remove(); });
 
-    // Email flow
     var emailForm = document.getElementById('auth-email-form');
     var emailSuccess = document.getElementById('auth-success');
     var emailError = document.getElementById('auth-error');
@@ -408,7 +726,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         emailError.style.display = 'block';
         return;
       }
-      btn.classList.add('loading'); btn.disabled = true;
+      btn.classList.add('loading');
+      btn.disabled = true;
       var guestToken = localStorage.getItem('nura_guest_token');
       fetch(BASE + '/auth/email/send', {
         method: 'POST',
@@ -418,41 +737,48 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       })
       .then(function(r) { if (!r.ok) throw new Error('send error'); return r.json(); })
       .then(function() {
-        btn.classList.remove('loading'); btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.disabled = false;
         emailForm.style.display = 'none';
         emailSuccess.style.display = 'block';
         emailSuccess.innerHTML = '<p style="font-size:14px;color:var(--text-m);line-height:1.5;margin-bottom:12px">Письмо отправлено. Проверь почту — там ссылка для входа.</p>';
       })
       .catch(function() {
-        btn.classList.remove('loading'); btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.disabled = false;
         emailError.textContent = 'Не удалось отправить письмо. Попробуй ещё раз';
         emailError.style.display = 'block';
       });
     });
 
-    // VK flow
     document.getElementById('auth-vk-btn').addEventListener('click', function() {
       var SDK = window.VKIDSDK;
       if (!SDK) { emailError.textContent = 'Не удалось загрузить модуль входа VK.'; emailError.style.display = 'block'; return; }
-      var btn = this; btn.disabled = true;
-      var bytes = new Uint8Array(32); crypto.getRandomValues(bytes);
-      var binary = ''; for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      var btn = this;
+      btn.disabled = true;
+      var bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      var binary = '';
+      for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
       var state = btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
-      bytes = new Uint8Array(64); crypto.getRandomValues(bytes);
-      binary = ''; for (var j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
+      bytes = new Uint8Array(64);
+      crypto.getRandomValues(bytes);
+      binary = '';
+      for (var j = 0; j < bytes.length; j++) binary += String.fromCharCode(bytes[j]);
       var codeVerifier = btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
       sessionStorage.setItem('nura_vk_state', state);
       sessionStorage.setItem('nura_vk_code_verifier', codeVerifier);
       sessionStorage.setItem('nura_vk_started_at', String(Date.now()));
       SDK.Config.init({app:54660807,redirectUrl:'https://nura-ai.ru/vk-callback.html',state:state,codeVerifier:codeVerifier,scope:'email'});
       SDK.Auth.login().catch(function() {
-        emailError.textContent = 'Не удалось открыть вход через VK.'; emailError.style.display = 'block';
+        emailError.textContent = 'Не удалось открыть вход через VK.';
+        emailError.style.display = 'block';
       }).finally(function() { btn.disabled = false; });
     });
   }
   window.showAuthModal = showAuthModal;
 
-  function requireAuth(action) {
+  function requireAuth() {
     if (__isGuest) { showAuthModal(); return true; }
     return false;
   }

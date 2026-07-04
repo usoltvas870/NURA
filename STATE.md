@@ -1,8 +1,71 @@
 # NURA — State
 
-> Последнее обновление: **04.07.2026 — Сессия 71** — DeepSeek V4 Flash
+> Последнее обновление: **04.07.2026 — Сессия 75** — GPT-5 Codex
 
 ---
+
+## Сессия 75 — 04.07.2026
+- Модель: GPT-5 Codex
+- Что сделано:
+  - `privacy.html`: полностью обновлена страница Политики обработки персональных данных по новой редакции от 04.07.2026, при этом сохранены текущие шрифты, карточка, контейнер, отступы и мобильная адаптация
+  - Создан точный бэкап предыдущей версии страницы: `privacy.backup.html`
+  - Проверены и подтверждены основные ссылки на `/privacy.html` в `index.html`, `contacts.html`, `offer.html`, `mini.html`, `frontend/pwa/app/profile.html`
+  - `frontend/pwa/app/profile.html`: ссылка из раздела настроек теперь ведёт на `/privacy.html`; рядом с подпиской добавлена ссылка на Политику
+  - `frontend/pwa/app/tarot.html` и `mini.html`: рядом с оплатой добавлена ссылка на Политику без изменения бизнес-логики и обязательных чекбоксов
+  - Локально через in-app browser проверены `privacy.html` на desktop и mobile, отсутствие дубля H1, отсутствие битых символов и работоспособность перехода из PWA-профиля на `/privacy.html`
+- Блокеры:
+  - `graphify update .` не выполнился: launcher `graphify.exe` по-прежнему ссылается на отсутствующий `C:\Users\Bayzel\AppData\Local\Programs\Python\Python311\python.exe`
+- Следующие шаги:
+  - Починить локальную установку `graphify` и повторить `graphify update .`
+  - При необходимости отдельным этапом согласовать отдельный обязательный чекбокс непосредственно перед платёжным редиректом
+
+## Сессия 74 — 04.07.2026
+- Модель: GPT-5 Codex
+- Что сделано:
+  - Выполнен audit-pass главной PWA `frontend/pwa/app/index.html` после редизайна: сохранены JS-хуки, guest/auth/blocked flow, загрузка статусов отчёта и подписки, ссылки bottom tabbar
+  - `frontend/pwa/app/nura-pwa.css` расширен до общего UI-слоя: reusable shell/page, header, tabbar, card, secondary button alias, muted text, status pill, quick action card, empty state, soft accent helpers
+  - Исправлены нижние отступы под fixed tabbar и safe-area; обновлён cache-bust для общего CSS на PWA-страницах
+  - `frontend/pwa/app/tarot.html` переведён на спокойный light-card стиль без тяжёлых фоновых изображений, при этом сохранены существующие `id`, `onclick` и JS-функции раскладов/подписки
+  - `frontend/pwa/app/chat.html` переведён в единый light premium chat-shell: убран image-heavy empty state, сохранены текущие `/web/me`, `/web/chat`, localStorage и send/retry hooks
+  - `frontend/pwa/app/profile.html` приведён к той же дизайн-системе: светлый hero-блок, унифицированные карточки, сохранены Telegram link/unlink, подписка, отчёты, logout/delete account flows
+  - `theme.css` дополнен токенами `--gold-ink` и `--danger`, чтобы убрать лишние hardcoded accent-цвета из PWA-слоя
+- Блокеры:
+  - `graphify update .` не выполнялся повторно: ранее зафиксирован сломанный launcher `graphify.exe`, привязанный к отсутствующему Python path
+  - Live preview через localhost/in-app browser по-прежнему ограничен, поэтому проверка в этой сессии была статической по коду
+- Следующие шаги:
+  - Прогнать PWA вручную в реальном мобильном браузере на 360px / 390px / 430px и проверить визуальный ритм, safe-area и кликабельные зоны
+  - При необходимости вынести оставшиеся page-specific inline-блоки (например auth/install modal styles) в общий PWA stylesheet
+
+## Сессия 73 — 04.07.2026
+- Модель: GPT-5 Codex
+- Что сделано:
+  - `offer.html`: текст публичной оферты заменён на расширенную редакцию из `Публичная оферта.docx`, опубликована редакция от 04.07.2026
+  - Сохранены существующие шрифты, палитра, контейнер 680 px, навигация и карточка реквизитов; для мобильных экранов реквизиты перестраиваются в одну колонку
+  - Создан точный бэкап прежней страницы `offer.backup.html`
+  - Ссылки на `/offer.html` добавлены рядом с оплатой полного отчёта в `mini.html` и подписки в `frontend/pwa/app/profile.html`, `frontend/pwa/app/tarot.html`
+  - Существующий чекбокс в `mini.html` теперь ссылается на `/privacy.html` и `/offer.html`; новая платёжная логика и новые обязательные чекбоксы не добавлялись
+  - Текст HTML машинно сверен с DOCX; в браузере проверены desktop и mobile: 1 H1, 23 раздела, без горизонтального переполнения и битых символов
+- Блокеры:
+  - `graphify update .` не выполнен: launcher `graphify.exe` повреждён, а доступный Python 3.11 не содержит модуль `graphify`
+- Следующие шаги:
+  - Восстановить установку `graphify` и повторить `graphify update .`
+  - При необходимости отдельным этапом согласовать обязательный чекбокс принятия оферты непосредственно перед платёжным редиректом
+
+## Сессия 72 — 04.07.2026
+- Модель: GPT-5 Codex
+- Что сделано:
+  - PWA home-screen: полностью пересобран `frontend/pwa/app/index.html` под светлый premium minimal без тяжёлых hero-изображений
+  - Главная страница PWA теперь структурирована как стартовый экран-проводник: приветствие, главный фокус дня, быстрый доступ, блок матрицы, блок статуса
+  - Сохранены существующие JS-хуки и бизнес-логика для `report-cta`, `greeting-name`, `status-copy`, `matrix-*`, `day-*`, guest/blocked/auth flow
+  - `frontend/pwa/app/nura-pwa.css`: обновлены header/tabbar/page-spacing, чтобы PWA в целом выглядело более карточно и аккуратно на мобильных
+  - Добавлен временный визуальный preview-файл `C:\tmp\nura-home-preview.html` для локальной проверки композиции вне backend-API
+- Блокеры:
+  - `graphify update .` не выполнился: локальный `graphify.exe` привязан к отсутствующему `C:\Users\Bayzel\AppData\Local\Programs\Python\Python311\python.exe`
+  - Встроенный browser preview не смог открыть localhost-страницу, поэтому визуальная проверка через in-app browser осталась частично ограниченной
+- Следующие шаги:
+  - Починить локальную установку Python/graphify launcher и повторно выполнить `graphify update .`
+  - Прогнать PWA home в реальном браузере на 360px / 390px / 430px и сверить кликабельные зоны
+  - Распространить облегчённый стиль home-screen на `tarot.html`, `chat.html`, `profile.html`, если нужен единый light-app режим
 
 ## Сессия 71 — 04.07.2026
 - Модель: DeepSeek V4 Flash

@@ -21,72 +21,56 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-<link rel="stylesheet" href="nura-pwa.css?v=9"/>
+<link rel="stylesheet" href="nura-pwa.css?v=11"/>
 <link rel="stylesheet" href="/theme.css?v=9"/>
-<title>NURA · Чат</title><style>
+<title>NURA · Чат</title>
+<style>
 body{overflow:hidden;padding-bottom:0}
-.app-shell{height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(var(--tabbar-h) + 16px)}
+.app-shell{height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(var(--tabbar-h) + 18px)}
 .header{flex:0 0 auto}
-
-/* ── limit bar ── */
-.limit-bar{flex:0 0 auto;padding:8px 16px;background:var(--bg-card-soft);border-bottom:1px solid var(--line);font-size:11px;color:var(--text-s);text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
+.limit-bar{flex:0 0 auto;padding:9px 16px;background:var(--bg-card-soft);border-bottom:1px solid var(--line);font-size:11px;color:var(--text-s);text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
 .limit-bar a{color:var(--terra);font-weight:800}
 .limit-bar.warn{background:rgba(184,116,63,.07);color:var(--terra)}
 .limit-bar.ok{background:rgba(107,128,104,.06);color:var(--sage)}
 .limit-pip{display:flex;gap:3px}
 .limit-pip span{width:6px;height:6px;border-radius:50%;background:var(--terra);opacity:.22}
 .limit-pip span.used{opacity:1}
-
-/* ── chat area ── */
-.chat-area{flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}
+.chat-area{flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 14px 8px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}
 .chat-area::-webkit-scrollbar{display:none}
-
-/* ── empty state ── */
-.empty{margin:auto;width:100%;display:flex;flex-direction:column;align-items:center;gap:0}
-.empty-photo{width:100%;max-width:360px;height:170px;position:relative;overflow:hidden;border-radius:var(--r-xl);margin-bottom:20px}
-.empty-photo-img{position:absolute;inset:0;background-image:url('images/practice-meditation.webp');background-size:cover;background-position:center}
-.empty-photo-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(18,16,14,.88) 0%,rgba(18,16,14,.30) 60%,rgba(18,16,14,.08) 100%)}
-.empty-photo-body{position:absolute;bottom:0;left:0;right:0;padding:18px;text-align:left}
-.empty-photo-title{font-family:var(--font-serif);font-size:26px;color:#fff;line-height:1.1;text-shadow:0 1px 8px rgba(0,0,0,.5)}
-.empty-photo-sub{font-size:12px;color:rgba(255,255,255,.65);margin-top:5px;line-height:1.5}
-.empty-text{text-align:center;padding:0 8px 16px;max-width:320px}
-.empty-text p{font-size:13px;color:var(--text-m);line-height:1.6}
-
-/* ── hints ── */
+.empty{margin:auto;width:100%;display:grid;gap:14px}
+.empty-card{padding:24px 20px;display:grid;gap:14px;text-align:left}
+.empty-mark{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--terra)}
+.empty-title{font-family:var(--font-serif);font-size:30px;line-height:1.05;font-weight:400;color:var(--text)}
+.empty-copy{font-size:13.5px;line-height:1.65;color:var(--text-m);max-width:34ch}
 .hints{display:flex;gap:8px;overflow-x:auto;width:100%;padding:0 0 4px;scrollbar-width:none}
 .hints::-webkit-scrollbar{display:none}
 .hint{flex:0 0 auto;padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:border-color .2s,background .2s}
 .hint:active{background:var(--bg-card-soft);border-color:var(--terra)}
-
-/* ── messages ── */
 .msg{max-width:84%;display:flex;flex-direction:column;gap:3px}
 .msg.nura{align-self:flex-start}
 .msg.user{align-self:flex-end}
 .bubble{padding:11px 15px;border-radius:18px;font-size:14px;line-height:1.60}
 .msg.nura .bubble{background:var(--bg-card);border:1px solid var(--line);border-bottom-left-radius:4px;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .msg.nura.err .bubble{background:rgba(184,116,63,.06);border-color:rgba(184,116,63,.22);color:var(--text-m)}
-.msg.user .bubble{background:var(--terra);color:white;border-bottom-right-radius:4px;box-shadow:0 2px 10px rgba(184,116,63,.30)}
+.msg.user .bubble{background:var(--terra);color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 10px rgba(184,116,63,.30)}
 .msg-time{font-size:10px;color:var(--text-s);padding:0 4px}
 .msg.user .msg-time{text-align:right}
 .retry-btn{margin-top:6px;align-self:flex-start;padding:5px 12px;border-radius:999px;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.22);color:var(--terra);font-size:11px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
-
-/* ── typing ── */
 .typing{align-self:flex-start;display:flex;gap:5px;padding:13px 16px;border-radius:18px;border-bottom-left-radius:4px;background:var(--bg-card);border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .typing span{width:6px;height:6px;border-radius:50%;background:var(--terra);opacity:.4;animation:bounce 1.3s infinite}
 .typing span:nth-child(2){animation-delay:.18s}
 .typing span:nth-child(3){animation-delay:.36s}
 @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.38}30%{transform:translateY(-5px);opacity:.95}}
-
-/* ── input ── */
 .input-area{flex:0 0 auto;padding:10px 12px 12px;border-top:1px solid var(--line);background:var(--bg)}
 .input-row{display:flex;gap:8px;align-items:flex-end;background:var(--bg-card);border:1px solid var(--line);border-radius:22px;padding:8px 8px 8px 14px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
 .chat-input{flex:1;border:0;background:none;outline:none;font-size:14px;line-height:1.5;min-height:24px;max-height:130px;resize:none;color:var(--text);overflow-y:auto;scrollbar-width:none;align-self:center}
 .chat-input::-webkit-scrollbar{display:none}
 .chat-input::placeholder{color:var(--text-s)}
-.send{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--terra);color:white;flex:0 0 auto;transition:background .2s,transform .15s}
+.send{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--terra);color:#fff;flex:0 0 auto;transition:background .2s,transform .15s}
 .send:active{transform:scale(.93)}
 .send:disabled{background:var(--line-strong);color:var(--text-s)}
 .context{font-size:11px;color:var(--text-s);font-weight:700;letter-spacing:.04em}
+@media(max-width:360px){.msg{max-width:88%}}
 </style></head>
 <body><div class="app-shell">
 
@@ -105,16 +89,10 @@ body{overflow:hidden;padding-bottom:0}
 
 <div class="chat-area" id="messages">
   <div class="empty" id="empty-state">
-    <div class="empty-photo">
-      <div class="empty-photo-img"></div>
-      <div class="empty-photo-overlay"></div>
-      <div class="empty-photo-body">
-        <div class="empty-photo-title">Спроси у NURA</div>
-        <div class="empty-photo-sub">Отвечаю через контекст твоей Матрицы</div>
-      </div>
-    </div>
-    <div class="empty-text">
-      <p>Задай любой вопрос — про отношения, деньги, себя. Я отвечаю не как обычный чат, а через твой архетип.</p>
+    <div class="card soft-accent empty-card">
+      <div class="empty-mark"><i class="ti ti-message-circle"></i> Диалог с NURA</div>
+      <div class="empty-title">Спроси у NURA</div>
+      <div class="empty-copy">Задай любой вопрос — про отношения, деньги, себя. Ответ будет опираться на твой личный контекст, а не на общий шаблон.</div>
     </div>
     <div class="hints">
       <button class="hint" onclick="sendHint(this)">Почему я повторяю этот сценарий?</button>
@@ -218,7 +196,7 @@ body{overflow:hidden;padding-bottom:0}
     chatLog = [];
     msgs.innerHTML = '';
     msgs.appendChild(emptyState);
-    emptyState.style.display = 'flex';
+    emptyState.style.display = 'grid';
   };
 
   window.sendHint = function(el) { inputEl.value = el.textContent; sendMessage(); };
@@ -315,3 +293,4 @@ body{overflow:hidden;padding-bottom:0}
 })();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
 </script>
+</body></html>
