@@ -73,7 +73,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 @media(min-width:768px){.mini-main{margin-left:260px;padding:40px 32px 60px}}
 @media(min-width:1024px){.mini-main{padding:48px 48px 60px}}
 
-.mini-main-inner{max-width:660px;margin:0 auto}
+.mini-main-inner{max-width:660px}
 @media(min-width:768px){.mini-main-inner{max-width:720px}}
 
 /* ── Mobile burger bar ── */
@@ -218,8 +218,10 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 .prose-card p{
   font-family:var(--font-sans);
   font-size:15px;line-height:1.75;
-  color:var(--text-m);margin:0 0 18px;
+  color:var(--text-m);margin:0 0 20px;
+  text-indent:0;
 }
+.prose-card p:first-child{color:var(--text)}
 .prose-card p:last-child{margin-bottom:0}
 .prose-card strong{color:var(--text);font-weight:700}
 .prose-card em{color:var(--terra);font-family:var(--font-serif);font-size:1.03em}
@@ -648,36 +650,79 @@ window.addEventListener('resize',function(){
 /* ── Text formatting ── */
 function formatProse(text){
   if(!text)return'<p>Нет данных</p>';
-  // Normalize: replace single \n between sentences (not inside words) with \n\n
-  // This handles API returning text with only \n separators
-  text=text.replace(/\n(?=[А-ЯЁA-Z])/g,'\n\n');
-  // Split into paragraphs
-  var raw=text.split(/\n\n+/);
+  text=text.trim();
+  // Step 1: Normalize line breaks
+  // If has \n\n — use as paragraph separator
+  var paragraphs;
+  if(text.indexOf('\n\n')!==-1){
+    paragraphs=text.split(/\n\n+/);
+  } else if(text.indexOf('\n')!==-1){
+    // Has single newlines — split by them
+    paragraphs=text.split(/\n+/);
+  } else {
+    // No newlines at all — split into chunks of ~2-3 sentences
+    paragraphs=splitIntoChunks(text);
+  }
   var html='';
-  raw.forEach(function(p){
+  paragraphs.forEach(function(p){
     p=p.trim();
     if(!p)return;
-    // Bold markers
-    p=p.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
-    // Quotes
-    p=p.replace(/«(.*?)»/g,'<strong>«$1»</strong>');
-    // Numbered items: "1. Текст" → bold number
-    p=p.replace(/^(\d+)\.\s/g,'<strong>$1.</strong> ');
-    // Bullet-like patterns: "— Текст" at start
-    p=p.replace(/^— /g,'<strong>—</strong> ');
-    // Sentences that start with key analytical patterns → bold first sentence
-    p=p.replace(/^(Как |В |Твой |Твоя |Твоё |Твои |Это |Если |Когда |Сила |Слабость |Конфликт |Паттерн |Рекомендация|Практика|Шаг|Важно|Главное|Обрати|Заметь|Попробуй)/,'<strong>$1');
-    // Close the bold at end of first sentence if we opened one
-    if(p.indexOf('<strong>')!==-1&&p.indexOf('</strong>')===-1){
-      var dotIdx=p.indexOf('. ');
-      if(dotIdx===-1)dotIdx=p.indexOf('.');
-      if(dotIdx>0)p=p.substring(0,dotIdx+1)+'</strong>'+p.substring(dotIdx+1);
-    }
-    // Line breaks within paragraph
-    p=p.replace(/\n/g,'<br>');
+    p=formatInline(p);
     html+='<p>'+p+'</p>';
   });
-  return html||'<p>'+text.replace(/\n/g,'<br>')+'</p>';
+  return html||'<p>'+text+'</p>';
+}
+
+/* Split continuous text into ~2-3 sentence chunks */
+function splitIntoChunks(text){
+  // Split by sentence endings: . ! ? followed by space or end
+  var sentences=text.match(/[^.!?]+[.!?]+[\s]?|[^.!?]+$/g);
+  if(!sentences||sentences.length<=2)return[text];
+  var chunks=[];
+  var chunk='';
+  var count=0;
+  for(var i=0;i<sentences.length;i++){
+    chunk+=sentences[i];
+    count++;
+    // Every 2-3 sentences, start a new paragraph
+    if(count>=2&&(i<sentences.length-1)){
+      // Prefer breaking after 2 sentences, but don't break mid-thought
+      var next=sentences[i+1]||'';
+      // If next sentence starts with a connector, keep with current
+      var connector=/^(Но|А|И|Однако|Также|Кроме|Тем не менее|Важно|Обрати|Заметь|Попробуй|Шаг|Практика|Рекомендация)/;
+      if(!connector.test(next.trim())){
+        chunks.push(chunk.trim());
+        chunk='';
+        count=0;
+      }
+    }
+  }
+  if(chunk.trim())chunks.push(chunk.trim());
+  return chunks;
+}
+
+/* Format inline markup: bold, quotes, emphasis */
+function formatInline(p){
+  // Bold markers **text**
+  p=p.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>');
+  // Quotes «text» → bold
+  p=p.replace(/«(.*?)»/g,'<strong>«$1»</strong>');
+  // Numbered items: "1. Текст"
+  p=p.replace(/^(\d+)\.\s/g,'<strong>$1.</strong> ');
+  // Bullet: "— Текст" at start
+  p=p.replace(/^— /g,'<strong>—</strong> ');
+  // Bold first sentence if starts with analytical keyword
+  var keywords=/^(Как |В |Твой |Твоя |Твоё |Твои |Это |Если |Когда |Сила |Слабость |Конфликт |Паттерн |Рекомендация|Практика|Шаг|Важно|Главное|Обрати|Заметь|Попробуй|Тень|Также |Кроме |Однако |Но )/;
+  if(keywords.test(p)){
+    var end=p.indexOf('. ');
+    if(end===-1)end=p.indexOf('.');
+    if(end>0&&end<120){
+      p='<strong>'+p.substring(0,end+1)+'</strong>'+p.substring(end+1);
+    }
+  }
+  // Remaining single newlines → <br>
+  p=p.replace(/\n/g,'<br>');
+  return p;
 }
 
 /* ── Form logic ── */
