@@ -814,15 +814,44 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <li><a href="https://t.me/ai_nura_bot">Telegram-бот</a></li>
       <li><a href="https://t.me/nura_ai_channel">Канал</a></li>
       <li><a href="/privacy.html">Политика конфиденциальности</a></li>
+      <li><a href="/offer.html">Публичная оферта</a></li>
       <li><a href="https://t.me/nura_support">Контакты</a></li>
     </ul>
     <p class="foot-copy">© 2026 NURA AI</p>
   </div>
 </footer>
 
+<div id="cookie-notice">
+  <p class="cookie-text">Мы используем файлы cookie (Яндекс.Метрика) для анализа посещаемости. Продолжая использовать сайт, вы соглашаетесь с <a href="/privacy.html">Политикой конфиденциальности</a>.</p>
+  <button id="cookie-accept" class="cookie-btn">Принять</button>
+</div>
+
+<style>
+#cookie-notice{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--bg-card);border-top:1px solid var(--line);padding:16px 24px;display:none;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 -4px 20px rgba(44,42,30,.1)}
+#cookie-notice.show{display:flex}
+.cookie-text{font-size:13px;color:var(--text-m);line-height:1.55;margin:0;max-width:740px}
+.cookie-text a{color:var(--terra);text-decoration:underline}
+.cookie-btn{flex-shrink:0;background:var(--terra);color:#fff;border:none;padding:10px 24px;border-radius:var(--r-sm);font-family:var(--font-sans);font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;white-space:nowrap}
+.cookie-btn:hover{background:var(--terra-d)}
+@media(max-width:640px){#cookie-notice{flex-direction:column;text-align:center;padding:14px 16px}.cookie-btn{width:100%}}
+</style>
+
 <script>
 (function(){
 'use strict';
+
+// ── COOKIE NOTICE ─────────────────────────────
+(function(){
+  var KEY = 'nura-cookie-consent';
+  if(localStorage.getItem(KEY)) return;
+  var notice = document.getElementById('cookie-notice');
+  if(!notice) return;
+  notice.classList.add('show');
+  document.getElementById('cookie-accept').addEventListener('click', function(){
+    localStorage.setItem(KEY, '1');
+    notice.classList.remove('show');
+  });
+})();
 
 // ── THEME TOGGLE ──────────────────────────────
 window.toggleTheme = function(){
