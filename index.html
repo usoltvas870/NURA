@@ -99,35 +99,6 @@ nav.scrolled{box-shadow:0 1px 0 var(--line),0 14px 36px rgba(44,42,30,.12);paddi
 .hero-meta{margin-top:24px;font-size:13px;color:var(--text-s);display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600}
 .hero-meta span.dot{width:4px;height:4px;background:var(--terra);border-radius:50%;display:inline-block}
 
-.hero-form{margin-bottom:8px}
-.hero-form-row{display:flex;gap:10px;margin-bottom:10px}
-.hero-input{flex:1;height:48px;border:1px solid var(--line-strong);background:var(--bg-card);color:var(--text);border-radius:var(--r-sm);outline:none;font-size:15px;padding:0 16px;transition:border-color .2s,box-shadow .2s;font-family:var(--font-sans)}
-.hero-input:focus{border-color:rgba(184,116,63,.42);box-shadow:0 0 0 3px rgba(184,116,63,.10)}
-.hero-input::placeholder{color:var(--text-s)}
-.hero-consent{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-s);margin-bottom:10px;cursor:pointer}
-.hero-form .btn{min-height:48px}
-.hero-form .loader{display:none;width:18px;height:18px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-.hero-form .btn.loading .loader{display:inline-block}
-.hero-form .btn.loading .btn-text{display:none}
-.hero-form .btn.loading{pointer-events:none}
-@keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:480px){.hero-form-row{flex-direction:column}}
-
-.hero-stage{display:none}
-.hero-stage.active{display:block;animation:heroFadeUp .4s ease both}
-@keyframes heroFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-
-.hero-loading{text-align:center;padding:40px 0}
-.hero-loading-spinner{width:48px;height:48px;border:3px solid var(--line);border-top-color:var(--terra);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 28px}
-
-.hero-result-blocks{display:grid;gap:10px;margin-bottom:24px}
-.hero-result-block{display:grid;grid-template-columns:36px 1fr;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--shadow-card)}
-.hero-result-icon{width:36px;height:36px;border-radius:12px;background:rgba(184,116,63,.09);color:var(--terra);display:grid;place-items:center;font-size:16px;font-weight:700;flex-shrink:0}
-.hero-result-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--terra);font-weight:800;margin-bottom:2px}
-.hero-result-text{font-size:14px;line-height:1.55;color:var(--text)}
-.hero-result-ctas{display:grid;gap:10px;margin-bottom:8px}
-@media(min-width:480px){.hero-result-ctas{grid-template-columns:1fr 1fr}}
-
 .pain-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:64px}
 .pain-card{background:var(--bg-card);border-radius:var(--r-lg);padding:36px 40px;display:flex;flex-direction:column;box-shadow:var(--shadow-card);transition:all 0.35s var(--ease);position:relative}
 .pain-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-card-hover)}
@@ -339,93 +310,23 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
   <div class="hero">
     <div class="hero-content">
       <div class="hero-content-inner">
-
-        <!-- STAGE: FORM -->
-        <div id="hero-stage-form" class="hero-stage active">
-          <div class="label-eyebrow">AI · Самопознание</div>
-          <h1 class="hero-title">
-            Почему одни сценарии <em>повторяются снова</em> — и как их остановить
-          </h1>
-          <p class="hero-desc">
-            NURA строит твою <strong>Матрицу Судьбы</strong> — личный цифровой чертёж на основе 22 Старших Арканов — и даёт <strong>ежедневные Таро-расклады</strong>, которые отслеживают эти сценарии в реальном времени.
-          </p>
-          <form class="hero-form" id="hero-form" novalidate>
-            <div class="hero-form-row">
-              <input class="hero-input" type="text" id="hero-name" placeholder="Имя" autocomplete="given-name" required>
-              <input class="hero-input" type="text" id="hero-date" placeholder="ДД.ММ.ГГГГ" autocomplete="bday" required>
-            </div>
-            <label class="hero-consent">
-              <input type="checkbox" id="hero-consent" style="accent-color:var(--terra);width:16px;height:16px;flex-shrink:0">
-              <span>Согласен на <a href="/privacy.html" style="color:var(--terra);text-decoration:underline" target="_blank">обработку ПД</a></span>
-            </label>
-            <button class="btn btn-primary btn-full" type="submit" id="hero-submit" disabled>
-              <span class="btn-text">Узнать свой архетип — бесплатно</span>
-              <span class="loader"></span>
-            </button>
-          </form>
-          <div class="hero-meta">
-            Без регистрации <span class="dot"></span> 2 минуты <span class="dot"></span> результат сразу
-          </div>
-          <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--ink-mute);">
-            Уже пользуешься? <a href="/app/" style="color:var(--gold);font-weight:500;text-decoration:none;">Открыть приложение →</a>
-          </p>
+        <div class="label-eyebrow">AI · Самопознание</div>
+        <h1 class="hero-title">
+          Почему одни сценарии <em>повторяются снова</em> — и как их остановить
+        </h1>
+        <p class="hero-desc">
+          NURA строит твою <strong>Матрицу Судьбы</strong> — личный цифровой чертёж на основе 22 Старших Арканов — и даёт <strong>ежедневные Таро-расклады</strong>, которые отслеживают эти сценарии в реальном времени.
+        </p>
+        <div class="cta-group">
+          <a href="https://nura-ai.ru/mini.html" class="btn btn-primary">✨ Попробовать бесплатно</a>
+          <a href="#preview" class="btn btn-outline">Пример отчёта →</a>
         </div>
-
-        <!-- STAGE: LOADING -->
-        <div id="hero-stage-loading" class="hero-stage">
-          <div class="hero-loading">
-            <div class="hero-loading-spinner"></div>
-            <h2 class="hero-title" style="font-size:clamp(24px,3.5vw,36px)">Строим твою матрицу…</h2>
-            <p class="hero-desc" style="text-align:center">Анализируем 22 позиции архетипов по твоей дате рождения</p>
-          </div>
+        <div class="hero-meta">
+          Имя и дата рождения <span class="dot"></span> без регистрации <span class="dot"></span> 2 минуты
         </div>
-
-        <!-- STAGE: RESULT -->
-        <div id="hero-stage-result" class="hero-stage">
-          <div class="label-eyebrow">Твой мини-разбор</div>
-          <h2 class="hero-title" style="font-size:clamp(26px,4vw,42px)">Архетип — <em id="hero-archetype-name">…</em></h2>
-          <p class="hero-desc" style="font-size:15px;margin-bottom:24px" id="hero-archetype-desc">…</p>
-
-          <div class="hero-result-blocks">
-            <div class="hero-result-block">
-              <span class="hero-result-icon">✦</span>
-              <div>
-                <div class="hero-result-label">Ключевая сила</div>
-                <div class="hero-result-text" id="hero-val-core">…</div>
-              </div>
-            </div>
-            <div class="hero-result-block">
-              <span class="hero-result-icon">◈</span>
-              <div>
-                <div class="hero-result-label">Внутренний конфликт</div>
-                <div class="hero-result-text" id="hero-val-conflict">…</div>
-              </div>
-            </div>
-            <div class="hero-result-block">
-              <span class="hero-result-icon">∞</span>
-              <div>
-                <div class="hero-result-label">Паттерн отношений</div>
-                <div class="hero-result-text" id="hero-val-relations">…</div>
-              </div>
-            </div>
-            <div class="hero-result-block">
-              <span class="hero-result-icon">₽</span>
-              <div>
-                <div class="hero-result-label">Финансовый блок</div>
-                <div class="hero-result-text" id="hero-val-finance">…</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="hero-result-ctas">
-            <a href="https://nura-ai.ru/mini.html" class="btn btn-primary">Получить полный отчёт — 890 ₽</a>
-            <a href="/app/" class="btn btn-outline">Открыть приложение NURA</a>
-          </div>
-          <p style="text-align:center;margin-top:12px;font-size:12px;color:var(--text-s)">
-            <a href="#" id="hero-retry" style="color:var(--text-s);text-decoration:underline">Попробовать с другой датой</a>
-          </p>
-        </div>
-
+        <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--ink-mute);">
+          Уже пользуешься? <a href="/app/" style="color:var(--gold);font-weight:500;text-decoration:none;">Открыть приложение →</a>
+        </p>
       </div>
     </div>
     <div class="hero-visual">
@@ -639,7 +540,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           <li>Прогноз на 2026–2028 по трём сферам</li>
         </ul>
         <a href="https://nura-ai.ru/mini.html" class="btn btn-primary btn-full">Купить Матрицу — 890 ₽</a>
-        <a href="#top" class="checkout-ghost">← Сначала попробовать бесплатно</a>
+        <a href="https://nura-ai.ru/mini.html" class="checkout-ghost">← Сначала попробовать бесплатно</a>
         <p class="checkout-note">🔒 Имя и дата рождения. Без спама.</p>
       </div>
     </div>
@@ -723,8 +624,8 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
     <div class="steps-row">
       <div class="step-node active reveal">
         <div class="step-head-line"><div class="step-circle">1</div><div class="step-connector"></div></div>
-        <h4 class="step-title">Введи имя и дату рождения</h4>
-        <p class="step-desc">Прямо на главной странице — два поля, и ты уже получаешь свой разбор. Без регистрации, без email.</p>
+        <h4 class="step-title">Нажми «Попробовать бесплатно»</h4>
+        <p class="step-desc">Никакой регистрации, никакого email. Ты уже на странице — один клик, и начинается разбор.</p>
       </div>
       <div class="step-node reveal reveal-delay-1">
         <div class="step-head-line"><div class="step-circle">2</div><div class="step-connector"></div></div>
@@ -858,7 +759,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
           Что нужно для старта?
           <span class="faq-icon">+</span>
         </button>
-        <div class="faq-a">Имя и дата рождения. Никакого телефона или email. Введи их прямо на главной странице — и через 2 минуты получишь бесплатный мини-разбор. Для тех, кто пришёл через Telegram: запусти @ai_nura_bot и нажми «Старт».</div>
+        <div class="faq-a">Имя и дата рождения. Никакого телефона или email. Нажми «Попробовать бесплатно» — и через 2 минуты получишь бесплатный мини-разбор прямо на сайте. Для тех, кто пришёл через Telegram: запусти @ai_nura_bot и нажми «Старт».</div>
       </div>
 
       <div class="faq-item">
@@ -888,7 +789,7 @@ footer{background:var(--bg-card);padding:44px 48px;position:relative;z-index:1;m
       <h2 class="cta-title">Твой сценарий — не <em>приговор</em>. Это карта.</h2>
       <p class="cta-sub">Начни с бесплатного мини-разбора. 2 минуты — и ты уже будешь знать о себе больше, чем раньше.</p>
       <div class="cta-group" style="justify-content:center">
-        <a href="#top" class="btn btn-primary">✨ Узнать свой архетип</a>
+        <a href="https://nura-ai.ru/mini.html" class="btn btn-primary">✨ Попробовать бесплатно</a>
         <a href="https://t.me/ai_nura_bot" class="btn btn-outline">🃏 Получить карту дня</a>
       </div>
       <div class="cta-pills">
@@ -944,90 +845,6 @@ window.switchTab = function(tab, btn){
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
 };
-
-// ── HERO FORM ───────────────────────────────
-var heroForm = document.getElementById('hero-form');
-var heroName = document.getElementById('hero-name');
-var heroDate = document.getElementById('hero-date');
-var heroSubmit = document.getElementById('hero-submit');
-var heroConsent = document.getElementById('hero-consent');
-var heroStageForm = document.getElementById('hero-stage-form');
-var heroStageLoading = document.getElementById('hero-stage-loading');
-var heroStageResult = document.getElementById('hero-stage-result');
-
-function showHeroStage(name){
-  heroStageForm.classList.remove('active');
-  heroStageLoading.classList.remove('active');
-  heroStageResult.classList.remove('active');
-  document.getElementById('hero-stage-'+name).classList.add('active');
-}
-
-function updateHeroSubmit(){
-  var n = heroName.value.trim();
-  var d = heroDate.value.trim();
-  heroSubmit.disabled = !(n && /^\d{2}\.\d{2}\.\d{4}$/.test(d) && heroConsent.checked);
-}
-heroName.addEventListener('input', updateHeroSubmit);
-heroDate.addEventListener('input', function(){
-  var raw = this.value.replace(/\D/g,'').slice(0,8);
-  var p = [];
-  if(raw.length>0) p.push(raw.slice(0,2));
-  if(raw.length>2) p.push(raw.slice(2,4));
-  if(raw.length>4) p.push(raw.slice(4,8));
-  this.value = p.join('.');
-  updateHeroSubmit();
-});
-heroConsent.addEventListener('change', updateHeroSubmit);
-
-heroForm.addEventListener('submit', function(e){
-  e.preventDefault();
-  var n = heroName.value.trim();
-  var d = heroDate.value.trim();
-  if(!n || !/^\d{2}\.\d{2}\.\d{4}$/.test(d) || !heroConsent.checked) return;
-
-  showHeroStage('loading');
-  heroSubmit.classList.add('loading');
-
-  fetch('/api/v1/web/mini-analysis',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    credentials:'same-origin',
-    body:JSON.stringify({name:n,birth_date:d,pd_consent:true})
-  })
-  .then(function(res){
-    if(!res.ok) throw new Error('API error');
-    return res.json();
-  })
-  .then(function(data){
-    var full = data.main_archetype||'';
-    var nameMatch = full.match(/[—-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)*)\s*\(/);
-    var archetypeName = nameMatch ? nameMatch[1] : full.split('.')[0];
-    document.getElementById('hero-archetype-name').textContent = archetypeName||'…';
-    document.getElementById('hero-archetype-desc').textContent = full;
-    document.getElementById('hero-val-core').textContent = data.core_strength||'…';
-    document.getElementById('hero-val-conflict').textContent = data.emotional_conflict||'…';
-    document.getElementById('hero-val-relations').textContent = data.relationship_pattern||'…';
-    document.getElementById('hero-val-finance').textContent = data.financial_block||'…';
-    showHeroStage('result');
-    window.scrollTo({top:0,behavior:'smooth'});
-  })
-  .catch(function(){
-    showHeroStage('form');
-    alert('Что-то пошло не так. Попробуй ещё раз.');
-  })
-  .finally(function(){
-    heroSubmit.classList.remove('loading');
-  });
-});
-
-document.getElementById('hero-retry').addEventListener('click', function(e){
-  e.preventDefault();
-  heroName.value='';
-  heroDate.value='';
-  heroConsent.checked=false;
-  updateHeroSubmit();
-  showHeroStage('form');
-});
 
 // ── REVEAL ON SCROLL ────────────────────────
 var reveals = document.querySelectorAll('.reveal');

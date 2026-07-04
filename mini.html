@@ -355,7 +355,7 @@ form.addEventListener('submit',function(e){
       document.getElementById('val-extra-1').textContent='';
       document.getElementById('val-extra-2').textContent='';
       document.getElementById('request-line').textContent='Запрос: '+labels[req]+'. Полный отчёт раскрывает именно эту линию глубже.';
-      showStage('auth');
+      showStage('result');
       window.scrollTo({top:0,behavior:'smooth'});
     })
     .catch(function(){
@@ -367,16 +367,7 @@ form.addEventListener('submit',function(e){
 });
 
 document.getElementById('pay-btn').addEventListener('click',function(){
-  var btn=this;setLoading(btn,true);
-  fetch('/api/v1/web/create-payment',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    credentials:'same-origin',
-    body:JSON.stringify({})
-  })
-  .then(function(res){if(!res.ok)throw new Error('Payment init error');return res.json();})
-  .then(function(data){if(data.payment_url)window.location.href=data.payment_url;else throw new Error('No payment_url');})
-  .catch(function(){setLoading(btn,false);err.textContent='Что-то пошло не так, попробуй ещё раз';err.style.display='block';});
+  window.location.href='/app/';
 });
 
 var authErr=document.getElementById('auth-error-msg');
