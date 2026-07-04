@@ -13,12 +13,7 @@ logger = logging.getLogger(__name__)
 MAX_SEMANTIC_RETRIES = 2
 
 
-def _build_retry_prompt(
-    original_system: str,
-    original_user_a: str,
-    original_user_b: str,
-    issues: list[str],
-) -> str:
+def _build_retry_prompt(issues: list[str]) -> str:
     issues_text = "\n".join(f"- {iss}" for iss in issues)
     return (
         f"Твой предыдущий ответ не прошёл проверку качества. Вот что нужно исправить:\n\n"
@@ -33,11 +28,13 @@ async def generate_full_report_with_loop(
     matrix_data: "MatrixData | dict",
     name: str = "пользователь",
 ) -> dict:
-    report = FALLBACK_FULL
+    issues: list[str] | None = None
 
     for attempt in range(MAX_SEMANTIC_RETRIES + 1):
         try:
-            report = await AIService.generate_full_report(birth_date, matrix_data, name)
+            report = await AIService.generate_full_report(
+                birth_date, matrix_data, name, issues=issues,
+            )
         except Exception as e:
             logger.error("report_loop generate_full_report crashed: %s", e, exc_info=True)
             return FALLBACK_FULL
@@ -58,6 +55,8 @@ async def generate_full_report_with_loop(
 
         if attempt >= MAX_SEMANTIC_RETRIES:
             break
+
+        issues = result.issues
 
     logger.error(
         "report_loop exhausted after %d attempts — returning fallback",

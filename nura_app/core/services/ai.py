@@ -343,7 +343,10 @@ class AIService:
 
     @staticmethod
     async def generate_full_report(
-        birth_date: str, matrix_data: "MatrixData | dict", name: str = "пользователь"
+        birth_date: str,
+        matrix_data: "MatrixData | dict",
+        name: str = "пользователь",
+        issues: list[str] | None = None,
     ) -> dict:
         from core.services.matrix import MatrixService
 
@@ -369,11 +372,15 @@ class AIService:
 
         async def _generate_part(user_content: str, part_label: str) -> dict:
             retry_cb = AIService._make_retry_callback(_system_prompt(), user_content, FULL_REPORT_PARAMS)
+            messages = [
+                {"role": "system", "content": _system_prompt()},
+                {"role": "user", "content": user_content},
+            ]
+            if issues:
+                from core.loop_specs.report_loop import _build_retry_prompt
+                messages.append({"role": "user", "content": _build_retry_prompt(issues)})
             response = await AIService.chat(
-                [
-                    {"role": "system", "content": _system_prompt()},
-                    {"role": "user", "content": user_content},
-                ],
+                messages,
                 api_params=FULL_REPORT_PARAMS,
                 timeout=300.0,
                 method_name=f"full_report_{part_label}",
@@ -623,6 +630,8 @@ class AIService:
         user_archetype_number: int = 0,
         user_archetype_name: str = "",
     ) -> str:
+        from core.loop_specs.tarot_loop import generate_tarot_text
+
         prompt = self._load_prompt("tarot_daily_card.txt")
         filled = prompt.format(
             arcana_number=arcana_number,
@@ -632,7 +641,7 @@ class AIService:
             user_archetype_number=user_archetype_number or arcana_number,
             user_archetype_name=user_archetype_name or arcana_name,
         )
-        result = await self.chat(
+        result = await generate_tarot_text(
             messages=[
                 {"role": "system", "content": (
                     "Ты — NURA, персональный психологический проводник. "
@@ -644,9 +653,10 @@ class AIService:
                 {"role": "user", "content": filled},
             ],
             api_params={"max_tokens": 400, "temperature": 0.7},
-            method_name="tarot_daily_card",
+            min_words=30,
+            user_name=user_name,
         )
-        return result.strip().strip('"')
+        return result
 
     @staticmethod
     async def generate_tarot_weekly_spread(

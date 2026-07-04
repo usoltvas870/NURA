@@ -7,6 +7,12 @@ logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 1
 
+_FALLBACK_TAROT = (
+    "Сегодня энергии сплетаются неоднозначно — "
+    "я не могу дать точный ответ прямо сейчас. "
+    "Попробуй переформулировать вопрос или вернись позже."
+)
+
 
 async def generate_tarot_text(
     messages: list[dict],
@@ -50,12 +56,12 @@ async def generate_tarot_text(
             return text
 
         logger.warning(
-            "tarot_loop attempt %d/%d failed: %d issue(s)",
-            attempt + 1, max_retries + 1, len(result.issues),
+            "tarot_loop attempt %d/%d failed: %d issue(s): %s",
+            attempt + 1, max_retries + 1, len(result.issues), result.issues,
         )
 
     logger.error(
-        "tarot_loop exhausted after %d attempts — returning last result",
+        "tarot_loop exhausted after %d attempts — returning fallback",
         max_retries + 1,
     )
-    return text
+    return _FALLBACK_TAROT

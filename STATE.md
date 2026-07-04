@@ -1,6 +1,28 @@
 # NURA — State
 
-> Последнее обновление: **04.07.2026 — Сессия 68** — DeepSeek V4 Pro
+> Последнее обновление: **04.07.2026 — Сессия 69** — DeepSeek V4 Pro
+
+---
+
+## Сессия 69 — 04.07.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано:
+  - **Мёртвый код `_build_retry_prompt` — активирован:**
+    - `report_loop.py`: `_build_retry_prompt(issues)` — упрощённая сигнатура (только `issues: list[str]`), реально вызывается при retry
+    - `ai.py`: `generate_full_report()` — новый параметр `issues: list[str] | None`. `_generate_part()` добавляет issues как retry-сообщение в messages
+    - `generate_full_report_with_loop()`: на retry передаёт `result.issues` → AI получает обратную связь и исправляет конкретные проблемы
+  - **tarot_loop exhausted → fallback:**
+    - Исчерпание попыток возвращает `_FALLBACK_TAROT` (осмысленное сообщение), а не последний бракованный текст
+    - Добавлено логирование issues при warning
+  - **5 tarot bypass-ов закрыты:**
+    - `ai.py`: `generate_tarot_daily_card()` переведён на `generate_tarot_text()` — автоматическая верификация (закрывает bypass 2 и 3 в tasks.py)
+    - `tasks.py`: `send_weekly_tarot_spread` → `generate_tarot_text()` (закрыт bypass 4)
+    - `tasks.py`: `send_monthly_tarot_portal` → `generate_tarot_text()` (закрыт bypass 5)
+    - `bot/handlers/tarot.py`: `show_tarot_weekly` → пост-генерационная верификация через `ContentVerifier.verify_text()` для 4 текстовых полей (закрыт bypass 1)
+  - **Тесты**: `test_tarot_pwa.py::TestAIServiceChatTrimming` — 3 теста обновлены: mock на `generate_tarot_text` вместо `AIService.chat`
+  - **Проверка**: ruff — pass, pytest — 242 passed
+- Блокеры: нет
+- Следующие шаги: сквозная трассировка ошибок (Sentry + structured logs)
 
 ---
 

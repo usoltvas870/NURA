@@ -734,7 +734,9 @@ async def _send_weekly_tarot_spread_async() -> dict:
             matrix_context=matrix_context or "(нет данных матрицы)",
         )
         try:
-            response = await AIService.chat(
+            from core.loop_specs.tarot_loop import generate_tarot_text
+
+            card_text = await generate_tarot_text(
                 messages=[
                     {"role": "system", "content": "Ты — NURA, персональный психологический проводник."},
                     {"role": "user", "content": filled},
@@ -743,7 +745,6 @@ async def _send_weekly_tarot_spread_async() -> dict:
                 use_cache=True,
                 cache_ttl=7 * 86400,
             )
-            card_text = response.strip().strip('"')
         except Exception:
             logger.exception("Weekly spread AI failed for user %s", user.id)
             failed += 1
@@ -825,7 +826,9 @@ async def _send_monthly_tarot_portal_async() -> dict:
             strengthen_arcana_name=s_name if isinstance(s_name, str) else s_name.get("name", f"Аркан {strengthen}"),
         )
         try:
-            response = await AIService.chat(
+            from core.loop_specs.tarot_loop import generate_tarot_text
+
+            card_text = await generate_tarot_text(
                 messages=[
                     {"role": "system", "content": "Ты — NURA, персональный психологический проводник."},
                     {"role": "user", "content": filled},
@@ -834,7 +837,6 @@ async def _send_monthly_tarot_portal_async() -> dict:
                 use_cache=True,
                 cache_ttl=31 * 86400,
             )
-            card_text = response.strip().strip('"')
         except Exception:
             logger.exception("Monthly portal AI failed for user %s", user.id)
             failed += 1

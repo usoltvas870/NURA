@@ -184,6 +184,24 @@ async def show_tarot_weekly(callback: CallbackQuery) -> None:
     async with animated_loading(callback.message, "🎴 Раскладываю карты"):
         try:
             result = await AIService.generate_tarot_weekly_spread(user.birth_date, user)
+            from core.services.verifier import ContentVerifier
+
+            text_fields = [
+                ("body.interpretation", result.get("body", {}).get("interpretation", "")),
+                ("mind.interpretation", result.get("mind", {}).get("interpretation", "")),
+                ("spirit.interpretation", result.get("spirit", {}).get("interpretation", "")),
+                ("overall", result.get("overall", "")),
+            ]
+            for field_name, field_value in text_fields:
+                if field_value:
+                    ver_result = ContentVerifier.verify_text(
+                        field_value, min_words=15, check_tone=False,
+                    )
+                    if not ver_result.passed:
+                        logger.warning(
+                            "weekly spread %s verification failed: %s",
+                            field_name, ver_result.issues,
+                        )
         except Exception:
             logger.exception("show_tarot_weekly AI failed")
             await callback.message.edit_text(

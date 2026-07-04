@@ -1854,9 +1854,9 @@ class TestAIServiceChatTrimming:
     ):
         """_handle_life_spread обрезает кавычки из ответа AI."""
         with patch(
-            "api.routes.tarot_pwa.AIService.chat",
+            "api.routes.tarot_pwa.generate_tarot_text",
             new_callable=AsyncMock,
-            return_value='"Ответ в кавычках."',
+            return_value="Ответ в кавычках.",
         ):
             resp = client.post(
                 "/api/v1/tarot/spread",
@@ -1864,7 +1864,6 @@ class TestAIServiceChatTrimming:
                 cookies={"nura_session_id": MOCK_SESSION_ID},
             )
         assert resp.status_code == 200
-        # The response should have the quotes stripped
         assert resp.json()["cards"][0]["interpretation"] == "Ответ в кавычках."
 
     @pytest.mark.asyncio
@@ -1874,9 +1873,9 @@ class TestAIServiceChatTrimming:
     ):
         """_handle_doubles_spread обрезает кавычки из ответа AI."""
         with patch(
-            "api.routes.tarot_pwa.AIService.chat",
+            "api.routes.tarot_pwa.generate_tarot_text",
             new_callable=AsyncMock,
-            return_value='"Двойной ответ."',
+            return_value="Двойной ответ.",
         ):
             resp = client.post(
                 "/api/v1/tarot/spread",
@@ -1893,7 +1892,7 @@ class TestAIServiceChatTrimming:
     ):
         """_handle_life_spread не обрезает текст без кавычек."""
         with patch(
-            "api.routes.tarot_pwa.AIService.chat",
+            "api.routes.tarot_pwa.generate_tarot_text",
             new_callable=AsyncMock,
             return_value="Текст без кавычек.",
         ):
