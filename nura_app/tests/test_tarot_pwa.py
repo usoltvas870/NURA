@@ -215,7 +215,12 @@ def mock_get_user(request):
             new_callable=AsyncMock,
         ) as mock_renew:
             mock_renew.return_value = None
-            yield mock
+            with patch(
+                "core.repositories.user.UserRepository.update_last_activity",
+                new_callable=AsyncMock,
+            ) as mock_activity:
+                mock_activity.return_value = None
+                yield mock
 
 
 @pytest.fixture
@@ -1972,17 +1977,22 @@ class TestDailyCardEdgeCases:
             ) as mock_renew:
                 mock_renew.return_value = None
                 with patch(
-                    "api.routes.tarot_pwa.AIService.chat",
+                    "core.repositories.user.UserRepository.update_last_activity",
                     new_callable=AsyncMock,
-                ) as mock_ai:
-                    mock_ai.return_value = MOCK_AI_CHAT_RESPONSE
+                ) as mock_activity:
+                    mock_activity.return_value = None
                     with patch(
-                        "api.routes.tarot_pwa.personalize_arcana",
-                        return_value=3,
-                    ):
-                        resp = client.get(
-                            "/api/v1/tarot/daily-card",
-                            cookies={"nura_session_id": MOCK_SESSION_ID},
-                            params={"extra_param": "value"},
-                        )
+                        "api.routes.tarot_pwa.AIService.chat",
+                        new_callable=AsyncMock,
+                    ) as mock_ai:
+                        mock_ai.return_value = MOCK_AI_CHAT_RESPONSE
+                        with patch(
+                            "api.routes.tarot_pwa.personalize_arcana",
+                            return_value=3,
+                        ):
+                            resp = client.get(
+                                "/api/v1/tarot/daily-card",
+                                cookies={"nura_session_id": MOCK_SESSION_ID},
+                                params={"extra_param": "value"},
+                            )
         assert resp.status_code == 200
