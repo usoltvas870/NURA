@@ -190,10 +190,141 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
 
   var __isGuest = false;
 
-  fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
-    .then(function(r) {
-      if (r.status === 401) { __isGuest = true; applyGuestMode(); }
+  /* ── Capture guest_token from URL ── */
+  var params = new URLSearchParams(location.search);
+  var urlGuestToken = params.get('guest_token');
+  if (urlGuestToken) {
+    localStorage.setItem('nura_guest_token', urlGuestToken);
+    history.replaceState(null, '', location.pathname);
+  }
+
+  /* ── Init: try guest data, then session, then fallback ── */
+  var guestToken = localStorage.getItem('nura_guest_token');
+
+  if (guestToken) {
+    loadGuestData(guestToken);
+  } else {
+    initAuthenticatedFlow();
+  }
+
+  /* ── Guest data flow ── */
+  function loadGuestData(token) {
+    N.fetchJSON(BASE + '/auth/guest/' + encodeURIComponent(token))
+      .then(function(gd) {
+        if (!gd || gd.merged) {
+          localStorage.removeItem('nura_guest_token');
+          initAuthenticatedFlow();
+          return;
+        }
+        var expiresAt = new Date(gd.expires_at);
+        if (expiresAt < new Date()) {
+          localStorage.removeItem('nura_guest_token');
+          initAuthenticatedFlow();
+          return;
+        }
+        __isGuest = true;
+        if (gd.name) {
+          $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(gd.name) + '</em>';
+        }
+        if (gd.birth_date) localStorage.setItem('nura_birth_date', gd.birth_date);
+        var rd = gd.report_data;
+        if (rd && rd.main_archetype) {
+          var full = rd.main_archetype;
+          var m = full.match(/[—-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)*)\s*\(/);
+          var name = m ? m[1] : full.split('.')[0];
+          if (rd.archetype_number) {
+            $('matrix-num').textContent = rd.archetype_number;
+            $('matrix-num').classList.remove('skeleton');
+          }
+          $('matrix-name').textContent = name || 'Архетип';
+          $('matrix-name').classList.remove('skeleton');
+          $('matrix-desc').textContent = 'Мини-разбор готов. Купи полный отчёт для детального разбора.';
+          $('status-copy').textContent = 'Мини-разбор готов. Хочешь полную Матрицу?';
+          $('report-cta').textContent = 'Купить полный отчёт';
+        } else {
+          $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
+          $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
+          $('report-cta').textContent = 'Получить полный отчёт';
+        }
+        $('report-cta').onclick = function() { location.href = 'profile.html#subscription'; };
+        $('day-phrase').textContent = 'Зарегистрируйся, чтобы ежедневно открывать свою карту дня.';
+        $('day-name').textContent = 'Требуется регистрация';
+        $('day-name').classList.remove('skeleton');
+        $('day-symbol').classList.remove('skeleton');
+        $('day-symbol').textContent = '?';
+      })
+      .catch(function() {
+        localStorage.removeItem('nura_guest_token');
+        initAuthenticatedFlow();
+      });
+  }
+
+  /* ── Authenticated flow ── */
+  function initAuthenticatedFlow() {
+    fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
+      .then(function(r) {
+        if (r.status === 401) { applyGuestMode(); return; }
+        loadUserData();
+      })
+      .catch(function() { applyGuestMode(); });
+  }
+
+  function loadUserData() {
+    N.fetchJSON(BASE + '/web/me')
+      .then(function(d) {
+        if (d.name) {
+          $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
+        }
+        var hasFull = d.has_matrix;
+        window.__hasFullReport = hasFull;
+        var hasMini = d.reports && d.reports.length > 0;
+        if (hasFull) {
+          $('status-copy').textContent = 'Полный отчёт готов. Начни с главного вывода или задай вопрос по любой главе.';
+          $('report-cta').textContent = 'Продолжить отчёт';
+        } else if (hasMini) {
+          $('status-copy').textContent = 'Мини-разбор готов. Хочешь полную Матрицу?';
+          $('report-cta').textContent = 'Купить полный отчёт';
+        } else {
+          $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
+          $('report-cta').textContent = 'Получить полный отчёт';
+        }
+        if (d.archetype_number) { $('matrix-num').textContent = d.archetype_number; $('matrix-num').classList.remove('skeleton'); }
+        if (d.archetype) { $('matrix-name').textContent = d.archetype; $('matrix-name').classList.remove('skeleton'); }
+        if (d.archetype) $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype;
+        else if (hasMini) $('matrix-desc').textContent = 'Мини-разбор пройден. Купи полный отчёт для детального разбора.';
+        else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
+      })
+      .catch(function(err) {
+        if (err && err.status === 401) { applyGuestMode(); return; }
+        $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.';
+        $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—';
+        $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных';
+      });
+  }
+
+  N.fetchJSON(BASE + '/tarot/daily-card')
+    .then(function(d) {
+      if (!d) return;
+      if (d.arcana_symbol) { $('day-symbol').textContent = d.arcana_symbol; $('day-symbol').classList.remove('skeleton'); }
+      if (d.arcana_name) { $('day-name').textContent = d.arcana_name; $('day-name').classList.remove('skeleton'); }
+      if (d.key_phrase) { $('day-phrase').textContent = d.key_phrase; }
+    })
+    .catch(function() {
+      if (__isGuest) {
+        $('day-phrase').textContent = 'Зарегистрируйся, чтобы ежедневно открывать свою карту дня.';
+        $('day-name').textContent = 'Требуется регистрация';
+      } else {
+        $('day-phrase').textContent = 'Не удалось загрузить карту дня.';
+        $('day-name').textContent = 'Нет данных';
+      }
+      $('day-symbol').classList.remove('skeleton'); $('day-symbol').textContent = '—';
+      $('day-name').classList.remove('skeleton');
     });
+
+  document.getElementById('themeToggle').addEventListener('click', function() {
+    var next = N.toggleTheme();
+    this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
+  });
 
   function openReport(){
     if (__isGuest) { showAuthModal(); return; }
@@ -203,57 +334,13 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   window.openReport = openReport;
 
   function askNura(text){
+    if (__isGuest) { showAuthModal(); return; }
     localStorage.setItem('nura_pending_question', text);
     location.href = 'chat.html?question=' + encodeURIComponent(text);
   }
   window.askNura = askNura;
 
-  N.fetchJSON(BASE + '/web/me')
-    .then(function(d) {
-      if (d.name) {
-        $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(d.name) + '</em>';
-      }
-      var hasFull = d.has_matrix;
-      window.__hasFullReport = hasFull;
-      var hasMini = d.reports && d.reports.length > 0;
-      if (hasFull) {
-        $('status-copy').textContent = 'Полный отчёт готов. Начни с главного вывода или задай вопрос по любой главе.';
-        $('report-cta').textContent = 'Продолжить отчёт';
-      } else if (hasMini) {
-        $('status-copy').textContent = 'Мини-разбор готов. Хочешь полную Матрицу?';
-        $('report-cta').textContent = 'Купить полный отчёт';
-      } else {
-        $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
-        $('report-cta').textContent = 'Получить полный отчёт';
-      }
-      if (d.archetype_number) { $('matrix-num').textContent = d.archetype_number; $('matrix-num').classList.remove('skeleton'); }
-      if (d.archetype) { $('matrix-name').textContent = d.archetype; $('matrix-name').classList.remove('skeleton'); }
-      if (d.archetype) $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype;
-      else if (hasMini) $('matrix-desc').textContent = 'Мини-разбор пройден. Купи полный отчёт для детального разбора.';
-      else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
-    })
-    .catch(function(err) {
-      if (err && err.status === 401) { __isGuest = true; applyGuestMode(); return; }
-      $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.';
-      $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—';
-      $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Нет данных';
-    });
-
-  N.fetchJSON(BASE + '/tarot/daily-card')
-    .then(function(d) {
-      if (!d) return;
-      if (d.arcana_symbol) { $('day-symbol').textContent = d.arcana_symbol; $('day-symbol').classList.remove('skeleton'); }
-      if (d.arcana_name) { $('day-name').textContent = d.arcana_name; $('day-name').classList.remove('skeleton'); }
-      if (d.key_phrase) { $('day-phrase').textContent = d.key_phrase; }
-    })
-    .catch(function() { $('day-phrase').textContent = 'Не удалось загрузить карту дня.'; $('day-symbol').classList.remove('skeleton'); $('day-symbol').textContent = '—'; $('day-name').classList.remove('skeleton'); $('day-name').textContent = 'Нет данных'; });
-
-  document.getElementById('themeToggle').addEventListener('click', function() {
-    var next = N.toggleTheme();
-    this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
-  });
-
-  /* ── Guest mode ── */
+  /* ── Guest mode (no guest_token) ── */
   function applyGuestMode() {
     __isGuest = true;
     $('report-cta').textContent = 'Получить мини-разбор';

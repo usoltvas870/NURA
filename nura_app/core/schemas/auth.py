@@ -21,6 +21,7 @@ class GuestProfileFetchResponse(BaseModel):
     name: str | None
     birth_date: str | None
     quiz_answers: dict | None
+    report_data: dict | None = None
     expires_at: datetime
     merged: bool
 

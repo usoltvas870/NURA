@@ -78,6 +78,7 @@ class AuthService:
                     "name": data.get("name"),
                     "birth_date": data.get("birth_date"),
                     "quiz_answers": data.get("quiz_answers"),
+                    "report_data": data.get("report_data"),
                     "expires_at": data.get("expires_at"),
                     "merged": bool(data.get("merged", False)),
                 }
@@ -107,6 +108,7 @@ class AuthService:
             "name": payload["name"],
             "birth_date": payload["birth_date"],
             "quiz_answers": payload["quiz_answers"],
+            "report_data": payload.get("report_data"),
             "expires_at": payload["expires_at"],
             "merged": payload["merged"],
         }

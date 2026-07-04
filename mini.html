@@ -821,7 +821,8 @@ form.addEventListener('submit',function(e){
 });
 
 document.getElementById('pay-btn').addEventListener('click',function(){
-  window.location.href='/app/';
+  var gt=localStorage.getItem('nura_guest_token');
+  window.location.href='/app/' + (gt ? '?guest_token='+encodeURIComponent(gt) : '');
 });
 </script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
