@@ -79,6 +79,14 @@ celery_app.conf.beat_schedule = {
         "task": "core.tasks.cleanup_expired_guest_profiles",
         "schedule": 60 * 60 * 24,
     },
+    "block-inactive-users": {
+        "task": "core.tasks.block_inactive_users",
+        "schedule": 60 * 60 * 6,
+    },
+    "delete-inactive-users": {
+        "task": "core.tasks.delete_inactive_users",
+        "schedule": 60 * 60 * 24,
+    },
     "monitor-health": {
         "task": "core.tasks.monitor_health",
         "schedule": 60 * 5,
@@ -1338,6 +1346,32 @@ def cleanup_expired_guest_profiles() -> dict:
 
         svc = AuthService()
         count = await svc.cleanup_expired_guests()
+        return {"deleted": count}
+
+    return _run_async(_run())
+
+
+@celery_app.task(name="core.tasks.block_inactive_users")
+def block_inactive_users() -> dict:
+    async def _run() -> dict:
+        session_factory = get_async_sessionmaker()
+        user_repo = UserRepository(session_factory)
+        threshold = datetime.now(timezone.utc) - timedelta(days=14)
+        count = await user_repo.block_inactive_users(threshold)
+        logger.info("block_inactive_users: blocked=%d", count)
+        return {"blocked": count}
+
+    return _run_async(_run())
+
+
+@celery_app.task(name="core.tasks.delete_inactive_users")
+def delete_inactive_users() -> dict:
+    async def _run() -> dict:
+        session_factory = get_async_sessionmaker()
+        user_repo = UserRepository(session_factory)
+        threshold = datetime.now(timezone.utc) - timedelta(days=30)
+        count = await user_repo.delete_inactive_users(threshold)
+        logger.info("delete_inactive_users: deleted=%d", count)
         return {"deleted": count}
 
     return _run_async(_run())

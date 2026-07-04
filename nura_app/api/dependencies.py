@@ -43,7 +43,10 @@ async def get_current_web_user(
     now = datetime.now(timezone.utc)
     if user.web_session_expires_at and user.web_session_expires_at < now:
         raise HTTPException(status_code=401, detail="Сессия истекла")
+    if user.account_status == "blocked":
+        raise HTTPException(status_code=403, detail="Аккаунт заблокирован за неактивность")
     await user_repo.renew_session_expiry(user.id)
+    await user_repo.update_last_activity(user.id)
     set_session_cookie(response, nura_session_id)
     return user
 
@@ -61,5 +64,8 @@ async def get_optional_web_user(
     now = datetime.now(timezone.utc)
     if user.web_session_expires_at and user.web_session_expires_at < now:
         return None
+    if user.account_status == "blocked":
+        return None
     await user_repo.renew_session_expiry(user.id)
+    await user_repo.update_last_activity(user.id)
     return user

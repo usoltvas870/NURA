@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import load_only
@@ -436,6 +436,14 @@ class UserRepository(SQLAlchemyRepository[User]):
             )
             await session.commit()
 
+    async def update_last_activity(self, user_id: uuid.UUID) -> None:
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return
+            user.last_activity_at = datetime.now(timezone.utc)
+            await session.commit()
+
     async def set_pd_consent(self, user_id: uuid.UUID) -> None:
         async with self._session_factory() as session:
             user = await session.get(User, user_id)
@@ -572,3 +580,35 @@ class UserRepository(SQLAlchemyRepository[User]):
                 )
             )
             return list(result.scalars().all())
+
+    async def block_inactive_users(self, inactive_since: datetime) -> int:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                update(User)
+                .where(
+                    User.account_status == "active",
+                    User.last_activity_at.isnot(None),
+                    User.last_activity_at < inactive_since,
+                    User.has_matrix == False,  # noqa: E712
+                    User.tarot_subscription == False,  # noqa: E712
+                    User.subscription_status != "premium",
+                )
+                .values(account_status="blocked")
+            )
+            await session.commit()
+            return result.rowcount or 0
+
+    async def delete_inactive_users(self, inactive_since: datetime) -> int:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                delete(User).where(
+                    User.account_status == "blocked",
+                    User.last_activity_at.isnot(None),
+                    User.last_activity_at < inactive_since,
+                    User.has_matrix == False,  # noqa: E712
+                    User.tarot_subscription == False,  # noqa: E712
+                    User.subscription_status != "premium",
+                )
+            )
+            await session.commit()
+            return result.rowcount or 0

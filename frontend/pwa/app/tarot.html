@@ -275,7 +275,10 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
   var $ = document.getElementById.bind(document);
 
   fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
-    .then(function(r) { if (r.status === 401) location.href = '/mini.html'; });
+    .then(function(r) {
+      if (r.status === 403) { location.href = '/app/?blocked=1'; return; }
+      if (r.status === 401) location.href = '/mini.html';
+    });
 
   var dateStr = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
   $('hero-date').textContent = dateStr;
@@ -365,7 +368,10 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         el.onclick = function() { openSpread(type); };
       });
     })
-    .catch(function(err) { if (err && err.status === 401) { location.href = '/mini.html'; } });
+    .catch(function(err) {
+      if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
+      if (err && err.status === 401) { location.href = '/mini.html'; }
+    });
 
   window.openCardDetail = function() {
     if (!cardData) return;

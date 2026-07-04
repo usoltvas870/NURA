@@ -187,7 +187,10 @@ body{overflow:hidden;padding-bottom:0}
     .then(function(d) {
       if (d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active' || d.has_matrix) { hasUnlimited = true; updateLimitNote(); }
     })
-    .catch(function(err) { if (err && err.status === 401) { location.href = '/mini.html'; } });
+    .catch(function(err) {
+      if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
+      if (err && err.status === 401) { location.href = '/mini.html'; }
+    });
 
   inputEl.addEventListener('input', function() {
     this.style.height = 'auto';
@@ -240,6 +243,7 @@ body{overflow:hidden;padding-bottom:0}
     })
     .then(function(r) {
       if (r.status === 402 || r.status === 429) return { _limit: true };
+      if (r.status === 403) { location.href = '/app/?blocked=1'; return { _gone: true }; }
       if (r.status === 401) { location.href = '/mini.html'; return { _gone: true }; }
       return r.json().then(function(j) { return r.ok ? j : Object.assign({ _status: r.status }, j); }).catch(function() { return { _status: r.status }; });
     })

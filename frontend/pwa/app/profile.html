@@ -153,7 +153,10 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
       }
       if (d.reports) { userReports = d.reports; renderReports(d.reports); }
     })
-    .catch(function(err) { if (err && err.status === 401) { location.href = '/mini.html'; } });
+    .catch(function(err) {
+      if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
+      if (err && err.status === 401) { location.href = '/mini.html'; }
+    });
 
   var notifPrefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
   Object.keys(notifPrefs).forEach(function(k) {

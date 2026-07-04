@@ -100,6 +100,12 @@ class User(Base):
         server_default=func.now(),
         nullable=False,
     )
+    last_activity_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    account_status: Mapped[str] = mapped_column(
+        String(20), default="active", nullable=False, server_default="active"
+    )
 
 
 class GuestProfile(Base):

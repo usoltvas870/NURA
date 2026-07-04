@@ -261,6 +261,82 @@ class AuthService:
         now = datetime.now(timezone.utc)
         return await repo.delete_expired(now)
 
+    async def convert_guest_to_user(self, guest_token: str) -> dict | None:
+        guest_repo = GuestProfileRepository(self._session_factory)
+        guest = await guest_repo.get_by_token(guest_token)
+        if guest is None:
+            return None
+        if guest.merged_to_user_id is not None:
+            return None
+
+        now = datetime.now(timezone.utc)
+        if guest.expires_at:
+            exp = guest.expires_at
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp < now:
+                return None
+
+        user_repo = UserRepository(self._session_factory)
+        web_session_id = uuid.uuid4().hex
+
+        existing = await user_repo.get_by_name_and_birth_date(
+            guest.name, guest.birth_date
+        )
+        if existing is not None:
+            if existing.account_status == "blocked":
+                existing.account_status = "active"
+            if existing.web_session_id is None:
+                existing.web_session_id = web_session_id
+                existing.web_session_expires_at = (
+                    now + timedelta(seconds=settings.web_session_ttl_seconds)
+                )
+            existing.last_activity_at = now
+            if guest.report_data:
+                rd = guest.report_data
+                if rd.get("main_archetype") and not existing.main_archetype:
+                    full = rd["main_archetype"]
+                    m = full.split("—")
+                    name_part = m[1].strip().split("(")[0].strip() if len(m) > 1 else full.split(".")[0]
+                    existing.main_archetype = name_part
+                if rd.get("archetype_number") and not existing.main_archetype_number:
+                    existing.main_archetype_number = rd["archetype_number"]
+            user = existing
+            await user_repo.update(user)
+        else:
+            report_data = guest.report_data or {}
+            archetype = None
+            archetype_number = None
+            if report_data.get("main_archetype"):
+                full = report_data["main_archetype"]
+                m = full.split("—")
+                archetype = m[1].strip().split("(")[0].strip() if len(m) > 1 else full.split(".")[0]
+            if report_data.get("archetype_number"):
+                archetype_number = report_data["archetype_number"]
+
+            user = await user_repo.create_web_user(
+                name=guest.name,
+                birth_date=guest.birth_date,
+                web_session_id=web_session_id,
+            )
+            if archetype:
+                await user_repo.update_archetype(user.id, archetype, archetype_number)
+            user.last_activity_at = now
+            await user_repo.update(user)
+
+        guest.merged_to_user_id = user.id
+        await guest_repo.update(guest)
+
+        redis = get_redis()
+        cache_key = f"{GUEST_CACHE_PREFIX}:{guest_token}"
+        await redis.delete(cache_key)
+
+        return {
+            "user_id": str(user.id),
+            "web_session_id": user.web_session_id,
+            "name": user.name or user.first_name,
+        }
+
     async def vk_auth(
         self,
         access_token: str,

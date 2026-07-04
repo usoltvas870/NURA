@@ -53,3 +53,13 @@ class MergeGuestRequest(BaseModel):
 class MergeGuestResponse(BaseModel):
     success: bool
     user_id: str
+
+
+class GuestConvertRequest(BaseModel):
+    guest_token: str
+
+
+class GuestConvertResponse(BaseModel):
+    success: bool
+    user_id: str
+    name: str | None

@@ -10,6 +10,8 @@ from core.models import User
 from core.schemas.auth import (
     EmailAuthRequest,
     EmailAuthResponse,
+    GuestConvertRequest,
+    GuestConvertResponse,
     GuestProfileCreate,
     GuestProfileFetchResponse,
     GuestProfileResponse,
@@ -50,6 +52,26 @@ async def get_guest_profile(
     if data is None:
         raise HTTPException(status_code=404, detail="Профиль не найден или истёк")
     return GuestProfileFetchResponse(**data)
+
+
+@router.post("/guest/convert", response_model=GuestConvertResponse)
+@limiter.limit("10/minute")
+async def convert_guest(
+    request: Request,
+    response: Response,
+    body: GuestConvertRequest,
+):
+    result = await AuthService().convert_guest_to_user(body.guest_token)
+    if result is None:
+        raise HTTPException(
+            status_code=404, detail="Гостевой профиль не найден, истёк или уже привязан"
+        )
+    set_session_cookie(response, result["web_session_id"])
+    return GuestConvertResponse(
+        success=True,
+        user_id=result["user_id"],
+        name=result["name"],
+    )
 
 
 @router.post("/email/send", response_model=EmailAuthResponse)

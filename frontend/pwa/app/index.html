@@ -198,71 +198,46 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     history.replaceState(null, '', location.pathname);
   }
 
-  /* ── Init: try guest data, then session, then fallback ── */
+  /* ── Init: convert guest or auth flow ── */
   var guestToken = localStorage.getItem('nura_guest_token');
 
   if (guestToken) {
-    loadGuestData(guestToken);
+    convertGuest(guestToken);
   } else {
     initAuthenticatedFlow();
   }
 
-  /* ── Guest data flow ── */
-  function loadGuestData(token) {
-    N.fetchJSON(BASE + '/auth/guest/' + encodeURIComponent(token))
-      .then(function(gd) {
-        if (!gd || gd.merged) {
-          localStorage.removeItem('nura_guest_token');
-          initAuthenticatedFlow();
-          return;
-        }
-        var expiresAt = new Date(gd.expires_at);
-        if (expiresAt < new Date()) {
-          localStorage.removeItem('nura_guest_token');
-          initAuthenticatedFlow();
-          return;
-        }
-        __isGuest = true;
-        if (gd.name) {
-          $('greeting-name').innerHTML = 'Привет, <em>' + N.escHtml(gd.name) + '</em>';
-        }
-        if (gd.birth_date) localStorage.setItem('nura_birth_date', gd.birth_date);
-        var rd = gd.report_data;
-        if (rd && rd.main_archetype) {
-          var full = rd.main_archetype;
-          var m = full.match(/[—-]\s*([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)*)\s*\(/);
-          var name = m ? m[1] : full.split('.')[0];
-          if (rd.archetype_number) {
-            $('matrix-num').textContent = rd.archetype_number;
-            $('matrix-num').classList.remove('skeleton');
-          }
-          $('matrix-name').textContent = name || 'Архетип';
-          $('matrix-name').classList.remove('skeleton');
-          $('matrix-desc').textContent = 'Мини-разбор готов. Купи полный отчёт для детального разбора.';
-          $('status-copy').textContent = 'Мини-разбор готов. Хочешь полную Матрицу?';
-          $('report-cta').textContent = 'Купить полный отчёт';
-        } else {
-          $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
-          $('status-copy').textContent = 'Получи полный отчёт, чтобы раскрыть свою Матрицу.';
-          $('report-cta').textContent = 'Получить полный отчёт';
-        }
-        $('report-cta').onclick = function() { location.href = 'profile.html#subscription'; };
-        $('day-phrase').textContent = 'Зарегистрируйся, чтобы ежедневно открывать свою карту дня.';
-        $('day-name').textContent = 'Требуется регистрация';
-        $('day-name').classList.remove('skeleton');
-        $('day-symbol').classList.remove('skeleton');
-        $('day-symbol').textContent = '?';
-      })
-      .catch(function() {
-        localStorage.removeItem('nura_guest_token');
+  /* ── Convert guest to user ── */
+  function convertGuest(token) {
+    fetch(BASE + '/auth/guest/convert', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({guest_token: token})
+    })
+    .then(function(r) {
+      localStorage.removeItem('nura_guest_token');
+      if (r.ok) return r.json();
+      return null;
+    })
+    .then(function(data) {
+      if (data && data.success) {
         initAuthenticatedFlow();
-      });
+      } else {
+        initAuthenticatedFlow();
+      }
+    })
+    .catch(function() {
+      localStorage.removeItem('nura_guest_token');
+      initAuthenticatedFlow();
+    });
   }
 
   /* ── Authenticated flow ── */
   function initAuthenticatedFlow() {
     fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
       .then(function(r) {
+        if (r.status === 403) { applyBlockedMode(); return; }
         if (r.status === 401) { applyGuestMode(); return; }
         loadUserData();
       })
@@ -295,6 +270,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
         else $('matrix-desc').textContent = 'Пройди мини-разбор или купи полный отчёт, чтобы узнать свой архетип.';
       })
       .catch(function(err) {
+        if (err && err.status === 403) { applyBlockedMode(); return; }
         if (err && err.status === 401) { applyGuestMode(); return; }
         $('matrix-desc').textContent = 'Ошибка сети. Проверь подключение.';
         $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '—';
@@ -346,6 +322,22 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-wor
     $('report-cta').textContent = 'Получить мини-разбор';
     $('report-cta').onclick = function() { location.href = '/mini.html'; };
     $('status-copy').textContent = 'Пройди бесплатный мини-разбор, чтобы узнать свой архетип.';
+  }
+
+  /* ── Blocked mode (inactive 14+ days) ── */
+  function applyBlockedMode() {
+    __isGuest = true;
+    $('greeting-name').innerHTML = 'Привет, <em>друг</em>';
+    $('status-copy').textContent = 'Твой аккаунт заблокирован за неактивность. Войди, чтобы восстановить доступ.';
+    $('report-cta').textContent = 'Войти в NURA';
+    $('report-cta').onclick = function() { showAuthModal(); };
+    $('matrix-desc').textContent = 'Войди через email или VK, чтобы восстановить свой мини-разбор.';
+    $('matrix-num').classList.remove('skeleton'); $('matrix-num').textContent = '?';
+    $('matrix-name').classList.remove('skeleton'); $('matrix-name').textContent = 'Требуется вход';
+    $('day-phrase').textContent = 'Войди в аккаунт, чтобы открыть карту дня.';
+    $('day-name').textContent = 'Требуется вход';
+    $('day-name').classList.remove('skeleton');
+    $('day-symbol').classList.remove('skeleton'); $('day-symbol').textContent = '?';
   }
 
   /* ── Auth modal ── */
