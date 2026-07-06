@@ -274,9 +274,9 @@ body{overflow:hidden;padding-bottom:0}
         saveMsg('nura', limitMsg, N.now());
         updateLimitNote(true);
       } else if (d && d._status === 503) {
-        addBubble('nura', 'AI временно недоступен. Попробуй через минуту.', N.now(), true, true, null, null, text);
+        addBubble('nura', 'AI набирается сил. Попробуй через минуту или загляни в карту дня — там тоже много интересного.', N.now(), true, true, 'tarot.html', 'Открыть карту дня', text);
       } else {
-        addBubble('nura', 'Что-то пошло не так. Повтори вопрос.', N.now(), true, true, null, null, text);
+        addBubble('nura', 'Что-то пошло не так. Попробуй ещё раз или вернись к отчёту.', N.now(), true, true, 'profile.html#reports', 'Открыть отчёты', text);
       }
     })
     .catch(function() {

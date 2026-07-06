@@ -267,7 +267,7 @@
 <main class="page home-page">
   <section class="card home-hero">
     <div class="hero-chip"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Личный экран</div>
-    <h1 class="hero-title" id="greeting-name">Привет, <em>Алина</em></h1>
+    <h1 class="hero-title" id="greeting-name">Привет, <em>друг</em></h1>
     <p class="hero-copy" id="status-copy">Здесь собраны твой отчёт, карта дня и быстрый вход в чат с NURA.</p>
     <div class="hero-actions">
       <button class="btn btn-primary" id="report-cta" onclick="openReport()">Открыть мой отчёт</button>
@@ -485,6 +485,7 @@
         var hasTarot = !!(d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active');
 
         window.__hasFullReport = hasFull;
+        window.__hasMini = hasMini;
         window.__hasTarotSubscription = hasTarot;
 
         if (hasFull && hasTarot) {
@@ -574,12 +575,16 @@
         $('day-phrase').textContent = d.key_phrase;
       }
     })
-    .catch(function() {
+    .catch(function(err) {
+      if (err && err.status === 401) {
+        applyGuestMode();
+        return;
+      }
       if (__isGuest) {
         $('day-phrase').textContent = 'Зарегистрируйся, чтобы ежедневно открывать свою карту дня.';
         $('day-name').textContent = 'Требуется регистрация';
       } else {
-        $('day-phrase').textContent = 'Не удалось загрузить карту дня.';
+        $('day-phrase').textContent = 'Не удалось загрузить карту дня. Попробуй обновить страницу.';
         $('day-name').textContent = 'Нет данных';
       }
       $('day-symbol').classList.remove('skeleton');
@@ -595,6 +600,10 @@
   function openReport() {
     if (__isGuest) { showAuthModal(); return; }
     if (window.__hasFullReport) {
+      location.href = 'profile.html#reports';
+      return;
+    }
+    if (window.__hasMini) {
       location.href = 'profile.html#reports';
       return;
     }
@@ -632,6 +641,11 @@
     $('matrix-num').textContent = '—';
     $('matrix-name').classList.remove('skeleton', 'skeleton-name');
     $('matrix-name').textContent = 'Личный архетип';
+    $('day-phrase').textContent = 'Зарегистрируйся, чтобы ежедневно открывать свою карту дня.';
+    $('day-name').textContent = 'Требуется регистрация';
+    $('day-name').classList.remove('skeleton', 'skeleton-name');
+    $('day-symbol').classList.remove('skeleton');
+    $('day-symbol').textContent = '✦';
   }
 
   function applyBlockedMode() {

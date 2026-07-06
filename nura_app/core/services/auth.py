@@ -324,6 +324,20 @@ class AuthService:
             user.last_activity_at = now
             await user_repo.update(user)
 
+        if guest.report_data:
+            report_repo = ReportRepository(self._session_factory)
+            existing_report = await report_repo.get_by_user_id_and_type(
+                user.id, ReportType.MINI
+            )
+            if existing_report is None:
+                await report_repo.create(
+                    user_id=user.id,
+                    report_type=ReportType.MINI,
+                    token=uuid.uuid4().hex,
+                    matrix_data=guest.report_data.get("matrix_data"),
+                    ai_analysis=guest.report_data,
+                )
+
         guest.merged_to_user_id = user.id
         await guest_repo.update(guest)
 

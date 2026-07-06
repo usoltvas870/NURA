@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="NURA">
+<title>NURA — Мини-разбор Матрицы Судьбы</title>
+<meta name="description" content="Узнай свой главный архетип по дате рождения. Бесплатный мини-разбор Матрицы Судьбы от NURA.">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <script>if("serviceWorker"in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("/service-worker.js").catch(function(){})});</script>
 <script>
@@ -24,6 +26,11 @@
 <link rel="stylesheet" href="/theme.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@media(max-width:767px){
+  .result-topbar{position:sticky;top:0;z-index:10;background:var(--bg);padding:10px 16px}
+  .result-section-head h2{font-size:22px;line-height:1.2}
+  .result-section-head .sec-nbr{font-size:11px}
+}
 html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;scroll-behavior:smooth}
 body{
   min-height:100dvh;
@@ -422,6 +429,7 @@ a{color:inherit;text-decoration:none} button{font-family:inherit;border:0;backgr
 <span class="small" style="line-height:1.5">Я принимаю условия <a href="/offer.html" style="color:var(--terra);text-decoration:underline">Публичной оферты</a>, соглашаюсь с <a href="/privacy.html" style="color:var(--terra);text-decoration:underline">Политикой обработки персональных данных</a> и даю <a href="/personal-data-consent.html" style="color:var(--terra);text-decoration:underline">согласие на обработку персональных данных</a>.</span>
 </label>
 </div>
+<p class="small" id="consent-hint" style="margin-top:8px;color:var(--text-m);text-align:center;font-size:12.5px">Подтверди согласие, чтобы продолжить</p>
 </form>
 <div class="small" id="error-msg" style="display:none;margin-top:14px;color:#C45C5C;text-align:center">Введи дату в формате ДД.ММ.ГГГГ</div>
 </section>
@@ -808,8 +816,17 @@ function formatInline(p){
 
 /* ── Form logic ── */
 function setLoading(btn,loading){
-  if(loading){btn.classList.add('loading');btn.disabled=true;}
-  else{btn.classList.remove('loading');btn.disabled=false;}
+  if(loading){
+    btn.classList.add('loading');
+    btn.disabled=true;
+    var t=btn.querySelector('.btn-text');
+    if(t)t.textContent='Создаём разбор…';
+  }else{
+    btn.classList.remove('loading');
+    btn.disabled=false;
+    var t=btn.querySelector('.btn-text');
+    if(t)t.textContent='Получить мини-разбор';
+  }
 }
 
 function updateSubmitState(){
@@ -817,6 +834,8 @@ function updateSubmitState(){
   var birthVal=birth.value.trim();
   var ok=nameVal&&/^\d{2}\.\d{2}\.\d{4}$/.test(birthVal)&&consentBox.checked;
   submitBtn.disabled=!ok;
+  var hint=document.getElementById('consent-hint');
+  if(hint)hint.style.display=ok?'none':'block';
 }
 consentBox.addEventListener('change',updateSubmitState);
 birth.addEventListener('input',function(){var raw=this.value.replace(/\D/g,'').slice(0,8),p=[];if(raw.length>0)p.push(raw.slice(0,2));if(raw.length>2)p.push(raw.slice(2,4));if(raw.length>4)p.push(raw.slice(4,8));this.value=p.join('.');updateSubmitState();});

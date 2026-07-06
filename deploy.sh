@@ -9,6 +9,9 @@ cp index.html /var/www/nura-ai.ru/index.html 2>/dev/null || true
 cp privacy.html /var/www/nura-ai.ru/privacy.html 2>/dev/null || true
 cp offer.html /var/www/nura-ai.ru/offer.html 2>/dev/null || true
 cp contacts.html /var/www/nura-ai.ru/contacts.html 2>/dev/null || true
+cp mini.html /var/www/nura-ai.ru/mini.html 2>/dev/null || true
+cp personal-data-consent.html /var/www/nura-ai.ru/personal-data-consent.html 2>/dev/null || true
+cp marketing-consent.html /var/www/nura-ai.ru/marketing-consent.html 2>/dev/null || true
 cp theme.css /var/www/nura-ai.ru/theme.css 2>/dev/null || true
 
 echo "→ Copying PWA app..."
@@ -38,6 +41,9 @@ cp favicon.ico /var/www/nura-ai.ru/favicon.ico 2>/dev/null || true
 cp favicon.png /var/www/nura-ai.ru/favicon.png 2>/dev/null || true
 cp hero.png /var/www/nura-ai.ru/hero.png 2>/dev/null || true
 cp frontend/nura-hero.webp /var/www/nura-ai.ru/nura-hero.webp 2>/dev/null || true
+
+echo "→ Updating nginx config..."
+cp nura_app/nginx/nura-ai.ru.conf /etc/nginx/sites-available/nura-ai.ru.conf 2>/dev/null || true
 
 echo "→ Reloading nginx..."
 nginx -t && systemctl reload nginx
