@@ -163,7 +163,9 @@
   function promptGuestAccess() {
     N.showAuthModal({
       title: 'Войди, чтобы открыть профиль',
-      copy: 'Профиль, отчёты, подписка и настройки появляются после входа в аккаунт NURA.'
+      copy: 'Профиль, отчёты, подписка и настройки появляются после входа в аккаунт NURA.',
+      extraLink: '/mini.html',
+      extraLinkLabel: 'Пройти бесплатный мини-разбор'
     });
   }
 
@@ -226,7 +228,10 @@
     })
     .catch(function(err) {
       if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
-      if (err && err.status === 401) { applyGuestMode(); }
+      if (err && err.status === 401) {
+        applyGuestMode();
+        if (!localStorage.getItem('nura_guest_token')) promptGuestAccess();
+      }
     });
 
   var notifPrefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');

@@ -82,6 +82,7 @@ class Settings(BaseSettings):
 
     # Web session
     web_session_ttl_seconds: int = 7776000  # 90 days
+    session_cookie_secure: bool = True
 
     # Auth & retention
     smtp_host: str = "smtp.beget.com"

@@ -16,7 +16,7 @@ def set_session_cookie(response: Response, session_id: str) -> None:
         value=session_id,
         max_age=settings.web_session_ttl_seconds,
         httponly=True,
-        secure=settings.app_env == "production",
+        secure=settings.session_cookie_secure,
         samesite="lax",
         path="/",
     )

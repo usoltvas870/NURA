@@ -259,7 +259,9 @@
   function promptGuestAccess() {
     N.showAuthModal({
       title: 'Войди, чтобы открыть Таро',
-      copy: 'Карта дня, расширенные расклады и чат NURA работают внутри личного аккаунта.'
+      copy: 'Карта дня, расширенные расклады и чат NURA работают внутри личного аккаунта.',
+      extraLink: '/mini.html',
+      extraLinkLabel: 'Пройти бесплатный мини-разбор'
     });
   }
 
@@ -290,9 +292,16 @@
   fetch(BASE + '/web/session-check', {credentials: 'same-origin'})
     .then(function(r) {
       if (r.status === 403) { location.href = '/app/?blocked=1'; return; }
-      if (r.status === 401) { applyGuestMode(); return; }
+      if (r.status === 401) {
+        applyGuestMode();
+        if (!localStorage.getItem('nura_guest_token')) promptGuestAccess();
+        return;
+      }
     })
-    .catch(function() {});
+    .catch(function() {
+      applyGuestMode();
+      if (!localStorage.getItem('nura_guest_token')) promptGuestAccess();
+    });
 
   var dateStr = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
   $('hero-date').textContent = dateStr;

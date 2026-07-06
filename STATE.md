@@ -1,6 +1,21 @@
 # NURA — State
 
-> Последнее обновление: **06.07.2026 — Сессия 79** — GPT-5 Codex
+> Последнее обновление: **06.07.2026 — Сессия 80** — DeepSeek V4 Pro
+
+---
+
+## Сессия 80 — 06.07.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: Диагностика и исправление 5 критических направлений PWA по плану пользователя
+  - **Auth modal auto-show**: во всех 4 страницах (`index.html`, `tarot.html`, `chat.html`, `profile.html`) при session-check 401 + отсутствии `nura_guest_token` теперь автоматически показывается auth modal
+  - **Chat limit blocking**: `sendMessage()` блокирует ввод при `qUsed >= FREE_LIMIT` до запроса; после получения 402 от сервера поле ввода и кнопка отправки блокируются
+  - **Session cookie config**: `session_cookie_secure` вынесен в `core/config.py` (default True); `set_session_cookie()` в `api/dependencies.py` использует его вместо `app_env == "production"`
+  - **Guest token persistence**: `convertGuest()` в `index.html` теперь удаляет guest_token только при 200 или 404, при сетевых ошибках токен сохраняется для повторной попытки
+  - **Second chance**: `N.showAuthModal()` в `nura-pwa.js` получил опции `extraLink`/`extraLinkLabel`; все `promptGuestAccess()` передают ссылку на `/mini.html` с лейблом «Пройти бесплатный мини-разбор»
+  - **Mini-report CSS**: проверены `_styles.html` — все переменные (`--muted`, `--orange`, `--radius-lg`) определены; `bot_username` передаётся в `generate_html_report()`
+- Файлы: `api/dependencies.py`, `core/config.py`, `frontend/pwa/app/nura-pwa.js`, `frontend/pwa/app/index.html`, `frontend/pwa/app/tarot.html`, `frontend/pwa/app/chat.html`, `frontend/pwa/app/profile.html`
+- Блокеры: нет
+- Следующие шаги: push на VPS, пройти smoke QA путь landing → mini.html → PWA → chat limit
 
 ---
 

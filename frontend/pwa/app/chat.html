@@ -180,7 +180,9 @@ body{overflow:hidden;padding-bottom:0}
   function promptGuestAccess() {
     N.showAuthModal({
       title: 'Войди, чтобы открыть чат',
-      copy: 'После входа NURA ответит с учётом твоей Матрицы, отчётов и текущего контекста.'
+      copy: 'После входа NURA ответит с учётом твоей Матрицы, отчётов и текущего контекста.',
+      extraLink: '/mini.html',
+      extraLinkLabel: 'Пройти бесплатный мини-разбор'
     });
   }
 
@@ -190,7 +192,10 @@ body{overflow:hidden;padding-bottom:0}
     })
     .catch(function(err) {
       if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
-      if (err && err.status === 401) { applyGuestMode(); }
+      if (err && err.status === 401) {
+        applyGuestMode();
+        if (!localStorage.getItem('nura_guest_token')) promptGuestAccess();
+      }
     });
 
   inputEl.addEventListener('input', function() {
@@ -235,6 +240,14 @@ body{overflow:hidden;padding-bottom:0}
       promptGuestAccess();
       return;
     }
+    if (!hasUnlimited && qUsed >= FREE_LIMIT) {
+      if (!retryText) inputEl.value = '';
+      updateLimitNote(true);
+      addBubble('nura', 'Бесплатный лимит на сегодня исчерпан. Подключи подписку — доступ безлимитный.', N.now(), true, false, 'profile.html#subscription', 'Подключить подписку');
+      inputEl.disabled = true;
+      sendBtn.disabled = true;
+      return;
+    }
     if (!retryText) { inputEl.value = ''; inputEl.style.height = 'auto'; sendBtn.disabled = true; }
     emptyState.style.display = 'none';
     var t = N.now();
@@ -273,6 +286,8 @@ body{overflow:hidden;padding-bottom:0}
         addBubble('nura', limitMsg, N.now(), true, false, 'profile.html#subscription', 'Подключить подписку');
         saveMsg('nura', limitMsg, N.now());
         updateLimitNote(true);
+        inputEl.disabled = true;
+        sendBtn.disabled = true;
       } else if (d && d._status === 503) {
         addBubble('nura', 'AI набирается сил. Попробуй через минуту или загляни в карту дня — там тоже много интересного.', N.now(), true, true, 'tarot.html', 'Открыть карту дня', text);
       } else {

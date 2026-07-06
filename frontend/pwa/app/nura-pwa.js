@@ -220,12 +220,23 @@
 
     var title = options.title || 'Войди в NURA';
     var copy = options.copy || 'Создай аккаунт, чтобы открыть карту дня, чат и персональные экраны приложения.';
+    var extraLink = options.extraLink || null;
+    var extraLinkLabel = options.extraLinkLabel || 'Пройти бесплатный мини-разбор';
     var backdrop = document.createElement('div');
     backdrop.id = 'nura-auth-modal';
     backdrop.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px';
 
     var card = document.createElement('div');
     card.style.cssText = 'width:min(100%,400px);background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative;max-height:90vh;overflow-y:auto';
+
+    var extraLinkHtml = '';
+    if (extraLink) {
+      extraLinkHtml = '<div style="text-align:center;margin-top:18px;padding-top:18px;border-top:1px solid var(--line)">' +
+        '<a href="' + extraLink + '" style="font-size:13px;color:var(--terra);font-weight:800;text-decoration:none">' + window.NURA.escHtml(extraLinkLabel) + ' →</a>' +
+        '<div style="font-size:11px;color:var(--text-s);margin-top:4px">Без регистрации — получи первый разбор</div>' +
+        '</div>';
+    }
+
     card.innerHTML =
       '<button id="auth-modal-close" aria-label="Закрыть" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--bg-card-soft);color:var(--text-m);font-size:16px;cursor:pointer;display:grid;place-items:center">&times;</button>' +
       '<div style="text-align:center;margin-bottom:20px">' +
@@ -251,7 +262,8 @@
           '<svg style="width:20px;height:20px;flex-shrink:0" viewBox="0 0 24 24" fill="currentColor"><path d="M13.16 17.5c-5.46 0-9.13-3.74-9.29-9.96h2.76c.11 4.57 2.32 6.49 4.05 6.89V7.54h2.61v3.96c1.71-.18 3.5-1.95 4.1-3.96h2.58c-.43 2.43-2.36 4.2-3.71 4.93 1.35.6 3.56 2.14 4.4 4.93h-2.86c-.65-2.03-2.27-3.6-4.51-3.81v3.81h-.31z"/></svg>' +
           '<span>Войти через VK</span>' +
         '</button>' +
-      '</div>';
+      '</div>' +
+      extraLinkHtml;
 
     backdrop.appendChild(card);
     document.body.appendChild(backdrop);
