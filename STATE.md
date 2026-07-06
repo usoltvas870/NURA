@@ -1,6 +1,23 @@
 # NURA — State
 
-> Последнее обновление: **04.07.2026 — Сессия 77** — GPT-5 Codex
+> Последнее обновление: **06.07.2026 — Сессия 79** — GPT-5 Codex
+
+---
+
+## Сессия 79 — 06.07.2026
+- Модель: GPT-5 Codex
+- Что сделано:
+  - Проведён ручной browser QA-аудит живого пользовательского пути `https://nura-ai.ru`: лендинг → `mini.html` → `app/` → PWA-разделы `Главная`, `Таро`, `Чат`, `Профиль`, а также мобильный viewport `390x844`
+  - Зафиксированы критические и high-severity разрывы в связке guest mini-report → PWA: мини-разбор генерируется, но не появляется в `reports`, а главный CTA `Открыть отчёт` уводит в `profile.html#subscription`
+  - Выявлены реальные production-проблемы статики и ссылок: `personal-data-consent.html` и `marketing-consent.html` на домене отдают `404`, а прямой URL `https://nura-ai.ru/app/tarot` не открывается
+  - Для плана исправлений дополнительно проверены фронтовые и backend-точки: `mini.html`, `frontend/pwa/app/index.html`, `frontend/pwa/app/profile.html`, `frontend/pwa/app/chat.html`, `frontend/pwa/app/tarot.html`, `frontend/pwa/app/nura-pwa.js`, `nura_app/api/routes/web.py`, `nura_app/core/services/auth.py`, `deploy.sh`
+  - В корне репозитория сохранён отдельный подробный документ аудита: `NURA_SITE_QA_AUDIT_2026-07-06.md`
+- Блокеры:
+  - `graphify query`/`graphify update .` в этой среде по-прежнему не запускаются: локальный launcher ссылается на отсутствующий `C:\Users\Bayzel\AppData\Local\Programs\Python\Python311\python.exe`
+- Следующие шаги:
+  - Сначала починить критичный flow сохранения guest mini-report в PWA и убрать ложную навигацию `Открыть отчёт -> #subscription`
+  - Затем синхронизировать production deploy статики: добавить в выкладку `mini.html`, `personal-data-consent.html`, `marketing-consent.html` и привести все ссылки на Таро к рабочему маршруту
+  - После этого пройти повторный smoke QA на desktop и mobile с проверкой `reports`, `chat`, `telegram link`, legal pages и tabbar
 
 ---
 
@@ -1217,3 +1234,8 @@ docker compose restart bot celery-worker
    - Лендинг: фикс бага — .hero-inner width:100% переопределял .container, текст уходил к левому краю
    - Nginx: добавлен Cache-Control: no-cache, no-store, must-revalidate для HTML страниц (браузер больше не кеширует старую версию)
    - Файлы лендинга синхронизированы: git ↔ /opt/nura/ ↔ /var/www/nura-ai.ru/
+## Сессия 78 — 05.07.2026
+- Модель: GPT-5 Codex
+- Что сделано: дана инструкция по запуску `codex` в терминале VS Code; локально проверено, что команда `codex` доступна и отвечает на `codex --help`
+- Блокеры: нет
+- Следующие шаги: при необходимости помочь с `codex login`, профилями и запуском в конкретном проекте
