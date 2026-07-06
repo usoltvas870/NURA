@@ -35,6 +35,7 @@ class ReportItem(BaseModel):
 
 
 class UserProfileResponse(BaseModel):
+    user_id: str
     name: str
     birth_date: str
     archetype: str | None
@@ -257,6 +258,7 @@ async def get_user_profile(
         tarot_until = user.tarot_subscription_until.strftime("%d.%m.%Y")
 
     return UserProfileResponse(
+        user_id=str(user.id),
         name=user.first_name or user.name or "Пользователь",
         birth_date=user.birth_date or "",
         archetype=user.main_archetype,

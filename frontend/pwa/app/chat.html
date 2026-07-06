@@ -80,7 +80,7 @@ body{overflow:hidden;padding-bottom:0}
     <div class="context" id="status-text">отвечает на основе твоей Матрицы</div>
   </div>
   <div class="header-actions">
-    <button class="icon-btn" onclick="clearChat()" aria-label="Очистить историю"><i class="ti ti-dots"></i></button>
+    <button class="icon-btn" onclick="clearChat()" aria-label="Очистить историю"><i class="ti ti-trash"></i></button>
     <button class="icon-btn" id="themeToggle"><i class="ti ti-sun-moon"></i></button>
   </div>
 </header>
@@ -186,8 +186,30 @@ body{overflow:hidden;padding-bottom:0}
     });
   }
 
+  function silentClearChat() {
+    localStorage.removeItem('nura_chat_log');
+    chatLog = [];
+    msgs.innerHTML = '';
+    msgs.appendChild(emptyState);
+    emptyState.style.display = 'grid';
+    var todayKey = 'nura_q_' + new Date().toISOString().slice(0, 10);
+    var todayVal = localStorage.getItem(todayKey);
+    for (var i = localStorage.length - 1; i >= 0; i--) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf('nura_q_') === 0) localStorage.removeItem(k);
+    }
+    if (todayVal) localStorage.setItem(todayKey, todayVal);
+    qUsed = parseInt(todayVal || '0', 10);
+    updateLimitNote();
+  }
+
   N.fetchJSON(BASE + '/web/me')
     .then(function(d) {
+      var storedId = localStorage.getItem('nura_chat_user_id');
+      if (d.user_id && storedId !== d.user_id) {
+        localStorage.setItem('nura_chat_user_id', d.user_id);
+        silentClearChat();
+      }
       if (d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active' || d.has_matrix) { hasUnlimited = true; updateLimitNote(); }
     })
     .catch(function(err) {
