@@ -92,7 +92,7 @@
       <div class="action-row">
         <button class="btn btn-primary" type="button" onclick="event.stopPropagation();askNura('Помоги применить мою карту дня на практике')">Задать вопрос NURA</button>
       </div>
-      <div class="small">Нажми на карточку, чтобы открыть полный инсайт и перейти к разбору через NURA.</div>
+      <div class="small" style="cursor:pointer">Нажми на карточку, чтобы прочитать полный разбор карты дня.</div>
     </div>
   </section>
 
@@ -175,7 +175,7 @@
 
   <div class="card disclaimer-card">
     <div class="eyebrow">Зеркало, а не предсказание</div>
-    <p>Твоя карта дня — не предсказание, а зеркало. Возьми главный вопрос дня и примерь к нему смысл аркана.</p>
+    <p>Карта дня показывает энергию, которая сейчас рядом с тобой. Это не гадание — это инструмент для самонаблюдения. Используй её как повод остановиться и прислушаться к себе.</p>
   </div>
 </main></div>
 
@@ -192,12 +192,16 @@
     <p id="sheet-phrase" style="font-size:14px;line-height:1.65;color:var(--text);margin:0"></p>
   </div>
   <div style="margin-bottom:18px">
+    <div class="eyebrow" style="margin-bottom:8px;color:var(--terra)">Полный разбор</div>
+    <div id="sheet-interpretation" style="font-size:14px;line-height:1.7;color:var(--text-m)"></div>
+  </div>
+  <div style="margin-bottom:18px">
     <div class="eyebrow" style="margin-bottom:8px;color:var(--terra)">Совет на сегодня</div>
     <p id="sheet-advice" style="font-size:14px;line-height:1.65;color:var(--text-m);margin:0"></p>
   </div>
   <div class="sheet-tip">
-    <strong style="color:var(--text);display:block;margin-bottom:4px">Как использовать карту?</strong>
-    Возьми главный вопрос своего дня и примерь к нему смысл карты. NURA поможет сделать это через контекст твоей Матрицы.
+    <strong style="color:var(--text);display:block;margin-bottom:4px">Как применить эту карту?</strong>
+    Подумай о главном вопросе своего дня — в отношениях, работе или внутреннем состоянии. Прочитай разбор ещё раз и попробуй увидеть связь с тем, что сейчас происходит в твоей жизни. Если хочешь углубиться — спроси NURA, она свяжет карту с твоей личной Матрицей.
   </div>
   <button class="btn btn-primary btn-full" id="sheet-ask-btn">Спросить NURA об этой карте</button>
   <button class="btn btn-soft btn-full" style="margin-top:8px" onclick="closeCardDetail()">Закрыть</button>
@@ -311,7 +315,7 @@
   }
 
   function applyCardData(d) {
-    cardData = { num: d.arcana_number, name: d.arcana_name, phrase: d.key_phrase, advice: d.advice };
+    cardData = { num: d.arcana_number, name: d.arcana_name, phrase: d.key_phrase, advice: d.advice, interpretation: d.interpretation, affirmation: d.affirmation };
     if (d.arcana_number) {
       var numEl = document.getElementById('hero-num');
       numEl.textContent = d.arcana_number;
@@ -394,7 +398,14 @@
     $('sheet-num').textContent = cardData.num;
     $('sheet-name').textContent = cardData.name;
     $('sheet-phrase').textContent = cardData.phrase;
-    $('sheet-advice').textContent = cardData.advice;
+    var advText = cardData.advice || '';
+    if (cardData.affirmation) advText += (advText ? '\n\n' : '') + 'Аффирмация: ' + cardData.affirmation;
+    $('sheet-advice').textContent = advText;
+    var interEl = $('sheet-interpretation');
+    if (interEl) {
+      var fullText = cardData.interpretation || cardData.phrase;
+      interEl.innerHTML = N.escHtml(fullText).replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+    }
     $('sheet-ask-btn').onclick = function() {
       closeCardDetail();
       askNura('Разбери мою карту дня ' + cardData.name + ' через мою матрицу судьбы');
