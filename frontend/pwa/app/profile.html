@@ -70,7 +70,6 @@
   </div>
   <div class="profile-meta">
     <span class="badge" id="profile-archetype">✦ Загрузка…</span>
-    <button class="mini-btn" onclick="location.href='/mini.html'"><i class="ti ti-file-text" style="font-size:12px"></i> Пройти заново</button>
   </div>
 </section>
 
@@ -210,6 +209,9 @@
       renderTgRow(!!d.telegram_linked);
       if (d.has_matrix) {
         var mc = $('static-matrix-card'); if (mc) mc.style.display = 'none';
+        var msb = $('matrix-status-btn'); if (msb) { msb.textContent = 'Куплена'; msb.onclick = function() { openReport(); }; }
+      } else {
+        var msb2 = $('matrix-status-btn'); if (msb2) { msb2.textContent = 'Купить'; msb2.onclick = function() { location.href = 'https://t.me/ai_nura_bot'; }; }
       }
       if (d.has_tarot) {
         var sBtn = $('subscribe-btn');
