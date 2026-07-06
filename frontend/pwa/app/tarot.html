@@ -291,7 +291,8 @@
     .then(function(r) {
       if (r.status === 403) { location.href = '/app/?blocked=1'; return; }
       if (r.status === 401) { applyGuestMode(); return; }
-    });
+    })
+    .catch(function() {});
 
   var dateStr = new Date().toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
   $('hero-date').textContent = dateStr;
@@ -433,10 +434,6 @@
   };
 
   window.askNura = function(text) {
-    if (N.requireAuth(__isGuest, {
-      title: 'Войди, чтобы задать вопрос NURA',
-      copy: 'После входа чат свяжет вопрос с твоей Матрицей и картой дня.'
-    })) return;
     localStorage.setItem('nura_pending_question', text);
     location.href = 'chat.html?question=' + encodeURIComponent(text);
   };

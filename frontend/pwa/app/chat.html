@@ -210,7 +210,7 @@ body{overflow:hidden;padding-bottom:0}
   var q = params.get('question') || localStorage.getItem('nura_pending_question');
   if (q) {
     localStorage.removeItem('nura_pending_question');
-    setTimeout(function() { inputEl.value = q; sendMessage(); }, 350);
+    setTimeout(function() { inputEl.value = q; sendMessage(null, true); }, 350);
   }
 
   window.clearChat = function() {
@@ -224,10 +224,10 @@ body{overflow:hidden;padding-bottom:0}
 
   window.sendHint = function(el) { inputEl.value = el.textContent; sendMessage(); };
 
-  window.sendMessage = function(retryText) {
+  window.sendMessage = function(retryText, skipAuthCheck) {
     var text = retryText || inputEl.value.trim();
     if (!text) return;
-    if (__isGuest) {
+    if (__isGuest && !skipAuthCheck) {
       if (!retryText) {
         emptyState.style.display = 'none';
         addBubble('user', text, N.now(), true);

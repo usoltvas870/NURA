@@ -546,12 +546,18 @@
 
         if (d.archetype_number) {
           $('matrix-num').textContent = d.archetype_number;
-          $('matrix-num').classList.remove('skeleton', 'skeleton-num');
+        } else {
+          $('matrix-num').textContent = '✦';
         }
+        $('matrix-num').classList.remove('skeleton', 'skeleton-num');
         if (d.archetype) {
           $('matrix-name').textContent = d.archetype;
-          $('matrix-name').classList.remove('skeleton', 'skeleton-name');
+        } else if (hasMini) {
+          $('matrix-name').textContent = 'Мини-разбор';
+        } else {
+          $('matrix-name').textContent = '—';
         }
+        $('matrix-name').classList.remove('skeleton', 'skeleton-name');
 
         if (d.archetype && hasFull) {
           $('matrix-desc').textContent = 'Твой центральный архетип — ' + d.archetype + '. Открой отчёт, чтобы пройтись по главным выводам и практикам.';
@@ -576,20 +582,31 @@
       });
   }
 
+  var dailyCacheKey = 'tarot_daily_card_' + new Date().toISOString().slice(0, 10);
+  var dailyCached = null;
+  try { var dc = JSON.parse(localStorage.getItem(dailyCacheKey)); if (dc && dc.d && Date.now() - dc.ts < 3600000) dailyCached = dc.d; } catch(e) {}
+
+  function applyDailyCard(d) {
+    if (!d) return;
+    if (d.arcana_symbol) {
+      $('day-symbol').textContent = d.arcana_symbol;
+      $('day-symbol').classList.remove('skeleton');
+    }
+    if (d.arcana_name) {
+      $('day-name').textContent = d.arcana_name;
+      $('day-name').classList.remove('skeleton', 'skeleton-name');
+    }
+    if (d.key_phrase) {
+      $('day-phrase').textContent = d.key_phrase;
+    }
+  }
+
+  if (dailyCached) applyDailyCard(dailyCached);
+
   cachedFetch('nura_cache_daily', BASE + '/tarot/daily-card', 300000)
     .then(function(d) {
-      if (!d) return;
-      if (d.arcana_symbol) {
-        $('day-symbol').textContent = d.arcana_symbol;
-        $('day-symbol').classList.remove('skeleton');
-      }
-      if (d.arcana_name) {
-        $('day-name').textContent = d.arcana_name;
-        $('day-name').classList.remove('skeleton', 'skeleton-name');
-      }
-      if (d.key_phrase) {
-        $('day-phrase').textContent = d.key_phrase;
-      }
+      applyDailyCard(d);
+      try { localStorage.setItem(dailyCacheKey, JSON.stringify({ d: d, ts: Date.now() })); } catch(e) {}
     })
     .catch(function(err) {
       if (err && err.status === 401) {
