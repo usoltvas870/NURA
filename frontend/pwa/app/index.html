@@ -451,6 +451,8 @@
     })
     .then(function(r) {
       localStorage.removeItem('nura_guest_token');
+      sessionStorage.removeItem('nura_cache_me');
+      sessionStorage.removeItem('nura_cache_daily');
       if (r.ok) return r.json();
       return null;
     })
@@ -473,8 +475,22 @@
       .catch(function() { applyGuestMode(); });
   }
 
+  function cachedFetch(key, url, ttl) {
+    try {
+      var raw = sessionStorage.getItem(key);
+      if (raw) {
+        var cached = JSON.parse(raw);
+        if (Date.now() - cached.ts < ttl) return Promise.resolve(cached.data);
+      }
+    } catch(e) {}
+    return N.fetchJSON(url).then(function(d) {
+      try { sessionStorage.setItem(key, JSON.stringify({ts: Date.now(), data: d})); } catch(e) {}
+      return d;
+    });
+  }
+
   function loadUserData() {
-    N.fetchJSON(BASE + '/web/me')
+    cachedFetch('nura_cache_me', BASE + '/web/me', 60000)
       .then(function(d) {
         if (d.name) {
           renderGreetingName(d.name);
@@ -560,7 +576,7 @@
       });
   }
 
-  N.fetchJSON(BASE + '/tarot/daily-card')
+  cachedFetch('nura_cache_daily', BASE + '/tarot/daily-card', 300000)
     .then(function(d) {
       if (!d) return;
       if (d.arcana_symbol) {
