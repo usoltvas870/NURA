@@ -1,8 +1,34 @@
 # NURA — State
 
-> Последнее обновление: **06.07.2026 — Сессия 80** — DeepSeek V4 Pro
+> Последнее обновление: **09.07.2026 — Сессия 82** — DeepSeek V4 Pro
 
 ---
+
+## Сессия 82 — 09.07.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: Добавлен новый юридический документ "Правила допустимого использования сервиса NURA"
+  - Создан `acceptable-use.html` в корне сайта (шаблон legal-страницы, 12 разделов)
+  - Добавлена ссылка в футер `index.html` (рядом с остальными юридическими ссылками)
+  - Добавлена ссылка в юридический блок профиля PWA (`frontend/pwa/app/profile.html`)
+  - Исправлено: в профиле PWA не было ссылки на Публичную оферту — добавлена
+  - В `offer.html` раздел 14 дополнен ссылкой на новый документ
+  - Во всех 5 legal-страницах обновлён блок legal-nav (добавлен pill на acceptable-use.html)
+- Файлы: `acceptable-use.html` (новый), `index.html`, `offer.html`, `privacy.html`, `personal-data-consent.html`, `marketing-consent.html`, `frontend/pwa/app/profile.html`
+- Блокеры: нет
+- Следующие шаги: деплой на VPS, проверка в браузере
+
+## Сессия 81 — 09.07.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: Точечные UX-улучшения index.html (controlled итерация)
+  - **Fallback-состояния**: заменены технические «Нет данных»/«Ошибка сети» на мягкие продуктовые тексты во всех блоках (Today Insight, Matrix Summary, Account Status) для guest, error и no-data состояний
+  - **Hero CTA**: приведён в соответствие контракту — hasMini → «Получить полный разбор», no-data → «Получить мини-разбор» (+ onclick на /mini.html), guest → /mini.html
+  - **Hero compact**: уменьшены padding (24→18px), title font-size (clamp 34→28px), margins (10→6, 20→14px)
+  - **Quick actions**: уплотнены padding (18→14px), min-height (132→104px), gap (12→8px)
+  - **Инлайн-стили index.html** (~150 строк) перенесены в nura-pwa.css (секция «Home / index.html»)
+  - **Guest-mode кнопки**: today-card и matrix-card primary buttons меняются на «Получить мини-разбор» → /mini.html
+- Файлы: `frontend/pwa/app/index.html`, `frontend/pwa/app/nura-pwa.css`
+- Блокеры: нет
+- Следующие шаги: живая проверка в браузере на 390px (guest/authorized/full состояния), далее tarot.html по контракту
 
 ## Сессия 80 — 06.07.2026
 - Модель: DeepSeek V4 Pro
