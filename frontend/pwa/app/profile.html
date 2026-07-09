@@ -28,7 +28,8 @@
 <style>
 .profile-hero{padding:22px 20px;display:grid;gap:16px}
 .profile-top{display:flex;gap:14px;align-items:flex-start}
-.avatar{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.16);color:var(--terra);font-weight:800;font-size:20px;flex-shrink:0}
+.avatar{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.16);color:var(--terra);font-weight:800;font-size:20px;flex-shrink:0;overflow:hidden}
+.avatar-img{width:100%;height:100%;object-fit:cover;border-radius:17px}
 .profile-name{font-family:var(--font-serif);font-size:34px;line-height:1.02;color:var(--text);margin-bottom:4px}
 .profile-dob{font-size:12.5px;color:var(--text-m)}
 .profile-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -62,7 +63,7 @@
 </style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><span class="header-title">Профиль</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page">
 <section class="card soft-accent profile-hero">
   <div class="profile-top">
-    <div class="avatar" id="avatar-initials">А</div>
+    <div class="avatar" id="avatar-initials"><img src="images/profile/profile-avatar-placeholder.png" alt="Профиль NURA" class="avatar-img" id="avatar-placeholder-img">А</div>
     <div style="min-width:0;flex:1">
       <div class="profile-name" id="profile-name">—</div>
       <div class="profile-dob" id="profile-dob">дата рождения</div>
@@ -82,8 +83,10 @@
 
 <section class="panel active" id="tab-reports">
   <div id="reports-list"></div>
+  <article class="card list-card"><div class="list-icon"><img src="images/profile/profile-history-icon.png" alt="" style="width:22px;height:22px;object-fit:contain"></div><div><div class="list-title">История запросов</div><div class="list-sub">Все твои диалоги с NURA и расклады Таро</div></div><span class="chevron">›</span></article>
+  <article class="card list-card"><div class="list-icon"><img src="images/profile/profile-saved-cards-icon.png" alt="" style="width:22px;height:22px;object-fit:contain"></div><div><div class="list-title">Сохранённые карты</div><div class="list-sub">Твоя коллекция избранных арканов</div></div><span class="chevron">›</span></article>
   <article class="card list-card" id="static-matrix-card">
-    <div class="list-icon"><i class="ti ti-grid-dots"></i></div>
+    <div class="list-icon"><img src="images/profile/profile-matrix-icon.png" alt="" style="width:22px;height:22px;object-fit:contain"></div>
     <div>
       <div class="list-title">Матрица Судьбы <span class="report-status buy" id="matrix-report-status">Купить</span></div>
       <div class="list-sub">Полный разбор 22 арканов · разовая покупка · навсегда</div>
@@ -91,14 +94,15 @@
     <button class="btn btn-soft" id="matrix-open-btn" onclick="openReport('matrix-full')" style="display:none">Открыть</button>
     <button class="btn btn-primary" id="matrix-buy-btn" onclick="location.href='https://t.me/ai_nura_bot'">Купить</button>
   </article>
-  <article class="card list-card"><div class="list-icon"><i class="ti ti-heart-handshake"></i></div><div><div class="list-title">Совместимость</div><div class="list-sub">Разбор пары по двум датам рождения</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
-  <article class="card list-card"><div class="list-icon"><i class="ti ti-trending-up"></i></div><div><div class="list-title">Прогноз на год</div><div class="list-sub">Циклы, риски, возможности</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
+  <article class="card list-card"><div class="list-icon"><img src="images/profile/profile-compatibility-icon.png" alt="" style="width:22px;height:22px;object-fit:contain"></div><div><div class="list-title">Совместимость</div><div class="list-sub">Разбор пары по двум датам рождения</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
+  <article class="card list-card"><div class="list-icon"><img src="images/profile/profile-year-forecast-icon.png" alt="" style="width:22px;height:22px;object-fit:contain"></div><div><div class="list-title">Прогноз на год</div><div class="list-sub">Циклы, риски, возможности</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
 </section>
 
 <section class="panel" id="tab-subscription">
   <article class="card card-pad accent-left">
     <div class="eyebrow">Подписка</div>
     <h2 class="title" style="font-size:32px;margin-top:8px">Ежедневные практики</h2>
+    <img src="images/profile/profile-subscription-illustration.png" alt="Подписка NURA" style="width:100%;max-width:200px;height:auto;margin:12px auto 0;display:block;border-radius:12px" loading="lazy">
     <div style="margin:10px 0 14px"><span class="price">390 ₽</span> <span class="small">/ месяц</span></div>
     <p class="lead">Карта дня, фокус недели и расширенный чат с NURA. Матрица — разовая покупка, не входит в ежемесячный платёж.</p>
     <div style="margin-top:12px"><input type="text" id="promoCodeField" class="input" placeholder="Промокод (если есть)"></div>
@@ -106,7 +110,7 @@
     <p class="small" style="margin-top:10px;text-align:center">Нажимая кнопку, ты принимаешь условия <a href="/offer.html">Публичной оферты</a> и <a href="/privacy.html">Политики обработки персональных данных</a>.</p>
     <div id="subscribe-status" style="margin-top:10px;font-size:12px;color:var(--sage);display:none"></div>
   </article>
-  <article class="card list-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы</div><div class="list-sub">Разовая покупка · отчёт навсегда</div></div>    <button class="btn btn-soft" id="matrix-status-btn" onclick="openReport()">Куплена</button></article>
+  <article class="card list-card"><div class="list-icon"><img src="images/profile/profile-matrix-icon.png" alt="" style="width:22px;height:22px;object-fit:contain"></div><div><div class="list-title">Матрица Судьбы</div><div class="list-sub">Разовая покупка · отчёт навсегда</div></div>    <button class="btn btn-soft" id="matrix-status-btn" onclick="openReport()">Куплена</button></article>
 </section>
 
 <section class="panel" id="tab-notifications"><div class="card">
@@ -175,6 +179,8 @@
     $('profile-dob').textContent = 'Войди через email или VK, чтобы открыть профиль и отчёты.';
     $('profile-archetype').textContent = '✦ Гостевой режим';
     $('avatar-initials').textContent = 'N';
+    $('avatar-placeholder-img').style.display = '';
+    $('avatar-initials').style.fontSize = '0';
     renderReports([]);
     $('static-matrix-card').style.display = '';
     $('matrix-report-status').textContent = 'Мини-разбор';
@@ -204,6 +210,8 @@
         $('profile-name').textContent = d.name;
         var initials = d.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
         $('avatar-initials').textContent = initials;
+        $('avatar-initials').style.fontSize = '';
+        $('avatar-placeholder-img').style.display = 'none';
       }
       if (d.birth_date) $('profile-dob').textContent = 'дата рождения · ' + d.birth_date;
       if (d.archetype) $('profile-archetype').textContent = '✦ ' + d.archetype;
@@ -295,19 +303,19 @@
       var color = 'var(--terra)';
 
       if (r.report_type === 'mini') {
-        icon = 'sparkles';
+        icon = '<img src="images/profile/profile-mini-reading-icon.png" alt="" style="width:22px;height:22px;object-fit:contain">';
         title = 'Мини-разбор';
         subtitle = 'Архетип, сила, конфликт и отношения по дате рождения';
         bg = 'rgba(107,128,104,.10)';
         color = 'var(--sage)';
       } else if (r.report_type === 'full') {
-        icon = 'grid-dots';
+        icon = '<img src="images/profile/profile-matrix-icon.png" alt="" style="width:22px;height:22px;object-fit:contain">';
         title = 'Матрица Судьбы';
       } else if (r.report_type === 'compatibility') {
-        icon = 'heart-handshake';
+        icon = '<img src="images/profile/profile-compatibility-icon.png" alt="" style="width:22px;height:22px;object-fit:contain">';
         title = 'Совместимость';
       } else if (r.report_type === 'forecast') {
-        icon = 'trending-up';
+        icon = '<img src="images/profile/profile-year-forecast-icon.png" alt="" style="width:22px;height:22px;object-fit:contain">';
         title = 'Прогноз на год';
       }
 
@@ -320,7 +328,7 @@
 
       html += '<article class="card list-card">' +
         '<div class="list-icon" style="background:' + bg + ';color:' + color + '">' +
-        '<i class="ti ti-' + icon + '"></i></div>' +
+        icon + '</div>' +
         '<div><div class="list-title">' + N.escHtml(title) + '</div>' +
         (subtitle ? '<div class="list-sub">' + N.escHtml(subtitle) + '</div>' : '') +
         '</div>' +

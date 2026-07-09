@@ -1,6 +1,21 @@
 # NURA — State
 
-> Последнее обновление: **06.07.2026 — Сессия 80** — DeepSeek V4 Pro
+> Последнее обновление: **09.07.2026 — Сессия 81** — DeepSeek V4 Pro
+
+---
+
+## Сессия 81 — 09.07.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: Интеграция PNG-ассетов во все PWA-страницы (точечные правки, без редизайна)
+  - **index.html**: hero-illustration (`hero-sun-path.png`), quick icons (matrix/chat/profile → PNG, карта дня → `cards-stack-neutral.png`), ask-nura icon в hero-actions
+  - **tarot.html**: preview-изображения раскладов (week/question/life-areas/twins/yes-no), mirror-not-prediction в disclaimer, карта дня с реальным арканом из `major/` (JS-маппинг arcana_number → имя файла), card-back-nura как дефолтная рубашка
+  - **chat.html**: `chat-card-hint-illustration.png` в empty-state, `chat-nura-avatar.png` в каждом сообщении NURA (addBubble)
+  - **profile.html**: avatar-placeholder для гостевого режима, product icons (matrix/compatibility/forecast/mini-reading → PNG), subscription-illustration, history/saved-cards иконки
+- CSS: responsive, object-fit, pointer-events:none для декоративных, loading="lazy" ниже первого экрана, graceful fallback для отсутствующих ассетов
+- Отсутствующий ассет: `quick-practice-icon.png` — заменён на `cards-stack-neutral.png` для карты дня
+- Файлы: `frontend/pwa/app/index.html`, `tarot.html`, `chat.html`, `profile.html`
+- Блокеры: нет
+- Следующие шаги: push на VPS, browser smoke test
 
 ---
 
