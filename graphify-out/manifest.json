@@ -825,8 +825,8 @@
     "semantic_hash": ""
   },
   "docs/pwa-spec.md": {
-    "mtime": 1783583863.8651938,
-    "ast_hash": "1a39573a75399d337d1512be435e0fc9",
+    "mtime": 1783597318.7825522,
+    "ast_hash": "7a48fa886bfa9f0e071ee8be81a3cf56",
     "semantic_hash": ""
   },
   "docs/report-spec.md": {
@@ -870,28 +870,28 @@
     "semantic_hash": ""
   },
   "frontend/pwa/app/index.html": {
-    "mtime": 1783595554.5978944,
-    "ast_hash": "8b329fe1dcba8ad7254d991d797af255",
+    "mtime": 1783597330.1968455,
+    "ast_hash": "e3a405d47e5daeac75bab70b86e4047c",
     "semantic_hash": ""
   },
   "frontend/pwa/app/profile.html": {
-    "mtime": 1783593213.3206172,
-    "ast_hash": "ccabd0c54284859504114dbac17653b6",
+    "mtime": 1783597431.6147456,
+    "ast_hash": "dec3c0155721c6bd3e26cd2d232d747a",
     "semantic_hash": ""
   },
   "frontend/pwa/app/tarot.html": {
-    "mtime": 1783581317.144691,
-    "ast_hash": "87618a901838fd7538f916fd07a21abb",
+    "mtime": 1783597433.7570682,
+    "ast_hash": "efba629cb7c1eee5d580effcba9edc76",
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1783593206.7121522,
-    "ast_hash": "becaac577219f547ec9a4b0ca54750b9",
+    "mtime": 1783597424.3969169,
+    "ast_hash": "b29dcbeb6787f6470b8bff41fef75975",
     "semantic_hash": ""
   },
   "mini.html": {
-    "mtime": 1783331806.6166189,
-    "ast_hash": "ee093bb260da5cc78c6859faba2f30ca",
+    "mtime": 1783597422.8043156,
+    "ast_hash": "2992a59649aa49d73d70909b91d102d4",
     "semantic_hash": ""
   },
   "nura_app/core/prompts/compatibility_full.txt": {
@@ -1035,8 +1035,8 @@
     "semantic_hash": ""
   },
   "nura_app/templates/profile.html": {
-    "mtime": 1782897789.1034076,
-    "ast_hash": "1778925fa72dae82bfee0b6fb97c9155",
+    "mtime": 1783597340.4247968,
+    "ast_hash": "753eb72fa02e1cdabdaefc2a97aa8fbc",
     "semantic_hash": ""
   },
   "nura_app/templates/reports/_base.html": {
@@ -1130,8 +1130,8 @@
     "semantic_hash": ""
   },
   "STATE.md": {
-    "mtime": 1783595740.2975185,
-    "ast_hash": "13de3f35e1825b25a1bf4e918acea270",
+    "mtime": 1783597499.7929437,
+    "ast_hash": "0dd1eb225398f5eea78876e96be0096b",
     "semantic_hash": ""
   },
   "frontend/manifest.json": {
@@ -1325,13 +1325,13 @@
     "semantic_hash": ""
   },
   "contacts.html": {
-    "mtime": 1783164974.194189,
-    "ast_hash": "c67d9f46731c5973a1e88ddb430f7f6f",
+    "mtime": 1783597429.4075198,
+    "ast_hash": "8c4d0dd7e6fb59635f3feab2fe95d62e",
     "semantic_hash": ""
   },
   "offer.html": {
-    "mtime": 1783597008.6023045,
-    "ast_hash": "66d7ea9b2e0499dcacd7c3bd91f3fda9",
+    "mtime": 1783597320.0742254,
+    "ast_hash": "b0789297d458ed05fdd5af76f5ae6dc3",
     "semantic_hash": ""
   },
   "nura_app/alembic/versions/d4e5f6a7b8c9_add_web_session_expires_at.py": {
@@ -1790,8 +1790,8 @@
     "semantic_hash": ""
   },
   "docs/design-system.md": {
-    "mtime": 1783583852.9338331,
-    "ast_hash": "c47bc07333def1de5b0c4e0ab4963d7b",
+    "mtime": 1783597318.7825522,
+    "ast_hash": "ce046ef9e0c3a0ac454806f71f080121",
     "semantic_hash": ""
   },
   "offer.backup.html": {

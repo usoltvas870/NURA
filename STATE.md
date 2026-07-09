@@ -1,8 +1,21 @@
 # NURA — State
 
-> Последнее обновление: **09.07.2026 — Сессия 84** — DeepSeek V4 Pro
+> Последнее обновление: **09.07.2026 — Сессия 85** — DeepSeek V4 Pro
 
 ---
+
+## Сессия 85 — 09.07.2026
+- Модель: DeepSeek V4 Pro
+- Что сделано: Финальная синхронизация юридического контура сайта NURA
+  - Добавлена ссылка `/acceptable-use.html` в `contacts.html` (отсутствовала)
+  - Дополнены CTA оплаты/подписки ссылкой `/personal-data-consent.html` в `mini.html`, `frontend/pwa/app/profile.html`, `frontend/pwa/app/tarot.html`, `nura_app/templates/profile.html`
+  - Исправлен текст cookie-баннера в `index.html`: «Политикой конфиденциальности» → «Политикой обработки персональных данных»
+  - Добавлены гиперссылки `/personal-data-consent.html` и `/marketing-consent.html` в `offer.html` (преамбула, раздел 16.1)
+  - Добавлен текст согласия с `/privacy.html` и `/personal-data-consent.html` в auth-модал `frontend/pwa/app/index.html`
+  - Проверены: legal-nav (единый), футер (5 ссылок), PWA-профиль (5 ссылок), редакции (все 09.07.2026), битые ссылки (не найдены)
+  - Unrelated files не изменялись (API, бот, Celery, backend, admin, глобальный CSS)
+- Блокеры: нет
+- Следующие шаги: проверить необходимость уведомления Роскомнадзора и добавить номер оператора в privacy.html (отдельная операционная задача)
 
 ## Сессия 84 — 09.07.2026
 - Модель: DeepSeek V4 Pro

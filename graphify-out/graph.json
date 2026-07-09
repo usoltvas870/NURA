@@ -1526,7 +1526,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "basemiddleware",
-      "community": 64,
+      "community": 156,
       "norm_label": "basemiddleware"
     },
     {
@@ -1786,7 +1786,7 @@
       "source_location": "L206",
       "_origin": "ast",
       "id": "nura_app_admin_bot_services_docker_client_dockerclient_run_db_query",
-      "community": 56,
+      "community": 140,
       "norm_label": ".run_db_query()"
     },
     {
@@ -1866,7 +1866,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_alembic_env",
-      "community": 13,
+      "community": 335,
       "norm_label": "env.py"
     },
     {
@@ -1876,7 +1876,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "nura_app_alembic_env_resolve_url",
-      "community": 13,
+      "community": 335,
       "norm_label": "_resolve_url()"
     },
     {
@@ -1886,7 +1886,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "nura_app_alembic_env_run_migrations_offline",
-      "community": 13,
+      "community": 335,
       "norm_label": "run_migrations_offline()"
     },
     {
@@ -1896,7 +1896,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "nura_app_alembic_env_run_migrations_online",
-      "community": 13,
+      "community": 335,
       "norm_label": "run_migrations_online()"
     },
     {
@@ -2346,7 +2346,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "nura_app_api_admin_adminauth",
-      "community": 120,
+      "community": 71,
       "norm_label": "adminauth"
     },
     {
@@ -2356,7 +2356,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "authenticationbackend",
-      "community": 120,
+      "community": 71,
       "norm_label": "authenticationbackend"
     },
     {
@@ -2366,7 +2366,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "nura_app_api_admin_adminauth_login",
-      "community": 120,
+      "community": 71,
       "norm_label": ".login()"
     },
     {
@@ -2376,7 +2376,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_api_admin_py_request",
-      "community": 120,
+      "community": 71,
       "norm_label": "request"
     },
     {
@@ -2386,7 +2386,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "nura_app_api_admin_adminauth_logout",
-      "community": 120,
+      "community": 71,
       "norm_label": ".logout()"
     },
     {
@@ -2396,7 +2396,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "nura_app_api_admin_adminauth_authenticate",
-      "community": 120,
+      "community": 71,
       "norm_label": ".authenticate()"
     },
     {
@@ -2456,7 +2456,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_api_dependencies",
-      "community": 48,
+      "community": 98,
       "norm_label": "dependencies.py"
     },
     {
@@ -2466,7 +2466,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "nura_app_api_dependencies_set_session_cookie",
-      "community": 48,
+      "community": 31,
       "norm_label": "set_session_cookie()"
     },
     {
@@ -2476,7 +2476,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_api_dependencies_py_response",
-      "community": 48,
+      "community": 31,
       "norm_label": "response"
     },
     {
@@ -2486,7 +2486,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "nura_app_api_dependencies_clear_session_cookie",
-      "community": 48,
+      "community": 305,
       "norm_label": "clear_session_cookie()"
     },
     {
@@ -2496,7 +2496,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "nura_app_api_dependencies_get_current_web_user",
-      "community": 48,
+      "community": 31,
       "norm_label": "get_current_web_user()"
     },
     {
@@ -2766,7 +2766,7 @@
       "source_location": "L589",
       "_origin": "ast",
       "id": "nura_app_api_routes_admin_api_regenerate_user_matrix",
-      "community": 56,
+      "community": 140,
       "norm_label": "regenerate_user_matrix()"
     },
     {
@@ -2916,7 +2916,7 @@
       "source_location": "L903",
       "_origin": "ast",
       "id": "nura_app_api_routes_admin_api_get_broadcast_status",
-      "community": 79,
+      "community": 305,
       "norm_label": "get_broadcast_status()"
     },
     {
@@ -2926,7 +2926,7 @@
       "source_location": "L916",
       "_origin": "ast",
       "id": "nura_app_api_routes_admin_api_get_logs",
-      "community": 123,
+      "community": 56,
       "norm_label": "get_logs()"
     },
     {
@@ -2936,7 +2936,7 @@
       "source_location": "L941",
       "_origin": "ast",
       "id": "nura_app_api_routes_admin_api_read_all_logs",
-      "community": 123,
+      "community": 56,
       "norm_label": "_read_all_logs()"
     },
     {
@@ -2946,7 +2946,7 @@
       "source_location": "L985",
       "_origin": "ast",
       "id": "nura_app_api_routes_admin_api_read_container_logs",
-      "community": 123,
+      "community": 56,
       "norm_label": "_read_container_logs()"
     },
     {
@@ -2966,7 +2966,7 @@
       "source_location": "L1020",
       "_origin": "ast",
       "id": "nura_app_api_routes_admin_api_parse_docker_multiplexed",
-      "community": 123,
+      "community": 56,
       "norm_label": "_parse_docker_multiplexed()"
     },
     {
@@ -2976,7 +2976,7 @@
       "source_location": "L1041",
       "_origin": "ast",
       "id": "nura_app_api_routes_admin_api_filter_by_level",
-      "community": 123,
+      "community": 56,
       "norm_label": "_filter_by_level()"
     },
     {
@@ -2986,7 +2986,7 @@
       "source_location": "L1057",
       "_origin": "ast",
       "id": "nura_app_api_routes_admin_api_read_nginx_logs",
-      "community": 123,
+      "community": 56,
       "norm_label": "_read_nginx_logs()"
     },
     {
@@ -2996,7 +2996,7 @@
       "source_location": "L1079",
       "_origin": "ast",
       "id": "nura_app_api_routes_admin_api_tail_file",
-      "community": 123,
+      "community": 56,
       "norm_label": "_tail_file()"
     },
     {
@@ -3006,7 +3006,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_api_routes_auth",
-      "community": 31,
+      "community": 98,
       "norm_label": "auth.py"
     },
     {
@@ -3166,7 +3166,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_api_routes_push",
-      "community": 48,
+      "community": 98,
       "norm_label": "push.py"
     },
     {
@@ -3176,7 +3176,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "nura_app_api_routes_push_pushsubscription",
-      "community": 48,
+      "community": 45,
       "norm_label": "pushsubscription"
     },
     {
@@ -3186,7 +3186,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "nura_app_api_routes_push_pushunsubscribe",
-      "community": 48,
+      "community": 45,
       "norm_label": "pushunsubscribe"
     },
     {
@@ -3196,7 +3196,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "nura_app_api_routes_push_get_vapid_public_key",
-      "community": 48,
+      "community": 98,
       "norm_label": "get_vapid_public_key()"
     },
     {
@@ -3206,7 +3206,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_api_routes_push_py_request",
-      "community": 48,
+      "community": 45,
       "norm_label": "request"
     },
     {
@@ -3216,7 +3216,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "nura_app_api_routes_push_subscribe",
-      "community": 48,
+      "community": 45,
       "norm_label": "subscribe()"
     },
     {
@@ -3226,7 +3226,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "nura_app_api_routes_push_unsubscribe",
-      "community": 48,
+      "community": 45,
       "norm_label": "unsubscribe()"
     },
     {
@@ -3546,7 +3546,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "nura_app_api_routes_web_authcheckresponse",
-      "community": 48,
+      "community": 305,
       "norm_label": "authcheckresponse"
     },
     {
@@ -3576,7 +3576,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_api_routes_web_py_response",
-      "community": 48,
+      "community": 305,
       "norm_label": "response"
     },
     {
@@ -3776,7 +3776,7 @@
       "source_location": "L484",
       "_origin": "ast",
       "id": "nura_app_api_routes_web_logout",
-      "community": 48,
+      "community": 305,
       "norm_label": "logout()"
     },
     {
@@ -3786,7 +3786,7 @@
       "source_location": "L491",
       "_origin": "ast",
       "id": "nura_app_api_routes_web_unlink_telegram",
-      "community": 45,
+      "community": 305,
       "norm_label": "unlink_telegram()"
     },
     {
@@ -3816,7 +3816,7 @@
       "source_location": "L535",
       "_origin": "ast",
       "id": "nura_app_api_routes_web_auth_check",
-      "community": 48,
+      "community": 305,
       "norm_label": "auth_check()"
     },
     {
@@ -3826,7 +3826,7 @@
       "source_location": "L551",
       "_origin": "ast",
       "id": "nura_app_api_routes_web_delete_account",
-      "community": 48,
+      "community": 305,
       "norm_label": "delete_account()"
     },
     {
@@ -3876,7 +3876,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_chat_get_user_matrix_data",
-      "community": 56,
+      "community": 9,
       "norm_label": "_get_user_matrix_data()"
     },
     {
@@ -4076,7 +4076,7 @@
       "source_location": "L287",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_compatibility_show_compat_details",
-      "community": 32,
+      "community": 56,
       "norm_label": "show_compat_details()"
     },
     {
@@ -4126,7 +4126,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_onboarding",
-      "community": 194,
+      "community": 104,
       "norm_label": "onboarding.py"
     },
     {
@@ -4156,7 +4156,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_onboarding_py_fsmcontext",
-      "community": 194,
+      "community": 104,
       "norm_label": "fsmcontext"
     },
     {
@@ -4166,7 +4166,7 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_onboarding_show_my_matrix",
-      "community": 194,
+      "community": 104,
       "norm_label": "show_my_matrix()"
     },
     {
@@ -4176,7 +4176,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_onboarding_py_callbackquery",
-      "community": 194,
+      "community": 104,
       "norm_label": "callbackquery"
     },
     {
@@ -4186,7 +4186,7 @@
       "source_location": "L167",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_onboarding_kitchen_from_matrix",
-      "community": 194,
+      "community": 104,
       "norm_label": "_kitchen_from_matrix()"
     },
     {
@@ -4196,7 +4196,7 @@
       "source_location": "L202",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_onboarding_show_kitchen_callback",
-      "community": 194,
+      "community": 104,
       "norm_label": "show_kitchen_callback()"
     },
     {
@@ -4206,7 +4206,7 @@
       "source_location": "L223",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_onboarding_handle_calculate_matrix",
-      "community": 194,
+      "community": 104,
       "norm_label": "handle_calculate_matrix()"
     },
     {
@@ -4396,7 +4396,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_profile_show_subscription",
-      "community": 34,
+      "community": 125,
       "norm_label": "show_subscription()"
     },
     {
@@ -4426,7 +4426,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_profile_cancel_subscription_do",
-      "community": 56,
+      "community": 45,
       "norm_label": "cancel_subscription_do()"
     },
     {
@@ -4516,7 +4516,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_start_py_fsmcontext",
-      "community": 93,
+      "community": 194,
       "norm_label": "fsmcontext"
     },
     {
@@ -4536,7 +4536,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_start_callback_pd_consent_yes",
-      "community": 93,
+      "community": 194,
       "norm_label": "callback_pd_consent_yes()"
     },
     {
@@ -4546,7 +4546,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_start_py_callbackquery",
-      "community": 93,
+      "community": 194,
       "norm_label": "callbackquery"
     },
     {
@@ -4556,7 +4556,7 @@
       "source_location": "L106",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_start_callback_pd_consent_no",
-      "community": 93,
+      "community": 194,
       "norm_label": "callback_pd_consent_no()"
     },
     {
@@ -4576,7 +4576,7 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_start_callback_delete_account_confirm",
-      "community": 305,
+      "community": 140,
       "norm_label": "callback_delete_account_confirm()"
     },
     {
@@ -4586,7 +4586,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "nura_app_bot_handlers_start_callback_delete_account_cancel",
-      "community": 93,
+      "community": 194,
       "norm_label": "callback_delete_account_cancel()"
     },
     {
@@ -4906,7 +4906,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_main_menu",
-      "community": 34,
+      "community": 183,
       "norm_label": "main_menu.py"
     },
     {
@@ -4926,7 +4926,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_main_menu_py_inlinekeyboardmarkup",
-      "community": 34,
+      "community": 183,
       "norm_label": "inlinekeyboardmarkup"
     },
     {
@@ -4936,7 +4936,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_main_menu_compatibility_paywall_keyboard",
-      "community": 34,
+      "community": 183,
       "norm_label": "compatibility_paywall_keyboard()"
     },
     {
@@ -4946,7 +4946,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_main_menu_profile_keyboard",
-      "community": 34,
+      "community": 183,
       "norm_label": "profile_keyboard()"
     },
     {
@@ -4956,7 +4956,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_main_menu_subscription_keyboard",
-      "community": 34,
+      "community": 183,
       "norm_label": "subscription_keyboard()"
     },
     {
@@ -4966,7 +4966,7 @@
       "source_location": "L105",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_main_menu_pwa_cta_keyboard",
-      "community": 34,
+      "community": 183,
       "norm_label": "pwa_cta_keyboard()"
     },
     {
@@ -4976,7 +4976,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_main_menu_reports_keyboard",
-      "community": 34,
+      "community": 183,
       "norm_label": "reports_keyboard()"
     },
     {
@@ -4986,7 +4986,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_main_menu_open_pwa_keyboard",
-      "community": 34,
+      "community": 183,
       "norm_label": "open_pwa_keyboard()"
     },
     {
@@ -4996,7 +4996,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_main_menu_rationale_65",
-      "community": 34,
+      "community": 183,
       "norm_label": "\u043b\u0438\u0447\u043d\u044b\u0438 \u043a\u0430\u0431\u0438\u043d\u0435\u0442 \u2014 \u0443\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u043e\u0438, \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430, \u043c\u0435\u043d\u044e.     \u043a\u043d\u043e\u043f\u043a\u0438 \u00ab\u043c\u043e\u0438 \u043e\u0442\u0447\u0435\u0442\u044b\u00bb"
     },
     {
@@ -5006,7 +5006,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_tarot_keyboard",
-      "community": 11,
+      "community": 195,
       "norm_label": "tarot_keyboard.py"
     },
     {
@@ -5016,7 +5016,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_tarot_keyboard_tarot_menu_keyboard",
-      "community": 11,
+      "community": 195,
       "norm_label": "tarot_menu_keyboard()"
     },
     {
@@ -5026,7 +5026,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_tarot_keyboard_py_inlinekeyboardmarkup",
-      "community": 11,
+      "community": 195,
       "norm_label": "inlinekeyboardmarkup"
     },
     {
@@ -5036,7 +5036,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_tarot_keyboard_tarot_more_keyboard",
-      "community": 11,
+      "community": 195,
       "norm_label": "tarot_more_keyboard()"
     },
     {
@@ -5066,7 +5066,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_tarot_keyboard_tarot_spheres_keyboard",
-      "community": 11,
+      "community": 195,
       "norm_label": "tarot_spheres_keyboard()"
     },
     {
@@ -5086,7 +5086,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_tarot_keyboard_rationale_5",
-      "community": 11,
+      "community": 195,
       "norm_label": "\u043d\u043e\u0432\u0430\u044f \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 (\u0437\u0430\u0434\u0430\u0447\u0430 2.2):     [\ud83c\udf12 \u043a\u0430\u0440\u0442\u0430 \u0434\u043d\u044f]     [\ud83d\udcb0 \u0434\u0435\u043d\u044c\u0433\u0438]  [\u2764\ufe0f \u043e\u0442\u043d\u043e\u0448\u0435\u043d\u0438\u044f]"
     },
     {
@@ -5096,7 +5096,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_tarot_keyboard_rationale_55",
-      "community": 11,
+      "community": 195,
       "norm_label": "\u043f\u043e\u0434\u043c\u0435\u043d\u044e \u00ab\u0435\u0449\u0435 \u0440\u0430\u0441\u043a\u043b\u0430\u0434\u044b\u00bb (callback: tarot_more):     - \u0440\u0430\u0441\u043a\u043b\u0430\u0434 \u043d\u0435\u0434\u0435\u043b\u0438     - \u0442\u0435\u043d\u0435"
     },
     {
@@ -5106,7 +5106,7 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "nura_app_bot_keyboards_tarot_keyboard_rationale_91",
-      "community": 11,
+      "community": 195,
       "norm_label": "\u043a\u043b\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u0430 \u0441\u0444\u0435\u0440 \u0436\u0438\u0437\u043d\u0438 (\u0442\u0435\u043f\u0435\u0440\u044c \u043e\u0431\u0449\u0435\u0435 \u043f\u043e\u0434\u043c\u0435\u043d\u044e, \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u044b\u0435 \u0441\u0444\u0435\u0440\u044b \u0432\u044b\u043d\u0435\u0441\u0435\u043d\u044b \u043d\u0430 \u0432\u0435\u0440\u0445)."
     },
     {
@@ -5116,7 +5116,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_main",
-      "community": 64,
+      "community": 98,
       "norm_label": "main.py"
     },
     {
@@ -5126,7 +5126,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "nura_app_bot_main_main",
-      "community": 64,
+      "community": 156,
       "norm_label": "main()"
     },
     {
@@ -5206,7 +5206,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_middlewares_registration",
-      "community": 64,
+      "community": 156,
       "norm_label": "registration.py"
     },
     {
@@ -5216,7 +5216,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "nura_app_bot_middlewares_registration_userregistrationmiddleware",
-      "community": 64,
+      "community": 156,
       "norm_label": "userregistrationmiddleware"
     },
     {
@@ -5226,7 +5226,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "nura_app_bot_middlewares_registration_userregistrationmiddleware_call",
-      "community": 45,
+      "community": 140,
       "norm_label": ".__call__()"
     },
     {
@@ -5236,7 +5236,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "telegramobject",
-      "community": 45,
+      "community": 140,
       "norm_label": "telegramobject"
     },
     {
@@ -5246,7 +5246,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_middlewares_throttling",
-      "community": 183,
+      "community": 156,
       "norm_label": "throttling.py"
     },
     {
@@ -5256,7 +5256,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "nura_app_bot_middlewares_throttling_throttlingmiddleware",
-      "community": 183,
+      "community": 156,
       "norm_label": "throttlingmiddleware"
     },
     {
@@ -5266,7 +5266,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "nura_app_bot_middlewares_throttling_throttlingmiddleware_init",
-      "community": 183,
+      "community": 156,
       "norm_label": ".__init__()"
     },
     {
@@ -5276,7 +5276,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "nura_app_bot_middlewares_throttling_throttlingmiddleware_call",
-      "community": 183,
+      "community": 156,
       "norm_label": ".__call__()"
     },
     {
@@ -5286,7 +5286,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_bot_middlewares_throttling_py_message",
-      "community": 183,
+      "community": 156,
       "norm_label": "message"
     },
     {
@@ -5296,7 +5296,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_bot_middlewares_throttling_py_callbackquery",
-      "community": 183,
+      "community": 156,
       "norm_label": "callbackquery"
     },
     {
@@ -5636,7 +5636,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix",
-      "community": 83,
+      "community": 32,
       "norm_label": "matrix.py"
     },
     {
@@ -5646,7 +5646,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix_ask_birth_date_text",
-      "community": 83,
+      "community": 32,
       "norm_label": "ask_birth_date_text()"
     },
     {
@@ -5656,7 +5656,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix_invalid_format_text",
-      "community": 83,
+      "community": 32,
       "norm_label": "invalid_format_text()"
     },
     {
@@ -5666,7 +5666,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix_impossible_date_text",
-      "community": 83,
+      "community": 32,
       "norm_label": "impossible_date_text()"
     },
     {
@@ -5676,7 +5676,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix_loading_step_1",
-      "community": 83,
+      "community": 32,
       "norm_label": "loading_step_1()"
     },
     {
@@ -5686,7 +5686,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix_loading_step_2",
-      "community": 83,
+      "community": 32,
       "norm_label": "loading_step_2()"
     },
     {
@@ -5696,7 +5696,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix_loading_step_3",
-      "community": 83,
+      "community": 32,
       "norm_label": "loading_step_3()"
     },
     {
@@ -5706,7 +5706,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix_loading_step_4",
-      "community": 83,
+      "community": 32,
       "norm_label": "loading_step_4()"
     },
     {
@@ -5716,7 +5716,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix_loading_steps",
-      "community": 83,
+      "community": 32,
       "norm_label": "loading_steps()"
     },
     {
@@ -5726,7 +5726,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "nura_app_bot_texts_matrix_mini_analysis_text",
-      "community": 194,
+      "community": 104,
       "norm_label": "mini_analysis_text()"
     },
     {
@@ -5746,7 +5746,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_texts_onboarding_onboarding_greeting_text",
-      "community": 93,
+      "community": 194,
       "norm_label": "onboarding_greeting_text()"
     },
     {
@@ -5806,7 +5806,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "nura_app_bot_texts_onboarding_pd_consent_declined_text",
-      "community": 93,
+      "community": 194,
       "norm_label": "pd_consent_declined_text()"
     },
     {
@@ -5836,7 +5836,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "nura_app_bot_texts_onboarding_delete_account_cancelled_text",
-      "community": 93,
+      "community": 194,
       "norm_label": "delete_account_cancelled_text()"
     },
     {
@@ -5856,7 +5856,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "nura_app_bot_texts_onboarding_my_matrix_text",
-      "community": 194,
+      "community": 104,
       "norm_label": "my_matrix_text()"
     },
     {
@@ -6046,7 +6046,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "nura_app_bot_texts_start_help_text",
-      "community": 82,
+      "community": 9,
       "norm_label": "help_text()"
     },
     {
@@ -6066,7 +6066,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_texts_subscription",
-      "community": 34,
+      "community": 125,
       "norm_label": "subscription.py"
     },
     {
@@ -6076,7 +6076,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_texts_subscription_subscription_offer_text",
-      "community": 34,
+      "community": 125,
       "norm_label": "subscription_offer_text()"
     },
     {
@@ -6086,7 +6086,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "nura_app_bot_texts_subscription_subscription_activated_text",
-      "community": 34,
+      "community": 125,
       "norm_label": "subscription_activated_text()"
     },
     {
@@ -6096,7 +6096,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "nura_app_bot_texts_subscription_expiring_soon_text",
-      "community": 34,
+      "community": 125,
       "norm_label": "expiring_soon_text()"
     },
     {
@@ -6106,7 +6106,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "nura_app_bot_texts_subscription_expired_text",
-      "community": 34,
+      "community": 125,
       "norm_label": "expired_text()"
     },
     {
@@ -6116,7 +6116,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "nura_app_bot_texts_subscription_daily_insight_text",
-      "community": 34,
+      "community": 125,
       "norm_label": "daily_insight_text()"
     },
     {
@@ -6306,7 +6306,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_utils_loading",
-      "community": 11,
+      "community": 336,
       "norm_label": "loading.py"
     },
     {
@@ -6336,7 +6336,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_bot_utils_loading_rationale_1",
-      "community": 11,
+      "community": 336,
       "norm_label": "\u0430\u043d\u0438\u043c\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0435 \u0438\u043d\u0434\u0438\u043a\u0430\u0442\u043e\u0440\u044b \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u0434\u043b\u044f \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438 \u0431\u043e\u0442\u0430."
     },
     {
@@ -6556,7 +6556,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_init",
-      "community": 64,
+      "community": 98,
       "norm_label": "__init__.py"
     },
     {
@@ -6566,7 +6566,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_arcana_data",
-      "community": 235,
+      "community": 157,
       "norm_label": "arcana_data.py"
     },
     {
@@ -6576,7 +6576,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_arcana_data_rationale_1",
-      "community": 235,
+      "community": 157,
       "norm_label": "unified 22 major arcana definitions \u2014 single source of truth.  used by:   - core"
     },
     {
@@ -6586,7 +6586,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_config",
-      "community": 64,
+      "community": 98,
       "norm_label": "config.py"
     },
     {
@@ -6686,7 +6686,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_database",
-      "community": 64,
+      "community": 98,
       "norm_label": "database.py"
     },
     {
@@ -6696,7 +6696,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "nura_app_core_database_create_engine",
-      "community": 64,
+      "community": 156,
       "norm_label": "create_engine()"
     },
     {
@@ -6706,7 +6706,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "nura_app_core_database_get_async_sessionmaker",
-      "community": 56,
+      "community": 140,
       "norm_label": "get_async_sessionmaker()"
     },
     {
@@ -6716,7 +6716,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_core_database_py_async_sessionmaker",
-      "community": 56,
+      "community": 140,
       "norm_label": "async_sessionmaker"
     },
     {
@@ -6726,7 +6726,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "nura_app_core_database_get_redis",
-      "community": 79,
+      "community": 305,
       "norm_label": "get_redis()"
     },
     {
@@ -6736,7 +6736,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "redis",
-      "community": 79,
+      "community": 305,
       "norm_label": "redis"
     },
     {
@@ -6836,7 +6836,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_models",
-      "community": 71,
+      "community": 13,
       "norm_label": "models.py"
     },
     {
@@ -6956,7 +6956,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_repositories_base",
-      "community": 71,
+      "community": 13,
       "norm_label": "base.py"
     },
     {
@@ -7056,7 +7056,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_repositories_guest",
-      "community": 79,
+      "community": 13,
       "norm_label": "guest.py"
     },
     {
@@ -7066,7 +7066,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "nura_app_core_repositories_guest_guestprofilerepository",
-      "community": 79,
+      "community": 305,
       "norm_label": "guestprofilerepository"
     },
     {
@@ -7176,7 +7176,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_repositories_payment",
-      "community": 71,
+      "community": 13,
       "norm_label": "payment.py"
     },
     {
@@ -7196,7 +7196,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "nura_app_core_repositories_payment_paymentrepository_init",
-      "community": 305,
+      "community": 338,
       "norm_label": ".__init__()"
     },
     {
@@ -7206,7 +7206,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_core_repositories_payment_py_async_sessionmaker",
-      "community": 305,
+      "community": 338,
       "norm_label": "async_sessionmaker"
     },
     {
@@ -7216,7 +7216,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "nura_app_core_repositories_payment_paymentrepository_create",
-      "community": 305,
+      "community": 79,
       "norm_label": ".create()"
     },
     {
@@ -7226,7 +7226,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_core_repositories_payment_py_uuid",
-      "community": 305,
+      "community": 79,
       "norm_label": "uuid"
     },
     {
@@ -7246,7 +7246,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "nura_app_core_repositories_payment_paymentrepository_claim_succeeded",
-      "community": 305,
+      "community": 337,
       "norm_label": ".claim_succeeded()"
     },
     {
@@ -7256,7 +7256,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "nura_app_core_repositories_payment_paymentrepository_delete_by_user_id",
-      "community": 305,
+      "community": 79,
       "norm_label": ".delete_by_user_id()"
     },
     {
@@ -7266,7 +7266,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "nura_app_core_repositories_payment_paymentrepository_update_status",
-      "community": 305,
+      "community": 79,
       "norm_label": ".update_status()"
     },
     {
@@ -7276,7 +7276,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "nura_app_core_repositories_payment_rationale_38",
-      "community": 305,
+      "community": 337,
       "norm_label": "atomically fetch and mark payment as succeeded.          uses select ... for u"
     },
     {
@@ -7356,7 +7356,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_repositories_report",
-      "community": 71,
+      "community": 13,
       "norm_label": "report.py"
     },
     {
@@ -7486,7 +7486,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_repositories_user",
-      "community": 71,
+      "community": 13,
       "norm_label": "user.py"
     },
     {
@@ -8116,7 +8116,7 @@
       "source_location": "L181",
       "_origin": "ast",
       "id": "nura_app_core_schemas_init_dailyinsightresult",
-      "community": 95,
+      "community": 93,
       "norm_label": "dailyinsightresult"
     },
     {
@@ -8336,7 +8336,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_services_ai",
-      "community": 95,
+      "community": 232,
       "norm_label": "ai.py"
     },
     {
@@ -8346,7 +8346,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "nura_app_core_services_ai_aiservice",
-      "community": 232,
+      "community": 48,
       "norm_label": "aiservice"
     },
     {
@@ -8366,7 +8366,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "nura_app_core_services_ai_aiservice_cache_key",
-      "community": 232,
+      "community": 48,
       "norm_label": "._cache_key()"
     },
     {
@@ -8406,7 +8406,7 @@
       "source_location": "L285",
       "_origin": "ast",
       "id": "nura_app_core_services_ai_aiservice_to_matrix_data",
-      "community": 232,
+      "community": 95,
       "norm_label": "._to_matrix_data()"
     },
     {
@@ -8436,7 +8436,7 @@
       "source_location": "L345",
       "_origin": "ast",
       "id": "nura_app_core_services_ai_aiservice_generate_full_report",
-      "community": 104,
+      "community": 95,
       "norm_label": ".generate_full_report()"
     },
     {
@@ -8466,7 +8466,7 @@
       "source_location": "L503",
       "_origin": "ast",
       "id": "nura_app_core_services_ai_aiservice_generate_daily_insight",
-      "community": 232,
+      "community": 48,
       "norm_label": ".generate_daily_insight()"
     },
     {
@@ -8486,7 +8486,7 @@
       "source_location": "L617",
       "_origin": "ast",
       "id": "nura_app_core_services_ai_aiservice_calculate_question_spread",
-      "community": 232,
+      "community": 48,
       "norm_label": "._calculate_question_spread()"
     },
     {
@@ -8496,7 +8496,7 @@
       "source_location": "L624",
       "_origin": "ast",
       "id": "nura_app_core_services_ai_aiservice_generate_tarot_daily_card",
-      "community": 232,
+      "community": 48,
       "norm_label": ".generate_tarot_daily_card()"
     },
     {
@@ -8546,7 +8546,7 @@
       "source_location": "L770",
       "_origin": "ast",
       "id": "nura_app_core_services_ai_chat_system_prompt_template",
-      "community": 116,
+      "community": 232,
       "norm_label": "_chat_system_prompt_template()"
     },
     {
@@ -8556,7 +8556,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_services_auth",
-      "community": 64,
+      "community": 98,
       "norm_label": "auth.py"
     },
     {
@@ -8586,7 +8586,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "nura_app_core_services_auth_authservice_create_guest_profile",
-      "community": 79,
+      "community": 305,
       "norm_label": ".create_guest_profile()"
     },
     {
@@ -8596,7 +8596,7 @@
       "source_location": "L66",
       "_origin": "ast",
       "id": "nura_app_core_services_auth_authservice_get_guest",
-      "community": 79,
+      "community": 305,
       "norm_label": ".get_guest()"
     },
     {
@@ -8636,7 +8636,7 @@
       "source_location": "L244",
       "_origin": "ast",
       "id": "nura_app_core_services_auth_authservice_generate_telegram_link",
-      "community": 79,
+      "community": 305,
       "norm_label": ".generate_telegram_link()"
     },
     {
@@ -8656,7 +8656,7 @@
       "source_location": "L264",
       "_origin": "ast",
       "id": "nura_app_core_services_auth_authservice_convert_guest_to_user",
-      "community": 79,
+      "community": 305,
       "norm_label": ".convert_guest_to_user()"
     },
     {
@@ -8896,7 +8896,7 @@
       "source_location": "L125",
       "_origin": "ast",
       "id": "nura_app_core_services_matrix_matrixservice_calculate_chakras",
-      "community": 21,
+      "community": 78,
       "norm_label": ".calculate_chakras()"
     },
     {
@@ -8936,7 +8936,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_services_payment",
-      "community": 125,
+      "community": 68,
       "norm_label": "payment.py"
     },
     {
@@ -8986,7 +8986,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "nura_app_core_services_payment_paymentservice_create_web_matrix_payment",
-      "community": 125,
+      "community": 25,
       "norm_label": ".create_web_matrix_payment()"
     },
     {
@@ -8996,7 +8996,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_core_services_payment_py_uuid",
-      "community": 125,
+      "community": 68,
       "norm_label": "uuid"
     },
     {
@@ -9006,7 +9006,7 @@
       "source_location": "L145",
       "_origin": "ast",
       "id": "nura_app_core_services_payment_paymentservice_create_web_tarot_payment",
-      "community": 25,
+      "community": 68,
       "norm_label": ".create_web_tarot_payment()"
     },
     {
@@ -9016,7 +9016,7 @@
       "source_location": "L175",
       "_origin": "ast",
       "id": "nura_app_core_services_payment_paymentservice_save_matrix_payment",
-      "community": 125,
+      "community": 68,
       "norm_label": ".save_matrix_payment()"
     },
     {
@@ -9026,7 +9026,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_core_services_payment_py_async_sessionmaker",
-      "community": 125,
+      "community": 68,
       "norm_label": "async_sessionmaker"
     },
     {
@@ -9036,7 +9036,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "paymentmodel",
-      "community": 125,
+      "community": 68,
       "norm_label": "paymentmodel"
     },
     {
@@ -9186,7 +9186,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "nura_app_core_services_report_reportservice_generate_token",
-      "community": 21,
+      "community": 140,
       "norm_label": ".generate_token()"
     },
     {
@@ -9216,7 +9216,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "nura_app_core_services_report_py_async_sessionmaker",
-      "community": 63,
+      "community": 78,
       "norm_label": "async_sessionmaker"
     },
     {
@@ -9226,7 +9226,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "nura_app_core_services_report_reportservice_render_report_html",
-      "community": 63,
+      "community": 78,
       "norm_label": ".render_report_html()"
     },
     {
@@ -9256,7 +9256,7 @@
       "source_location": "L439",
       "_origin": "ast",
       "id": "nura_app_core_services_report_reportservice_is_fallback_analysis",
-      "community": 44,
+      "community": 21,
       "norm_label": "._is_fallback_analysis()"
     },
     {
@@ -9516,7 +9516,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier",
-      "community": 112,
+      "community": 93,
       "norm_label": "verifier.py"
     },
     {
@@ -9526,7 +9526,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_verificationresult",
-      "community": 112,
+      "community": 93,
       "norm_label": "verificationresult"
     },
     {
@@ -9536,7 +9536,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_contentverifier",
-      "community": 112,
+      "community": 83,
       "norm_label": "contentverifier"
     },
     {
@@ -9546,7 +9546,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_contentverifier_check_length",
-      "community": 112,
+      "community": 333,
       "norm_label": ".check_length()"
     },
     {
@@ -9556,7 +9556,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_contentverifier_check_max_length",
-      "community": 112,
+      "community": 334,
       "norm_label": ".check_max_length()"
     },
     {
@@ -9566,7 +9566,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_contentverifier_check_banned_words",
-      "community": 112,
+      "community": 197,
       "norm_label": ".check_banned_words()"
     },
     {
@@ -9576,7 +9576,7 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_contentverifier_check_generic_phrases",
-      "community": 112,
+      "community": 332,
       "norm_label": ".check_generic_phrases()"
     },
     {
@@ -9596,7 +9596,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_contentverifier_check_not_empty",
-      "community": 112,
+      "community": 235,
       "norm_label": ".check_not_empty()"
     },
     {
@@ -9606,7 +9606,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_contentverifier_check_arcana_consistency",
-      "community": 112,
+      "community": 83,
       "norm_label": ".check_arcana_consistency()"
     },
     {
@@ -9616,7 +9616,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_contentverifier_check_dashboard_insights",
-      "community": 112,
+      "community": 83,
       "norm_label": ".check_dashboard_insights()"
     },
     {
@@ -9626,7 +9626,7 @@
       "source_location": "L154",
       "_origin": "ast",
       "id": "nura_app_core_services_verifier_contentverifier_verify_report",
-      "community": 112,
+      "community": 83,
       "norm_label": ".verify_report()"
     },
     {
@@ -9766,7 +9766,7 @@
       "source_location": "L233",
       "_origin": "ast",
       "id": "nura_app_core_tasks_get_user_telegram_id",
-      "community": 56,
+      "community": 22,
       "norm_label": "_get_user_telegram_id()"
     },
     {
@@ -9966,7 +9966,7 @@
       "source_location": "L994",
       "_origin": "ast",
       "id": "nura_app_core_tasks_downgrade_expired_subscriptions_async",
-      "community": 56,
+      "community": 22,
       "norm_label": "_downgrade_expired_subscriptions_async()"
     },
     {
@@ -10106,7 +10106,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_init_db",
-      "community": 64,
+      "community": 98,
       "norm_label": "init_db.py"
     },
     {
@@ -10116,7 +10116,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "nura_app_init_db_init_db",
-      "community": 64,
+      "community": 98,
       "norm_label": "init_db()"
     },
     {
@@ -10244,7 +10244,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai",
-      "community": 104,
+      "community": 48,
       "norm_label": "test_ai.py"
     },
     {
@@ -10254,7 +10254,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_mini_json",
-      "community": 104,
+      "community": 48,
       "norm_label": "_mini_json()"
     },
     {
@@ -10264,7 +10264,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_full_json",
-      "community": 104,
+      "community": 48,
       "norm_label": "_full_json()"
     },
     {
@@ -10274,7 +10274,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testminianalysis",
-      "community": 104,
+      "community": 48,
       "norm_label": "testminianalysis"
     },
     {
@@ -10284,7 +10284,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testminianalysis_test_returns_correct_fields",
-      "community": 104,
+      "community": 48,
       "norm_label": ".test_returns_correct_fields()"
     },
     {
@@ -10294,7 +10294,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testminianalysis_test_fallback_on_error",
-      "community": 104,
+      "community": 48,
       "norm_label": ".test_fallback_on_error()"
     },
     {
@@ -10304,7 +10304,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testdailyinsight",
-      "community": 232,
+      "community": 48,
       "norm_label": "testdailyinsight"
     },
     {
@@ -10314,7 +10314,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testdailyinsight_test_generates_valid_insight",
-      "community": 232,
+      "community": 48,
       "norm_label": ".test_generates_valid_insight()"
     },
     {
@@ -10324,7 +10324,7 @@
       "source_location": "L67",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testdailyinsight_test_fallback_on_error",
-      "community": 232,
+      "community": 48,
       "norm_label": ".test_fallback_on_error()"
     },
     {
@@ -10334,7 +10334,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testdailyinsight_test_fallback_on_invalid_json",
-      "community": 232,
+      "community": 48,
       "norm_label": ".test_fallback_on_invalid_json()"
     },
     {
@@ -10344,7 +10344,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testfullreport",
-      "community": 104,
+      "community": 48,
       "norm_label": "testfullreport"
     },
     {
@@ -10354,7 +10354,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testfullreport_test_returns_correct_fields",
-      "community": 104,
+      "community": 48,
       "norm_label": ".test_returns_correct_fields()"
     },
     {
@@ -10364,7 +10364,7 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "nura_app_tests_test_ai_testfullreport_test_fallback_on_invalid_json",
-      "community": 104,
+      "community": 48,
       "norm_label": ".test_fallback_on_invalid_json()"
     },
     {
@@ -10714,7 +10714,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_tests_test_handlers",
-      "community": 95,
+      "community": 93,
       "norm_label": "test_handlers.py"
     },
     {
@@ -10724,7 +10724,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "nura_app_tests_test_handlers_testinsightshandler",
-      "community": 95,
+      "community": 93,
       "norm_label": "testinsightshandler"
     },
     {
@@ -10734,7 +10734,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "nura_app_tests_test_handlers_testinsightshandler_test_free_user_shows_static",
-      "community": 95,
+      "community": 93,
       "norm_label": ".test_free_user_shows_static()"
     },
     {
@@ -10744,7 +10744,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "nura_app_tests_test_handlers_testinsightshandler_test_subscriber_shows_ai",
-      "community": 95,
+      "community": 93,
       "norm_label": ".test_subscriber_shows_ai()"
     },
     {
@@ -10754,7 +10754,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "nura_app_tests_test_handlers_testinsightshandler_test_subscriber_cached_insight",
-      "community": 95,
+      "community": 93,
       "norm_label": ".test_subscriber_cached_insight()"
     },
     {
@@ -10764,7 +10764,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "nura_app_tests_test_handlers_testinsightshandler_test_free_user_exhausted_shows_subscription",
-      "community": 95,
+      "community": 93,
       "norm_label": ".test_free_user_exhausted_shows_subscription()"
     },
     {
@@ -10784,7 +10784,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "nura_app_tests_test_matrix_testcalculate",
-      "community": 78,
+      "community": 12,
       "norm_label": "testcalculate"
     },
     {
@@ -10794,7 +10794,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "nura_app_tests_test_matrix_testcalculate_test_returns_matrix_data",
-      "community": 78,
+      "community": 12,
       "norm_label": ".test_returns_matrix_data()"
     },
     {
@@ -10804,7 +10804,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "nura_app_tests_test_matrix_testcalculate_test_22_arcana",
-      "community": 78,
+      "community": 12,
       "norm_label": ".test_22_arcana()"
     },
     {
@@ -10814,7 +10814,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "nura_app_tests_test_matrix_testcalculate_test_sample_date_01_01_2000",
-      "community": 78,
+      "community": 12,
       "norm_label": ".test_sample_date_01_01_2000()"
     },
     {
@@ -10824,7 +10824,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "nura_app_tests_test_matrix_testcalculate_test_sample_date_15_06_1998",
-      "community": 78,
+      "community": 12,
       "norm_label": ".test_sample_date_15_06_1998()"
     },
     {
@@ -10834,7 +10834,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "nura_app_tests_test_matrix_testcalculate_test_sample_date_31_12_2024",
-      "community": 78,
+      "community": 12,
       "norm_label": ".test_sample_date_31_12_2024()"
     },
     {
@@ -10844,7 +10844,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "nura_app_tests_test_matrix_testcalculate_test_invalid_date",
-      "community": 78,
+      "community": 12,
       "norm_label": ".test_invalid_date()"
     },
     {
@@ -11994,7 +11994,7 @@
       "source_location": "L525",
       "_origin": "ast",
       "id": "nura_app_tests_test_payment_testprocesswebhook_test_web_tarot_full_flow",
-      "community": 305,
+      "community": 0,
       "norm_label": ".test_web_tarot_full_flow()"
     },
     {
@@ -12394,7 +12394,7 @@
       "source_location": "L528",
       "_origin": "ast",
       "id": "nura_app_tests_test_payment_rationale_528",
-      "community": 305,
+      "community": 0,
       "norm_label": "web_tarot \u2014 \u0430\u043a\u0442\u0438\u0432\u0430\u0446\u0438\u044f \u0442\u0430\u0440\u043e-\u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0438."
     },
     {
@@ -12904,7 +12904,7 @@
       "source_location": "L715",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotquestion",
-      "community": 332,
+      "community": 328,
       "norm_label": "testtarotquestion"
     },
     {
@@ -12914,7 +12914,7 @@
       "source_location": "L719",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotquestion_test_paywall_for_free_user",
-      "community": 332,
+      "community": 328,
       "norm_label": ".test_paywall_for_free_user()"
     },
     {
@@ -12924,7 +12924,7 @@
       "source_location": "L743",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotquestion_test_sets_state_for_tarot_user",
-      "community": 332,
+      "community": 328,
       "norm_label": ".test_sets_state_for_tarot_user()"
     },
     {
@@ -12984,7 +12984,7 @@
       "source_location": "L933",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotspheres",
-      "community": 15,
+      "community": 299,
       "norm_label": "testtarotspheres"
     },
     {
@@ -12994,7 +12994,7 @@
       "source_location": "L937",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotspheres_test_paywall_for_free_user",
-      "community": 15,
+      "community": 299,
       "norm_label": ".test_paywall_for_free_user()"
     },
     {
@@ -13004,7 +13004,7 @@
       "source_location": "L961",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotspheres_test_shows_spheres_for_tarot_user",
-      "community": 15,
+      "community": 299,
       "norm_label": ".test_shows_spheres_for_tarot_user()"
     },
     {
@@ -13014,7 +13014,7 @@
       "source_location": "L990",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarottwins",
-      "community": 195,
+      "community": 15,
       "norm_label": "testtarottwins"
     },
     {
@@ -13024,7 +13024,7 @@
       "source_location": "L994",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarottwins_test_paywall_for_free_user",
-      "community": 195,
+      "community": 15,
       "norm_label": ".test_paywall_for_free_user()"
     },
     {
@@ -13034,7 +13034,7 @@
       "source_location": "L1017",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarottwins_test_shows_twins_for_tarot_user",
-      "community": 195,
+      "community": 15,
       "norm_label": ".test_shows_twins_for_tarot_user()"
     },
     {
@@ -13044,7 +13044,7 @@
       "source_location": "L1062",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotportal",
-      "community": 139,
+      "community": 327,
       "norm_label": "testtarotportal"
     },
     {
@@ -13054,7 +13054,7 @@
       "source_location": "L1066",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotportal_test_paywall_for_free_user",
-      "community": 139,
+      "community": 327,
       "norm_label": ".test_paywall_for_free_user()"
     },
     {
@@ -13064,7 +13064,7 @@
       "source_location": "L1089",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotportal_test_shows_portal_for_tarot_user",
-      "community": 139,
+      "community": 327,
       "norm_label": ".test_shows_portal_for_tarot_user()"
     },
     {
@@ -13074,7 +13074,7 @@
       "source_location": "L1133",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotblocks",
-      "community": 15,
+      "community": 139,
       "norm_label": "testtarotblocks"
     },
     {
@@ -13084,7 +13084,7 @@
       "source_location": "L1137",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotblocks_test_paywall_for_free_user",
-      "community": 15,
+      "community": 139,
       "norm_label": ".test_paywall_for_free_user()"
     },
     {
@@ -13094,7 +13094,7 @@
       "source_location": "L1160",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotblocks_test_shows_blocks_for_tarot_user",
-      "community": 15,
+      "community": 139,
       "norm_label": ".test_shows_blocks_for_tarot_user()"
     },
     {
@@ -13284,7 +13284,7 @@
       "source_location": "L1662",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testcmdhelp",
-      "community": 4,
+      "community": 15,
       "norm_label": "testcmdhelp"
     },
     {
@@ -13294,7 +13294,7 @@
       "source_location": "L1666",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testcmdhelp_test_shows_help_text",
-      "community": 4,
+      "community": 15,
       "norm_label": ".test_shows_help_text()"
     },
     {
@@ -13394,7 +13394,7 @@
       "source_location": "L1896",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testprofile_test_show_subscription",
-      "community": 34,
+      "community": 125,
       "norm_label": ".test_show_subscription()"
     },
     {
@@ -13474,7 +13474,7 @@
       "source_location": "L2128",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuysubscription",
-      "community": 140,
+      "community": 120,
       "norm_label": "testbuysubscription"
     },
     {
@@ -13484,7 +13484,7 @@
       "source_location": "L2132",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuysubscription_test_user_not_found",
-      "community": 140,
+      "community": 120,
       "norm_label": ".test_user_not_found()"
     },
     {
@@ -13494,7 +13494,7 @@
       "source_location": "L2155",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuysubscription_test_already_premium",
-      "community": 140,
+      "community": 120,
       "norm_label": ".test_already_premium()"
     },
     {
@@ -13504,7 +13504,7 @@
       "source_location": "L2180",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuysubscription_test_test_mode_activates",
-      "community": 140,
+      "community": 120,
       "norm_label": ".test_test_mode_activates()"
     },
     {
@@ -13514,7 +13514,7 @@
       "source_location": "L2209",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuysubscription_test_creates_payment_url",
-      "community": 140,
+      "community": 120,
       "norm_label": ".test_creates_payment_url()"
     },
     {
@@ -13524,7 +13524,7 @@
       "source_location": "L2248",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuytarotsubscription",
-      "community": 140,
+      "community": 123,
       "norm_label": "testbuytarotsubscription"
     },
     {
@@ -13534,7 +13534,7 @@
       "source_location": "L2252",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuytarotsubscription_test_user_not_found",
-      "community": 140,
+      "community": 123,
       "norm_label": ".test_user_not_found()"
     },
     {
@@ -13544,7 +13544,7 @@
       "source_location": "L2275",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuytarotsubscription_test_already_active",
-      "community": 140,
+      "community": 123,
       "norm_label": ".test_already_active()"
     },
     {
@@ -13554,7 +13554,7 @@
       "source_location": "L2300",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuytarotsubscription_test_test_mode_activates",
-      "community": 140,
+      "community": 123,
       "norm_label": ".test_test_mode_activates()"
     },
     {
@@ -13564,7 +13564,7 @@
       "source_location": "L2327",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuytarotsubscription_test_creates_payment",
-      "community": 140,
+      "community": 123,
       "norm_label": ".test_creates_payment()"
     },
     {
@@ -13574,7 +13574,7 @@
       "source_location": "L2364",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuymatrix",
-      "community": 140,
+      "community": 64,
       "norm_label": "testbuymatrix"
     },
     {
@@ -13584,7 +13584,7 @@
       "source_location": "L2368",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuymatrix_test_user_not_found",
-      "community": 140,
+      "community": 64,
       "norm_label": ".test_user_not_found()"
     },
     {
@@ -13594,7 +13594,7 @@
       "source_location": "L2391",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuymatrix_test_already_has_matrix",
-      "community": 140,
+      "community": 64,
       "norm_label": ".test_already_has_matrix()"
     },
     {
@@ -13604,7 +13604,7 @@
       "source_location": "L2416",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuymatrix_test_test_mode_activates",
-      "community": 140,
+      "community": 64,
       "norm_label": ".test_test_mode_activates()"
     },
     {
@@ -13614,7 +13614,7 @@
       "source_location": "L2455",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuymatrix_test_creates_matrix_payment",
-      "community": 140,
+      "community": 64,
       "norm_label": ".test_creates_matrix_payment()"
     },
     {
@@ -13624,7 +13624,7 @@
       "source_location": "L2497",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testbuymatrix_test_payment_service_value_error",
-      "community": 140,
+      "community": 64,
       "norm_label": ".test_payment_service_value_error()"
     },
     {
@@ -13804,7 +13804,7 @@
       "source_location": "L2928",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testprocesspartnername_test_saves_name_and_asks_relation",
-      "community": 4,
+      "community": 32,
       "norm_label": ".test_saves_name_and_asks_relation()"
     },
     {
@@ -13824,7 +13824,7 @@
       "source_location": "L2955",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testprocessrelationtype_test_saves_romance_type",
-      "community": 4,
+      "community": 32,
       "norm_label": ".test_saves_romance_type()"
     },
     {
@@ -13944,7 +13944,7 @@
       "source_location": "L3303",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotedgecases_test_manage_subscription_user_not_found",
-      "community": 10,
+      "community": 34,
       "norm_label": ".test_manage_subscription_user_not_found()"
     },
     {
@@ -13954,7 +13954,7 @@
       "source_location": "L3327",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotedgecases_test_back_to_profile_user_not_found",
-      "community": 10,
+      "community": 34,
       "norm_label": ".test_back_to_profile_user_not_found()"
     },
     {
@@ -13964,7 +13964,7 @@
       "source_location": "L3351",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_testtarotedgecases_test_view_reports_user_not_found",
-      "community": 10,
+      "community": 34,
       "norm_label": ".test_view_reports_user_not_found()"
     },
     {
@@ -14294,7 +14294,7 @@
       "source_location": "L716",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_716",
-      "community": 332,
+      "community": 328,
       "norm_label": "\u0442\u0435\u0441\u0442\u044b start_tarot_question \u2014 callback_data == 'tarot_question'."
     },
     {
@@ -14304,7 +14304,7 @@
       "source_location": "L722",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_722",
-      "community": 332,
+      "community": 328,
       "norm_label": "free-\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0432\u0438\u0434\u0438\u0442 \u043f\u044d\u0438\u0432\u043e\u043b\u043b."
     },
     {
@@ -14314,7 +14314,7 @@
       "source_location": "L746",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_746",
-      "community": 332,
+      "community": 328,
       "norm_label": "\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0441 \u0442\u0430\u0440\u043e \u043f\u0435\u0440\u0435\u0445\u043e\u0434\u0438\u0442 \u0432 \u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 waiting_for_question."
     },
     {
@@ -14364,7 +14364,7 @@
       "source_location": "L934",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_934",
-      "community": 15,
+      "community": 299,
       "norm_label": "\u0442\u0435\u0441\u0442\u044b show_tarot_spheres \u2014 callback_data == 'tarot_spheres'."
     },
     {
@@ -14374,7 +14374,7 @@
       "source_location": "L940",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_940",
-      "community": 15,
+      "community": 299,
       "norm_label": "free-\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0432\u0438\u0434\u0438\u0442 \u043f\u044d\u0438\u0432\u043e\u043b\u043b."
     },
     {
@@ -14384,7 +14384,7 @@
       "source_location": "L964",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_964",
-      "community": 15,
+      "community": 299,
       "norm_label": "\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0441 \u0442\u0430\u0440\u043e \u0432\u0438\u0434\u0438\u0442 \u043a\u043b\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u0443 \u0441\u0444\u0435\u0440."
     },
     {
@@ -14394,7 +14394,7 @@
       "source_location": "L991",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_991",
-      "community": 195,
+      "community": 15,
       "norm_label": "\u0442\u0435\u0441\u0442\u044b show_tarot_twins \u2014 callback_data == 'tarot_twins'."
     },
     {
@@ -14404,7 +14404,7 @@
       "source_location": "L997",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_997",
-      "community": 195,
+      "community": 15,
       "norm_label": "free-\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0432\u0438\u0434\u0438\u0442 \u043f\u044d\u0438\u0432\u043e\u043b\u043b."
     },
     {
@@ -14414,7 +14414,7 @@
       "source_location": "L1020",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_1020",
-      "community": 195,
+      "community": 15,
       "norm_label": "\u0443\u0441\u043f\u0435\u0448\u043d\u044b\u0438 \u0440\u0430\u0441\u043a\u043b\u0430\u0434 \u0442\u0435\u043d\u0435\u0432\u044b\u0445 \u0441\u0442\u043e\u0440\u043e\u043d."
     },
     {
@@ -14424,7 +14424,7 @@
       "source_location": "L1063",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_1063",
-      "community": 139,
+      "community": 327,
       "norm_label": "\u0442\u0435\u0441\u0442\u044b show_tarot_portal \u2014 callback_data == 'tarot_portal'."
     },
     {
@@ -14434,7 +14434,7 @@
       "source_location": "L1069",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_1069",
-      "community": 139,
+      "community": 327,
       "norm_label": "free-\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0432\u0438\u0434\u0438\u0442 \u043f\u044d\u0438\u0432\u043e\u043b\u043b."
     },
     {
@@ -14444,7 +14444,7 @@
       "source_location": "L1092",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_1092",
-      "community": 139,
+      "community": 327,
       "norm_label": "\u0443\u0441\u043f\u0435\u0448\u043d\u044b\u0438 \u0440\u0430\u0441\u043a\u043b\u0430\u0434 \u044d\u043d\u0435\u0440\u0433\u0438\u0438 \u043c\u0435\u0441\u044f\u0446\u0430."
     },
     {
@@ -14454,7 +14454,7 @@
       "source_location": "L1134",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_1134",
-      "community": 15,
+      "community": 139,
       "norm_label": "\u0442\u0435\u0441\u0442\u044b show_tarot_blocks \u2014 callback_data == 'tarot_blocks'."
     },
     {
@@ -14464,7 +14464,7 @@
       "source_location": "L1140",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_1140",
-      "community": 15,
+      "community": 139,
       "norm_label": "free-\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0432\u0438\u0434\u0438\u0442 \u043f\u044d\u0438\u0432\u043e\u043b\u043b."
     },
     {
@@ -14474,7 +14474,7 @@
       "source_location": "L1163",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_1163",
-      "community": 15,
+      "community": 139,
       "norm_label": "\u0443\u0441\u043f\u0435\u0448\u043d\u044b\u0438 \u0440\u0430\u0441\u043a\u043b\u0430\u0434 '\u0447\u0442\u043e \u043c\u0435\u0448\u0430\u0435\u0442'."
     },
     {
@@ -14664,7 +14664,7 @@
       "source_location": "L1663",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_1663",
-      "community": 4,
+      "community": 15,
       "norm_label": "\u0442\u0435\u0441\u0442\u044b cmd_help \u2014 \u043a\u043e\u043c\u0430\u043d\u0434\u0430 /help."
     },
     {
@@ -14764,7 +14764,7 @@
       "source_location": "L1899",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_1899",
-      "community": 34,
+      "community": 125,
       "norm_label": "show_subscription \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0438."
     },
     {
@@ -14844,7 +14844,7 @@
       "source_location": "L2129",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2129",
-      "community": 140,
+      "community": 120,
       "norm_label": "\u0442\u0435\u0441\u0442\u044b initiate_subscription \u2014 callback_data == 'buy_subscription'."
     },
     {
@@ -14854,7 +14854,7 @@
       "source_location": "L2135",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2135",
-      "community": 140,
+      "community": 120,
       "norm_label": "\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0438\u0434\u0435\u043d."
     },
     {
@@ -14864,7 +14864,7 @@
       "source_location": "L2158",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2158",
-      "community": 140,
+      "community": 120,
       "norm_label": "premium-\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0432\u0438\u0434\u0438\u0442 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u043e\u0431 \u0430\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u0438."
     },
     {
@@ -14874,7 +14874,7 @@
       "source_location": "L2183",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2183",
-      "community": 140,
+      "community": 120,
       "norm_label": "\u0442\u0435\u0441\u0442\u043e\u0432\u044b\u0438 \u0440\u0435\u0436\u0438\u043c \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u0443\u0435\u0442 \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0443."
     },
     {
@@ -14884,7 +14884,7 @@
       "source_location": "L2212",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2212",
-      "community": 140,
+      "community": 120,
       "norm_label": "\u0441\u043e\u0437\u0434\u0430\u0435\u0442 \u043f\u043b\u0430\u0442\u0435\u0436 \u0438 \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 url."
     },
     {
@@ -14894,7 +14894,7 @@
       "source_location": "L2249",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2249",
-      "community": 140,
+      "community": 123,
       "norm_label": "\u0442\u0435\u0441\u0442\u044b initiate_tarot_subscription \u2014 callback_data == 'buy_tarot_subscription'."
     },
     {
@@ -14904,7 +14904,7 @@
       "source_location": "L2255",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2255",
-      "community": 140,
+      "community": 123,
       "norm_label": "\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0438\u0434\u0435\u043d."
     },
     {
@@ -14914,7 +14914,7 @@
       "source_location": "L2278",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2278",
-      "community": 140,
+      "community": 123,
       "norm_label": "\u0442\u0430\u0440\u043e-\u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0430 \u0443\u0436\u0435 \u0430\u043a\u0442\u0438\u0432\u043d\u0430."
     },
     {
@@ -14924,7 +14924,7 @@
       "source_location": "L2303",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2303",
-      "community": 140,
+      "community": 123,
       "norm_label": "\u0442\u0435\u0441\u0442\u043e\u0432\u044b\u0438 \u0440\u0435\u0436\u0438\u043c \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u0443\u0435\u0442 \u0442\u0430\u0440\u043e."
     },
     {
@@ -14934,7 +14934,7 @@
       "source_location": "L2330",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2330",
-      "community": 140,
+      "community": 123,
       "norm_label": "\u0441\u043e\u0437\u0434\u0430\u0435\u0442 \u043f\u043b\u0430\u0442\u0435\u0436 \u0434\u043b\u044f \u0442\u0430\u0440\u043e."
     },
     {
@@ -14944,7 +14944,7 @@
       "source_location": "L2365",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2365",
-      "community": 140,
+      "community": 64,
       "norm_label": "\u0442\u0435\u0441\u0442\u044b buy_matrix \u2014 callback_data == 'buy_matrix'."
     },
     {
@@ -14954,7 +14954,7 @@
       "source_location": "L2371",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2371",
-      "community": 140,
+      "community": 64,
       "norm_label": "\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0438\u0434\u0435\u043d."
     },
     {
@@ -14964,7 +14964,7 @@
       "source_location": "L2419",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2419",
-      "community": 140,
+      "community": 64,
       "norm_label": "\u0442\u0435\u0441\u0442\u043e\u0432\u044b\u0438 \u0440\u0435\u0436\u0438\u043c \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u0443\u0435\u0442 \u043c\u0430\u0442\u0440\u0438\u0446\u0443 \u0438 \u0441\u0442\u0430\u0432\u0438\u0442 \u043e\u0442\u0447\u0435\u0442 \u0432 \u043e\u0447\u0435\u0440\u0435\u0434\u044c."
     },
     {
@@ -14974,7 +14974,7 @@
       "source_location": "L2458",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2458",
-      "community": 140,
+      "community": 64,
       "norm_label": "\u0441\u043e\u0437\u0434\u0430\u0435\u0442 \u043f\u043b\u0430\u0442\u0435\u0436 \u0434\u043b\u044f \u043c\u0430\u0442\u0440\u0438\u0446\u044b."
     },
     {
@@ -14984,7 +14984,7 @@
       "source_location": "L2500",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2500",
-      "community": 140,
+      "community": 64,
       "norm_label": "valueerror \u043f\u0440\u0438 \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0438 \u043f\u043b\u0430\u0442\u0435\u0436\u0430."
     },
     {
@@ -15144,7 +15144,7 @@
       "source_location": "L2929",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2929",
-      "community": 4,
+      "community": 32,
       "norm_label": "\u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u0442 \u0438\u043c\u044f \u043f\u0430\u0440\u0442\u043d\u0435\u0440\u0430."
     },
     {
@@ -15164,7 +15164,7 @@
       "source_location": "L2956",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_2956",
-      "community": 4,
+      "community": 32,
       "norm_label": "\u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u0442 \u0442\u0438\u043f '\u0440\u043e\u043c\u0430\u043d\u0442\u0438\u043a\u0430'."
     },
     {
@@ -15284,7 +15284,7 @@
       "source_location": "L3306",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_3306",
-      "community": 10,
+      "community": 34,
       "norm_label": "manage_subscription: \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0438\u0434\u0435\u043d."
     },
     {
@@ -15294,7 +15294,7 @@
       "source_location": "L3330",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_3330",
-      "community": 10,
+      "community": 34,
       "norm_label": "back_to_profile: \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0438\u0434\u0435\u043d."
     },
     {
@@ -15304,7 +15304,7 @@
       "source_location": "L3354",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_handlers_rationale_3354",
-      "community": 10,
+      "community": 34,
       "norm_label": "view_reports: \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u043d\u0435 \u043d\u0430\u0438\u0434\u0435\u043d."
     },
     {
@@ -16394,7 +16394,7 @@
       "source_location": "L1818",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_testrouterconfiguration",
-      "community": 6,
+      "community": 331,
       "norm_label": "testrouterconfiguration"
     },
     {
@@ -16404,7 +16404,7 @@
       "source_location": "L1821",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_testrouterconfiguration_test_router_prefix",
-      "community": 6,
+      "community": 331,
       "norm_label": ".test_router_prefix()"
     },
     {
@@ -16414,7 +16414,7 @@
       "source_location": "L1825",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_testrouterconfiguration_test_router_has_routes",
-      "community": 6,
+      "community": 331,
       "norm_label": ".test_router_has_routes()"
     },
     {
@@ -16424,7 +16424,7 @@
       "source_location": "L1831",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_testrouterconfiguration_test_daily_card_is_get",
-      "community": 6,
+      "community": 331,
       "norm_label": ".test_daily_card_is_get()"
     },
     {
@@ -16434,7 +16434,7 @@
       "source_location": "L1839",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_testrouterconfiguration_test_spread_is_post",
-      "community": 6,
+      "community": 331,
       "norm_label": ".test_spread_is_post()"
     },
     {
@@ -16514,7 +16514,7 @@
       "source_location": "L1953",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_testdailycardedgecases",
-      "community": 197,
+      "community": 6,
       "norm_label": "testdailycardedgecases"
     },
     {
@@ -16524,7 +16524,7 @@
       "source_location": "L1958",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_testdailycardedgecases_test_daily_card_empty_session_cookie",
-      "community": 197,
+      "community": 6,
       "norm_label": ".test_daily_card_empty_session_cookie()"
     },
     {
@@ -16534,7 +16534,7 @@
       "source_location": "L1967",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_testdailycardedgecases_test_daily_card_extra_query_params",
-      "community": 197,
+      "community": 6,
       "norm_label": ".test_daily_card_extra_query_params()"
     },
     {
@@ -17574,7 +17574,7 @@
       "source_location": "L1819",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_rationale_1819",
-      "community": 6,
+      "community": 331,
       "norm_label": "router-level configuration checks."
     },
     {
@@ -17654,7 +17654,7 @@
       "source_location": "L1954",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_rationale_1954",
-      "community": 197,
+      "community": 6,
       "norm_label": "edge cases for daily-card cookie auth."
     },
     {
@@ -17664,7 +17664,7 @@
       "source_location": "L1959",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_rationale_1959",
-      "community": 197,
+      "community": 6,
       "norm_label": "401 \u2014 \u043f\u0443\u0441\u0442\u043e\u0438 cookie \u0432\u043e\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 401 (\u043d\u0435 \u043d\u0430\u0438\u0434\u0435\u043d)."
     },
     {
@@ -17674,7 +17674,7 @@
       "source_location": "L1968",
       "_origin": "ast",
       "id": "nura_app_tests_test_tarot_pwa_rationale_1968",
-      "community": 197,
+      "community": 6,
       "norm_label": "200 \u2014 \u043b\u0438\u0448\u043d\u0438\u0435 query-\u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u044b \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u044e\u0442\u0441\u044f."
     },
     {
@@ -17754,7 +17754,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier",
-      "community": 112,
+      "community": 124,
       "norm_label": "test_verifier.py"
     },
     {
@@ -17764,7 +17764,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testchecklength",
-      "community": 112,
+      "community": 333,
       "norm_label": "testchecklength"
     },
     {
@@ -17774,7 +17774,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testchecklength_test_enough_words_returns_none",
-      "community": 112,
+      "community": 333,
       "norm_label": ".test_enough_words_returns_none()"
     },
     {
@@ -17784,7 +17784,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testchecklength_test_too_few_words_returns_issue",
-      "community": 112,
+      "community": 333,
       "norm_label": ".test_too_few_words_returns_issue()"
     },
     {
@@ -17794,7 +17794,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testchecklength_test_zero_min_words",
-      "community": 112,
+      "community": 333,
       "norm_label": ".test_zero_min_words()"
     },
     {
@@ -17804,7 +17804,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckmaxlength",
-      "community": 112,
+      "community": 334,
       "norm_label": "testcheckmaxlength"
     },
     {
@@ -17814,7 +17814,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckmaxlength_test_within_limit_returns_none",
-      "community": 112,
+      "community": 334,
       "norm_label": ".test_within_limit_returns_none()"
     },
     {
@@ -17824,7 +17824,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckmaxlength_test_exceeds_limit_returns_issue",
-      "community": 112,
+      "community": 334,
       "norm_label": ".test_exceeds_limit_returns_issue()"
     },
     {
@@ -17834,7 +17834,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckmaxlength_test_exact_max_ok",
-      "community": 112,
+      "community": 334,
       "norm_label": ".test_exact_max_ok()"
     },
     {
@@ -17844,7 +17844,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckbannedwords",
-      "community": 112,
+      "community": 197,
       "norm_label": "testcheckbannedwords"
     },
     {
@@ -17854,7 +17854,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckbannedwords_test_no_banned_words",
-      "community": 112,
+      "community": 197,
       "norm_label": ".test_no_banned_words()"
     },
     {
@@ -17864,7 +17864,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckbannedwords_test_detects_banned_word",
-      "community": 112,
+      "community": 197,
       "norm_label": ".test_detects_banned_word()"
     },
     {
@@ -17874,7 +17874,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckbannedwords_test_detects_multiple_banned_words",
-      "community": 112,
+      "community": 197,
       "norm_label": ".test_detects_multiple_banned_words()"
     },
     {
@@ -17884,7 +17884,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckbannedwords_test_case_insensitive",
-      "community": 112,
+      "community": 197,
       "norm_label": ".test_case_insensitive()"
     },
     {
@@ -17894,7 +17894,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckgenericphrases",
-      "community": 112,
+      "community": 332,
       "norm_label": "testcheckgenericphrases"
     },
     {
@@ -17904,7 +17904,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckgenericphrases_test_no_generic_phrases",
-      "community": 112,
+      "community": 332,
       "norm_label": ".test_no_generic_phrases()"
     },
     {
@@ -17914,7 +17914,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckgenericphrases_test_detects_generic_phrase",
-      "community": 112,
+      "community": 332,
       "norm_label": ".test_detects_generic_phrase()"
     },
     {
@@ -17924,7 +17924,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testcheckgenericphrases_test_returns_multiple",
-      "community": 112,
+      "community": 332,
       "norm_label": ".test_returns_multiple()"
     },
     {
@@ -17934,7 +17934,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testchecknotempty",
-      "community": 112,
+      "community": 235,
       "norm_label": "testchecknotempty"
     },
     {
@@ -17944,7 +17944,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testchecknotempty_test_all_valid",
-      "community": 112,
+      "community": 235,
       "norm_label": ".test_all_valid()"
     },
     {
@@ -17954,7 +17954,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testchecknotempty_test_empty_string",
-      "community": 112,
+      "community": 235,
       "norm_label": ".test_empty_string()"
     },
     {
@@ -17964,7 +17964,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testchecknotempty_test_none_value",
-      "community": 112,
+      "community": 235,
       "norm_label": ".test_none_value()"
     },
     {
@@ -17974,7 +17974,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testchecknotempty_test_too_short",
-      "community": 112,
+      "community": 235,
       "norm_label": ".test_too_short()"
     },
     {
@@ -17984,7 +17984,7 @@
       "source_location": "L88",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testverifyreport",
-      "community": 112,
+      "community": 83,
       "norm_label": "testverifyreport"
     },
     {
@@ -17994,7 +17994,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testverifyreport_test_good_report_passes",
-      "community": 112,
+      "community": 83,
       "norm_label": ".test_good_report_passes()"
     },
     {
@@ -18004,7 +18004,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testverifyreport_test_short_report_fails",
-      "community": 112,
+      "community": 83,
       "norm_label": ".test_short_report_fails()"
     },
     {
@@ -18014,7 +18014,7 @@
       "source_location": "L103",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testverifyreport_test_banned_words_fails",
-      "community": 112,
+      "community": 83,
       "norm_label": ".test_banned_words_fails()"
     },
     {
@@ -18024,7 +18024,7 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testverifyreport_test_empty_report_fails",
-      "community": 112,
+      "community": 83,
       "norm_label": ".test_empty_report_fails()"
     },
     {
@@ -18034,7 +18034,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "nura_app_tests_test_verifier_testverifyreport_test_dashboard_insights_skipped",
-      "community": 112,
+      "community": 83,
       "norm_label": ".test_dashboard_insights_skipped()"
     },
     {
@@ -20066,10 +20066,20 @@
       "norm_label": "\u0441\u0435\u0441\u0441\u0438\u044f 85 \u2014 09.07.2026"
     },
     {
+      "label": "\u0421\u0435\u0441\u0441\u0438\u044f 84 \u2014 09.07.2026",
+      "file_type": "document",
+      "source_file": "STATE.md",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_84_09_07_2026",
+      "community": 211,
+      "norm_label": "\u0441\u0435\u0441\u0441\u0438\u044f 84 \u2014 09.07.2026"
+    },
+    {
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 83 \u2014 09.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L25",
+      "source_location": "L31",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_83_09_07_2026",
       "community": 211,
@@ -20079,7 +20089,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 82 \u2014 09.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L38",
+      "source_location": "L44",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_82_09_07_2026",
       "community": 211,
@@ -20089,7 +20099,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 81 \u2014 09.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L51",
+      "source_location": "L57",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_81_09_07_2026",
       "community": 211,
@@ -20099,7 +20109,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 80 \u2014 06.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L64",
+      "source_location": "L70",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_80_06_07_2026",
       "community": 211,
@@ -20109,7 +20119,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 79 \u2014 06.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L79",
+      "source_location": "L85",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_79_06_07_2026",
       "community": 211,
@@ -20119,7 +20129,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 77 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L96",
+      "source_location": "L102",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_77_04_07_2026",
       "community": 211,
@@ -20129,7 +20139,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 76 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L111",
+      "source_location": "L117",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_76_04_07_2026",
       "community": 211,
@@ -20139,7 +20149,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 75 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L127",
+      "source_location": "L133",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_75_04_07_2026",
       "community": 211,
@@ -20149,7 +20159,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 74 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L142",
+      "source_location": "L148",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_74_04_07_2026",
       "community": 211,
@@ -20159,7 +20169,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 73 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L159",
+      "source_location": "L165",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_73_04_07_2026",
       "community": 211,
@@ -20169,7 +20179,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 72 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L174",
+      "source_location": "L180",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_72_04_07_2026",
       "community": 211,
@@ -20179,7 +20189,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 71 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L190",
+      "source_location": "L196",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_71_04_07_2026",
       "community": 211,
@@ -20189,7 +20199,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 70 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L196",
+      "source_location": "L202",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_70_04_07_2026",
       "community": 211,
@@ -20199,7 +20209,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 69 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L217",
+      "source_location": "L223",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_69_04_07_2026",
       "community": 211,
@@ -20209,7 +20219,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 68 \u2014 04.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L239",
+      "source_location": "L245",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_68_04_07_2026",
       "community": 211,
@@ -20219,7 +20229,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 67 \u2014 03.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L261",
+      "source_location": "L267",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_67_03_07_2026",
       "community": 211,
@@ -20229,7 +20239,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 66 \u2014 02.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L304",
+      "source_location": "L310",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_66_02_07_2026",
       "community": 211,
@@ -20239,7 +20249,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 65 \u2014 02.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L323",
+      "source_location": "L329",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_65_02_07_2026",
       "community": 211,
@@ -20249,7 +20259,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 64 \u2014 01.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L341",
+      "source_location": "L347",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_64_01_07_2026",
       "community": 211,
@@ -20259,7 +20269,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 63 \u2014 01.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L358",
+      "source_location": "L364",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_63_01_07_2026",
       "community": 211,
@@ -20269,7 +20279,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 62 \u2014 01.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L375",
+      "source_location": "L381",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_62_01_07_2026",
       "community": 211,
@@ -20279,7 +20289,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 61 \u2014 01.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L406",
+      "source_location": "L412",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_61_01_07_2026",
       "community": 211,
@@ -20289,7 +20299,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 60 \u2014 01.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L429",
+      "source_location": "L435",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_60_01_07_2026",
       "community": 211,
@@ -20299,7 +20309,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 59 \u2014 01.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L449",
+      "source_location": "L455",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_59_01_07_2026",
       "community": 211,
@@ -20309,7 +20319,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 58 \u2014 02.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L475",
+      "source_location": "L481",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_58_02_07_2026",
       "community": 211,
@@ -20319,7 +20329,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 57 \u2014 02.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L491",
+      "source_location": "L497",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_57_02_07_2026",
       "community": 211,
@@ -20329,7 +20339,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 56 \u2014 02.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L502",
+      "source_location": "L508",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_56_02_07_2026",
       "community": 211,
@@ -20339,7 +20349,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 55 \u2014 01.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L520",
+      "source_location": "L526",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_55_01_07_2026",
       "community": 211,
@@ -20349,7 +20359,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 54 \u2014 30.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L537",
+      "source_location": "L543",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_54_30_06_2026",
       "community": 211,
@@ -20359,7 +20369,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 53 \u2014 30.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L550",
+      "source_location": "L556",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_53_30_06_2026",
       "community": 211,
@@ -20369,7 +20379,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 52 \u2014 30.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L562",
+      "source_location": "L568",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_52_30_06_2026",
       "community": 211,
@@ -20379,7 +20389,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 51 \u2014 30.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L588",
+      "source_location": "L594",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_51_30_06_2026",
       "community": 211,
@@ -20389,7 +20399,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 50 \u2014 30.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L605",
+      "source_location": "L611",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_50_30_06_2026",
       "community": 211,
@@ -20399,7 +20409,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 49 \u2014 30.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L615",
+      "source_location": "L621",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_49_30_06_2026",
       "community": 211,
@@ -20409,7 +20419,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 48 \u2014 30.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L628",
+      "source_location": "L634",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_48_30_06_2026",
       "community": 211,
@@ -20419,7 +20429,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 47 \u2014 29.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L646",
+      "source_location": "L652",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_47_29_06_2026",
       "community": 211,
@@ -20429,7 +20439,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 46 \u2014 29.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L661",
+      "source_location": "L667",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_46_29_06_2026",
       "community": 211,
@@ -20439,7 +20449,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 45 \u2014 29.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L675",
+      "source_location": "L681",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_45_29_06_2026",
       "community": 211,
@@ -20449,7 +20459,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 44 \u2014 29.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L686",
+      "source_location": "L692",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_44_29_06_2026",
       "community": 211,
@@ -20459,7 +20469,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 43 \u2014 29.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L700",
+      "source_location": "L706",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_43_29_06_2026",
       "community": 211,
@@ -20469,7 +20479,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 42 \u2014 29.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L712",
+      "source_location": "L718",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_42_29_06_2026",
       "community": 211,
@@ -20479,7 +20489,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 41 \u2014 29.06.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L727",
+      "source_location": "L733",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_41_29_06_2026",
       "community": 211,
@@ -20489,7 +20499,7 @@
       "label": "\ud83c\udfd7 \u0410\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u043d\u044b\u0435 \u0440\u0435\u0448\u0435\u043d\u0438\u044f (ADRs)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L740",
+      "source_location": "L746",
       "_origin": "ast",
       "id": "state_\u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u043d\u044b\u0435_\u0440\u0435\u0448\u0435\u043d\u0438\u044f_adrs",
       "community": 312,
@@ -20499,7 +20509,7 @@
       "label": "\u0414\u0435\u0439\u0441\u0442\u0432\u0443\u044e\u0449\u0438\u0435",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L742",
+      "source_location": "L748",
       "_origin": "ast",
       "id": "state_\u0434\u0435\u0439\u0441\u0442\u0432\u0443\u044e\u0449\u0438\u0435",
       "community": 312,
@@ -20509,7 +20519,7 @@
       "label": "\ud83c\udd95 ADR-001 \u2014 PWA \u043a\u0430\u043a \u044f\u0434\u0440\u043e \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0430 (09.06.2026)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L753",
+      "source_location": "L759",
       "_origin": "ast",
       "id": "state_adr_001_pwa_\u043a\u0430\u043a_\u044f\u0434\u0440\u043e_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0430_09_06_2026",
       "community": 312,
@@ -20519,7 +20529,7 @@
       "label": "\ud83c\udd95 ADR-002 \u2014 \u0414\u0435\u0434\u0443\u043f\u043b\u0438\u043a\u0430\u0446\u0438\u044f \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439 (09.06.2026)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L774",
+      "source_location": "L780",
       "_origin": "ast",
       "id": "state_adr_002_\u0434\u0435\u0434\u0443\u043f\u043b\u0438\u043a\u0430\u0446\u0438\u044f_\u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439_09_06_2026",
       "community": 312,
@@ -20529,7 +20539,7 @@
       "label": "\ud83c\udd95 ADR-003 \u2014 \u0421\u0432\u044f\u0437\u043a\u0430 \u0430\u043a\u043a\u0430\u0443\u043d\u0442\u043e\u0432 PWA \u2194 Telegram (09.06.2026)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L784",
+      "source_location": "L790",
       "_origin": "ast",
       "id": "state_adr_003_\u0441\u0432\u044f\u0437\u043a\u0430_\u0430\u043a\u043a\u0430\u0443\u043d\u0442\u043e\u0432_pwa_telegram_09_06_2026",
       "community": 312,
@@ -20539,7 +20549,7 @@
       "label": "\u2705 Current \u2014 \u0447\u0442\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u0432 \u043f\u0440\u043e\u0434\u0435",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L802",
+      "source_location": "L808",
       "_origin": "ast",
       "id": "state_current_\u0447\u0442\u043e_\u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442_\u0432_\u043f\u0440\u043e\u0434\u0435",
       "community": 315,
@@ -20549,7 +20559,7 @@
       "label": "\u0418\u043d\u0444\u0440\u0430\u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L804",
+      "source_location": "L810",
       "_origin": "ast",
       "id": "state_\u0438\u043d\u0444\u0440\u0430\u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430",
       "community": 315,
@@ -20559,7 +20569,7 @@
       "label": "\u041f\u0440\u043e\u0434\u0443\u043a\u0442",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L812",
+      "source_location": "L818",
       "_origin": "ast",
       "id": "state_\u043f\u0440\u043e\u0434\u0443\u043a\u0442",
       "community": 315,
@@ -20569,7 +20579,7 @@
       "label": "\u041c\u043e\u0434\u0435\u043b\u044c \u0434\u0430\u043d\u043d\u044b\u0445 (users)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L846",
+      "source_location": "L852",
       "_origin": "ast",
       "id": "state_\u043c\u043e\u0434\u0435\u043b\u044c_\u0434\u0430\u043d\u043d\u044b\u0445_users",
       "community": 315,
@@ -20579,7 +20589,7 @@
       "label": "\ud83d\udfe1 \u0412 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0435 / \u043d\u0435\u0437\u0430\u043a\u0440\u044b\u0442\u044b\u0435 \u0437\u0430\u0434\u0430\u0447\u0438",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L864",
+      "source_location": "L870",
       "_origin": "ast",
       "id": "state_\u0432_\u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0435_\u043d\u0435\u0437\u0430\u043a\u0440\u044b\u0442\u044b\u0435_\u0437\u0430\u0434\u0430\u0447\u0438",
       "community": 300,
@@ -20589,7 +20599,7 @@
       "label": "\u041a\u0440\u0438\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u043f\u0443\u0442\u044c (\u0431\u043b\u043e\u043a\u0438\u0440\u0443\u0435\u0442 \u043c\u043e\u043d\u0435\u0442\u0438\u0437\u0430\u0446\u0438\u044e)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L866",
+      "source_location": "L872",
       "_origin": "ast",
       "id": "state_\u043a\u0440\u0438\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0439_\u043f\u0443\u0442\u044c_\u0431\u043b\u043e\u043a\u0438\u0440\u0443\u0435\u0442_\u043c\u043e\u043d\u0435\u0442\u0438\u0437\u0430\u0446\u0438\u044e",
       "community": 300,
@@ -20599,7 +20609,7 @@
       "label": "\u041f\u0440\u043e\u0434\u0443\u043a\u0442 \u2014 PWA (\u043d\u043e\u0432\u044b\u0435 \u0437\u0430\u0434\u0430\u0447\u0438 \u0438\u0437 ADR-001)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L871",
+      "source_location": "L877",
       "_origin": "ast",
       "id": "state_\u043f\u0440\u043e\u0434\u0443\u043a\u0442_pwa_\u043d\u043e\u0432\u044b\u0435_\u0437\u0430\u0434\u0430\u0447\u0438_\u0438\u0437_adr_001",
       "community": 300,
@@ -20609,7 +20619,7 @@
       "label": "\u041f\u0440\u043e\u0434\u0443\u043a\u0442 \u2014 Telegram-\u0431\u043e\u0442",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L894",
+      "source_location": "L900",
       "_origin": "ast",
       "id": "state_\u043f\u0440\u043e\u0434\u0443\u043a\u0442_telegram_\u0431\u043e\u0442",
       "community": 300,
@@ -20619,7 +20629,7 @@
       "label": "\u0414\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u044f (\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0438\u0437 \u0421\u0435\u0441\u0441\u0438\u0438 18)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L902",
+      "source_location": "L908",
       "_origin": "ast",
       "id": "state_\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u044f_\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435_\u0438\u0437_\u0441\u0435\u0441\u0441\u0438\u0438_18",
       "community": 300,
@@ -20629,7 +20639,7 @@
       "label": "\u0422\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u0434\u043e\u043b\u0433",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L910",
+      "source_location": "L916",
       "_origin": "ast",
       "id": "state_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0438\u0439_\u0434\u043e\u043b\u0433",
       "community": 300,
@@ -20639,7 +20649,7 @@
       "label": "\ud83d\udd34 \u0418\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0435 \u0431\u043b\u043e\u043a\u0435\u0440\u044b",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L918",
+      "source_location": "L924",
       "_origin": "ast",
       "id": "state_\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0435_\u0431\u043b\u043e\u043a\u0435\u0440\u044b",
       "community": 211,
@@ -20649,7 +20659,7 @@
       "label": "\u26a1 Video Assembler \u2014 Quick Start for Agent",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L930",
+      "source_location": "L936",
       "_origin": "ast",
       "id": "state_video_assembler_quick_start_for_agent",
       "community": 211,
@@ -20659,7 +20669,7 @@
       "label": "\ud83d\udda5 VPS",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L954",
+      "source_location": "L960",
       "_origin": "ast",
       "id": "state_vps",
       "community": 319,
@@ -20669,7 +20679,7 @@
       "label": "Docker \u043a\u043e\u043d\u0442\u0435\u0439\u043d\u0435\u0440\u044b",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L964",
+      "source_location": "L970",
       "_origin": "ast",
       "id": "state_docker_\u043a\u043e\u043d\u0442\u0435\u0439\u043d\u0435\u0440\u044b",
       "community": 319,
@@ -20679,7 +20689,7 @@
       "label": "Deploy commands",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L975",
+      "source_location": "L981",
       "_origin": "ast",
       "id": "state_deploy_commands",
       "community": 319,
@@ -20689,7 +20699,7 @@
       "label": "\ud83d\udccb \u041f\u043b\u0430\u043d\u044b \u0434\u043e\u0440\u0430\u0431\u043e\u0442\u043a\u0438 (\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0435)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L986",
+      "source_location": "L992",
       "_origin": "ast",
       "id": "state_\u043f\u043b\u0430\u043d\u044b_\u0434\u043e\u0440\u0430\u0431\u043e\u0442\u043a\u0438_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0435",
       "community": 330,
@@ -20699,7 +20709,7 @@
       "label": "\u041a\u043b\u044e\u0447\u0435\u0432\u044b\u0435 \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435 \u0440\u0435\u0448\u0435\u043d\u0438\u044f (\u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u044b)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L1001",
+      "source_location": "L1007",
       "_origin": "ast",
       "id": "state_\u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0435_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u0440\u0435\u0448\u0435\u043d\u0438\u044f_\u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u044b",
       "community": 330,
@@ -20709,7 +20719,7 @@
       "label": "\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0435 \u0437\u0430\u0434\u0430\u0447\u0438 (\u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L1015",
+      "source_location": "L1021",
       "_origin": "ast",
       "id": "state_\u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0435_\u0437\u0430\u0434\u0430\u0447\u0438_\u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442",
       "community": 211,
@@ -20719,7 +20729,7 @@
       "label": "\ud83d\udcd6 Protocol: End of Session",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L1023",
+      "source_location": "L1029",
       "_origin": "ast",
       "id": "state_protocol_end_of_session",
       "community": 329,
@@ -20729,7 +20739,7 @@
       "label": "\u0427\u0442\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u044f\u0435\u0442 \u0430\u0433\u0435\u043d\u0442",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L1027",
+      "source_location": "L1033",
       "_origin": "ast",
       "id": "state_\u0447\u0442\u043e_\u043e\u0431\u043d\u043e\u0432\u043b\u044f\u0435\u0442_\u0430\u0433\u0435\u043d\u0442",
       "community": 329,
@@ -20739,7 +20749,7 @@
       "label": "\ud83d\udcc5 \u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0441\u0435\u0441\u0441\u0438\u0439 (\u0445\u0440\u043e\u043d\u043e\u043b\u043e\u0433\u0438\u044f)",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L1035",
+      "source_location": "L1041",
       "_origin": "ast",
       "id": "state_\u0438\u0441\u0442\u043e\u0440\u0438\u044f_\u0441\u0435\u0441\u0441\u0438\u0439_\u0445\u0440\u043e\u043d\u043e\u043b\u043e\u0433\u0438\u044f",
       "community": 211,
@@ -20749,7 +20759,7 @@
       "label": "\u0421\u0435\u0441\u0441\u0438\u044f 78 \u2014 05.07.2026",
       "file_type": "document",
       "source_file": "STATE.md",
-      "source_location": "L1309",
+      "source_location": "L1315",
       "_origin": "ast",
       "id": "state_\u0441\u0435\u0441\u0441\u0438\u044f_78_05_07_2026",
       "community": 211,
@@ -24146,66 +24156,6 @@
       "norm_label": "9. \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u0444\u0430\u0438\u043b\u043e\u0432"
     },
     {
-      "label": "10. PWA v2 \u2014 \u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439 \u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0439 \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442",
-      "file_type": "document",
-      "source_file": "docs/design-system.md",
-      "source_location": "L195",
-      "_origin": "ast",
-      "id": "docs_design_system_10_pwa_v2_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442",
-      "community": 14,
-      "norm_label": "10. pwa v2 \u2014 \u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0438 \u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0438 \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442"
-    },
-    {
-      "label": "10.1 \u0410\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u0430\u044f PWA-\u0442\u0435\u043c\u0430",
-      "file_type": "document",
-      "source_file": "docs/design-system.md",
-      "source_location": "L200",
-      "_origin": "ast",
-      "id": "docs_design_system_10_1_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u0430\u044f_pwa_\u0442\u0435\u043c\u0430",
-      "community": 14,
-      "norm_label": "10.1 \u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u0430\u044f pwa-\u0442\u0435\u043c\u0430"
-    },
-    {
-      "label": "10.2 CSS source of truth",
-      "file_type": "document",
-      "source_file": "docs/design-system.md",
-      "source_location": "L213",
-      "_origin": "ast",
-      "id": "docs_design_system_10_2_css_source_of_truth",
-      "community": 14,
-      "norm_label": "10.2 css source of truth"
-    },
-    {
-      "label": "10.3 \u041a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u043d\u044b\u0435 \u043f\u0440\u0438\u043d\u0446\u0438\u043f\u044b PWA",
-      "file_type": "document",
-      "source_file": "docs/design-system.md",
-      "source_location": "L221",
-      "_origin": "ast",
-      "id": "docs_design_system_10_3_\u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u043d\u044b\u0435_\u043f\u0440\u0438\u043d\u0446\u0438\u043f\u044b_pwa",
-      "community": 14,
-      "norm_label": "10.3 \u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u043d\u044b\u0435 \u043f\u0440\u0438\u043d\u0446\u0438\u043f\u044b pwa"
-    },
-    {
-      "label": "10.4 Visual density",
-      "file_type": "document",
-      "source_file": "docs/design-system.md",
-      "source_location": "L237",
-      "_origin": "ast",
-      "id": "docs_design_system_10_4_visual_density",
-      "community": 14,
-      "norm_label": "10.4 visual density"
-    },
-    {
-      "label": "10.5 Typography",
-      "file_type": "document",
-      "source_file": "docs/design-system.md",
-      "source_location": "L243",
-      "_origin": "ast",
-      "id": "docs_design_system_10_5_typography",
-      "community": 14,
-      "norm_label": "10.5 typography"
-    },
-    {
       "label": "dev-prompts.md",
       "file_type": "document",
       "source_file": "docs/dev-prompts.md",
@@ -26709,7 +26659,7 @@
       "label": "5. iOS meta-\u0442\u0435\u0433\u0438",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L157",
+      "source_location": "L154",
       "_origin": "ast",
       "id": "docs_pwa_spec_5_ios_meta_\u0442\u0435\u0433\u0438",
       "community": 1,
@@ -26719,7 +26669,7 @@
       "label": "6. Service Worker",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L180",
+      "source_location": "L177",
       "_origin": "ast",
       "id": "docs_pwa_spec_6_service_worker",
       "community": 1,
@@ -26729,7 +26679,7 @@
       "label": "6.1 \u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f (\u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u0432 \u043a\u0430\u0436\u0434\u0443\u044e HTML-\u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0443)",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L184",
+      "source_location": "L181",
       "_origin": "ast",
       "id": "docs_pwa_spec_6_1_\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f_\u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c_\u0432_\u043a\u0430\u0436\u0434\u0443\u044e_html_\u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0443",
       "community": 1,
@@ -26739,7 +26689,7 @@
       "label": "6.2 \u0421\u043e\u0434\u0435\u0440\u0436\u0438\u043c\u043e\u0435 service-worker.js",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L198",
+      "source_location": "L195",
       "_origin": "ast",
       "id": "docs_pwa_spec_6_2_\u0441\u043e\u0434\u0435\u0440\u0436\u0438\u043c\u043e\u0435_service_worker_js",
       "community": 1,
@@ -26749,7 +26699,7 @@
       "label": "7. Web Push Backend",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L323",
+      "source_location": "L320",
       "_origin": "ast",
       "id": "docs_pwa_spec_7_web_push_backend",
       "community": 1,
@@ -26759,7 +26709,7 @@
       "label": "7.1 VAPID \u043a\u043b\u044e\u0447\u0438",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L325",
+      "source_location": "L322",
       "_origin": "ast",
       "id": "docs_pwa_spec_7_1_vapid_\u043a\u043b\u044e\u0447\u0438",
       "community": 1,
@@ -26769,7 +26719,7 @@
       "label": "7.2 \u041c\u043e\u0434\u0435\u043b\u044c \u0411\u0414",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L342",
+      "source_location": "L339",
       "_origin": "ast",
       "id": "docs_pwa_spec_7_2_\u043c\u043e\u0434\u0435\u043b\u044c_\u0431\u0434",
       "community": 1,
@@ -26779,7 +26729,7 @@
       "label": "7.3 \u041d\u043e\u0432\u044b\u0439 \u0444\u0430\u0439\u043b `api/routes/push.py`",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L353",
+      "source_location": "L350",
       "_origin": "ast",
       "id": "docs_pwa_spec_7_3_\u043d\u043e\u0432\u044b\u0439_\u0444\u0430\u0439\u043b_api_routes_push_py",
       "community": 1,
@@ -26789,7 +26739,7 @@
       "label": "7.4 \u041e\u0442\u043f\u0440\u0430\u0432\u043a\u0430 Web Push (utility)",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L419",
+      "source_location": "L416",
       "_origin": "ast",
       "id": "docs_pwa_spec_7_4_\u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0430_web_push_utility",
       "community": 1,
@@ -26799,7 +26749,7 @@
       "label": "7.5 \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 Celery-\u0437\u0430\u0434\u0430\u0447\u0438 send_daily_card",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L472",
+      "source_location": "L469",
       "_origin": "ast",
       "id": "docs_pwa_spec_7_5_\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435_celery_\u0437\u0430\u0434\u0430\u0447\u0438_send_daily_card",
       "community": 1,
@@ -26809,7 +26759,7 @@
       "label": "8. Install UI",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L505",
+      "source_location": "L502",
       "_origin": "ast",
       "id": "docs_pwa_spec_8_install_ui",
       "community": 1,
@@ -26819,7 +26769,7 @@
       "label": "8.1 Android \u2014 auto-prompt",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L507",
+      "source_location": "L504",
       "_origin": "ast",
       "id": "docs_pwa_spec_8_1_android_auto_prompt",
       "community": 1,
@@ -26829,7 +26779,7 @@
       "label": "8.2 iOS \u2014 \u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L548",
+      "source_location": "L545",
       "_origin": "ast",
       "id": "docs_pwa_spec_8_2_ios_\u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f",
       "community": 1,
@@ -26839,7 +26789,7 @@
       "label": "8.3 \u041c\u043e\u043c\u0435\u043d\u0442 \u043f\u043e\u043a\u0430\u0437\u0430 install UI",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L630",
+      "source_location": "L627",
       "_origin": "ast",
       "id": "docs_pwa_spec_8_3_\u043c\u043e\u043c\u0435\u043d\u0442_\u043f\u043e\u043a\u0430\u0437\u0430_install_ui",
       "community": 1,
@@ -26849,7 +26799,7 @@
       "label": "9. Web Share API",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L641",
+      "source_location": "L638",
       "_origin": "ast",
       "id": "docs_pwa_spec_9_web_share_api",
       "community": 1,
@@ -26859,7 +26809,7 @@
       "label": "10. \u041f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435 \u044d\u043a\u0440\u0430\u043d\u044b PWA (`/app/*`)",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L689",
+      "source_location": "L686",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u044d\u043a\u0440\u0430\u043d\u044b_pwa_app",
       "community": 1,
@@ -26869,7 +26819,7 @@
       "label": "10.1 \u0421\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430 \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u043e\u0432",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L691",
+      "source_location": "L688",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_1_\u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430_\u043c\u0430\u0440\u0448\u0440\u0443\u0442\u043e\u0432",
       "community": 1,
@@ -26879,7 +26829,7 @@
       "label": "10.2 \u041d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044f \u2014 \u043d\u0438\u0436\u043d\u0438\u0439 \u0442\u0430\u0431\u0431\u0430\u0440",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L700",
+      "source_location": "L697",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_2_\u043d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044f_\u043d\u0438\u0436\u043d\u0438\u0439_\u0442\u0430\u0431\u0431\u0430\u0440",
       "community": 1,
@@ -26889,7 +26839,7 @@
       "label": "10.3 \u042d\u043a\u0440\u0430\u043d /app (\u0433\u043b\u0430\u0432\u043d\u044b\u0439)",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L743",
+      "source_location": "L740",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_3_\u044d\u043a\u0440\u0430\u043d_app_\u0433\u043b\u0430\u0432\u043d\u044b\u0439",
       "community": 1,
@@ -26899,7 +26849,7 @@
       "label": "10.4 \u042d\u043a\u0440\u0430\u043d /app/tarot",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L753",
+      "source_location": "L750",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_4_\u044d\u043a\u0440\u0430\u043d_app_tarot",
       "community": 1,
@@ -26909,7 +26859,7 @@
       "label": "10.4.1 API: \u043a\u0430\u0440\u0442\u0430 \u0434\u043d\u044f",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L759",
+      "source_location": "L756",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_4_1_api_\u043a\u0430\u0440\u0442\u0430_\u0434\u043d\u044f",
       "community": 1,
@@ -26919,7 +26869,7 @@
       "label": "10.4.2 \u041f\u043e\u0442\u043e\u043a \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0438 (\u043f\u0440\u044f\u043c\u043e\u0439 \u043f\u043b\u0430\u0442\u0451\u0436)",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L780",
+      "source_location": "L777",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_4_2_\u043f\u043e\u0442\u043e\u043a_\u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0438_\u043f\u0440\u044f\u043c\u043e\u0439_\u043f\u043b\u0430\u0442\u0451\u0436",
       "community": 1,
@@ -26929,7 +26879,7 @@
       "label": "10.4.3 UX-\u0444\u0438\u0447\u0438",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L786",
+      "source_location": "L783",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_4_3_ux_\u0444\u0438\u0447\u0438",
       "community": 1,
@@ -26939,7 +26889,7 @@
       "label": "10.5 \u042d\u043a\u0440\u0430\u043d /app/chat",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L795",
+      "source_location": "L792",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_5_\u044d\u043a\u0440\u0430\u043d_app_chat",
       "community": 1,
@@ -26949,7 +26899,7 @@
       "label": "10.6 \u042d\u043a\u0440\u0430\u043d /app/profile",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L801",
+      "source_location": "L798",
       "_origin": "ast",
       "id": "docs_pwa_spec_10_6_\u044d\u043a\u0440\u0430\u043d_app_profile",
       "community": 1,
@@ -26959,7 +26909,7 @@
       "label": "11. \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f nginx.conf",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L816",
+      "source_location": "L813",
       "_origin": "ast",
       "id": "docs_pwa_spec_11_\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f_nginx_conf",
       "community": 1,
@@ -26969,7 +26919,7 @@
       "label": "12. \u0421\u0435\u0433\u043c\u0435\u043d\u0442\u044b iOS \u0438 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L848",
+      "source_location": "L845",
       "_origin": "ast",
       "id": "docs_pwa_spec_12_\u0441\u0435\u0433\u043c\u0435\u043d\u0442\u044b_ios_\u0438_\u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430",
       "community": 1,
@@ -26979,7 +26929,7 @@
       "label": "13. \u0427\u0435\u043a\u043b\u0438\u0441\u0442 \u0440\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u0447\u0438\u043a\u0430",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L872",
+      "source_location": "L869",
       "_origin": "ast",
       "id": "docs_pwa_spec_13_\u0447\u0435\u043a\u043b\u0438\u0441\u0442_\u0440\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u0447\u0438\u043a\u0430",
       "community": 1,
@@ -26989,7 +26939,7 @@
       "label": "\u041f\u0435\u0440\u0435\u0434 \u0434\u0435\u043f\u043b\u043e\u0435\u043c",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L874",
+      "source_location": "L871",
       "_origin": "ast",
       "id": "docs_pwa_spec_\u043f\u0435\u0440\u0435\u0434_\u0434\u0435\u043f\u043b\u043e\u0435\u043c",
       "community": 1,
@@ -26999,7 +26949,7 @@
       "label": "\u0422\u0435\u0441\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L889",
+      "source_location": "L886",
       "_origin": "ast",
       "id": "docs_pwa_spec_\u0442\u0435\u0441\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435",
       "community": 1,
@@ -27009,7 +26959,7 @@
       "label": "Lighthouse \u0446\u0435\u043b\u0438",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L900",
+      "source_location": "L897",
       "_origin": "ast",
       "id": "docs_pwa_spec_lighthouse_\u0446\u0435\u043b\u0438",
       "community": 1,
@@ -27019,7 +26969,7 @@
       "label": "14. \u041e\u0446\u0435\u043d\u043a\u0430 \u0442\u0440\u0443\u0434\u043e\u0437\u0430\u0442\u0440\u0430\u0442",
       "file_type": "document",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L931",
+      "source_location": "L928",
       "_origin": "ast",
       "id": "docs_pwa_spec_14_\u043e\u0446\u0435\u043d\u043a\u0430_\u0442\u0440\u0443\u0434\u043e\u0437\u0430\u0442\u0440\u0430\u0442",
       "community": 1,
@@ -31268,7 +31218,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 64,
+      "community": 22,
       "norm_label": "core/repositories/",
       "community_name": "DevOps & Agent Config",
       "id": "core_repositories"
@@ -31282,7 +31232,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 95,
+      "community": 93,
       "norm_label": "core/schemas/",
       "community_name": "Arcana Data & Matrix Service",
       "id": "core_schemas"
@@ -31436,7 +31386,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 48,
+      "community": 98,
       "norm_label": "fastapi",
       "community_name": "FastAPI & Celery Backend",
       "id": "fastapi"
@@ -31464,7 +31414,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 125,
+      "community": 68,
       "norm_label": "yookassa",
       "community_name": "Project Documentation & Architecture",
       "id": "yookassa"
@@ -31506,7 +31456,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 71,
+      "community": 13,
       "norm_label": "sqlalchemy",
       "community_name": "Database Migrations",
       "id": "sqlalchemy"
@@ -31688,7 +31638,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 95,
+      "community": 124,
       "norm_label": "pytest",
       "community_name": "CI/CD & Linting Setup",
       "id": "pytest"
@@ -32724,7 +32674,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 157,
+      "community": 339,
       "norm_label": "arcana_data",
       "community_name": "Matrix Calculation Core",
       "id": "arcanadata"
@@ -40825,7 +40775,7 @@
       "source_location": "L11",
       "weight": 1.0,
       "source": "nura_app_api_routes_tarot_pwa",
-      "target": "arcanadata",
+      "target": "nura_app_core_arcana_data",
       "confidence_score": 1.0
     },
     {
@@ -49565,7 +49515,7 @@
       "source_location": "L20",
       "weight": 1.0,
       "source": "nura_app_bot_handlers_tarot",
-      "target": "arcanadata",
+      "target": "nura_app_core_arcana_data",
       "confidence_score": 1.0
     },
     {
@@ -53525,6 +53475,17 @@
       "source_location": "L1",
       "weight": 1.0,
       "source": "nura_app_core_arcana_data_rationale_1",
+      "target": "nura_app_core_arcana_data",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "nura_app/core/services/matrix.py",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "nura_app_core_services_matrix",
       "target": "nura_app_core_arcana_data",
       "confidence_score": 1.0
     },
@@ -60723,17 +60684,6 @@
       "weight": 1.0,
       "source": "nura_app_core_services_report_reportservice_render_report_html",
       "target": "nura_app_core_services_daily_arcana_get_today_arcana_with_name"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "nura_app/core/services/matrix.py",
-      "source_location": "L9",
-      "weight": 1.0,
-      "source": "nura_app_core_services_matrix",
-      "target": "arcanadata",
-      "confidence_score": 1.0
     },
     {
       "relation": "imports_from",
@@ -75375,7 +75325,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L802",
+      "source_location": "L808",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_current_\u0447\u0442\u043e_\u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442_\u0432_\u043f\u0440\u043e\u0434\u0435",
@@ -75385,7 +75335,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L1023",
+      "source_location": "L1029",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_protocol_end_of_session",
@@ -75395,7 +75345,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L930",
+      "source_location": "L936",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_video_assembler_quick_start_for_agent",
@@ -75405,7 +75355,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L954",
+      "source_location": "L960",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_vps",
@@ -75415,7 +75365,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L740",
+      "source_location": "L746",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u043d\u044b\u0435_\u0440\u0435\u0448\u0435\u043d\u0438\u044f_adrs",
@@ -75425,7 +75375,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L864",
+      "source_location": "L870",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0432_\u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0435_\u043d\u0435\u0437\u0430\u043a\u0440\u044b\u0442\u044b\u0435_\u0437\u0430\u0434\u0430\u0447\u0438",
@@ -75435,7 +75385,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L918",
+      "source_location": "L924",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0435_\u0431\u043b\u043e\u043a\u0435\u0440\u044b",
@@ -75445,7 +75395,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L1035",
+      "source_location": "L1041",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0438\u0441\u0442\u043e\u0440\u0438\u044f_\u0441\u0435\u0441\u0441\u0438\u0439_\u0445\u0440\u043e\u043d\u043e\u043b\u043e\u0433\u0438\u044f",
@@ -75455,7 +75405,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L986",
+      "source_location": "L992",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u043f\u043b\u0430\u043d\u044b_\u0434\u043e\u0440\u0430\u0431\u043e\u0442\u043a\u0438_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0435",
@@ -75465,7 +75415,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L727",
+      "source_location": "L733",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_41_29_06_2026",
@@ -75475,7 +75425,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L712",
+      "source_location": "L718",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_42_29_06_2026",
@@ -75485,7 +75435,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L700",
+      "source_location": "L706",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_43_29_06_2026",
@@ -75495,7 +75445,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L686",
+      "source_location": "L692",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_44_29_06_2026",
@@ -75505,7 +75455,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L675",
+      "source_location": "L681",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_45_29_06_2026",
@@ -75515,7 +75465,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L661",
+      "source_location": "L667",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_46_29_06_2026",
@@ -75525,7 +75475,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L646",
+      "source_location": "L652",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_47_29_06_2026",
@@ -75535,7 +75485,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L628",
+      "source_location": "L634",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_48_30_06_2026",
@@ -75545,7 +75495,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L615",
+      "source_location": "L621",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_49_30_06_2026",
@@ -75555,7 +75505,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L605",
+      "source_location": "L611",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_50_30_06_2026",
@@ -75565,7 +75515,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L588",
+      "source_location": "L594",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_51_30_06_2026",
@@ -75575,7 +75525,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L562",
+      "source_location": "L568",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_52_30_06_2026",
@@ -75585,7 +75535,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L550",
+      "source_location": "L556",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_53_30_06_2026",
@@ -75595,7 +75545,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L537",
+      "source_location": "L543",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_54_30_06_2026",
@@ -75605,7 +75555,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L520",
+      "source_location": "L526",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_55_01_07_2026",
@@ -75615,7 +75565,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L502",
+      "source_location": "L508",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_56_02_07_2026",
@@ -75625,7 +75575,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L491",
+      "source_location": "L497",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_57_02_07_2026",
@@ -75635,7 +75585,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L475",
+      "source_location": "L481",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_58_02_07_2026",
@@ -75645,7 +75595,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L449",
+      "source_location": "L455",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_59_01_07_2026",
@@ -75655,7 +75605,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L429",
+      "source_location": "L435",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_60_01_07_2026",
@@ -75665,7 +75615,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L406",
+      "source_location": "L412",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_61_01_07_2026",
@@ -75675,7 +75625,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L375",
+      "source_location": "L381",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_62_01_07_2026",
@@ -75685,7 +75635,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L358",
+      "source_location": "L364",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_63_01_07_2026",
@@ -75695,7 +75645,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L341",
+      "source_location": "L347",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_64_01_07_2026",
@@ -75705,7 +75655,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L323",
+      "source_location": "L329",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_65_02_07_2026",
@@ -75715,7 +75665,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L304",
+      "source_location": "L310",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_66_02_07_2026",
@@ -75725,7 +75675,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L261",
+      "source_location": "L267",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_67_03_07_2026",
@@ -75735,7 +75685,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L239",
+      "source_location": "L245",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_68_04_07_2026",
@@ -75745,7 +75695,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L217",
+      "source_location": "L223",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_69_04_07_2026",
@@ -75755,7 +75705,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L196",
+      "source_location": "L202",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_70_04_07_2026",
@@ -75765,7 +75715,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L190",
+      "source_location": "L196",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_71_04_07_2026",
@@ -75775,7 +75725,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L174",
+      "source_location": "L180",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_72_04_07_2026",
@@ -75785,7 +75735,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L159",
+      "source_location": "L165",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_73_04_07_2026",
@@ -75795,7 +75745,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L142",
+      "source_location": "L148",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_74_04_07_2026",
@@ -75805,7 +75755,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L127",
+      "source_location": "L133",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_75_04_07_2026",
@@ -75815,7 +75765,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L111",
+      "source_location": "L117",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_76_04_07_2026",
@@ -75825,7 +75775,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L96",
+      "source_location": "L102",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_77_04_07_2026",
@@ -75835,7 +75785,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L1309",
+      "source_location": "L1315",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_78_05_07_2026",
@@ -75845,7 +75795,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L79",
+      "source_location": "L85",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_79_06_07_2026",
@@ -75855,7 +75805,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L64",
+      "source_location": "L70",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_80_06_07_2026",
@@ -75865,7 +75815,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L51",
+      "source_location": "L57",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_81_09_07_2026",
@@ -75875,7 +75825,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L38",
+      "source_location": "L44",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_82_09_07_2026",
@@ -75885,10 +75835,20 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L25",
+      "source_location": "L31",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_83_09_07_2026",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "STATE.md",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "state_nura_state",
+      "target": "state_\u0441\u0435\u0441\u0441\u0438\u044f_84_09_07_2026",
       "confidence_score": 1.0
     },
     {
@@ -75905,7 +75865,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L1015",
+      "source_location": "L1021",
       "weight": 1.0,
       "source": "state_nura_state",
       "target": "state_\u0441\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0435_\u0437\u0430\u0434\u0430\u0447\u0438_\u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442",
@@ -75915,7 +75875,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L753",
+      "source_location": "L759",
       "weight": 1.0,
       "source": "state_\u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u043d\u044b\u0435_\u0440\u0435\u0448\u0435\u043d\u0438\u044f_adrs",
       "target": "state_adr_001_pwa_\u043a\u0430\u043a_\u044f\u0434\u0440\u043e_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u0430_09_06_2026",
@@ -75925,7 +75885,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L774",
+      "source_location": "L780",
       "weight": 1.0,
       "source": "state_\u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u043d\u044b\u0435_\u0440\u0435\u0448\u0435\u043d\u0438\u044f_adrs",
       "target": "state_adr_002_\u0434\u0435\u0434\u0443\u043f\u043b\u0438\u043a\u0430\u0446\u0438\u044f_\u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u0439_09_06_2026",
@@ -75935,7 +75895,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L784",
+      "source_location": "L790",
       "weight": 1.0,
       "source": "state_\u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u043d\u044b\u0435_\u0440\u0435\u0448\u0435\u043d\u0438\u044f_adrs",
       "target": "state_adr_003_\u0441\u0432\u044f\u0437\u043a\u0430_\u0430\u043a\u043a\u0430\u0443\u043d\u0442\u043e\u0432_pwa_telegram_09_06_2026",
@@ -75945,7 +75905,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L742",
+      "source_location": "L748",
       "weight": 1.0,
       "source": "state_\u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u043d\u044b\u0435_\u0440\u0435\u0448\u0435\u043d\u0438\u044f_adrs",
       "target": "state_\u0434\u0435\u0439\u0441\u0442\u0432\u0443\u044e\u0449\u0438\u0435",
@@ -75955,7 +75915,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L804",
+      "source_location": "L810",
       "weight": 1.0,
       "source": "state_current_\u0447\u0442\u043e_\u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442_\u0432_\u043f\u0440\u043e\u0434\u0435",
       "target": "state_\u0438\u043d\u0444\u0440\u0430\u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430",
@@ -75965,7 +75925,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L846",
+      "source_location": "L852",
       "weight": 1.0,
       "source": "state_current_\u0447\u0442\u043e_\u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442_\u0432_\u043f\u0440\u043e\u0434\u0435",
       "target": "state_\u043c\u043e\u0434\u0435\u043b\u044c_\u0434\u0430\u043d\u043d\u044b\u0445_users",
@@ -75975,7 +75935,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L812",
+      "source_location": "L818",
       "weight": 1.0,
       "source": "state_current_\u0447\u0442\u043e_\u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442_\u0432_\u043f\u0440\u043e\u0434\u0435",
       "target": "state_\u043f\u0440\u043e\u0434\u0443\u043a\u0442",
@@ -75985,7 +75945,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L902",
+      "source_location": "L908",
       "weight": 1.0,
       "source": "state_\u0432_\u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0435_\u043d\u0435\u0437\u0430\u043a\u0440\u044b\u0442\u044b\u0435_\u0437\u0430\u0434\u0430\u0447\u0438",
       "target": "state_\u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u044f_\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435_\u0438\u0437_\u0441\u0435\u0441\u0441\u0438\u0438_18",
@@ -75995,7 +75955,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L866",
+      "source_location": "L872",
       "weight": 1.0,
       "source": "state_\u0432_\u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0435_\u043d\u0435\u0437\u0430\u043a\u0440\u044b\u0442\u044b\u0435_\u0437\u0430\u0434\u0430\u0447\u0438",
       "target": "state_\u043a\u0440\u0438\u0442\u0438\u0447\u0435\u0441\u043a\u0438\u0439_\u043f\u0443\u0442\u044c_\u0431\u043b\u043e\u043a\u0438\u0440\u0443\u0435\u0442_\u043c\u043e\u043d\u0435\u0442\u0438\u0437\u0430\u0446\u0438\u044e",
@@ -76005,7 +75965,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L871",
+      "source_location": "L877",
       "weight": 1.0,
       "source": "state_\u0432_\u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0435_\u043d\u0435\u0437\u0430\u043a\u0440\u044b\u0442\u044b\u0435_\u0437\u0430\u0434\u0430\u0447\u0438",
       "target": "state_\u043f\u0440\u043e\u0434\u0443\u043a\u0442_pwa_\u043d\u043e\u0432\u044b\u0435_\u0437\u0430\u0434\u0430\u0447\u0438_\u0438\u0437_adr_001",
@@ -76015,7 +75975,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L894",
+      "source_location": "L900",
       "weight": 1.0,
       "source": "state_\u0432_\u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0435_\u043d\u0435\u0437\u0430\u043a\u0440\u044b\u0442\u044b\u0435_\u0437\u0430\u0434\u0430\u0447\u0438",
       "target": "state_\u043f\u0440\u043e\u0434\u0443\u043a\u0442_telegram_\u0431\u043e\u0442",
@@ -76025,7 +75985,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L910",
+      "source_location": "L916",
       "weight": 1.0,
       "source": "state_\u0432_\u043f\u0440\u043e\u0446\u0435\u0441\u0441\u0435_\u043d\u0435\u0437\u0430\u043a\u0440\u044b\u0442\u044b\u0435_\u0437\u0430\u0434\u0430\u0447\u0438",
       "target": "state_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0438\u0439_\u0434\u043e\u043b\u0433",
@@ -76035,7 +75995,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L975",
+      "source_location": "L981",
       "weight": 1.0,
       "source": "state_vps",
       "target": "state_deploy_commands",
@@ -76045,7 +76005,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L964",
+      "source_location": "L970",
       "weight": 1.0,
       "source": "state_vps",
       "target": "state_docker_\u043a\u043e\u043d\u0442\u0435\u0439\u043d\u0435\u0440\u044b",
@@ -76055,7 +76015,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L1001",
+      "source_location": "L1007",
       "weight": 1.0,
       "source": "state_\u043f\u043b\u0430\u043d\u044b_\u0434\u043e\u0440\u0430\u0431\u043e\u0442\u043a\u0438_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0435",
       "target": "state_\u043a\u043b\u044e\u0447\u0435\u0432\u044b\u0435_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u0440\u0435\u0448\u0435\u043d\u0438\u044f_\u0437\u0430\u0444\u0438\u043a\u0441\u0438\u0440\u043e\u0432\u0430\u043d\u044b",
@@ -76065,7 +76025,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "STATE.md",
-      "source_location": "L1027",
+      "source_location": "L1033",
       "weight": 1.0,
       "source": "state_protocol_end_of_session",
       "target": "state_\u0447\u0442\u043e_\u043e\u0431\u043d\u043e\u0432\u043b\u044f\u0435\u0442_\u0430\u0433\u0435\u043d\u0442",
@@ -79135,16 +79095,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/design-system.md",
-      "source_location": "L195",
-      "weight": 1.0,
-      "source": "docs_design_system_nura_design_system",
-      "target": "docs_design_system_10_pwa_v2_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/design-system.md",
       "source_location": "L7",
       "weight": 1.0,
       "source": "docs_design_system_nura_design_system",
@@ -79369,56 +79319,6 @@
       "weight": 1.0,
       "source": "docs_design_system_6_\u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u044b_\u043b\u0435\u043d\u0434\u0438\u043d\u0433\u0430",
       "target": "docs_design_system_\u0448\u0430\u0433\u0438",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/design-system.md",
-      "source_location": "L200",
-      "weight": 1.0,
-      "source": "docs_design_system_10_pwa_v2_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442",
-      "target": "docs_design_system_10_1_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u0430\u044f_pwa_\u0442\u0435\u043c\u0430",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/design-system.md",
-      "source_location": "L213",
-      "weight": 1.0,
-      "source": "docs_design_system_10_pwa_v2_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442",
-      "target": "docs_design_system_10_2_css_source_of_truth",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/design-system.md",
-      "source_location": "L221",
-      "weight": 1.0,
-      "source": "docs_design_system_10_pwa_v2_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442",
-      "target": "docs_design_system_10_3_\u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u043d\u044b\u0435_\u043f\u0440\u0438\u043d\u0446\u0438\u043f\u044b_pwa",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/design-system.md",
-      "source_location": "L237",
-      "weight": 1.0,
-      "source": "docs_design_system_10_pwa_v2_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442",
-      "target": "docs_design_system_10_4_visual_density",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "docs/design-system.md",
-      "source_location": "L243",
-      "weight": 1.0,
-      "source": "docs_design_system_10_pwa_v2_\u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u044b\u0439_\u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442",
-      "target": "docs_design_system_10_5_typography",
       "confidence_score": 1.0
     },
     {
@@ -81775,7 +81675,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L689",
+      "source_location": "L686",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_10_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u044d\u043a\u0440\u0430\u043d\u044b_pwa_app",
@@ -81785,7 +81685,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L816",
+      "source_location": "L813",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_11_\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f_nginx_conf",
@@ -81795,7 +81695,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L848",
+      "source_location": "L845",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_12_\u0441\u0435\u0433\u043c\u0435\u043d\u0442\u044b_ios_\u0438_\u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430",
@@ -81805,7 +81705,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L872",
+      "source_location": "L869",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_13_\u0447\u0435\u043a\u043b\u0438\u0441\u0442_\u0440\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u0447\u0438\u043a\u0430",
@@ -81815,7 +81715,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L931",
+      "source_location": "L928",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_14_\u043e\u0446\u0435\u043d\u043a\u0430_\u0442\u0440\u0443\u0434\u043e\u0437\u0430\u0442\u0440\u0430\u0442",
@@ -81865,7 +81765,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L157",
+      "source_location": "L154",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_5_ios_meta_\u0442\u0435\u0433\u0438",
@@ -81875,7 +81775,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L180",
+      "source_location": "L177",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_6_service_worker",
@@ -81885,7 +81785,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L323",
+      "source_location": "L320",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_7_web_push_backend",
@@ -81895,7 +81795,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L505",
+      "source_location": "L502",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_8_install_ui",
@@ -81905,7 +81805,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L641",
+      "source_location": "L638",
       "weight": 1.0,
       "source": "docs_pwa_spec_nura_pwa_\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f_\u0441\u043f\u0435\u0446\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f",
       "target": "docs_pwa_spec_9_web_share_api",
@@ -81915,7 +81815,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L184",
+      "source_location": "L181",
       "weight": 1.0,
       "source": "docs_pwa_spec_6_service_worker",
       "target": "docs_pwa_spec_6_1_\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044f_\u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c_\u0432_\u043a\u0430\u0436\u0434\u0443\u044e_html_\u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0443",
@@ -81925,7 +81825,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L198",
+      "source_location": "L195",
       "weight": 1.0,
       "source": "docs_pwa_spec_6_service_worker",
       "target": "docs_pwa_spec_6_2_\u0441\u043e\u0434\u0435\u0440\u0436\u0438\u043c\u043e\u0435_service_worker_js",
@@ -81935,7 +81835,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L325",
+      "source_location": "L322",
       "weight": 1.0,
       "source": "docs_pwa_spec_7_web_push_backend",
       "target": "docs_pwa_spec_7_1_vapid_\u043a\u043b\u044e\u0447\u0438",
@@ -81945,7 +81845,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L342",
+      "source_location": "L339",
       "weight": 1.0,
       "source": "docs_pwa_spec_7_web_push_backend",
       "target": "docs_pwa_spec_7_2_\u043c\u043e\u0434\u0435\u043b\u044c_\u0431\u0434",
@@ -81955,7 +81855,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L353",
+      "source_location": "L350",
       "weight": 1.0,
       "source": "docs_pwa_spec_7_web_push_backend",
       "target": "docs_pwa_spec_7_3_\u043d\u043e\u0432\u044b\u0439_\u0444\u0430\u0439\u043b_api_routes_push_py",
@@ -81965,7 +81865,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L419",
+      "source_location": "L416",
       "weight": 1.0,
       "source": "docs_pwa_spec_7_web_push_backend",
       "target": "docs_pwa_spec_7_4_\u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0430_web_push_utility",
@@ -81975,7 +81875,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L472",
+      "source_location": "L469",
       "weight": 1.0,
       "source": "docs_pwa_spec_7_web_push_backend",
       "target": "docs_pwa_spec_7_5_\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435_celery_\u0437\u0430\u0434\u0430\u0447\u0438_send_daily_card",
@@ -81985,7 +81885,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L507",
+      "source_location": "L504",
       "weight": 1.0,
       "source": "docs_pwa_spec_8_install_ui",
       "target": "docs_pwa_spec_8_1_android_auto_prompt",
@@ -81995,7 +81895,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L548",
+      "source_location": "L545",
       "weight": 1.0,
       "source": "docs_pwa_spec_8_install_ui",
       "target": "docs_pwa_spec_8_2_ios_\u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f",
@@ -82005,7 +81905,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L630",
+      "source_location": "L627",
       "weight": 1.0,
       "source": "docs_pwa_spec_8_install_ui",
       "target": "docs_pwa_spec_8_3_\u043c\u043e\u043c\u0435\u043d\u0442_\u043f\u043e\u043a\u0430\u0437\u0430_install_ui",
@@ -82015,7 +81915,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L691",
+      "source_location": "L688",
       "weight": 1.0,
       "source": "docs_pwa_spec_10_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u044d\u043a\u0440\u0430\u043d\u044b_pwa_app",
       "target": "docs_pwa_spec_10_1_\u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430_\u043c\u0430\u0440\u0448\u0440\u0443\u0442\u043e\u0432",
@@ -82025,7 +81925,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L700",
+      "source_location": "L697",
       "weight": 1.0,
       "source": "docs_pwa_spec_10_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u044d\u043a\u0440\u0430\u043d\u044b_pwa_app",
       "target": "docs_pwa_spec_10_2_\u043d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044f_\u043d\u0438\u0436\u043d\u0438\u0439_\u0442\u0430\u0431\u0431\u0430\u0440",
@@ -82035,7 +81935,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L743",
+      "source_location": "L740",
       "weight": 1.0,
       "source": "docs_pwa_spec_10_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u044d\u043a\u0440\u0430\u043d\u044b_pwa_app",
       "target": "docs_pwa_spec_10_3_\u044d\u043a\u0440\u0430\u043d_app_\u0433\u043b\u0430\u0432\u043d\u044b\u0439",
@@ -82045,7 +81945,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L753",
+      "source_location": "L750",
       "weight": 1.0,
       "source": "docs_pwa_spec_10_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u044d\u043a\u0440\u0430\u043d\u044b_pwa_app",
       "target": "docs_pwa_spec_10_4_\u044d\u043a\u0440\u0430\u043d_app_tarot",
@@ -82055,7 +81955,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L795",
+      "source_location": "L792",
       "weight": 1.0,
       "source": "docs_pwa_spec_10_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u044d\u043a\u0440\u0430\u043d\u044b_pwa_app",
       "target": "docs_pwa_spec_10_5_\u044d\u043a\u0440\u0430\u043d_app_chat",
@@ -82065,7 +81965,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L801",
+      "source_location": "L798",
       "weight": 1.0,
       "source": "docs_pwa_spec_10_\u043f\u0440\u043e\u0434\u0443\u043a\u0442\u043e\u0432\u044b\u0435_\u044d\u043a\u0440\u0430\u043d\u044b_pwa_app",
       "target": "docs_pwa_spec_10_6_\u044d\u043a\u0440\u0430\u043d_app_profile",
@@ -82075,7 +81975,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L759",
+      "source_location": "L756",
       "weight": 1.0,
       "source": "docs_pwa_spec_10_4_\u044d\u043a\u0440\u0430\u043d_app_tarot",
       "target": "docs_pwa_spec_10_4_1_api_\u043a\u0430\u0440\u0442\u0430_\u0434\u043d\u044f",
@@ -82085,7 +81985,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L780",
+      "source_location": "L777",
       "weight": 1.0,
       "source": "docs_pwa_spec_10_4_\u044d\u043a\u0440\u0430\u043d_app_tarot",
       "target": "docs_pwa_spec_10_4_2_\u043f\u043e\u0442\u043e\u043a_\u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0438_\u043f\u0440\u044f\u043c\u043e\u0439_\u043f\u043b\u0430\u0442\u0451\u0436",
@@ -82095,7 +81995,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L786",
+      "source_location": "L783",
       "weight": 1.0,
       "source": "docs_pwa_spec_10_4_\u044d\u043a\u0440\u0430\u043d_app_tarot",
       "target": "docs_pwa_spec_10_4_3_ux_\u0444\u0438\u0447\u0438",
@@ -82105,7 +82005,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L900",
+      "source_location": "L897",
       "weight": 1.0,
       "source": "docs_pwa_spec_13_\u0447\u0435\u043a\u043b\u0438\u0441\u0442_\u0440\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u0447\u0438\u043a\u0430",
       "target": "docs_pwa_spec_lighthouse_\u0446\u0435\u043b\u0438",
@@ -82115,7 +82015,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L874",
+      "source_location": "L871",
       "weight": 1.0,
       "source": "docs_pwa_spec_13_\u0447\u0435\u043a\u043b\u0438\u0441\u0442_\u0440\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u0447\u0438\u043a\u0430",
       "target": "docs_pwa_spec_\u043f\u0435\u0440\u0435\u0434_\u0434\u0435\u043f\u043b\u043e\u0435\u043c",
@@ -82125,7 +82025,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/pwa-spec.md",
-      "source_location": "L889",
+      "source_location": "L886",
       "weight": 1.0,
       "source": "docs_pwa_spec_13_\u0447\u0435\u043a\u043b\u0438\u0441\u0442_\u0440\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u0447\u0438\u043a\u0430",
       "target": "docs_pwa_spec_\u0442\u0435\u0441\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435",
@@ -86193,5 +86093,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "9133b27b37568a967c78849fb8cf5ddcf96198a0"
+  "built_at_commit": "db019bc043eda47af703c80e1682fe7b3bbdc6f4"
 }
