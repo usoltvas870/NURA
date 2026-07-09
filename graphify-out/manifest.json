@@ -70,8 +70,8 @@
     "semantic_hash": "1206c1d5073380d4104790421c6aeae5"
   },
   "deploy.sh": {
-    "mtime": 1783330958.8369465,
-    "ast_hash": "227e16907876f9d90430cfa1000e6ed3",
+    "mtime": 1783161002.7310236,
+    "ast_hash": "bd8c7834a4251a6be8ca28a6eae61b1b",
     "semantic_hash": ""
   },
   "frontend/pwa-install.js": {
@@ -240,8 +240,8 @@
     "semantic_hash": ""
   },
   "nura_app/api/routes/web.py": {
-    "mtime": 1783339168.773725,
-    "ast_hash": "ebfddd1b1cac8e761bf40404fd6c07dd",
+    "mtime": 1783100941.372366,
+    "ast_hash": "b3f73b5d8b0f31bf2534bb6983343f0f",
     "semantic_hash": ""
   },
   "nura_app/bot/__init__.py": {
@@ -460,8 +460,8 @@
     "semantic_hash": "c54e2e0daaa9ddf5c37a06f022bf59bf"
   },
   "nura_app/core/config.py": {
-    "mtime": 1783337155.6863143,
-    "ast_hash": "efa3d62e18651fb2528591008c6550e4",
+    "mtime": 1783136257.0441544,
+    "ast_hash": "228a86cde76ec15e34c89b4413799e20",
     "semantic_hash": ""
   },
   "nura_app/core/database.py": {
@@ -740,8 +740,8 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1783355012.5949838,
-    "ast_hash": "8b0eb48890a83f6eeef986fa2ac51fac",
+    "mtime": 1782790402.8535345,
+    "ast_hash": "d3fd6fe34ca89f2440cf8d31b89191e4",
     "semantic_hash": ""
   },
   "docs/NURA FORMS SYSTEM.txt": {
@@ -865,33 +865,33 @@
     "semantic_hash": ""
   },
   "frontend/pwa/app/chat.html": {
-    "mtime": 1783575107.0748432,
-    "ast_hash": "641da732c6004f05e4e83085f9ff06b3",
+    "mtime": 1783163196.4332094,
+    "ast_hash": "49fe8f0c55592fb01db44081b9a86206",
     "semantic_hash": ""
   },
   "frontend/pwa/app/index.html": {
-    "mtime": 1783574928.4296968,
-    "ast_hash": "7aa9fb410ee59eaea2e91e4600c96108",
+    "mtime": 1783163451.1174636,
+    "ast_hash": "103f25113f105a8b0a699fa6ae6d9edd",
     "semantic_hash": ""
   },
   "frontend/pwa/app/profile.html": {
-    "mtime": 1783575218.5145857,
-    "ast_hash": "a592091124e750ce340b560bc3ce3595",
+    "mtime": 1783163549.0707257,
+    "ast_hash": "a1c2f05bcb22921a92fe76446688d3e9",
     "semantic_hash": ""
   },
   "frontend/pwa/app/tarot.html": {
-    "mtime": 1783575232.5113082,
-    "ast_hash": "b7419427da79f7db3e4c2125f25e80ab",
+    "mtime": 1783163549.9762905,
+    "ast_hash": "789d74d10da277c38375affaa149202a",
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1783331805.8043337,
-    "ast_hash": "f55c8e6b58ed42b0b395bc32f4df289b",
+    "mtime": 1783157292.7307003,
+    "ast_hash": "74f7d35bc913612ddf9b746e863ea1cb",
     "semantic_hash": ""
   },
   "mini.html": {
-    "mtime": 1783331806.6166189,
-    "ast_hash": "ee093bb260da5cc78c6859faba2f30ca",
+    "mtime": 1783163548.2465196,
+    "ast_hash": "d4052af202dfd80a4be4ac273101c394",
     "semantic_hash": ""
   },
   "nura_app/core/prompts/compatibility_full.txt": {
@@ -1130,8 +1130,8 @@
     "semantic_hash": ""
   },
   "STATE.md": {
-    "mtime": 1783575298.624152,
-    "ast_hash": "24f27d034f8a7ca8ca65f4e54676fda4",
+    "mtime": 1783163859.5988338,
+    "ast_hash": "39f439256b5aa824d3f3ce438a164ec5",
     "semantic_hash": ""
   },
   "frontend/manifest.json": {
@@ -1140,8 +1140,8 @@
     "semantic_hash": ""
   },
   "frontend/pwa/app/nura-pwa.js": {
-    "mtime": 1783355012.5997984,
-    "ast_hash": "63479b579a80c57bb0a7d936f83d8249",
+    "mtime": 1782978139.7732735,
+    "ast_hash": "38df66725eba489cccdc7994f82a7cd4",
     "semantic_hash": ""
   },
   "nura_pwa_product_logic_v3_logo/chat.html": {
@@ -1215,13 +1215,13 @@
     "semantic_hash": ""
   },
   "privacy.html": {
-    "mtime": 1783164977.9826753,
-    "ast_hash": "e39e26ce4323a0fcfa8b72a616c7a663",
+    "mtime": 1783163498.7268033,
+    "ast_hash": "68d28e06251e905b2e86ab2ec7f83c75",
     "semantic_hash": ""
   },
   "nura_app/api/dependencies.py": {
-    "mtime": 1783337161.7602372,
-    "ast_hash": "ac919a7f69c4708d0fd56690e6ad790b",
+    "mtime": 1783159638.6397388,
+    "ast_hash": "f271c4fa080d9dacda3f06c9e25f7103",
     "semantic_hash": ""
   },
   "DEPLOY.md": {
@@ -1234,6 +1234,46 @@
     "ast_hash": "cfe72d085fece880b222f81e1d52c5c8",
     "semantic_hash": ""
   },
+  "frontend/pwa/app/images/hero-greeting.png": {
+    "mtime": 1782301117.2231421,
+    "ast_hash": "54a891d4523a875b73a3ec4fe0ede629",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/matrix-car.png": {
+    "mtime": 1782301191.3178625,
+    "ast_hash": "876ee49ab06553df2748ed88f02f5a95",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-body.png": {
+    "mtime": 1782301544.7884195,
+    "ast_hash": "0f3c366b813a5ff449caf42fc60ce8ed",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-breath.png": {
+    "mtime": 1782301490.6209767,
+    "ast_hash": "af90ec43c893fac978f308c9d9e2e490",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-journal.png": {
+    "mtime": 1782301357.7769053,
+    "ast_hash": "7d16204bf3f8e7bbe878f9ff36c9dbee",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-meditation.png": {
+    "mtime": 1782301312.6796832,
+    "ast_hash": "6d7cb5e3b0892da9f3d54823f9cf3977",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-nature.png": {
+    "mtime": 1782301447.0593073,
+    "ast_hash": "3b5eb0fac703ad52779284eaa2829033",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/tarot-hero.png": {
+    "mtime": 1782301259.4837132,
+    "ast_hash": "9c5dfa9c04d91bae279720d5551bdce1",
+    "semantic_hash": ""
+  },
   "nura_app/api/routes/admin_api.py": {
     "mtime": 1782900539.1863668,
     "ast_hash": "c6e3b78485ce10f08a4934554ed8609e",
@@ -1244,14 +1284,54 @@
     "ast_hash": "c01d656676de478bf139876e3037ab28",
     "semantic_hash": ""
   },
+  "frontend/pwa/app/images/hero-greeting.webp": {
+    "mtime": 1782315245.5163324,
+    "ast_hash": "f22fbf48dec42ecf876366e721066283",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/matrix-card.webp": {
+    "mtime": 1782315245.5173323,
+    "ast_hash": "46d87db56daa6fa5d77196e5235bac3e",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-body.webp": {
+    "mtime": 1782315245.5183318,
+    "ast_hash": "9ce0e1001674fb0a665623d6eaf31038",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-breath.webp": {
+    "mtime": 1782315245.5183318,
+    "ast_hash": "f9ca905a29dc5577aaebe16b84f3e25a",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-journal.webp": {
+    "mtime": 1782315245.5198023,
+    "ast_hash": "869971344b7e569025ce7ad936bace61",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-meditation.webp": {
+    "mtime": 1782315245.5208066,
+    "ast_hash": "7d7d56bd37a90d19fd0c37e6e3587842",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/practice-nature.webp": {
+    "mtime": 1782315245.5208066,
+    "ast_hash": "ebf4c85d876665bcd3ddc9d3cf419766",
+    "semantic_hash": ""
+  },
+  "frontend/pwa/app/images/tarot-hero.webp": {
+    "mtime": 1782315245.5230017,
+    "ast_hash": "c642c7a662297abcbda8e5a6ee03a798",
+    "semantic_hash": ""
+  },
   "contacts.html": {
-    "mtime": 1783164974.194189,
-    "ast_hash": "c67d9f46731c5973a1e88ddb430f7f6f",
+    "mtime": 1782359755.5685656,
+    "ast_hash": "e1c1778e1614a1b91900247db08a6453",
     "semantic_hash": ""
   },
   "offer.html": {
-    "mtime": 1783164977.143234,
-    "ast_hash": "7b3e7019b4fbcaea4468e47c5534d5bd",
+    "mtime": 1783162575.56058,
+    "ast_hash": "fc00c15e6a9b29463ba8fb9db7e535d4",
     "semantic_hash": ""
   },
   "nura_app/alembic/versions/d4e5f6a7b8c9_add_web_session_expires_at.py": {
@@ -1475,8 +1555,8 @@
     "semantic_hash": ""
   },
   "frontend/pwa/app/success.html": {
-    "mtime": 1783355012.6007986,
-    "ast_hash": "79d4e29e966846ce20162fb3d332aa3a",
+    "mtime": 1782730810.5094764,
+    "ast_hash": "abf5825d4cdca505878f81bce2938da4",
     "semantic_hash": ""
   },
   "industry-standard-analysis.md": {
@@ -1525,8 +1605,8 @@
     "semantic_hash": ""
   },
   "nura_app/core/services/auth.py": {
-    "mtime": 1783330956.00499,
-    "ast_hash": "b87cb50d30dbee6f6c2059053a702329",
+    "mtime": 1783159575.857592,
+    "ast_hash": "fadc8fa4b05e6d6affd43f8d0724dd0a",
     "semantic_hash": ""
   },
   "docs/auth_system_implementation_plan.md": {
@@ -1722,261 +1802,6 @@
   "privacy.backup.html": {
     "mtime": 1782104788.6452284,
     "ast_hash": "4d9af10abe47b4857b6dd9c48773745a",
-    "semantic_hash": ""
-  },
-  ".codex/hooks.json": {
-    "mtime": 1783308902.7420797,
-    "ast_hash": "d3d6fa822ad18591570516224a2ac74c",
-    "semantic_hash": ""
-  },
-  "NURA_SITE_QA_AUDIT_2026-07-06.md": {
-    "mtime": 1783329827.936415,
-    "ast_hash": "4fc01938df8c61ceef280bd86b27102a",
-    "semantic_hash": ""
-  },
-  "marketing-consent.html": {
-    "mtime": 1783164972.5131824,
-    "ast_hash": "0150668606e8637a5624b712c61f7c0c",
-    "semantic_hash": ""
-  },
-  "nura_app/templates/reports/_footer.html": {
-    "mtime": 1783335856.9038205,
-    "ast_hash": "34ccc2156a66f2b6d43f0136c872e8b4",
-    "semantic_hash": ""
-  },
-  "personal-data-consent.html": {
-    "mtime": 1783164971.671361,
-    "ast_hash": "811a07af4c54ae0e0aaf968b20495f4a",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/chat/chat-card-hint-illustration.png": {
-    "mtime": 1783506012.291273,
-    "ast_hash": "05777fa4b74b3ad3d3600bcd2c7ca80d",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/chat/chat-nura-avatar.png": {
-    "mtime": 1783573461.014812,
-    "ast_hash": "b39d9dcb7929219d133ef7cd3717d8bb",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/home/ask-nura-icon.png": {
-    "mtime": 1783572847.4999037,
-    "ast_hash": "d17f7ce376a7dd8485c18b6cd086da9c",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/home/quick-chat-icon.png": {
-    "mtime": 1783507581.4068384,
-    "ast_hash": "2e7bd7620c9e2bc4c2f5858185382db2",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/home/quick-matrix-icon.png": {
-    "mtime": 1783507364.2958863,
-    "ast_hash": "ba8ed0a2a7f43e363fc061928ce9e017",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/home/quick-profile-icon.png": {
-    "mtime": 1783572721.9342363,
-    "ast_hash": "cd957ae616ba6ccc26eb0e1a1279ec19",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/home/weekly-ritual-preview.png": {
-    "mtime": 1783505246.913857,
-    "ast_hash": "d11e658b3135f57424173d36c5c7b627",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/profile/profile-avatar-placeholder.png": {
-    "mtime": 1783506089.8384383,
-    "ast_hash": "5aa7822179e863cabeb1c20d85ac82b3",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/profile/profile-compatibility-icon.png": {
-    "mtime": 1783573890.6783864,
-    "ast_hash": "a29b99def9777546a9f792df2d39d077",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/profile/profile-history-icon.png": {
-    "mtime": 1783574321.6725683,
-    "ast_hash": "36df40d1b9c06d67d3688f5ed474467b",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/profile/profile-matrix-icon.png": {
-    "mtime": 1783573793.7683225,
-    "ast_hash": "cbf8b8cd87907e3f169dc010caf521e4",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/profile/profile-mini-reading-icon.png": {
-    "mtime": 1783573596.4053712,
-    "ast_hash": "5ad8baaf43217ee8cf990d30e8b02eef",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/profile/profile-saved-cards-icon.png": {
-    "mtime": 1783574502.155696,
-    "ast_hash": "be426ac3b1c40a88603d58138b5c66e2",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/profile/profile-subscription-illustration.png": {
-    "mtime": 1783506186.1945486,
-    "ast_hash": "497c5f95751338967a66b56663cb7b5e",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/profile/profile-year-forecast-icon.png": {
-    "mtime": 1783574120.826566,
-    "ast_hash": "ef78c0dafd2a6de32409ed2acfdc7350",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/card-back-nura.png": {
-    "mtime": 1783507105.2383697,
-    "ast_hash": "b3c208ab2e565687138964ececb35702",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/cards-stack-neutral.png": {
-    "mtime": 1783507249.3293295,
-    "ast_hash": "3a00078d9f149d6e1172defc611216f1",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/Death.png": {
-    "mtime": 1783434898.225502,
-    "ast_hash": "bc1fc9f4488edddc350064ba6d50e8df",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/Judgement.png": {
-    "mtime": 1783436605.726273,
-    "ast_hash": "4e9cca5fa34245bcab242bd2607f24a7",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/Justice.png": {
-    "mtime": 1783434595.0959485,
-    "ast_hash": "404e5d904b05e505e82ad4e865a126d8",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/Strength.png": {
-    "mtime": 1783432970.9983964,
-    "ast_hash": "88efbc6e51954996b7e58615f5df0886",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/Temperance.png": {
-    "mtime": 1783435146.4841568,
-    "ast_hash": "85b8ee039fe3be5dca182702fe768399",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Chariot.png": {
-    "mtime": 1783432965.1180818,
-    "ast_hash": "fb26a820e05e5feec39355359eb51b61",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Devil.png": {
-    "mtime": 1783435607.8003817,
-    "ast_hash": "f79b597759160d279ee509a6a33b5024",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Emperor.png": {
-    "mtime": 1783431139.491106,
-    "ast_hash": "82eb69f0f702e82d1fa22b4acfb018fe",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Empress.png": {
-    "mtime": 1783430849.0939002,
-    "ast_hash": "5723157f51b371a7d9251bb5d1cfdf76",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Fool.png": {
-    "mtime": 1783353902.8234072,
-    "ast_hash": "b8acf20a711fe24595d54d686a655a2f",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Hanged Man.png": {
-    "mtime": 1783434780.8117318,
-    "ast_hash": "1b2aa0e58bc156f2f04d83309474a452",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Hermit.png": {
-    "mtime": 1783433221.0504365,
-    "ast_hash": "43d9d7c4d9fa0f8eb91d68e5ba468407",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Hierophant.png": {
-    "mtime": 1783431650.8061514,
-    "ast_hash": "7c58abceb293a960cb67958290c85632",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The High Priestess.png": {
-    "mtime": 1783429568.7216034,
-    "ast_hash": "4666cb5688e2f664b23f80a253340c41",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Lovers.png": {
-    "mtime": 1783432068.4548337,
-    "ast_hash": "2a0ee3b876c2e49920a635ac046d24c2",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Magician.png": {
-    "mtime": 1783354014.2467175,
-    "ast_hash": "917993120619de7e62fd7ac189979095",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Moon.png": {
-    "mtime": 1783436308.93016,
-    "ast_hash": "d50a6069b6a07ec0d89b741a4e72c139",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Star.png": {
-    "mtime": 1783436072.1595328,
-    "ast_hash": "7e25896595f4a3279a9c2411467bbe69",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Sun.png": {
-    "mtime": 1783436517.8645473,
-    "ast_hash": "926a04774060cf58c9f5e430949538eb",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The Tower.png": {
-    "mtime": 1783435831.21339,
-    "ast_hash": "100e72cfac0d62653a9c5e41e0e5ea77",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/The World.png": {
-    "mtime": 1783436846.5453901,
-    "ast_hash": "d4ca51620d96c256d196ecccb67816db",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/major/Wheel of Fortune.png": {
-    "mtime": 1783433548.7257652,
-    "ast_hash": "48132f43d3bc993c8a295f8618b385a5",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/mirror-not-prediction.png": {
-    "mtime": 1783505888.5505478,
-    "ast_hash": "fed4196ddfe63407b0410b236b946354",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/tarot-life-areas-spread.png": {
-    "mtime": 1783505670.667043,
-    "ast_hash": "aa299d905acf2ab94337f1eaf9c22e1d",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/tarot-question-spread.png": {
-    "mtime": 1783505483.3408692,
-    "ast_hash": "bc839fb5a747f880b7d842f6bc203a46",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/tarot-twins-spread.png": {
-    "mtime": 1783505748.6208475,
-    "ast_hash": "df16f70705a1778aace234de5bafa829",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/tarot-week-spread.png": {
-    "mtime": 1783505372.8788328,
-    "ast_hash": "634abf4f42970613221f95ce6dcdc21c",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/tarot/tarot-yes-no-spread.png": {
-    "mtime": 1783505833.1734817,
-    "ast_hash": "5dc45d1dc71f9320911f5a71bfb85814",
-    "semantic_hash": ""
-  },
-  "frontend/pwa/app/images/ui/hero-sun-path.png": {
-    "mtime": 1783504671.6848805,
-    "ast_hash": "3b1739d8ea1422a1f4ec4513ce93bdd9",
     "semantic_hash": ""
   }
 }

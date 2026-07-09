@@ -48,30 +48,7 @@
 .practice-label{font-size:15px;font-weight:800;line-height:1.25;color:var(--text);margin-top:2px}
 .practice-sub-txt{font-size:12.5px;line-height:1.55;color:var(--text-m);margin-top:auto}
 .practice-wide{grid-column:1/-1;min-height:132px}
-.practice-preview-img{
-  width:100%;
-  max-height:110px;
-  object-fit:contain;
-  border-radius:12px;
-  margin-top:10px;
-  opacity:.85;
-  pointer-events:none;
-}
-.arcane-img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  border-radius:22px;
-}
-.disclaimer-illustration{
-  width:80px;
-  height:auto;
-  opacity:.64;
-  float:right;
-  margin-left:12px;
-  margin-bottom:8px;
-  border-radius:12px;
-}
+.disclaimer-card{padding:16px 18px;border-left:3px solid var(--terra)}
 .disclaimer-card p{font-size:12.5px;line-height:1.6;color:var(--text-m);margin-top:6px}
 .sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.38);backdrop-filter:blur(4px);z-index:60;opacity:0;pointer-events:none;transition:.25s}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--bg);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:.3s var(--ease)}
@@ -104,9 +81,8 @@
     </div>
     <div class="hero-body">
       <div class="arcane-row">
-        <div class="arcane-badge" id="hero-arcane-badge"><span class="arcane-roman skeleton skeleton-num" id="hero-num"></span></div>
+        <div class="arcane-badge"><span class="arcane-roman skeleton skeleton-num" id="hero-num"></span></div>
         <div style="min-width:0;flex:1">
-          <img id="hero-arcane-img" src="images/tarot/card-back-nura.png" alt="Карта дня" style="width:82px;height:82px;object-fit:cover;border-radius:24px;flex-shrink:0">
           <div class="arcane-name skeleton skeleton-name" id="hero-name"></div>
           <div class="arcane-phrase" id="hero-phrase"><span class="skeleton skeleton-line" style="width:100%"></span><span class="skeleton skeleton-line" style="width:75%"></span></div>
         </div>
@@ -143,7 +119,6 @@
         <div class="practice-tag">✦ Тело · Ум · Дух</div>
         <div class="practice-label">Расклад недели</div>
         <div class="practice-sub-txt">7 дней с фокусом по сферам и понятный вектор на ближайшие дни.</div>
-        <img src="images/tarot/tarot-week-spread.png" alt="Расклад недели" class="practice-preview-img" loading="lazy">
       </article>
 
       <article class="card quick-action-card practice-card locked" role="button" tabindex="0" onclick="openPaywall('По вопросу')" id="p-question">
@@ -154,7 +129,6 @@
         <div class="practice-tag">◀ Прошлое / Настоящее / Будущее</div>
         <div class="practice-label">По вопросу</div>
         <div class="practice-sub-txt">3 аркана для твоей ситуации.</div>
-        <img src="images/tarot/tarot-question-spread.png" alt="Расклад по вопросу" class="practice-preview-img" loading="lazy">
       </article>
 
       <article class="card quick-action-card practice-card locked" role="button" tabindex="0" onclick="openPaywall('Сферы жизни')" id="p-life">
@@ -165,7 +139,6 @@
         <div class="practice-tag">✶ Деньги / Отношения / Предназначение</div>
         <div class="practice-label">Сферы жизни</div>
         <div class="practice-sub-txt">Твой фокус по трём каналам.</div>
-        <img src="images/tarot/tarot-life-areas-spread.png" alt="Сферы жизни" class="practice-preview-img" loading="lazy">
       </article>
 
       <article class="card quick-action-card practice-card locked" role="button" tabindex="0" onclick="openPaywall('Двойники')" id="p-doubles">
@@ -176,7 +149,6 @@
         <div class="practice-tag">☯ Внутренний диалог</div>
         <div class="practice-label">Двойники</div>
         <div class="practice-sub-txt">Два аркана — две стороны тебя.</div>
-        <img src="images/tarot/tarot-twins-spread.png" alt="Двойники" class="practice-preview-img" loading="lazy">
       </article>
 
       <article class="card quick-action-card practice-card locked" role="button" tabindex="0" onclick="openPaywall('Портал месяца')" id="p-portal">
@@ -197,14 +169,12 @@
         <div class="practice-tag">👁 Направление энергии</div>
         <div class="practice-label">Да / Нет</div>
         <div class="practice-sub-txt">Один аркан — короткий ответ на важный запрос.</div>
-        <img src="images/tarot/tarot-yes-no-spread.png" alt="Да / Нет" class="practice-preview-img" loading="lazy">
       </article>
     </div>
   </section>
 
   <div class="card disclaimer-card">
     <div class="eyebrow">Зеркало, а не предсказание</div>
-    <img src="images/tarot/mirror-not-prediction.png" alt="" class="disclaimer-illustration" loading="lazy">
     <p>Карта дня показывает энергию, которая сейчас рядом с тобой. Это не гадание — это инструмент для самонаблюдения. Используй её как повод остановиться и прислушаться к себе.</p>
   </div>
 </main></div>
@@ -360,7 +330,6 @@
       var numEl = document.getElementById('hero-num');
       numEl.textContent = d.arcana_number;
       numEl.classList.remove('skeleton','skeleton-num');
-      updateArcanaImage(d.arcana_number);
     }
     if (d.arcana_name) {
       var nameEl = document.getElementById('hero-name');
@@ -378,18 +347,6 @@
     if (d.user_archetype_name) {
       document.getElementById('matrix-archetype-name').textContent = d.user_archetype_name;
       document.getElementById('hero-matrix-context').style.display = '';
-    }
-  }
-
-  function updateArcanaImage(num) {
-    var MAJOR = {0:'The Fool.png',1:'The Magician.png',2:'The High Priestess.png',3:'The Empress.png',4:'The Emperor.png',5:'The Hierophant.png',6:'The Lovers.png',7:'The Chariot.png',8:'Strength.png',9:'The Hermit.png',10:'Wheel of Fortune.png',11:'Justice.png',12:'The Hanged Man.png',13:'Death.png',14:'Temperance.png',15:'The Devil.png',16:'The Tower.png',17:'The Star.png',18:'The Moon.png',19:'The Sun.png',20:'Judgement.png',21:'The World.png'};
-    var fn = MAJOR[num] || MAJOR[num - 1];
-    var imgEl = document.getElementById('hero-arcane-img');
-    var badgeEl = document.getElementById('hero-arcane-badge');
-    if (fn && imgEl && badgeEl) {
-      imgEl.src = 'images/tarot/major/' + encodeURI(fn);
-      imgEl.style.display = '';
-      badgeEl.style.display = 'none';
     }
   }
 

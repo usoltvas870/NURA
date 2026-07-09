@@ -70,8 +70,6 @@ body{overflow:hidden;padding-bottom:0}
 .send:active{transform:scale(.93)}
 .send:disabled{background:var(--line-strong);color:var(--text-s)}
 .context{font-size:11px;color:var(--text-s);font-weight:700;letter-spacing:.04em}
-.nura-avatar-img{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0}
-.empty-illustration{width:100%;max-width:180px;height:auto;margin:0 auto;opacity:.78}
 @media(max-width:360px){.msg{max-width:88%}}
 </style></head>
 <body><div class="app-shell">
@@ -92,7 +90,6 @@ body{overflow:hidden;padding-bottom:0}
 <div class="chat-area" id="messages">
   <div class="empty" id="empty-state">
     <div class="card soft-accent empty-card">
-      <img src="images/chat/chat-card-hint-illustration.png" alt="" class="empty-illustration" loading="lazy">
       <div class="empty-mark"><i class="ti ti-message-circle"></i> Диалог с NURA</div>
       <div class="empty-title">Спроси у NURA</div>
       <div class="empty-copy">Задай любой вопрос — про отношения, деньги, себя. Ответ будет опираться на твой личный контекст, а не на общий шаблон.</div>
@@ -329,17 +326,7 @@ body{overflow:hidden;padding-bottom:0}
     var wrap = document.createElement('div');
     wrap.className = 'msg ' + role + (isErr ? ' err' : '');
     if (animate) { wrap.style.opacity = '0'; wrap.style.transform = 'translateY(8px)'; }
-    if (role === 'nura') {
-      wrap.style.display = 'flex';
-      wrap.style.alignItems = 'flex-end';
-      wrap.style.gap = '8px';
-    }
-    var inner = '';
-    if (role === 'nura') {
-      inner += '<img src="images/chat/chat-nura-avatar.png" alt="NURA" class="nura-avatar-img">';
-    }
-    inner += '<div style="display:flex;flex-direction:column;gap:3px">';
-    inner += '<div class="bubble">' + N.escHtml(text) + '</div>';
+    var inner = '<div class="bubble">' + N.escHtml(text) + '</div>';
     inner += '<span class="msg-time">' + time + '</span>';
     if (retryText) {
       inner += '<button class="retry-btn" onclick="(function(t){window.sendMessage(t)})(\''+retryText.replace(/'/g, "\\'")+'\')">' +
@@ -348,7 +335,6 @@ body{overflow:hidden;padding-bottom:0}
     if (linkHref && linkLabel) {
       inner += '<a href="'+linkHref+'" class="retry-btn" style="text-decoration:none"><i class="ti ti-arrow-right" style="font-size:13px"></i> '+N.escHtml(linkLabel)+'</a>';
     }
-    inner += '</div>';
     wrap.innerHTML = inner;
     msgs.appendChild(wrap);
     if (animate) requestAnimationFrame(function() { wrap.style.transition = 'opacity .25s, transform .25s'; wrap.style.opacity = '1'; wrap.style.transform = 'none'; });
