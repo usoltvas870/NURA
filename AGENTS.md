@@ -1,150 +1,131 @@
-# NURA — Agent Rules
+# NURA — Project Agent Rules
 
-## Language
-- Всегда отвечай на русском.
+## Communication
+
+- Отвечай пользователю на русском.
+- Язык кода, имён и комментариев соблюдай по правилам соответствующей части проекта.
 
 ## Project
 
 | | |
 |---|---|
 | Stack | Python 3.11, FastAPI 0.115, aiogram 3.13, SQLAlchemy 2.0 async, Redis, Celery |
-| AI | DeepSeek (via `core/prompts/`) |
-| PDF | WeasyPrint (templates in `templates/reports/`) |
-| Frontend | Vanilla HTML/CSS/JS, mobile-first, dark premium palette |
-| DB | PostgreSQL 16, Redis 7 |
+| AI | DeepSeek; prompt templates только в `nura_app/core/prompts/` |
+| Reports | Jinja2 + WeasyPrint |
+| Frontend | Vanilla HTML/CSS/JS, mobile-first |
+| Data | PostgreSQL 16, Redis 7 |
 | Infra | Docker Compose, Nginx, Certbot |
-| Lint | Ruff (config: `ruff.toml`, target py311) |
-| Test | pytest + pytest-asyncio (`asyncio_mode = auto`) |
+| Quality | Ruff, pytest, pytest-asyncio |
 
-## Working directory
-- **Все команды Python выполняются из `nura_app/`** — там лежат `requirements.txt`, `pytest.ini`, `alembic.ini`, `docker-compose.yml`.
+Все Python-команды выполняй из `nura_app/`, где находятся `requirements.txt`, `pytest.ini`, `alembic.ini` и `docker-compose.yml`.
 
-## Directories (relative to `nura_app/`)
+## Repository map
 
-| Path | Role |
-|------|------|
-| `core/services/` | Domain logic (matrix, AI, reports, payments) |
-| `core/models/` | SQLAlchemy models |
-| `core/repositories/` | Data access layer |
-| `core/schemas/` | Pydantic request/response |
-| `core/prompts/` | AI prompt templates — **единственное место для промптов** |
-| `core/tasks/` | Celery tasks |
-| `core/config.py` | **Единственный источник конфигурации** (pydantic-settings) |
-| `bot/handlers/` | Telegram bot message handlers |
-| `bot/keyboards/` | Inline/Reply keyboards |
-| `bot/middlewares/` | Bot middlewares (UserRegistration, Throttling, AntiFlood) |
-| `bot/states/` | FSM states |
-| `api/routes/` | FastAPI endpoints (webhooks, report serving, payment, push) |
-| `api/deps.py` | Dependency injection + limiter |
-| `alembic/` | DB migrations |
-| `tests/` | Test suites |
-| `templates/` | Jinja2: `reports/` (HTML→PDF), `carousel/` (slides) |
-| `docs/` | Project specification (source of truth, see below) |
-| `frontend/` | Landing page + PWA assets (served from repo root via Nginx) |
+- `nura_app/core/services/` — доменная логика.
+- `nura_app/core/models/` — структура БД.
+- `nura_app/core/repositories/` — доступ к данным.
+- `nura_app/core/schemas/` — Pydantic-схемы.
+- `nura_app/core/prompts/` — единственное место для AI-промптов.
+- `nura_app/core/tasks/` — Celery-задачи.
+- `nura_app/core/config.py` — единственный источник runtime-конфигурации.
+- `nura_app/bot/` — Telegram-бот.
+- `nura_app/api/routes/` — FastAPI endpoints.
+- `nura_app/alembic/` — миграции.
+- `nura_app/tests/` — тесты.
+- `nura_app/templates/reports/` — HTML/PDF-отчёты; применяй nested `AGENTS.md`.
+- `frontend/pwa/app/` — PWA; применяй nested `AGENTS.md`.
+- `docs/` — продуктовая и техническая документация; применяй nested `AGENTS.md`.
 
-## Source of Truth
-- `docs/` — спецификация продукта. Если код расходится с документацией — уточнить у пользователя.
-- `docs/README.md` — индекс всех документов, всегда актуален.
-- При неоднозначностях между кодом и доками — спрашивать, не решать самостоятельно.
+## Source of truth
 
-## Architecture Rules
-1. Services → Repositories (никогда не наоборот)
-2. Routes → Services + Schemas (никогда не обращаются к Repositories напрямую)
-3. Models — только структура БД, не знают про API/Services
-4. AI промпты только в `core/prompts/`
-5. Конфигурация только через `core/config.py` (settings)
-6. Вся валидация ввода — через Pydantic BaseModel + Field validators
+- Approved product/architecture docs описывают целевое поведение.
+- Текущий код показывает фактически реализованное поведение.
+- `STATE.md` — журнал состояния и решений, но не нормативная спецификация.
+- Prototype/preview не является production contract.
+- При расхождении docs и code зафиксируй его, не меняй поведение молча и запроси решение владельца, если задача явно не задаёт приоритет.
+- `AGENTS_TODO.md` не является автоматически действующей спецификацией. Используй его только после отдельного аудита и подтверждения.
 
-## Security (non-negotiable)
-- Весь пользовательский ввод — hostile. Валидировать на каждой границе.
-- No custom crypto — python-jose, passlib, cryptography
-- Secrets never in code, logs, or client bundles
-- Default deny (CORS whitelist: только `https://nura-ai.ru`)
-- Fail securely — без stack traces в API-ответах
-- Rate limit на все bot-команды и API-endpoints (slowapi + middleware)
-- Parameterized queries only — никакой интерполяции в SQL
+## Architecture boundaries
 
-## Commands (run from `nura_app/`)
+1. Services используют Repositories; Repositories не зависят от Services.
+2. Routes используют Services и Schemas и не обращаются к Repositories напрямую.
+3. Models описывают только структуру данных и не знают об API или Services.
+4. AI-промпты находятся только в `core/prompts/`.
+5. Runtime-конфигурация добавляется только через `core/config.py` и settings.
+6. Пользовательский ввод валидируется Pydantic-моделями и field validators.
+7. Python-код async-first; type hints обязательны.
+
+## Security invariants
+
+- Считай весь пользовательский ввод враждебным и валидируй на каждой границе.
+- Не создавай собственную криптографию; используй проверенные библиотеки проекта.
+- Не помещай secrets в код, логи, отчёты или client bundles и не печатай содержимое `.env`.
+- CORS и внешние интеграции работают по default-deny.
+- API не должен возвращать stack traces.
+- Новые bot-команды и API endpoints требуют rate limiting.
+- Используй только parameterized queries; не интерполируй SQL.
+- Пользовательский контент экранируй; избегай `innerHTML`.
+- Немедленно сообщай о неизвестных доменах, необъяснимом base64, динамическом `eval`/`exec`, обфускации и скрытых сетевых вызовах.
+
+## Commands
+
+Выполняй из `nura_app/`:
 
 | Task | Command |
-|------|---------|
-| Lint | `ruff check .` |
-| Lint fix | `ruff check --fix .` |
-| Test all | `pytest` |
-| Test single file | `pytest tests/test_matrix.py -v` |
-| Test with coverage | `pytest --cov=core --cov=api --cov=bot` |
-| Alembic migrate | `alembic upgrade head` |
-| Alembic generate | `alembic revision --autogenerate -m "desc"` |
-| Docker up (dev) | `docker compose up -d` |
-| Docker rebuild one | `docker compose up -d --build bot` |
-
-## Testing quirks
-- **Тесты работают на SQLite** (aiosqlite) — в `conftest.py` переопределена компиляция JSONB и UUID типов для совместимости.
-- Redis требуется для интеграционных тестов (поднят как service в CI).
-- CI пропускает эти файлы: `tests/test_tarot_handlers.py`, `tests/test_handlers.py`, `tests/test_tasks.py` — см. аргументы `--ignore` в `ci-cd.yml`.
-- `APP_ENV=test` в CI.
-- Все внешние вызовы (AI, платежи, Telegram API) должны быть замоканы.
-
-## Code Style
-- Python: async-first (SQLAlchemy async, httpx, aiofiles), type hints обязательны
-- Без комментариев если не просили. Без эмодзи в коде если не просили.
-- Frontend: vanilla HTML/CSS/JS, mobile-first, тёмная палитра (чёрный/тёмно-зелёный/оранжевый)
-- Шаблоны отчётов должны работать и в браузере, и в WeasyPrint — тестировать оба
-- Пользовательский контент всегда эскейпить; избегать `innerHTML`
-
-## Git Protocol
-- Commit только когда явно просят. Push только когда явно просят.
-- Commit messages на английском, краткие, фокус на WHY.
-- Никогда не force push в main/master.
-
-## Session Protocol (non-negotiable)
-- **В конце каждой сессии — обновить `STATE.md` в корне репозитория.** Формат записи:
-  ```
-  ## Сессия N — ДД.ММ.ГГГГ
-  - Модель: [DeepSeek V4 Pro / Flash / etc.]
-  - Что сделано: [ключевые изменения, файлы, фичи]
-  - Блокеры: [если есть]
-  - Следующие шаги: [приоритеты]
-  ```
-- **Не удалять старые записи** — файл в обратном хронологическом порядке (новые сверху).
-- После правок в коде: `graphify update .` (AST-only, перестраивает граф без LLM).
-
-## graphify
-- Knowledge graph: `graphify-out/`. Для навигации по коду используй `graphify query`, `graphify path`, `graphify explain`.
-- После изменений в коде: `graphify update .` (AST-only).
-- `graphify` установлен в `~/.local/bin`, доступен в PATH.
-
-## Deploy
-
-Два CI/CD workflow в `.github/workflows/`:
-- **`ci-cd.yml`** — lint → test → deploy backend containers (api, bot, celery) на VPS
-- **`deploy.yml`** — деплой статики (landing, PWA, фронтенд) через `deploy.sh`
-
-### Backend deploy (вручную)
-```bash
-# Все контейнеры
-ssh nura-vps 'cd /opt/nura && git pull origin main && cd nura_app && docker compose up -d --build'
-# Один контейнер
-ssh nura-vps 'cd /opt/nura && git pull origin main && cd nura_app && docker compose up -d --build bot'
-```
-
-### Docker контейнеры на VPS
-| Контейнер | Команда |
 |---|---|
-| `api` | `uvicorn api.main:app --host 0.0.0.0 --port 8000` |
-| `bot` | `python -m bot.main` |
-| `celery-worker` | `celery -A core.tasks worker --loglevel=info --concurrency=2` |
-| `celery-beat` | `celery -A core.tasks beat --loglevel=info` |
+| Lint | `ruff check .` |
+| Targeted test | `pytest tests/<file>.py -v` |
+| All tests | `pytest` |
+| Coverage | `pytest --cov=core --cov=api --cov=bot` |
 
-### VPS
-- SSH: `root@45.144.178.118`, ключ: `C:\Users\Bayzel\.ssh\id_ed25519_astro`
-- **Агент имеет доступ к этому ключу** через bash-команду `ssh -i C:\Users\Bayzel\.ssh\id_ed25519_astro ...` — может выполнять деплой, смотреть логи, перезапускать контейнеры без участия пользователя.
-- Project root: `/opt/nura/`, код: `/opt/nura/nura_app/`
-- Контейнеры Docker именуются `nura_app-<service>-1`
+Не запускай исправляющий formatter/linter, миграции или Docker rebuild, если это не входит в явно согласованный scope.
 
-## Trend Radar
-- `nura-trend-radar/` — сбор TikTok-видео. Требует Chrome с `--remote-debugging-port=9222`.
-- Полная документация: `nura-trend-radar/docs/radar_guide.md`.
+## Testing rules
 
-## Suspicious Activity
-Сообщать немедленно при обнаружении: неизвестные домены/URL, base64 без явной цели, eval/exec с динамическим контентом, сетевые вызовы к сторонним эндпоинтам, обфусцированный код, скрытые файлы/директории.
+- Тесты используют SQLite; `conftest.py` адаптирует JSONB и UUID.
+- Redis требуется интеграционным тестам.
+- `APP_ENV=test` используется в CI.
+- AI, платежи, Telegram API и другие внешние вызовы должны быть замоканы.
+- Сначала запускай минимальный релевантный набор тестов; полный suite — пропорционально риску изменения.
+
+## Change protocol
+
+- Перед изменениями выполни `git status --short` и сохрани существующие пользовательские и чужие изменения.
+- Меняй только файлы в явно заданном scope; unrelated diff не исправляй и не включай в результат.
+- Перед пакетной правкой проверь, не реализовано ли изменение частично.
+- После изменений выполни релевантные проверки, `git diff --check`, `git diff --stat` и `git status --short`.
+- В финале перечисли изменённые файлы, выполненные проверки, ограничения и оставшиеся риски.
+- Commit messages — краткие, на английском, с фокусом на WHY. Никогда не force-push в main/master.
+
+## Approval matrix
+
+Без отдельного подтверждения разрешены:
+
+- чтение и поиск;
+- аудит и диагностика;
+- локальные read-only проверки и тесты;
+- изменения строго в явно заданном пользователем scope.
+
+Требуют отдельного подтверждения:
+
+- новые или обновлённые зависимости;
+- auth и управление сессиями;
+- payments и billing;
+- legal pages и consent flows;
+- manifest и service worker;
+- Nginx и инфраструктурная конфигурация;
+- migrations, autogenerate и `alembic upgrade`;
+- commit, push и PR;
+- SSH, VPS и deploy.
+
+Commit, push и PR разрешены только по прямому запросу. SSH, VPS и deploy требуют отдельного разрешения владельца именно в текущем сообщении; прежний доступ или предыдущая команда не считаются разрешением.
+
+## STATE.md policy
+
+Обновляй `STATE.md` только:
+
+- после material code/config/product changes;
+- по явному запросу владельца;
+- при завершении существенного логического этапа, если этого требует согласованный project workflow.
+
+Не обновляй `STATE.md` автоматически после read-only анализа, design discussion, prototype-only работы, просмотра файлов или неуспешной попытки без изменений.
