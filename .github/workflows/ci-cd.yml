@@ -16,27 +16,27 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.11.9
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.11.9"
 
       - name: Cache pip
         uses: actions/cache@v5
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('nura_app/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('nura_app/requirements-dev.txt', 'nura_app/constraints-py311.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff
-          pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt -c constraints-py311.txt
+          python -m pip check
 
       - name: Ruff check
-        run: ruff check .
+        run: python -m ruff check .
 
   test:
     needs: lint
@@ -59,27 +59,27 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.11.9
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.11.9"
 
       - name: Cache pip
         uses: actions/cache@v5
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('nura_app/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('nura_app/requirements-dev.txt', 'nura_app/constraints-py311.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-asyncio pytest-cov httpx aiosqlite
-          pip install -r requirements.txt
+          python -m pip install -r requirements-dev.txt -c constraints-py311.txt
+          python -m pip check
 
       - name: Run tests
-        run: python -m pytest tests/ -v --tb=short --ignore=tests/test_tarot_handlers.py --ignore=tests/test_handlers.py --ignore=tests/test_tasks.py
+        run: python -m pytest
         env:
           APP_ENV: test
           REDIS_URL: redis://localhost:***@v4

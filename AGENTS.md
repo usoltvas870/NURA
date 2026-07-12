@@ -129,3 +129,11 @@ Commit, push и PR разрешены только по прямому запр�
 - при завершении существенного логического этапа, если этого требует согласованный project workflow.
 
 Не обновляй `STATE.md` автоматически после read-only анализа, design discussion, prototype-only работы, просмотра файлов или неуспешной попытки без изменений.
+
+## Codex skills and review workflow
+
+- Любая write-задача использует `nura-safe-change`.
+- UI, PWA и landing используют `nura-design-system` и `nura-pwa-visual-qa`; отчёты и PDF — `nura-report-render-qa`.
+- Изменения архитектуры, Python или документации оцениваются через `nura-docs-state-graphify`; владельцу не нужно напоминать об оценке Graphify.
+- Основной агент — единственный writer. Субагенты используются только как read-only reviewers: `nura_code_reviewer` для значимого backend/general diff, `nura_visual_reviewer` для visual UI diff, `nura_report_reviewer` для report/PDF diff. Не запускай всех reviewers для мелкой задачи; независимые reviewers допустимы параллельно для cross-cutting scope и должны завершиться до финализации.
+- Основной агент проверяет findings, исправляет подтверждённые, объясняет отклонённые, повторяет релевантные проверки и повторно ревьюит только после существенных исправлений. Commit/push выполняй только при разрешении текущей задачи.
