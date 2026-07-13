@@ -1,0 +1,310 @@
+/* Approved Home v8 visual layer. All selectors are scoped to this page. */
+body.nura-home-v8 {
+  min-width: 320px;
+  background: var(--bg);
+}
+
+.nura-home-v8 .header {
+  position: relative;
+  height: calc(64px + env(safe-area-inset-top, 0px));
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 24px 8px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.nura-home-v8 .nura-text-logo { color: var(--text); gap: 12px; }
+.nura-home-v8 .nura-text-logo .nura-star { color: var(--gold); font-size: 30px; }
+.nura-home-v8 .nura-text-logo .nura-sep { display: none; }
+.nura-home-v8 .nura-text-logo .nura-word {
+  color: var(--text);
+  font-size: 25px;
+  font-weight: 400;
+  letter-spacing: .28em;
+}
+
+.nura-home-v8 .home-profile {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+}
+
+.nura-home-v8 .home-profile .ti { font-size: 22px; }
+.nura-home-v8 .home-theme-hook { display: none; }
+
+.nura-home-v8 .home-main {
+  padding: 10px 16px calc(var(--tabbar-h) + 34px);
+  display: grid;
+  gap: 20px;
+}
+
+.nura-home-v8 .home-hero {
+  position: relative;
+  min-height: 310px;
+  overflow: hidden;
+  border: 1px solid rgba(194, 164, 118, .24);
+  border-radius: var(--r-xl);
+  background:
+    linear-gradient(90deg, var(--bg-card-soft) 0%, rgba(251,250,246,.93) 46%, rgba(251,250,246,.15) 72%, transparent 100%),
+    var(--bg-card-soft) url("assets/home-v8/home-hero-bg-v5.png") center / cover no-repeat;
+  box-shadow: var(--shadow-card);
+}
+
+.nura-home-v8 .home-hero::after { content: none; }
+
+.nura-home-v8 .home-hero-content {
+  width: 66%;
+  min-height: 310px;
+  padding: 24px 0 20px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.nura-home-v8 .hero-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--gold-ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.nura-home-v8 .hero-context::before { content: "✦"; font-size: 15px; }
+.nura-home-v8 .hero-context-label { flex: 0 0 auto; }
+.nura-home-v8 #greeting-name {
+  min-width: 0;
+  max-width: min(17ch, 48vw);
+  overflow: hidden;
+  color: var(--text);
+  font-size: clamp(13px, 3.6vw, 15px);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-align: left;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+.nura-home-v8 #greeting-name:not(:empty)::before { content: "·"; margin-right: 7px; color: var(--gold-ink); font-size: 11px; font-weight: 700; vertical-align: 1px; }
+
+.nura-home-v8 .home-hero h1 {
+  margin: 16px 0 0;
+  max-width: 8.8em;
+  font-family: var(--font-serif);
+  font-size: clamp(31px, 8.1vw, 37px);
+  line-height: 1.02;
+  font-weight: 400;
+  letter-spacing: -.035em;
+}
+
+.nura-home-v8 .home-hero-copy {
+  margin: 11px 0 0;
+  max-width: 29ch;
+  color: var(--text-m);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.nura-home-v8 .home-hero-actions {
+  display: grid;
+  gap: 7px;
+  margin-top: auto;
+  padding-top: 15px;
+}
+
+.nura-home-v8 .home-hero-actions button {
+  width: 100%;
+  min-height: 43px;
+  border-radius: 13px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.nura-home-v8 .hero-primary {
+  border: 0;
+  background: var(--terra);
+  box-shadow: 0 9px 20px rgba(184, 102, 49, .20);
+  color: #fff;
+}
+
+.nura-home-v8 .hero-secondary {
+  border: 1px solid rgba(188, 132, 53, .48);
+  background: var(--bg-card-soft);
+  color: var(--text);
+}
+
+.nura-home-v8 .home-section { display: grid; gap: 11px; }
+
+.nura-home-v8 .home-section-title {
+  margin: 0 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.nura-home-v8 .home-section-title span { color: var(--gold); font-family: var(--font-sans); font-size: 15px; }
+
+.nura-home-v8 .home-today {
+  position: relative;
+  min-height: 220px;
+  display: grid;
+  grid-template-columns: 40% 60%;
+  overflow: hidden;
+  border: 1px solid rgba(160, 126, 75, .16);
+  border-radius: 25px;
+  background: var(--bg-card-soft) url("assets/home-v8/home-daily-background-v8.png") center / cover no-repeat;
+  box-shadow: var(--shadow-card);
+}
+
+.nura-home-v8 .home-today::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, transparent 33%, var(--bg-card-soft) 47%, var(--bg-card-soft) 100%);
+}
+
+.nura-home-v8 .daily-card-slot {
+  z-index: 1;
+  min-height: 220px;
+  padding: 10px 4px 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.nura-home-v8 .daily-card-viewport {
+  width: 121px;
+  height: 200px;
+  aspect-ratio: 904 / 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 11px;
+  box-shadow: 0 12px 26px rgba(68, 49, 24, .16), 0 2px 7px rgba(68, 49, 24, .08);
+}
+
+.nura-home-v8 .daily-card-image {
+  display: block;
+  width: auto;
+  height: 100%;
+  max-width: none;
+  flex: 0 0 auto;
+  border-radius: 0;
+  box-shadow: none;
+  transition: opacity .18s ease;
+}
+
+.nura-home-v8 .home-today-copy {
+  z-index: 1;
+  min-width: 0;
+  min-height: 220px;
+  padding: 18px 18px 16px 11px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.nura-home-v8 .home-today h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(22px, 5.8vw, 27px);
+  line-height: 1.04;
+  font-weight: 400;
+  overflow-wrap: break-word;
+}
+
+.nura-home-v8 .today-divider { width: 88px; height: 13px; margin: 10px 0 9px; position: relative; flex: 0 0 auto; }
+.nura-home-v8 .today-divider::before,
+.nura-home-v8 .today-divider::after { content: ""; position: absolute; top: 6px; width: 33px; height: 1px; background: var(--gold); }
+.nura-home-v8 .today-divider::before { left: 0; }
+.nura-home-v8 .today-divider::after { right: 0; }
+.nura-home-v8 .today-divider span { position: absolute; left: 50%; top: -1px; transform: translateX(-50%); color: var(--gold); }
+
+.nura-home-v8 .home-today p { margin: 0; color: var(--text-m); font-size: 12px; line-height: 1.46; overflow-wrap: break-word; }
+.nura-home-v8 .today-cta { margin-top: auto; padding: 10px 0 0; border: 0; background: transparent; color: var(--terra); font-size: 14.4px; line-height: 1.25; text-align: left; }
+.nura-home-v8 .today-cta:disabled { color: var(--text-s); cursor: wait; }
+
+.nura-home-v8 .home-today.is-loading .daily-card-image { animation: home-card-pulse 1.4s ease-in-out infinite; }
+.nura-home-v8 .home-today.is-loading h3,
+.nura-home-v8 .home-today.is-loading p { color: transparent; border-radius: 7px; background: linear-gradient(90deg, var(--line), var(--bg-card), var(--line)); background-size: 220% 100%; animation: home-skeleton-flow 1.3s linear infinite; }
+.nura-home-v8 .home-today.is-loading h3 { width: 94%; height: 46px; }
+.nura-home-v8 .home-today.is-loading p { width: 100%; height: 50px; }
+
+.nura-home-v8 .journey-panel,
+.nura-home-v8 .journey-complete,
+.nura-home-v8 .access-panel { overflow: hidden; border: 1px solid rgba(143,112,67,.14); border-radius: 23px; background: var(--bg-card); box-shadow: var(--shadow-card); }
+
+.nura-home-v8 .journey-row,
+.nura-home-v8 .access-row { width: 100%; min-height: 66px; padding: 11px 14px; display: grid; align-items: center; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); text-align: left; }
+.nura-home-v8 .journey-row:last-child,
+.nura-home-v8 .access-row:last-child { border-bottom: 0; }
+.nura-home-v8 .journey-row { grid-template-columns: 35px minmax(0,1fr) auto 16px; gap: 10px; }
+.nura-home-v8 .journey-index,
+.nura-home-v8 .journey-complete-icon { display: grid; place-items: center; border: 1px solid rgba(196,161,95,.38); border-radius: 50%; background: var(--bg-card-soft); color: var(--gold-ink); font-family: var(--font-serif); }
+.nura-home-v8 .journey-index { width: 35px; height: 35px; font-size: 13px; }
+.nura-home-v8 .journey-title,
+.nura-home-v8 .access-title { display: block; font-size: 13.5px; line-height: 1.2; font-weight: 700; }
+.nura-home-v8 .journey-copy,
+.nura-home-v8 .access-copy { display: block; margin-top: 3px; color: var(--text-m); font-size: 10.7px; line-height: 1.35; }
+.nura-home-v8 .journey-state { max-width: 112px; color: var(--terra); font-size: 10.5px; line-height: 1.2; font-weight: 700; text-align: right; }
+.nura-home-v8 .row-chevron { color: var(--text-s); font-size: 20px; line-height: 1; }
+.nura-home-v8 .journey-complete { padding: 17px 18px; grid-template-columns: 42px minmax(0,1fr) 18px; gap: 12px; align-items: center; text-align: left; }
+.nura-home-v8 .journey-complete-icon { width: 42px; height: 42px; }
+.nura-home-v8 .journey-complete strong { display: block; font-size: 13.5px; }
+.nura-home-v8 .journey-complete-copy { display: block; margin-top: 4px; color: var(--text-m); font-size: 10.8px; line-height: 1.4; }
+.nura-home-v8 .access-row { grid-template-columns: 39px minmax(0,1fr) 16px; gap: 11px; }
+.nura-home-v8 .access-icon { width: 39px; height: 39px; display: grid; place-items: center; color: var(--gold); }
+.nura-home-v8 .access-row.is-sage .access-icon { color: var(--sage); }
+.nura-home-v8 .access-icon .ti { font-size: 28px; }
+
+.nura-home-v8 .home-philosophy { min-height: 110px; padding: 16px 56px; display: grid; place-items: center; overflow: hidden; border-radius: 22px; background: transparent url("assets/home-v8/home-philosophy-bg-v5.png") center / cover no-repeat; text-align: center; }
+.nura-home-v8 .home-philosophy p { margin: 0; max-width: 29ch; color: var(--text-m); font-family: var(--font-serif); font-size: 14px; line-height: 1.48; }
+
+.nura-home-v8 .tabbar { left: 50%; right: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); width: min(calc(100% - 30px), 520px); height: 68px; padding: 4px; transform: translateX(-50%); border: 1px solid var(--line); border-radius: 25px; background: var(--bg-tab); box-shadow: var(--shadow-soft); }
+.nura-home-v8 .tabbar-inner { width: 100%; height: 58px; margin: 0; padding: 0; border: 0; border-radius: 20px; background: transparent; box-shadow: none; }
+.nura-home-v8 .tab-item { border-radius: 19px; font-size: 10px; font-weight: 600; }
+.nura-home-v8 .tab-item.active { background: rgba(184,116,63,.065); box-shadow: none; }
+
+.nura-home-v8 .home-data-cache,
+.nura-home-v8 .daily-symbol-hook { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@keyframes home-card-pulse { 0%,100% { opacity: .78; } 50% { opacity: 1; } }
+@keyframes home-skeleton-flow { from { background-position: 100% 0; } to { background-position: -120% 0; } }
+
+@media (max-width: 380px) {
+  .nura-home-v8 .home-main { padding-inline: 14px; gap: 18px; }
+  .nura-home-v8 .header { padding-inline: 18px; }
+  .nura-home-v8 .home-hero-content { width: 71%; padding-left: 21px; }
+  .nura-home-v8 .home-hero h1 { font-size: 31px; }
+  .nura-home-v8 .home-today { min-height: 214px; grid-template-columns: 39% 61%; }
+  .nura-home-v8 .daily-card-slot { min-height: 214px; padding: 10px 0; }
+  .nura-home-v8 .daily-card-viewport { width: 115px; height: 191px; }
+  .nura-home-v8 .home-today-copy { min-height: 214px; padding: 17px 13px 15px 9px; }
+  .nura-home-v8 .home-today h3 { font-size: 21px; }
+  .nura-home-v8 .home-today p { font-size: 11.5px; }
+  .nura-home-v8 .today-cta { font-size: 13.7px; }
+  .nura-home-v8 .journey-row { grid-template-columns: 33px minmax(0, 1fr) auto 14px; gap: 8px; padding-inline: 11px; }
+  .nura-home-v8 .journey-state { max-width: 88px; font-size: 9.7px; }
+}
+
+@media (min-width: 760px) {
+  .nura-home-v8 .home-main { padding-bottom: 16px; }
+}

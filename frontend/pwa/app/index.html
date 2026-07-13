@@ -25,6 +25,7 @@
 <script src="/assets/vendor/vkid-sdk.js" defer></script>
 <link rel="stylesheet" href="nura-pwa.css?v=11"/>
 <link rel="stylesheet" href="/theme.css?v=9"/>
+<link rel="stylesheet" href="home-v8.css?v=8"/>
 <title>NURA · Главная</title>
 <meta name="description" content="Личный центр NURA после мини-разбора или покупки отчёта.">
 <style>
@@ -257,121 +258,72 @@
   .today-top,
   .matrix-row{align-items:flex-start}
 }
-</style></head><body>
+</style></head><body class="nura-home-v8">
 <div class="app-shell">
 <header class="header">
   <a href="index.html" class="nura-text-logo" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a>
-  <div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div>
+  <div class="header-actions">
+    <a class="home-profile" href="profile.html" aria-label="Открыть профиль"><i class="ti ti-user"></i></a>
+    <button class="home-theme-hook" id="themeToggle" type="button" aria-label="Сменить тему" hidden><i class="ti ti-sun-moon"></i></button>
+  </div>
 </header>
 
-<main class="page home-page">
-  <section class="card home-hero">
-    <div class="hero-chip"><i class="ti ti-layout-grid-add" aria-hidden="true"></i> Личный экран</div>
-    <h1 class="hero-title" id="greeting-name">Привет, <em>друг</em></h1>
-    <p class="hero-copy" id="status-copy">Здесь собраны твой отчёт, карта дня и быстрый вход в чат с NURA.</p>
-    <div class="hero-actions">
-      <button class="btn btn-primary" id="report-cta" onclick="openReport()">Открыть мой отчёт</button>
-      <button class="btn btn-soft" type="button" onclick="askNura('С чего мне лучше начать сегодня?')">Спросить NURA</button>
-    </div>
-    <div class="hero-points">
-      <span class="hero-point"><i class="ti ti-sparkles"></i> Без лишнего шума</span>
-      <span class="hero-point"><i class="ti ti-cards"></i> Фокус на сегодня</span>
-      <span class="hero-point"><i class="ti ti-message-circle"></i> Быстрый доступ к чату</span>
+<main class="home-main">
+  <section class="home-hero" aria-labelledby="hero-title">
+    <div class="home-hero-content">
+      <div class="hero-context"><span class="hero-context-label">Личный экран</span><span id="greeting-name"></span></div>
+      <h1 id="hero-title">Начни с мини-разбора</h1>
+      <p class="home-hero-copy" id="status-copy">NURA соберёт первый личный контекст, чтобы карта дня и диалог стали действительно твоими.</p>
+      <div class="home-hero-actions">
+        <button class="hero-primary" id="report-cta" type="button" onclick="openReport()">Пройти мини-разбор</button>
+        <button class="hero-secondary" type="button" onclick="askNura('С чего мне лучше начать сегодня?')">Спросить NURA</button>
+      </div>
     </div>
   </section>
 
-  <section class="section-block">
-    <div class="section-head-row">
-      <span class="section-label">Сегодня для тебя</span>
-      <a href="tarot.html" class="section-link">открыть раздел →</a>
-    </div>
-    <article class="card today-card">
-      <div class="today-top">
-        <div class="today-symbol" id="day-symbol"><span class="skeleton skeleton-icon"></span></div>
-        <div class="today-meta">
-          <div class="today-kicker">Карта дня</div>
-          <div class="today-name skeleton skeleton-name" id="day-name"></div>
-          <div class="today-phrase" id="day-phrase">
-            <span class="skeleton skeleton-line" style="width:100%"></span>
-            <span class="skeleton skeleton-line" style="width:72%"></span>
-          </div>
-        </div>
+  <section class="home-section" aria-labelledby="today-heading">
+    <h2 class="home-section-title" id="today-heading"><span>✦</span>Сегодня для тебя</h2>
+    <article class="home-today is-loading" id="home-today" aria-live="polite">
+      <div class="daily-card-slot">
+        <div class="daily-card-viewport"><img class="daily-card-image" id="day-card-image" src="assets/home-v8/card-back-v8.png" alt="Рубашка карты дня" data-kind="back"></div>
+        <span class="daily-symbol-hook" id="day-symbol" aria-hidden="true"></span>
       </div>
-      <div class="today-actions">
-        <button class="btn btn-primary" type="button" onclick="location.href='tarot.html'">Открыть карту дня</button>
-        <button class="btn btn-soft" type="button" onclick="askNura('Помоги применить мою карту дня на практике')">Задать вопрос NURA</button>
+      <div class="home-today-copy">
+        <h3 id="day-name">Открываем твою карту…</h3>
+        <div class="today-divider" aria-hidden="true"><span>✦</span></div>
+        <p id="day-phrase">Личный символ на сегодня уже почти готов.</p>
+        <button class="today-cta" id="day-cta" type="button" disabled>Подождать</button>
       </div>
     </article>
   </section>
 
-  <section class="section-block">
-    <div class="section-head-row">
-      <span class="section-label">Быстрый доступ</span>
+  <section class="home-section" aria-labelledby="journey-heading">
+    <h2 class="home-section-title" id="journey-heading"><span>✦</span>Твой путь</h2>
+    <div class="journey-panel" id="journey-panel">
+      <button class="journey-row" id="journey-mini" type="button"><span class="journey-index">01</span><span><span class="journey-title">Мини-разбор</span><span class="journey-copy">Первый личный контекст</span></span><span class="journey-state" id="journey-mini-state">Начать</span><span class="row-chevron">›</span></button>
+      <button class="journey-row" id="journey-report" type="button"><span class="journey-index">02</span><span><span class="journey-title">Полный отчёт</span><span class="journey-copy">Разбор Матрицы и практики</span></span><span class="journey-state" id="journey-report-state">После мини-разбора</span><span class="row-chevron">›</span></button>
+      <button class="journey-row" id="journey-ritual" type="button"><span class="journey-index">03</span><span><span class="journey-title">Ежедневный ритуал</span><span class="journey-copy">Карта дня, практики и чат</span></span><span class="journey-state" id="journey-ritual-state">После входа</span><span class="row-chevron">›</span></button>
     </div>
-    <div class="quick-grid">
-      <article class="card quick-link" role="button" tabindex="0" onclick="openReport()">
-        <div class="quick-icon"><i class="ti ti-grid-dots"></i></div>
-        <div class="quick-title">Моя матрица</div>
-        <div class="quick-copy" id="quick-matrix-copy">Открыть отчёт и ключевые энергии</div>
-      </article>
-      <article class="card quick-link day" role="button" tabindex="0" onclick="location.href='tarot.html'">
-        <div class="quick-icon"><i class="ti ti-cards"></i></div>
-        <div class="quick-title">Карта дня</div>
-        <div class="quick-copy">Мягкий фокус и практика на сегодня</div>
-      </article>
-      <article class="card quick-link chat" role="button" tabindex="0" onclick="location.href='chat.html'">
-        <div class="quick-icon"><i class="ti ti-message-circle"></i></div>
-        <div class="quick-title">Чат с NURA</div>
-        <div class="quick-copy" id="quick-chat-copy">Разобрать вопрос про себя, отношения или деньги</div>
-      </article>
-      <article class="card quick-link profile" role="button" tabindex="0" onclick="location.href='profile.html'">
-        <div class="quick-icon"><i class="ti ti-user-circle"></i></div>
-        <div class="quick-title">Профиль</div>
-        <div class="quick-copy" id="quick-profile-copy">Подписка, отчёты и настройки доступа</div>
-      </article>
+    <button class="journey-complete" id="journey-complete" type="button" hidden><span class="journey-complete-icon">✦</span><span><strong>Твой личный контур собран</strong><span class="journey-complete-copy">Отчёт, карта дня и диалог с NURA доступны.</span></span><span class="row-chevron">›</span></button>
+  </section>
+
+  <section class="home-section" aria-labelledby="access-heading">
+    <h2 class="home-section-title" id="access-heading"><span>✦</span>Быстрый доступ</h2>
+    <div class="access-panel">
+      <button class="access-row" type="button" onclick="openReport()"><span class="access-icon"><i class="ti ti-grid-dots"></i></span><span><span class="access-title">Матрица и отчёты</span><span class="access-copy" id="quick-matrix-copy">Мини-разбор и личные отчёты</span></span><span class="row-chevron">›</span></button>
+      <button class="access-row is-sage" type="button" onclick="askNura('С чего мне лучше начать сегодня?')"><span class="access-icon"><i class="ti ti-message-circle"></i></span><span><span class="access-title">Чат с NURA</span><span class="access-copy" id="quick-chat-copy">Диалог после входа</span></span><span class="row-chevron">›</span></button>
+      <button class="access-row" id="third-access-row" type="button" onclick="location.href='profile.html'"><span class="access-icon"><i class="ti ti-user-circle"></i></span><span><span class="access-title" id="third-access-title">Профиль и настройки</span><span class="access-copy" id="third-access-copy">Аккаунт, подписка и доступ</span></span><span class="row-chevron">›</span></button>
     </div>
   </section>
 
-  <section class="section-block">
-    <div class="section-head-row">
-      <span class="section-label">Моя матрица</span>
-    </div>
-    <article class="card matrix-card-clean">
-      <div class="matrix-row">
-        <div class="matrix-badge"><span class="matrix-badge-value skeleton skeleton-num" id="matrix-num"></span></div>
-        <div style="min-width:0;flex:1">
-          <div class="matrix-kicker">Центральный архетип</div>
-          <div class="matrix-name-clean skeleton skeleton-name" id="matrix-name"></div>
-          <p class="matrix-copy" id="matrix-desc">
-            <span class="skeleton skeleton-line" style="width:92%"></span>
-            <span class="skeleton skeleton-line" style="width:68%"></span>
-          </p>
-        </div>
-      </div>
-      <div class="matrix-actions">
-        <button class="btn btn-primary" type="button" onclick="openReport()">Открыть отчёт</button>
-        <button class="btn btn-soft" type="button" onclick="askNura('Разбери мой центр матрицы')">Спросить NURA</button>
-      </div>
-    </article>
-  </section>
+  <section class="home-philosophy" aria-label="Философия NURA"><p>NURA не предсказывает будущее — она помогает увидеть, что уже происходит внутри.</p></section>
 
-  <section class="section-block">
-    <div class="section-head-row">
-      <span class="section-label">Статус</span>
-    </div>
-    <div class="status-grid">
-      <article class="card status-card report">
-        <div class="status-label">Отчёт</div>
-        <div class="status-state" id="report-status-state">Проверяем</div>
-        <div class="status-copy-small" id="report-status-copy">Смотрим, какой уровень отчёта уже доступен для тебя.</div>
-      </article>
-      <article class="card status-card subscription">
-        <div class="status-label">Подписка</div>
-        <div class="status-state" id="subscription-status-state">Проверяем</div>
-        <div class="status-copy-small" id="subscription-status-copy">Уточняем доступ к карте дня, практикам и чату.</div>
-      </article>
-    </div>
-  </section>
+  <div class="home-data-cache" aria-hidden="true" hidden>
+    <span id="matrix-num"></span><span id="matrix-name"></span><span id="matrix-desc"></span>
+    <span id="report-status-state">Проверяем</span><span id="report-status-copy"></span>
+    <span id="subscription-status-state">Проверяем</span><span id="subscription-status-copy"></span>
+    <span id="quick-profile-copy"></span>
+  </div>
 </main></div>
 
 <nav class="tabbar"><div class="tabbar-inner">
@@ -405,10 +357,61 @@
   var $ = document.getElementById.bind(document);
 
   var __isGuest = false;
+  var dailyCacheKey = 'tarot_daily_card_' + new Date().toISOString().slice(0, 10);
+  var DAILY_CARD_FILES = {
+    1: '01-magician.png', 2: '02-high-priestess.png', 3: '03-empress.png', 4: '04-emperor.png',
+    5: '05-hierophant.png', 6: '06-lovers.png', 7: '07-chariot.png', 8: '08-justice.png',
+    9: '09-hermit.png', 10: '10-wheel-of-fortune.png', 11: '11-strength.png', 12: '12-hanged-man.png',
+    13: '13-death.png', 14: '14-temperance.png', 15: '15-devil.png', 16: '16-tower.png',
+    17: '17-star.png', 18: '18-moon.png', 19: '19-sun.png', 20: '20-judgement.png',
+    21: '21-world.png', 22: '00-fool.png'
+  };
 
   function renderGreetingName(name) {
-    var safeName = name ? N.escHtml(name) : 'друг';
-    $('greeting-name').innerHTML = 'Привет, <em>' + safeName + '</em>';
+    $('greeting-name').textContent = name || '';
+  }
+
+  function setHero(title, copy) {
+    $('hero-title').textContent = title;
+    $('status-copy').textContent = copy;
+  }
+
+  function setDailyBack() {
+    var image = $('day-card-image');
+    image.src = 'assets/home-v8/card-back-v8.png';
+    image.alt = 'Рубашка карты дня';
+    image.dataset.kind = 'back';
+  }
+
+  function setDailyFace(card) {
+    var file = card && DAILY_CARD_FILES[card.arcana_number];
+    if (!file) return false;
+    var image = $('day-card-image');
+    image.src = 'images/' + file;
+    image.alt = 'Карта дня — ' + (card.arcana_name || 'Аркан');
+    image.dataset.kind = 'face';
+    return true;
+  }
+
+  function setDailyAction(label, disabled, handler) {
+    var button = $('day-cta');
+    button.textContent = label;
+    button.disabled = disabled;
+    button.onclick = disabled ? null : handler;
+  }
+
+  function setJourney(mini, report, ritual, complete) {
+    $('journey-mini-state').textContent = mini;
+    $('journey-report-state').textContent = report;
+    $('journey-ritual-state').textContent = ritual;
+    $('journey-panel').hidden = complete;
+    $('journey-complete').hidden = !complete;
+  }
+
+  function setAccess(authorized) {
+    $('third-access-title').textContent = authorized ? 'Расклады' : 'Профиль и настройки';
+    $('third-access-copy').textContent = authorized ? 'Глубже разобрать вопрос или ситуацию' : 'Аккаунт, подписка и доступ';
+    $('third-access-row').onclick = authorized ? openDailyCard : function() { location.href = 'profile.html'; };
   }
 
   function setReportSummary(state, copy) {
@@ -475,14 +478,12 @@
         if (r.status === 403) { applyBlockedMode(); return; }
         if (r.status === 401) {
           applyGuestMode();
-          if (!localStorage.getItem('nura_guest_token')) showAuthModal();
           return;
         }
         loadUserData();
       })
       .catch(function() {
-        applyGuestMode();
-        if (!localStorage.getItem('nura_guest_token')) showAuthModal();
+        applyHomeError();
       });
   }
 
@@ -514,6 +515,19 @@
         window.__hasFullReport = hasFull;
         window.__hasMini = hasMini;
         window.__hasTarotSubscription = hasTarot;
+
+        setAccess(true);
+        configureJourneyActions();
+        if (hasFull && hasTarot) {
+          setHero('Твой мягкий ритуал на сегодня', 'Отчёт, карта дня и диалог уже собраны в одном спокойном пространстве.');
+          setJourney('Готов', 'Открыть', 'Активен', true);
+        } else if (hasTarot) {
+          setHero('Твой мягкий ритуал на сегодня', 'Карта дня, практики и диалог с NURA доступны в расширенном режиме.');
+          setJourney(hasMini ? 'Готов' : 'Начать', hasFull ? 'Открыть' : 'Получить', 'Активен', false);
+        } else {
+          setHero('Твой мягкий ритуал на сегодня', 'Карта дня уже готова помочь тебе увидеть день яснее.');
+          setJourney(hasMini ? 'Готов' : 'Начать', hasFull ? 'Открыть' : 'Получить', 'Базовый доступ', false);
+        }
 
         if (hasFull && hasTarot) {
           $('status-copy').textContent = 'Полный отчёт под рукой, карта дня обновлена, а чат с NURA открыт без лишних шагов.';
@@ -579,6 +593,7 @@
         } else {
           $('matrix-desc').textContent = 'Здесь появится твой центральный архетип после мини-разбора или полного отчёта.';
         }
+        loadDailyCard();
       })
       .catch(function(err) {
         if (err && err.status === 403) { applyBlockedMode(); return; }
@@ -590,12 +605,9 @@
         $('matrix-num').textContent = '—';
         $('matrix-name').classList.remove('skeleton', 'skeleton-name');
         $('matrix-name').textContent = 'Нет данных';
+        applyHomeError();
       });
   }
-
-  var dailyCacheKey = 'tarot_daily_card_' + new Date().toISOString().slice(0, 10);
-  var dailyCached = null;
-  try { var dc = JSON.parse(localStorage.getItem(dailyCacheKey)); if (dc && dc.d && Date.now() - dc.ts < 3600000) dailyCached = dc.d; } catch(e) {}
 
   function applyDailyCard(d) {
     if (!d) return;
@@ -610,11 +622,22 @@
     if (d.key_phrase) {
       $('day-phrase').textContent = d.key_phrase;
     }
+    if (!setDailyFace(d)) {
+      applyHomeError();
+      return;
+    }
+    $('home-today').classList.remove('is-loading');
+    setDailyAction('Открыть карту →', false, openDailyCard);
   }
 
-  if (dailyCached) applyDailyCard(dailyCached);
-
-  cachedFetch('nura_cache_daily', BASE + '/tarot/daily-card', 300000)
+  function loadDailyCard() {
+    var dailyCached = null;
+    try { var dc = JSON.parse(localStorage.getItem(dailyCacheKey)); if (dc && dc.d && Date.now() - dc.ts < 3600000) dailyCached = dc.d; } catch(e) {}
+    $('home-today').classList.add('is-loading');
+    setDailyBack();
+    setDailyAction('Подождать', true, null);
+    if (dailyCached) applyDailyCard(dailyCached);
+    return cachedFetch('nura_cache_daily', BASE + '/tarot/daily-card', 300000)
     .then(function(d) {
       applyDailyCard(d);
       try { localStorage.setItem(dailyCacheKey, JSON.stringify({ d: d, ts: Date.now() })); } catch(e) {}
@@ -624,17 +647,9 @@
         applyGuestMode();
         return;
       }
-      if (__isGuest) {
-        $('day-phrase').textContent = 'Зарегистрируйся, чтобы ежедневно открывать свою карту дня.';
-        $('day-name').textContent = 'Требуется регистрация';
-      } else {
-        $('day-phrase').textContent = 'Не удалось загрузить карту дня. Попробуй обновить страницу.';
-        $('day-name').textContent = 'Нет данных';
-      }
-      $('day-symbol').classList.remove('skeleton');
-      $('day-symbol').textContent = '—';
-      $('day-name').classList.remove('skeleton', 'skeleton-name');
+      applyHomeError();
     });
+  }
 
   document.getElementById('themeToggle').addEventListener('click', function() {
     var next = N.toggleTheme();
@@ -659,6 +674,31 @@
   }
   window.openReport = openReport;
 
+  function openDailyCard() {
+    if (__isGuest) { showAuthModal(); return; }
+    location.href = 'tarot.html';
+  }
+
+  function configureJourneyActions() {
+    $('journey-mini').onclick = __isGuest ? function() { location.href = '/mini.html'; } : openReport;
+    $('journey-report').onclick = openReport;
+    $('journey-ritual').onclick = openDailyCard;
+    $('journey-complete').onclick = openDailyCard;
+  }
+
+  function applyHomeError() {
+    __isGuest = false;
+    setHero('Твой мягкий ритуал на сегодня', 'Личный экран доступен, но карту дня пока не удалось обновить.');
+    $('report-cta').textContent = 'Открыть отчёты';
+    $('report-cta').onclick = openReport;
+    setDailyBack();
+    $('home-today').classList.remove('is-loading');
+    $('day-name').textContent = 'Карта дня временно недоступна';
+    $('day-phrase').textContent = 'Новый символ появится, как только восстановится связь.';
+    $('day-symbol').textContent = '—';
+    setDailyAction('Попробовать снова →', false, loadDailyCard);
+  }
+
   function askNura(text) {
     if (__isGuest) { showAuthModal(); return; }
     localStorage.setItem('nura_pending_question', text);
@@ -669,10 +709,21 @@
   function applyGuestMode() {
     __isGuest = true;
     window.__hasFullReport = false;
+    window.__hasMini = false;
     window.__hasTarotSubscription = false;
-    $('report-cta').textContent = 'Получить мини-разбор';
+    renderGreetingName('');
+    setHero('Начни с мини-разбора', 'NURA соберёт первый личный контекст, чтобы карта дня и диалог стали действительно твоими.');
+    $('report-cta').textContent = 'Пройти мини-разбор';
     $('report-cta').onclick = function() { location.href = '/mini.html'; };
-    $('status-copy').textContent = 'Сначала мини-разбор, потом личный экран: так NURA соберёт твой контекст для карты дня и чата.';
+    setJourney('Начать', 'После мини-разбора', 'После входа', false);
+    setAccess(false);
+    configureJourneyActions();
+    setDailyBack();
+    $('home-today').classList.remove('is-loading');
+    $('day-name').textContent = 'Твоя карта дня появится после входа';
+    $('day-phrase').textContent = 'Войди, чтобы каждый день получать личный символ и короткий фокус.';
+    $('day-symbol').textContent = '✦';
+    setDailyAction('Войти и открыть →', false, showAuthModal);
     setReportSummary('Гостевой режим', 'Мини-разбор откроет твой первый персональный сценарий внутри NURA.');
     setSubscriptionSummary('Не активна', 'После регистрации можно включить карту дня, практики и расширенный чат.');
     setQuickCopies(
@@ -685,21 +736,26 @@
     $('matrix-num').textContent = '—';
     $('matrix-name').classList.remove('skeleton', 'skeleton-name');
     $('matrix-name').textContent = 'Личный архетип';
-    $('day-phrase').textContent = 'Зарегистрируйся, чтобы ежедневно открывать свою карту дня.';
-    $('day-name').textContent = 'Требуется регистрация';
-    $('day-name').classList.remove('skeleton', 'skeleton-name');
-    $('day-symbol').classList.remove('skeleton');
-    $('day-symbol').textContent = '✦';
   }
 
   function applyBlockedMode() {
     __isGuest = true;
     window.__hasFullReport = false;
+    window.__hasMini = false;
     window.__hasTarotSubscription = false;
     renderGreetingName('друг');
-    $('status-copy').textContent = 'Твой аккаунт временно недоступен из-за неактивности. Войди снова, чтобы вернуть доступ ко всем данным.';
+    setHero('Твой мягкий ритуал на сегодня', 'Твой аккаунт временно недоступен. Войди снова, чтобы вернуть доступ к личному пространству.');
     $('report-cta').textContent = 'Войти в NURA';
     $('report-cta').onclick = function() { showAuthModal(); };
+    setJourney('Войти', 'После входа', 'После входа', false);
+    setAccess(false);
+    configureJourneyActions();
+    setDailyBack();
+    $('home-today').classList.remove('is-loading');
+    $('day-name').textContent = 'Требуется вход';
+    $('day-phrase').textContent = 'Войди в аккаунт, чтобы открыть карту дня.';
+    $('day-symbol').textContent = '?';
+    setDailyAction('Войти и открыть →', false, showAuthModal);
     setReportSummary('Доступ закрыт', 'После входа снова появятся отчёт, история и личные материалы.');
     setSubscriptionSummary('Требуется вход', 'Статус подписки и карты дня станет виден после авторизации.');
     setQuickCopies(
@@ -712,11 +768,6 @@
     $('matrix-num').textContent = '?';
     $('matrix-name').classList.remove('skeleton', 'skeleton-name');
     $('matrix-name').textContent = 'Требуется вход';
-    $('day-phrase').textContent = 'Войди в аккаунт, чтобы открыть карту дня.';
-    $('day-name').textContent = 'Требуется вход';
-    $('day-name').classList.remove('skeleton', 'skeleton-name');
-    $('day-symbol').classList.remove('skeleton');
-    $('day-symbol').textContent = '?';
   }
 
   function showAuthModal() {
