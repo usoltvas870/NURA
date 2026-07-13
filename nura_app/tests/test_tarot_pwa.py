@@ -81,6 +81,28 @@ MOCK_QUESTION_SPREAD_RESPONSE = {
     "advice": "Доверься интуиции.",
 }
 
+MOCK_MINI_SPREAD_RESPONSE = {
+    "context": {
+        "card_number": 2,
+        "card_name": "Верховная Жрица",
+        "interpretation": "Сейчас важно заметить детали темы.",
+        "advice": "Дай себе время на наблюдение.",
+    },
+    "inner_resource": {
+        "card_number": 8,
+        "card_name": "Справедливость",
+        "interpretation": "Твоим ресурсом остаётся ясный взгляд.",
+        "advice": "Опирайся на проверяемые факты.",
+    },
+    "next_step": {
+        "card_number": 17,
+        "card_name": "Звезда",
+        "interpretation": "Маленькое действие вернёт направление.",
+        "advice": "Сделай один посильный шаг сегодня.",
+    },
+    "summary": "Тема станет яснее через спокойное внимание к себе.",
+}
+
 MOCK_AI_CHAT_RESPONSE = (
     "В сфере денег и реализации сейчас период стабильности.\n\n"
     "Твои прошлые действия закладывают фундамент для будущего.\n\n"
@@ -132,20 +154,13 @@ def _build_mock_user(
 def app():
     """Create FastAPI test app with tarot_pwa router.
 
-    Rate limiter is neutralised by:
-      1. Disabling the global `api.deps.limiter` instance (enabled=False)
-      2. Stripping any `_slow_limits` from endpoint functions
+    The global limiter is disabled for endpoint tests only; route metadata
+    remains available to configuration tests.
     """
     import api.deps as deps_mod
 
-    # 1. Disable the real limiter instance so its async_wrapper skips checks
     deps_mod.limiter.enabled = False
-
-    # 2. Import router and strip _slow_limits (belt & suspenders)
     import api.routes.tarot_pwa as tpm
-    for route in tpm.router.routes:
-        if hasattr(route.endpoint, "_slow_limits"):
-            del route.endpoint._slow_limits
 
     _app = FastAPI()
     _app.include_router(tpm.router)
@@ -279,6 +294,17 @@ def mock_ai_question():
 
 
 @pytest.fixture
+def mock_ai_mini():
+    """Patch AIService.generate_tarot_mini_spread."""
+    with patch(
+        "api.routes.tarot_pwa.AIService.generate_tarot_mini_spread",
+        new_callable=AsyncMock,
+    ) as mock:
+        mock.return_value = MOCK_MINI_SPREAD_RESPONSE
+        yield mock
+
+
+@pytest.fixture
 def mock_ai_chat_error():
     """Patch AIService.chat to raise an exception."""
     mock = AsyncMock()
@@ -304,6 +330,17 @@ def mock_ai_question_error():
     """Patch AIService.generate_tarot_question to raise."""
     with patch(
         "api.routes.tarot_pwa.AIService.generate_tarot_question",
+        new_callable=AsyncMock,
+    ) as mock:
+        mock.side_effect = Exception("AI service unavailable")
+        yield mock
+
+
+@pytest.fixture
+def mock_ai_mini_error():
+    """Patch AIService.generate_tarot_mini_spread to raise."""
+    with patch(
+        "api.routes.tarot_pwa.AIService.generate_tarot_mini_spread",
         new_callable=AsyncMock,
     ) as mock:
         mock.side_effect = Exception("AI service unavailable")
@@ -556,7 +593,7 @@ class TestSpreadWeekly:
     async def test_weekly_no_subscription(
         self, client, mock_get_user,
     ):
-        """402 — требуется подписка Таро."""
+        """402 — weekly spread requires a Tarot subscription."""
         response = client.post(
             "/api/v1/tarot/spread",
             json=self.SPREAD_BODY,
@@ -655,16 +692,17 @@ class TestSpreadQuestion:
 
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user(tarot_subscription=False))
-    async def test_question_no_subscription(
-        self, client, mock_get_user,
+    async def test_question_free_user_can_generate(
+        self, client, mock_get_user, mock_ai_question,
     ):
-        """402 — требуется подписка Таро."""
+        """Free user reaches question generation without a 402 response."""
         response = client.post(
             "/api/v1/tarot/spread",
             json=self.SPREAD_BODY,
             cookies={"nura_session_id": MOCK_SESSION_ID},
         )
-        assert response.status_code == 402
+        assert response.status_code == 200
+        mock_ai_question.assert_awaited_once()
 
     # ── Error: 503 AI unavailable ─────────────────────────────────
 
@@ -699,6 +737,55 @@ class TestSpreadQuestion:
 
 
 # ═══════════════════════════════════════════════════════════════════
+# Test: Spread — Mini  (POST /api/v1/tarot/spread, mini)
+# ═══════════════════════════════════════════════════════════════════
+
+class TestSpreadMini:
+    """POST /api/v1/tarot/spread — approved three-position mini spread."""
+
+    SPREAD_BODY = {"spread_type": "mini", "question": "Как бережно пройти перемены?"}
+
+    @pytest.mark.asyncio
+    @pytest.mark.mock_user(_build_mock_user(tarot_subscription=False))
+    async def test_mini_free_user_can_generate(
+        self, client, mock_get_user, mock_ai_mini,
+    ):
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["spread_type"] == "mini"
+        assert [card["position_name"] for card in data["cards"]] == [
+            "Контекст", "Внутренний ресурс", "Следующий шаг",
+        ]
+        mock_ai_mini.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @pytest.mark.mock_user(_build_mock_user())
+    async def test_mini_requires_topic(self, client, mock_get_user):
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json={"spread_type": "mini"},
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
+        assert response.status_code == 400
+
+    @pytest.mark.asyncio
+    @pytest.mark.mock_user(_build_mock_user())
+    async def test_mini_ai_error_returns_503(
+        self, client, mock_get_user, mock_ai_mini_error,
+    ):
+        response = client.post(
+            "/api/v1/tarot/spread",
+            json=self.SPREAD_BODY,
+            cookies={"nura_session_id": MOCK_SESSION_ID},
+        )
+        assert response.status_code == 503
+
+
 # Test: Spread — Life  (POST /api/v1/tarot/spread, life)
 # ═══════════════════════════════════════════════════════════════════
 
@@ -771,7 +858,7 @@ class TestSpreadLife:
     async def test_life_no_subscription(
         self, client, mock_get_user,
     ):
-        """402 — требуется подписка Таро."""
+        """Free user reaches yes/no generation without a 402 response."""
         response = client.post(
             "/api/v1/tarot/spread",
             json=self.SPREAD_BODY,
@@ -1070,8 +1157,8 @@ class TestSpreadYesNo:
 
     @pytest.mark.asyncio
     @pytest.mark.mock_user(_build_mock_user(tarot_subscription=False))
-    async def test_yesno_no_subscription(
-        self, client, mock_get_user,
+    async def test_yesno_free_user_can_generate(
+        self, client, mock_get_user, mock_arcana, mock_ai_chat_yesno,
     ):
         """402 — требуется подписка Таро."""
         response = client.post(
@@ -1079,7 +1166,7 @@ class TestSpreadYesNo:
             json=self.SPREAD_BODY,
             cookies={"nura_session_id": MOCK_SESSION_ID},
         )
-        assert response.status_code == 402
+        assert response.status_code == 200
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1092,7 +1179,7 @@ class TestSpreadCommonErrors:
     # ── 401 User not found ────────────────────────────────────────
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("spread_type", ["weekly", "question", "life"])
+    @pytest.mark.parametrize("spread_type", ["weekly", "question", "mini", "life"])
     @pytest.mark.mock_user(None)
     async def test_spread_user_not_found(
         self, client, mock_get_user, spread_type,
@@ -1156,30 +1243,63 @@ class TestSpreadCommonErrors:
         "body",
         [
             {"spread_type": "weekly"},
-            {
-                "spread_type": "question",
-                "question": "Вопрос?",
-            },
             {"spread_type": "life"},
             {"spread_type": "doubles"},
             {"spread_type": "portal"},
-            {
-                "spread_type": "yesno",
-                "question": "Вопрос?",
-            },
         ],
     )
     @pytest.mark.mock_user(_build_mock_user(tarot_subscription=False))
-    async def test_spread_all_types_no_subscription(
+    async def test_premium_spreads_require_subscription(
         self, client, mock_get_user, body,
     ):
-        """402 — все типы раскладов требуют подписку."""
+        """402 — Premium spread types require a subscription."""
         response = client.post(
             "/api/v1/tarot/spread",
             json=body,
             cookies={"nura_session_id": MOCK_SESSION_ID},
         )
         assert response.status_code == 402
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "body",
+        [
+            {"spread_type": "weekly"},
+            {"spread_type": "question", "question": "Вопрос?"},
+            {"spread_type": "mini", "question": "Тема"},
+            {"spread_type": "life"},
+            {"spread_type": "doubles"},
+            {"spread_type": "portal"},
+            {"spread_type": "yesno", "question": "Вопрос?"},
+        ],
+    )
+    @pytest.mark.mock_user(_build_mock_user(tarot_subscription=True))
+    async def test_subscriber_can_access_every_production_type(
+        self, client, mock_get_user, body,
+    ):
+        with patch(
+            "api.routes.tarot_pwa.AIService.generate_tarot_weekly_spread",
+            new_callable=AsyncMock,
+            return_value=MOCK_WEEKLY_SPREAD_RESPONSE,
+        ), patch(
+            "api.routes.tarot_pwa.AIService.generate_tarot_question",
+            new_callable=AsyncMock,
+            return_value=MOCK_QUESTION_SPREAD_RESPONSE,
+        ), patch(
+            "api.routes.tarot_pwa.AIService.generate_tarot_mini_spread",
+            new_callable=AsyncMock,
+            return_value=MOCK_MINI_SPREAD_RESPONSE,
+        ), patch(
+            "api.routes.tarot_pwa.generate_tarot_text",
+            new_callable=AsyncMock,
+            return_value="Тестовая интерпретация.",
+        ):
+            response = client.post(
+                "/api/v1/tarot/spread",
+                json=body,
+                cookies={"nura_session_id": MOCK_SESSION_ID},
+            )
+        assert response.status_code == 200
 
     # ── 503 all spread types on AI error ──────────────────────────
 
@@ -1244,7 +1364,7 @@ class TestSpreadRequestModel:
 
     def test_valid_spread_types(self):
         """Все допустимые spread_type проходят валидацию."""
-        for st in ("weekly", "question", "life", "doubles", "portal", "yesno"):
+        for st in ("weekly", "question", "mini", "life", "doubles", "portal", "yesno"):
             req = SpreadRequest(spread_type=st)
             assert req.spread_type == st
 
@@ -1843,6 +1963,13 @@ class TestRouterConfiguration:
                 assert "POST" in route.methods
                 return
         pytest.fail("spread route not found")
+
+    def test_spread_rate_limit_metadata_is_preserved(self):
+        import inspect
+
+        from api.routes.tarot_pwa import get_tarot_spread
+
+        assert '@limiter.limit("10/minute")' in inspect.getsource(get_tarot_spread)
 
 
 # ═══════════════════════════════════════════════════════════════════

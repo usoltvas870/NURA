@@ -739,6 +739,35 @@ class AIService:
             return dict(FALLBACK_TAROT_QUESTION)
 
     @staticmethod
+    async def generate_tarot_mini_spread(
+        birth_date: str,
+        topic: str,
+        user: "User",
+    ) -> dict:
+        three_arcana = await AIService._calculate_question_spread(birth_date, topic)
+        matrix_context = await AIService._get_matrix_context(user)
+        user_name = user.first_name or user.username or "пользователь"
+        template = AIService._load_prompt("tarot_mini_spread.txt")
+        user_content = template.format(
+            user_name=user_name,
+            topic=topic,
+            three_arcana=three_arcana,
+            matrix_context=matrix_context if matrix_context else "(нет данных матрицы)",
+        )
+        response = await AIService.chat(
+            [
+                {"role": "system", "content": _system_prompt()},
+                {"role": "user", "content": user_content},
+            ],
+            api_params={"model": TAROT_QUESTION_MODEL, **DEFAULT_PARAMS},
+            method_name="tarot_mini_spread",
+        )
+        result = await AIService._parse_json_response(response)
+        from core.schemas import TarotMiniSpreadResult
+
+        return TarotMiniSpreadResult(**result).model_dump()
+
+    @staticmethod
     async def chat_response(
         user_message: str,
         chat_history: list[dict],

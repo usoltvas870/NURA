@@ -223,6 +223,20 @@ class TarotQuestionResult(BaseModel):
     advice: str
 
 
+class TarotMiniPosition(BaseModel):
+    card_number: int
+    card_name: str
+    interpretation: str
+    advice: str | None = None
+
+
+class TarotMiniSpreadResult(BaseModel):
+    context: TarotMiniPosition
+    inner_resource: TarotMiniPosition
+    next_step: TarotMiniPosition
+    summary: str
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"
 
@@ -246,5 +260,7 @@ __all__ = [
     "TarotWeeklySpreadResult",
     "TarotQuestionPosition",
     "TarotQuestionResult",
+    "TarotMiniPosition",
+    "TarotMiniSpreadResult",
     "HealthResponse",
 ]

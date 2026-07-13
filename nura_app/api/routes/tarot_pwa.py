@@ -30,7 +30,7 @@ class DailyCardResponse(BaseModel):
 
 
 class SpreadRequest(BaseModel):
-    spread_type: str = Field(..., pattern=r"^(weekly|question|life|doubles|portal|yesno)$")
+    spread_type: str = Field(..., pattern=r"^(weekly|question|mini|life|doubles|portal|yesno)$")
     question: str | None = Field(None, max_length=200)
 
 
@@ -53,6 +53,7 @@ class SpreadResponse(BaseModel):
 SPREAD_NAMES = {
     "weekly": "Расклад недели",
     "question": "По вопросу",
+    "mini": "Мини-расклад",
     "life": "Сферы жизни",
     "doubles": "Двойники",
     "portal": "Портал месяца",
@@ -118,7 +119,8 @@ async def get_tarot_spread(
     body: SpreadRequest,
     user: User = Depends(get_current_web_user),
 ):
-    if not user.tarot_subscription:
+    free_spread_types = {"question", "yesno", "mini"}
+    if not user.tarot_subscription and body.spread_type not in free_spread_types:
         raise HTTPException(status_code=402, detail="Требуется подписка Таро")
     if not user.birth_date:
         raise HTTPException(status_code=400, detail="Дата рождения не указана")
@@ -133,6 +135,10 @@ async def get_tarot_spread(
         if not body.question:
             raise HTTPException(status_code=400, detail="Вопрос обязателен для spread_type=question")
         return await _handle_question_spread(user, birth_date, body.question, user_name)
+    elif spread_type == "mini":
+        if not body.question:
+            raise HTTPException(status_code=400, detail="Тема обязательна для spread_type=mini")
+        return await _handle_mini_spread(user, birth_date, body.question, user_name)
     elif spread_type == "life":
         return await _handle_life_spread(user, birth_date, user_name)
     elif spread_type == "doubles":
@@ -187,6 +193,28 @@ async def _handle_question_spread(user, birth_date: str, question: str, user_nam
         summary_parts.append(f"Совет: {result['advice']}")
 
     return SpreadResponse(spread_type="question", spread_name="По вопросу", cards=cards, summary="\n".join(summary_parts))
+
+
+async def _handle_mini_spread(user, birth_date: str, topic: str, user_name: str) -> SpreadResponse:
+    try:
+        result = await AIService.generate_tarot_mini_spread(birth_date, topic, user)
+    except Exception:
+        raise HTTPException(status_code=503, detail="AI временно недоступен")
+
+    context = result.get("context", {})
+    inner_resource = result.get("inner_resource", {})
+    next_step = result.get("next_step", {})
+    cards = [
+        SpreadCard(position_name="Контекст", arcana_number=context.get("card_number", 0), arcana_name=context.get("card_name", ""), interpretation=context.get("interpretation", ""), advice=context.get("advice")),
+        SpreadCard(position_name="Внутренний ресурс", arcana_number=inner_resource.get("card_number", 0), arcana_name=inner_resource.get("card_name", ""), interpretation=inner_resource.get("interpretation", ""), advice=inner_resource.get("advice")),
+        SpreadCard(position_name="Следующий шаг", arcana_number=next_step.get("card_number", 0), arcana_name=next_step.get("card_name", ""), interpretation=next_step.get("interpretation", ""), advice=next_step.get("advice")),
+    ]
+    return SpreadResponse(
+        spread_type="mini",
+        spread_name="Мини-расклад",
+        cards=cards,
+        summary=result.get("summary"),
+    )
 
 
 async def _handle_life_spread(user, birth_date: str, user_name: str) -> SpreadResponse:
