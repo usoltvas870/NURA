@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nura-v16';
+const CACHE_NAME = 'nura-v17';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
