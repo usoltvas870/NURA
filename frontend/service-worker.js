@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nura-v19';
+const CACHE_NAME = 'nura-v20';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
@@ -6,6 +6,7 @@ const STATIC_ASSETS = [
   '/success.html',
   '/app/',
   '/app/index.html',
+  '/app/home-v9.css',
   '/app/chat.html',
   '/app/chat-v1-2.css',
   '/app/tarot.html',
