@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="nura-pwa.css?v=11"/>
 <link rel="stylesheet" href="/theme.css?v=9"/>
 <link rel="stylesheet" href="home-v8.css?v=8"/>
+<link rel="stylesheet" href="home-v9.css?v=1"/>
 <title>NURA · Главная</title>
 <meta name="description" content="Личный центр NURA после мини-разбора или покупки отчёта.">
 <style>
@@ -258,13 +259,13 @@
   .today-top,
   .matrix-row{align-items:flex-start}
 }
-</style></head><body class="nura-home-v8">
+</style></head><body class="nura-home-v8 nura-home-v9">
 <div class="app-shell">
 <header class="header">
   <a href="index.html" class="nura-text-logo" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a>
+  <span class="header-title">Главная</span>
   <div class="header-actions">
-    <a class="home-profile" href="profile.html" aria-label="Открыть профиль"><i class="ti ti-user"></i></a>
-    <button class="home-theme-hook" id="themeToggle" type="button" aria-label="Сменить тему" hidden><i class="ti ti-sun-moon"></i></button>
+    <button class="home-theme-hook" id="themeToggle" type="button" aria-label="Включить тёмную тему"><i class="ti ti-sun-moon"></i></button>
   </div>
 </header>
 
@@ -300,9 +301,9 @@
   <section class="home-section" aria-labelledby="journey-heading">
     <h2 class="home-section-title" id="journey-heading"><span>✦</span>Твой путь</h2>
     <div class="journey-panel" id="journey-panel">
-      <button class="journey-row" id="journey-mini" type="button"><span class="journey-index">01</span><span><span class="journey-title">Мини-разбор</span><span class="journey-copy">Первый личный контекст</span></span><span class="journey-state" id="journey-mini-state">Начать</span><span class="row-chevron">›</span></button>
-      <button class="journey-row" id="journey-report" type="button"><span class="journey-index">02</span><span><span class="journey-title">Полный отчёт</span><span class="journey-copy">Разбор Матрицы и практики</span></span><span class="journey-state" id="journey-report-state">После мини-разбора</span><span class="row-chevron">›</span></button>
-      <button class="journey-row" id="journey-ritual" type="button"><span class="journey-index">03</span><span><span class="journey-title">Ежедневный ритуал</span><span class="journey-copy">Карта дня, практики и чат</span></span><span class="journey-state" id="journey-ritual-state">После входа</span><span class="row-chevron">›</span></button>
+      <button class="journey-row" id="journey-mini" type="button"><span class="journey-index">01</span><span><span class="journey-title">Мини-разбор</span><span class="journey-copy">Первый личный контекст</span></span><span class="journey-state" id="journey-mini-state">Начать</span><span class="access-badge" id="journey-mini-badge">Гость</span><span class="row-chevron">›</span></button>
+      <button class="journey-row" id="journey-report" type="button"><span class="journey-index">02</span><span><span class="journey-title">Полный отчёт</span><span class="journey-copy">Разбор Матрицы и практики</span></span><span class="journey-state" id="journey-report-state">После мини-разбора</span><span class="access-badge" id="journey-report-badge">После мини-разбора</span><span class="row-chevron">›</span></button>
+      <button class="journey-row" id="journey-ritual" type="button"><span class="journey-index">03</span><span><span class="journey-title">Ежедневный ритуал</span><span class="journey-copy">Карта дня, практики и чат</span></span><span class="journey-state" id="journey-ritual-state">После входа</span><span class="access-badge" id="journey-ritual-badge">По подписке</span><span class="row-chevron">›</span></button>
     </div>
     <button class="journey-complete" id="journey-complete" type="button" hidden><span class="journey-complete-icon">✦</span><span><strong>Твой личный контур собран</strong><span class="journey-complete-copy">Отчёт, карта дня и диалог с NURA доступны.</span></span><span class="row-chevron">›</span></button>
   </section>
@@ -310,9 +311,9 @@
   <section class="home-section" aria-labelledby="access-heading">
     <h2 class="home-section-title" id="access-heading"><span>✦</span>Быстрый доступ</h2>
     <div class="access-panel">
-      <button class="access-row" type="button" onclick="openReport()"><span class="access-icon"><i class="ti ti-grid-dots"></i></span><span><span class="access-title">Матрица и отчёты</span><span class="access-copy" id="quick-matrix-copy">Мини-разбор и личные отчёты</span></span><span class="row-chevron">›</span></button>
-      <button class="access-row is-sage" type="button" onclick="askNura('С чего мне лучше начать сегодня?')"><span class="access-icon"><i class="ti ti-message-circle"></i></span><span><span class="access-title">Чат с NURA</span><span class="access-copy" id="quick-chat-copy">Диалог после входа</span></span><span class="row-chevron">›</span></button>
-      <button class="access-row" id="third-access-row" type="button" onclick="location.href='profile.html'"><span class="access-icon"><i class="ti ti-user-circle"></i></span><span><span class="access-title" id="third-access-title">Профиль и настройки</span><span class="access-copy" id="third-access-copy">Аккаунт, подписка и доступ</span></span><span class="row-chevron">›</span></button>
+      <button class="access-row" type="button" onclick="openReport()"><span class="access-icon"><i class="ti ti-grid-dots"></i></span><span><span class="access-title">Матрица и отчёты</span><span class="access-copy" id="quick-matrix-copy">Мини-разбор и личные отчёты</span></span><span class="access-badge" id="quick-matrix-badge">Гость</span><span class="row-chevron">›</span></button>
+      <button class="access-row is-sage" type="button" onclick="askNura('С чего мне лучше начать сегодня?')"><span class="access-icon"><i class="ti ti-message-circle"></i></span><span><span class="access-title">Чат с NURA</span><span class="access-copy" id="quick-chat-copy">Диалог после входа</span></span><span class="access-badge" id="quick-chat-badge">После входа</span><span class="row-chevron">›</span></button>
+      <button class="access-row" id="third-access-row" type="button" onclick="location.href='profile.html'"><span class="access-icon"><i class="ti ti-user-circle"></i></span><span><span class="access-title" id="third-access-title">Профиль и настройки</span><span class="access-copy" id="third-access-copy">Аккаунт, подписка и доступ</span></span><span class="access-badge" id="quick-profile-badge">После входа</span><span class="row-chevron">›</span></button>
     </div>
   </section>
 
@@ -406,6 +407,36 @@
     $('journey-ritual-state').textContent = ritual;
     $('journey-panel').hidden = complete;
     $('journey-complete').hidden = !complete;
+  }
+
+  function setAccessBadges(state, hasMini, hasFull) {
+    var badges = {
+      guest: [
+        ['Начать', 'action'], ['После мини-разбора', 'action'], ['После входа', 'action'],
+        ['Пройти мини-разбор', 'action'], ['После входа', 'action'], ['После входа', 'action']
+      ],
+      free: [
+        [hasMini ? 'Готово' : 'Получить отчёт', hasMini ? 'available' : 'action'],
+        [hasFull ? 'Открыто' : hasMini ? 'Купить отчёт' : 'После мини-разбора', hasFull ? 'available' : 'action'],
+        ['По подписке', 'action'],
+        [hasFull || hasMini ? 'Открыто' : 'Получить отчёт', hasFull || hasMini ? 'available' : 'action'],
+        ['По подписке', 'action'], ['Открыто', 'available']
+      ],
+      subscriber: [
+        [hasMini ? 'Готово' : 'Открыть профиль', 'available'],
+        [hasFull ? 'Открыто' : 'Купить отчёт', hasFull ? 'available' : 'action'],
+        ['Открыто', 'available'],
+        [hasFull || hasMini ? 'Открыто' : 'Открыть профиль', 'available'],
+        ['Открыто', 'available'], ['Открыто', 'available']
+      ]
+    }[state];
+    var ids = ['journey-mini-badge', 'journey-report-badge', 'journey-ritual-badge', 'quick-matrix-badge', 'quick-chat-badge', 'quick-profile-badge'];
+    ids.forEach(function(id, index) {
+      var badge = $(id);
+      badge.textContent = badges[index][0];
+      badge.dataset.access = state;
+      badge.dataset.status = badges[index][1];
+    });
   }
 
   function setAccess(authorized) {
@@ -515,6 +546,8 @@
         window.__hasFullReport = hasFull;
         window.__hasMini = hasMini;
         window.__hasTarotSubscription = hasTarot;
+
+        setAccessBadges(hasTarot ? 'subscriber' : 'free', hasMini, hasFull);
 
         setAccess(true);
         configureJourneyActions();
@@ -651,9 +684,18 @@
     });
   }
 
+  function syncThemeToggle(theme) {
+    var toggle = document.getElementById('themeToggle');
+    var isDark = theme === 'dark';
+    toggle.querySelector('i').className = 'ti ti-' + (isDark ? 'moon' : 'sun-moon');
+    toggle.setAttribute('aria-label', isDark ? 'Включить светлую тему' : 'Включить тёмную тему');
+    toggle.setAttribute('aria-pressed', String(isDark));
+  }
+
+  syncThemeToggle(document.documentElement.getAttribute('data-theme') || 'light');
   document.getElementById('themeToggle').addEventListener('click', function() {
     var next = N.toggleTheme();
-    this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
+    syncThemeToggle(next);
   });
 
   function openReport() {
@@ -711,6 +753,7 @@
     window.__hasFullReport = false;
     window.__hasMini = false;
     window.__hasTarotSubscription = false;
+    setAccessBadges('guest', false, false);
     renderGreetingName('');
     setHero('Начни с мини-разбора', 'NURA соберёт первый личный контекст, чтобы карта дня и диалог стали действительно твоими.');
     $('report-cta').textContent = 'Пройти мини-разбор';
@@ -743,6 +786,7 @@
     window.__hasFullReport = false;
     window.__hasMini = false;
     window.__hasTarotSubscription = false;
+    setAccessBadges('guest', false, false);
     renderGreetingName('друг');
     setHero('Твой мягкий ритуал на сегодня', 'Твой аккаунт временно недоступен. Войди снова, чтобы вернуть доступ к личному пространству.');
     $('report-cta').textContent = 'Войти в NURA';
