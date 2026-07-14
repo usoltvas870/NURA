@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
@@ -25,6 +26,8 @@ from core.services.ai import AIService
 from core.services.matrix import MatrixService
 from core.services.payment import PaymentService
 from core.services.report import ReportService
+from core.services.chat_quota import ChatQuotaService
+from core.schemas.chat import ChatQuotaState, ChatRequest, ChatResponse
 
 
 class ReportItem(BaseModel):
@@ -313,23 +316,31 @@ async def subscribe_tarot(
     return SubscribeResponse(payment_url=payment["payment_url"])
 
 
-class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=2000)
-    history: list[dict] = Field(default_factory=list)
-
-
-class ChatResponse(BaseModel):
-    reply: str
-    messages_left: int
-
-
-_WEB_CHAT_FREE_LIMIT = 5
 _WEB_CHAT_HISTORY_TTL = 7 * 86400
 _WEB_CHAT_HISTORY_MAX = 20
 
 
 def _web_history_key(uid) -> str:
     return f"chat:history:{uid}"
+
+
+def _chat_subscriber(user: User) -> bool:
+    return ChatQuotaService.is_subscriber(
+        tarot_subscription=bool(user.tarot_subscription),
+        tarot_subscription_until=user.tarot_subscription_until,
+        subscription_status=user.subscription_status,
+        subscription_until=user.subscription_until,
+    )
+
+
+@router.get("/chat/state", response_model=ChatQuotaState)
+@limiter.limit("60/minute")
+async def web_chat_state(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
+    quota = ChatQuotaService(get_redis())
+    return await quota.state(user.id, subscriber=_chat_subscriber(user))
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -342,13 +353,9 @@ async def web_chat(
     session_factory = get_async_sessionmaker()
     report_repo = ReportRepository(session_factory)
 
-    has_unlimited = (
-        bool(user.tarot_subscription)
-        or user.subscription_status == "premium"
-        or user.has_matrix
-    )
+    has_unlimited = _chat_subscriber(user)
     redis = get_redis()
-    counter_key = f"chat_count:{user.id}"
+    quota_service = ChatQuotaService(redis)
 
     history_key = _web_history_key(user.id)
     raw_history = await redis.get(history_key)
@@ -360,14 +367,12 @@ async def web_chat(
     else:
         server_history = body.history[-10:]
 
-    if not has_unlimited:
-        raw = await redis.get(counter_key)
-        used = int(raw) if raw else 0
-        if used >= _WEB_CHAT_FREE_LIMIT:
-            raise HTTPException(
-                status_code=402,
-                detail=f"Лимит {_WEB_CHAT_FREE_LIMIT} бесплатных сообщений исчерпан",
-            )
+    reservation = await quota_service.reserve(user.id, subscriber=has_unlimited)
+    if reservation.token is None and not has_unlimited:
+        return JSONResponse(
+            status_code=402,
+            content=reservation.state.model_dump(mode="json"),
+        )
 
     matrix_data: dict = {}
     user_name = user.first_name or user.name or "пользователь"
@@ -388,6 +393,15 @@ async def web_chat(
             user_name=user_name,
         )
     except Exception:
+        await quota_service.refund(user.id, reservation.token, subscriber=has_unlimited)
+        raise HTTPException(status_code=503, detail="AI временно недоступен")
+
+    try:
+        quota_state = await quota_service.commit(
+            user.id, reservation.token, subscriber=has_unlimited,
+        )
+    except Exception:
+        await quota_service.refund(user.id, reservation.token, subscriber=has_unlimited)
         raise HTTPException(status_code=503, detail="AI временно недоступен")
 
     server_history.append({"role": "user", "content": body.message})
@@ -404,14 +418,7 @@ async def web_chat(
     except Exception:
         pass
 
-    messages_left = -1
-    if not has_unlimited:
-        new_count = await redis.incr(counter_key)
-        if new_count == 1:
-            await redis.expire(counter_key, 86400)
-        messages_left = max(0, _WEB_CHAT_FREE_LIMIT - new_count)
-
-    return ChatResponse(reply=reply, messages_left=messages_left)
+    return ChatResponse(reply=reply, quota=quota_state)
 
 
 class TestSubscribeResponse(BaseModel):

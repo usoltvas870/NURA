@@ -1,369 +1,227 @@
-<!DOCTYPE html><html lang="ru"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NURA">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<meta name="theme-color" content="#EFEEE9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#12100E" media="(prefers-color-scheme: dark)">
-<script>
-  (function(){
-    var t = localStorage.getItem('nura-theme') || 'light';
-    document.documentElement.setAttribute('data-theme', t);
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NURA">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#EFEEE9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#12100E" media="(prefers-color-scheme: dark)">
+  <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('nura-theme')||'light')})()</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="nura-pwa.css?v=11">
+  <link rel="stylesheet" href="/theme.css?v=9">
+  <link rel="stylesheet" href="chat-v1-2.css?v=2">
+  <title>NURA · Чат</title>
+</head>
+<body class="chat-page">
+  <div class="app-canvas">
+    <header class="app-header">
+      <a class="brand" href="index.html" aria-label="NURA"><span class="brand-star">✦</span><span class="brand-word">NURA</span></a>
+      <span class="header-context">Чат</span>
+      <a class="profile-button" href="profile.html" aria-label="Профиль"><i class="ti ti-user"></i></a>
+    </header>
+
+    <section class="context-strip" id="context-strip" aria-label="Контекст диалога">
+      <div class="context-card-thumb"><img id="context-card-image" alt="" hidden></div>
+      <div class="context-copy"><span class="context-kicker">Текущий контекст</span><strong id="context-title">Личный контекст</strong><small id="context-note">NURA учитывает твой личный контекст</small></div>
+      <span class="access-status context-access" id="chat-access" hidden>Нужен вход</span>
+    </section>
+
+    <main class="chat-viewport" id="messages" aria-live="polite">
+      <section class="chat-state guest-state" id="guest-state" hidden>
+        <div class="guest-ornament" aria-hidden="true"><span class="guest-orbit"></span><span class="guest-star">✦</span></div>
+        <span class="state-kicker">Личный диалог</span>
+        <h1>Войди, чтобы NURA могла отвечать именно тебе</h1>
+        <p>После входа диалог сможет опираться на Матрицу, карту дня и уже собранный личный контекст.</p>
+        <button class="primary-action" id="guest-auth" type="button">Войти и начать диалог</button>
+        <button class="secondary-action" id="guest-mini" type="button">Пройти мини-разбор</button>
+      </section>
+
+      <section class="chat-state empty-state" id="empty-state">
+        <div class="nura-presence" aria-hidden="true"><span class="presence-ring"></span><span class="presence-ring presence-ring-b"></span><span class="presence-mark">✦</span></div>
+        <span class="state-kicker">Диалог с NURA</span>
+        <h1>О чём поговорим сегодня?</h1>
+        <p>NURA может опереться на твою Матрицу, карту дня и предыдущий контекст — без предсказаний и общих шаблонов.</p>
+        <div class="prompt-grid">
+          <button class="prompt-chip" type="button">Что сейчас забирает у меня силы?</button>
+          <button class="prompt-chip" type="button">Какой шаг для меня сейчас важнее?</button>
+          <button class="prompt-chip" type="button">Почему я повторяю этот сценарий?</button>
+          <button class="prompt-chip" type="button">Помоги спокойно разобрать ситуацию</button>
+        </div>
+      </section>
+
+      <section class="conversation" id="conversation" hidden aria-live="polite"></section>
+
+      <section class="chat-state limit-state" id="limit-state" hidden>
+        <div class="limit-symbol" aria-hidden="true">✦</div>
+        <span class="access-status">Premium</span>
+        <h1>Лимит вопросов на сегодня исчерпан</h1>
+        <p>История диалога сохранена. Продолжить разговор без дневного лимита можно с активной подпиской.</p>
+        <button class="primary-action" id="limit-premium" type="button">Открыть Premium</button>
+        <button class="secondary-action" id="limit-tomorrow" type="button">Вернуться завтра</button>
+      </section>
+    </main>
+
+    <section class="composer-shell is-disabled" id="composer-shell">
+      <div class="composer-context" id="limit-note"><span>✦</span><span id="status-text">Загружаем личный диалог…</span></div>
+      <div class="composer-service" id="composer-service" hidden><div><strong id="service-title">Нужен вход</strong><small id="service-copy">Авторизуйся, чтобы открыть личный диалог.</small></div><button id="service-action" type="button">Войти</button></div>
+      <div class="composer"><textarea id="chat-input" rows="1" placeholder="Написать NURA…" aria-label="Сообщение" disabled></textarea><button class="send-button" id="send-btn" type="button" onclick="sendMessage()" disabled aria-label="Отправить"><i class="ti ti-arrow-up"></i></button></div>
+    </section>
+  </div>
+
+  <nav class="tabbar" aria-label="Основная навигация"><div class="tabbar-inner">
+    <a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
+    <a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
+    <a class="tab-item active tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
+    <a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
+  </div></nav>
+
+  <script src="nura-pwa.js?v=9"></script>
+  <script>
+  (function () {
+    'use strict';
+    var N = window.NURA;
+    var BASE = N.BASE;
+    var viewport = document.getElementById('messages');
+    var input = document.getElementById('chat-input');
+    var send = document.getElementById('send-btn');
+    var shell = document.getElementById('composer-shell');
+    var status = document.getElementById('status-text');
+    var note = document.getElementById('limit-note');
+    var service = document.getElementById('composer-service');
+    var serviceAction = document.getElementById('service-action');
+    var guest = document.getElementById('guest-state');
+    var empty = document.getElementById('empty-state');
+    var conversation = document.getElementById('conversation');
+    var limit = document.getElementById('limit-state');
+    var context = document.getElementById('context-strip');
+    var contextImage = document.getElementById('context-card-image');
+    var contextTitle = document.getElementById('context-title');
+    var contextNote = document.getElementById('context-note');
+    var access = document.getElementById('chat-access');
+    var chatLog = [];
+    var state = null;
+    var user = null;
+    var sending = false;
+    var CARD = {0:'00-fool.png',1:'01-magician.png',2:'02-high-priestess.png',3:'03-empress.png',4:'04-emperor.png',5:'05-hierophant.png',6:'06-lovers.png',7:'07-chariot.png',8:'08-justice.png',9:'09-hermit.png',10:'10-wheel-of-fortune.png',11:'11-strength.png',12:'12-hanged-man.png',13:'13-death.png',14:'14-temperance.png',15:'15-devil.png',16:'16-tower.png',17:'17-star.png',18:'18-moon.png',19:'19-sun.png',20:'20-judgement.png',21:'21-world.png'};
+
+    function showOnly(target) { [guest, empty, conversation, limit].forEach(function (el) { el.hidden = el !== target; }); }
+    function setComposer(enabled) { shell.classList.toggle('is-disabled', !enabled); input.disabled = !enabled; send.disabled = !enabled || !input.value.trim(); document.querySelectorAll('.prompt-chip').forEach(function (button) { button.disabled = !enabled; }); }
+    function setService(title, copy, label, handler) { service.hidden = false; document.getElementById('service-title').textContent = title; document.getElementById('service-copy').textContent = copy; serviceAction.textContent = label; serviceAction.onclick = handler; }
+    function setNote(text, warning) { status.textContent = text; note.classList.toggle('is-warning', Boolean(warning)); }
+    function auth() { N.showAuthModal({ title: 'Войди, чтобы открыть чат', copy: 'После входа NURA ответит с учётом твоего личного контекста.', extraLink: '/mini.html', extraLinkLabel: 'Пройти бесплатный мини-разбор' }); }
+    function openPremium() { location.href = 'profile.html#subscription'; }
+    function resetContext() { context.hidden = false; access.hidden = true; contextImage.removeAttribute('src'); contextImage.alt = ''; contextImage.hidden = true; contextTitle.textContent = 'Личный контекст'; contextNote.textContent = 'NURA учитывает твой личный контекст'; }
+
+    function renderState() {
+      service.hidden = true;
+      resetContext();
+      if (!state) { showOnly(empty); setComposer(false); return; }
+      if (!user) {
+        showOnly(guest); setComposer(false); setNote('Личный диалог станет доступен после входа', true);
+        contextTitle.textContent = 'Личный контекст появится после входа'; contextNote.textContent = 'Матрица, карта дня и история диалога'; access.hidden = false;
+        setService('Нужен вход', 'Авторизуйся, чтобы NURA могла учитывать твой личный контекст.', 'Войти', auth);
+        return;
+      }
+      if (!state.can_send) { showOnly(limit); setComposer(false); setNote('Вопросы на сегодня закончились', true); setService('Лимит вопросов исчерпан', 'История сохранена. Продолжить можно с Premium.', 'Premium', openPremium); return; }
+      showOnly(chatLog.length ? conversation : empty);
+      setComposer(!sending);
+      if (sending) { setNote('NURA формирует ответ', false); return; }
+      setNote(state.access === 'subscriber' ? 'Безлимитный диалог' : 'Осталось ' + state.messages_left + ' вопросов сегодня', state.messages_left === 1);
+    }
+
+    function messageTime() { return N.now(); }
+    function bubble(role, text, time, retry) {
+      var row = document.createElement('div');
+      var message = document.createElement('div');
+      message.className = 'message-bubble ' + (role === 'user' ? 'message-user' : 'message-nura');
+      message.textContent = text;
+      var timestamp = document.createElement('span');
+      timestamp.className = 'message-time';
+      timestamp.textContent = time;
+      if (role === 'user') { row.className = 'message-row message-row-user'; row.append(message, timestamp); }
+      else {
+        row.className = 'message-row message-row-nura';
+        var avatar = document.createElement('div'); avatar.className = 'nura-avatar'; avatar.setAttribute('aria-hidden', 'true'); avatar.textContent = '✦';
+        var content = document.createElement('div'); content.className = 'message-content';
+        if (retry) { message.classList.add('message-error'); var retryButton = document.createElement('button'); retryButton.className = 'retry-btn'; retryButton.type = 'button'; retryButton.textContent = 'Повторить'; retryButton.addEventListener('click', function () { window.sendMessage(retry); }); content.append(message, timestamp, retryButton); }
+        else { var contextNote = document.createElement('div'); contextNote.className = 'message-context-note'; contextNote.textContent = 'Опираюсь на твой личный контекст и текущий диалог'; message.appendChild(contextNote); content.append(message, timestamp); }
+        row.append(avatar, content);
+      }
+      conversation.appendChild(row);
+    }
+    function addFollowups() {
+      var choices = ['Какой первый шаг выбрать?', 'Что именно меня удерживает?'];
+      conversation.querySelectorAll('.followup-chips').forEach(function (row) { row.remove(); });
+      var row = document.createElement('div'); row.className = 'followup-chips';
+      choices.forEach(function (choice) { var button = document.createElement('button'); button.type = 'button'; button.textContent = choice; button.addEventListener('click', function () { input.value = choice; input.dispatchEvent(new Event('input')); window.sendMessage(); }); row.appendChild(button); });
+      conversation.appendChild(row);
+    }
+    function scroll() { requestAnimationFrame(function () { viewport.scrollTop = viewport.scrollHeight; }); }
+    function typing(on) {
+      var current = document.getElementById('typing-row'); if (current) current.remove(); if (!on) return;
+      var row = document.createElement('div'); row.id = 'typing-row'; row.className = 'message-row message-row-nura typing-row';
+      var avatar = document.createElement('div'); avatar.className = 'nura-avatar'; avatar.setAttribute('aria-hidden', 'true'); avatar.textContent = '✦';
+      var dots = document.createElement('div'); dots.className = 'typing-bubble'; dots.setAttribute('aria-label', 'NURA печатает'); for (var i = 0; i < 3; i += 1) dots.appendChild(document.createElement('span'));
+      row.append(avatar, dots); conversation.appendChild(row); scroll();
+    }
+    function save(role, text, time) { chatLog.push({ role: role, text: text, time: time }); chatLog = chatLog.slice(-80); try { localStorage.setItem('nura_chat_log', JSON.stringify(chatLog)); } catch (_) {} }
+    function loadHistory() {
+      var key = 'nura_chat_log'; var stored = localStorage.getItem('nura_chat_user_id');
+      if (stored !== user.user_id) { localStorage.removeItem(key); localStorage.setItem('nura_chat_user_id', user.user_id); }
+      try { chatLog = JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) { chatLog = []; }
+      conversation.replaceChildren(); chatLog.forEach(function (item) { bubble(item.role, item.text, item.time); });
+    }
+    async function loadContext() {
+      try {
+        var card = await N.fetchJSON(BASE + '/tarot/daily-card'); var file = CARD[card.arcana_number];
+        if (file) { contextImage.src = 'images/' + file; contextImage.alt = card.arcana_name; contextImage.hidden = false; }
+        contextTitle.textContent = (user.has_matrix ? 'Матрица + ' : 'Карта дня · ') + card.arcana_name;
+        context.hidden = false;
+      } catch (_) { if (user && user.has_matrix) { contextTitle.textContent = 'Личная Матрица'; context.hidden = false; } }
+    }
+    function pending() { var value = new URLSearchParams(location.search).get('question') || localStorage.getItem('nura_pending_question'); if (!value || !state || !state.can_send) return; input.value = value; input.dispatchEvent(new Event('input')); window.sendMessage(value, true); }
+    async function init() {
+      try { user = await N.fetchJSON(BASE + '/web/me'); loadHistory(); state = await N.fetchJSON(BASE + '/web/chat/state'); renderState(); loadContext(); pending(); }
+      catch (error) { if (error && error.status === 401) { user = null; state = { can_send: false }; renderState(); return; } if (error && error.status === 403) location.href = '/app/?blocked=1'; }
+    }
+
+    window.sendMessage = async function (retry, pendingSend) {
+      var text = retry || input.value.trim();
+      if (!text || sending || !state || !state.can_send) return;
+      if (!user) { auth(); return; }
+      sending = true; renderState();
+      if (!retry) { input.value = ''; input.style.height = 'auto'; var time = messageTime(); bubble('user', text, time); save('user', text, time); }
+      showOnly(conversation); typing(true);
+      try {
+        var response = await fetch(BASE + '/web/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ message: text, history: chatLog.slice(-10).map(function (item) { return { role: item.role === 'nura' ? 'assistant' : 'user', content: item.text }; }) }) });
+        var data = await response.json().catch(function () { return {}; });
+        typing(false);
+        if (!response.ok) { if (data.code === 'daily_limit_reached') { state = data; return; } throw new Error('chat'); }
+        state = data.quota; var replyTime = messageTime(); bubble('nura', data.reply, replyTime); save('nura', data.reply, replyTime); addFollowups();
+        if (pendingSend) { localStorage.removeItem('nura_pending_question'); history.replaceState(null, '', location.pathname); }
+      } catch (_) { typing(false); bubble('nura', 'Не удалось получить ответ. Проверь соединение и попробуй ещё раз.', messageTime(), text); if (pendingSend) localStorage.setItem('nura_pending_question', text); }
+      finally { sending = false; renderState(); scroll(); }
+    };
+    window.clearChat = function () { localStorage.removeItem('nura_chat_log'); chatLog = []; conversation.replaceChildren(); renderState(); };
+    window.sendHint = function (element) { input.value = element.textContent; input.dispatchEvent(new Event('input')); window.sendMessage(); };
+    document.querySelectorAll('.prompt-chip').forEach(function (button) { button.addEventListener('click', function () { window.sendHint(button); }); });
+    document.getElementById('guest-auth').addEventListener('click', auth); document.getElementById('guest-mini').addEventListener('click', function () { location.href = '/mini.html'; }); document.getElementById('limit-premium').addEventListener('click', openPremium); document.getElementById('limit-tomorrow').addEventListener('click', function () { location.href = 'index.html'; });
+    input.addEventListener('input', function () { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 105) + 'px'; send.disabled = !this.value.trim() || sending || !state || !state.can_send; });
+    input.addEventListener('keydown', function (event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); window.sendMessage(); } });
+    init();
   })();
-</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-<link rel="stylesheet" href="nura-pwa.css?v=11"/>
-<link rel="stylesheet" href="/theme.css?v=9"/>
-<title>NURA · Чат</title>
-<style>
-body{overflow:hidden;padding-bottom:0}
-.app-shell{height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(var(--tabbar-h) + 18px)}
-.header{flex:0 0 auto}
-.limit-bar{flex:0 0 auto;padding:9px 16px;background:var(--bg-card-soft);border-bottom:1px solid var(--line);font-size:11px;color:var(--text-s);text-align:center;display:flex;align-items:center;justify-content:center;gap:6px}
-.limit-bar a{color:var(--terra);font-weight:800}
-.limit-bar.warn{background:rgba(184,116,63,.07);color:var(--terra)}
-.limit-bar.ok{background:rgba(107,128,104,.06);color:var(--sage)}
-.limit-pip{display:flex;gap:3px}
-.limit-pip span{width:6px;height:6px;border-radius:50%;background:var(--terra);opacity:.22}
-.limit-pip span.used{opacity:1}
-.chat-area{flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 14px 8px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}
-.chat-area::-webkit-scrollbar{display:none}
-.empty{margin:auto;width:100%;display:grid;gap:14px}
-.empty-card{padding:24px 20px;display:grid;gap:14px;text-align:left}
-.empty-mark{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--terra)}
-.empty-title{font-family:var(--font-serif);font-size:30px;line-height:1.05;font-weight:400;color:var(--text)}
-.empty-copy{font-size:13.5px;line-height:1.65;color:var(--text-m);max-width:34ch}
-.hints{display:flex;gap:8px;overflow-x:auto;width:100%;padding:0 0 4px;scrollbar-width:none}
-.hints::-webkit-scrollbar{display:none}
-.hint{flex:0 0 auto;padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:border-color .2s,background .2s}
-.hint:active{background:var(--bg-card-soft);border-color:var(--terra)}
-.msg{max-width:84%;display:flex;flex-direction:column;gap:3px}
-.msg.nura{align-self:flex-start}
-.msg.user{align-self:flex-end}
-.bubble{padding:11px 15px;border-radius:18px;font-size:14px;line-height:1.60}
-.msg.nura .bubble{background:var(--bg-card);border:1px solid var(--line);border-bottom-left-radius:4px;color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.msg.nura.err .bubble{background:rgba(184,116,63,.06);border-color:rgba(184,116,63,.22);color:var(--text-m)}
-.msg.user .bubble{background:var(--terra);color:#fff;border-bottom-right-radius:4px;box-shadow:0 2px 10px rgba(184,116,63,.30)}
-.msg-time{font-size:10px;color:var(--text-s);padding:0 4px}
-.msg.user .msg-time{text-align:right}
-.retry-btn{margin-top:6px;align-self:flex-start;padding:5px 12px;border-radius:999px;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.22);color:var(--terra);font-size:11px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
-.typing{align-self:flex-start;display:flex;gap:5px;padding:13px 16px;border-radius:18px;border-bottom-left-radius:4px;background:var(--bg-card);border:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.typing span{width:6px;height:6px;border-radius:50%;background:var(--terra);opacity:.4;animation:bounce 1.3s infinite}
-.typing span:nth-child(2){animation-delay:.18s}
-.typing span:nth-child(3){animation-delay:.36s}
-@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.38}30%{transform:translateY(-5px);opacity:.95}}
-.input-area{flex:0 0 auto;padding:10px 12px 12px;border-top:1px solid var(--line);background:var(--bg)}
-.input-row{display:flex;gap:8px;align-items:flex-end;background:var(--bg-card);border:1px solid var(--line);border-radius:22px;padding:8px 8px 8px 14px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.chat-input{flex:1;border:0;background:none;outline:none;font-size:14px;line-height:1.5;min-height:24px;max-height:130px;resize:none;color:var(--text);overflow-y:auto;scrollbar-width:none;align-self:center}
-.chat-input::-webkit-scrollbar{display:none}
-.chat-input::placeholder{color:var(--text-s)}
-.send{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--terra);color:#fff;flex:0 0 auto;transition:background .2s,transform .15s}
-.send:active{transform:scale(.93)}
-.send:disabled{background:var(--line-strong);color:var(--text-s)}
-.context{font-size:11px;color:var(--text-s);font-weight:700;letter-spacing:.04em}
-@media(max-width:360px){.msg{max-width:88%}}
-</style></head>
-<body><div class="app-shell">
-
-<header class="header">
-  <div style="display:flex;align-items:center;gap:12px">
-    <a href="index.html" class="nura-text-logo" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a>
-    <div class="context" id="status-text">отвечает на основе твоей Матрицы</div>
-  </div>
-  <div class="header-actions">
-    <button class="icon-btn" onclick="clearChat()" aria-label="Очистить историю"><i class="ti ti-trash"></i></button>
-    <button class="icon-btn" id="themeToggle"><i class="ti ti-sun-moon"></i></button>
-  </div>
-</header>
-
-<div class="limit-bar" id="limit-note">загрузка…</div>
-
-<div class="chat-area" id="messages">
-  <div class="empty" id="empty-state">
-    <div class="card soft-accent empty-card">
-      <div class="empty-mark"><i class="ti ti-message-circle"></i> Диалог с NURA</div>
-      <div class="empty-title">Спроси у NURA</div>
-      <div class="empty-copy">Задай любой вопрос — про отношения, деньги, себя. Ответ будет опираться на твой личный контекст, а не на общий шаблон.</div>
-    </div>
-    <div class="hints">
-      <button class="hint" onclick="sendHint(this)">Почему я повторяю этот сценарий?</button>
-      <button class="hint" onclick="sendHint(this)">Что мне делать с деньгами?</button>
-      <button class="hint" onclick="sendHint(this)">Какой мой шаг на 7 дней?</button>
-      <button class="hint" onclick="sendHint(this)">Разбери мой главный запрос</button>
-    </div>
-  </div>
-</div>
-
-<div class="input-area">
-  <div class="input-row">
-    <textarea class="chat-input" id="chat-input" placeholder="Написать NURA…" rows="1"></textarea>
-    <button class="send" id="send-btn" onclick="sendMessage()" disabled aria-label="Отправить"><i class="ti ti-arrow-up"></i></button>
-  </div>
-</div>
-
-</div>
-<nav class="tabbar"><div class="tabbar-inner">
-  <a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
-  <a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
-  <a class="tab-item active tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
-  <a class="tab-item" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
-</div></nav>
-
-<script src="nura-pwa.js?v=9"></script>
-<script type="text/javascript">
-(function() {
-  var N = window.NURA;
-  var BASE = N.BASE;
-  var msgs = document.getElementById('messages'),
-      inputEl = document.getElementById('chat-input'),
-      sendBtn = document.getElementById('send-btn'),
-      emptyState = document.getElementById('empty-state'),
-      limitNote = document.getElementById('limit-note'),
-      chatLog = JSON.parse(localStorage.getItem('nura_chat_log') || '[]'),
-      typingEl = null;
-  var __isGuest = false;
-
-  var FREE_LIMIT = 5;
-  var today = new Date().toISOString().slice(0, 10);
-  var qUsed = parseInt(localStorage.getItem('nura_q_' + today) || '0', 10);
-  var hasUnlimited = false;
-
-  function makePips() {
-    var h = '<div class="limit-pip">';
-    for (var i = 0; i < FREE_LIMIT; i++) {
-      h += '<span' + (i < qUsed ? ' class="used"' : '') + '></span>';
-    }
-    return h + '</div>';
-  }
-
-  function updateLimitNote(exhausted) {
-    if (__isGuest) {
-      limitNote.className = 'limit-bar warn';
-      limitNote.innerHTML = '<i class="ti ti-lock" style="font-size:13px"></i> Гостевой режим · войди, чтобы чат отвечал по твоей Матрице';
-      return;
-    }
-    if (hasUnlimited) {
-      limitNote.className = 'limit-bar ok';
-      limitNote.innerHTML = '<i class="ti ti-infinity" style="font-size:13px"></i> Безлимитный чат · подписка активна';
-      return;
-    }
-    if (exhausted || qUsed >= FREE_LIMIT) {
-      limitNote.className = 'limit-bar warn';
-      limitNote.innerHTML = 'Лимит исчерпан сегодня · <a href="profile.html#subscription">Подписка →</a>';
-    } else {
-      var left = FREE_LIMIT - qUsed;
-      limitNote.className = 'limit-bar';
-      limitNote.innerHTML = makePips() + ' ' + left + ' из ' + FREE_LIMIT + ' бесплатных вопросов';
-    }
-  }
-  updateLimitNote();
-
-  function applyGuestMode() {
-    __isGuest = true;
-    hasUnlimited = false;
-    updateLimitNote();
-    document.getElementById('status-text').textContent = 'требуется вход для персонального ответа';
-    if (!chatLog.length) {
-      emptyState.style.display = 'grid';
-    }
-  }
-
-  function promptGuestAccess() {
-    N.showAuthModal({
-      title: 'Войди, чтобы открыть чат',
-      copy: 'После входа NURA ответит с учётом твоей Матрицы, отчётов и текущего контекста.',
-      extraLink: '/mini.html',
-      extraLinkLabel: 'Пройти бесплатный мини-разбор'
-    });
-  }
-
-  function silentClearChat() {
-    localStorage.removeItem('nura_chat_log');
-    chatLog = [];
-    msgs.innerHTML = '';
-    msgs.appendChild(emptyState);
-    emptyState.style.display = 'grid';
-    var todayKey = 'nura_q_' + new Date().toISOString().slice(0, 10);
-    var todayVal = localStorage.getItem(todayKey);
-    for (var i = localStorage.length - 1; i >= 0; i--) {
-      var k = localStorage.key(i);
-      if (k && k.indexOf('nura_q_') === 0) localStorage.removeItem(k);
-    }
-    if (todayVal) localStorage.setItem(todayKey, todayVal);
-    qUsed = parseInt(todayVal || '0', 10);
-    updateLimitNote();
-  }
-
-  N.fetchJSON(BASE + '/web/me')
-    .then(function(d) {
-      var storedId = localStorage.getItem('nura_chat_user_id');
-      if (d.user_id && storedId !== d.user_id) {
-        localStorage.setItem('nura_chat_user_id', d.user_id);
-        silentClearChat();
-      }
-      if (d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active' || d.has_matrix) { hasUnlimited = true; updateLimitNote(); }
-    })
-    .catch(function(err) {
-      if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
-      if (err && err.status === 401) {
-        applyGuestMode();
-        if (!localStorage.getItem('nura_guest_token')) promptGuestAccess();
-      }
-    });
-
-  inputEl.addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = Math.min(this.scrollHeight, 130) + 'px';
-    sendBtn.disabled = !this.value.trim();
-  });
-  inputEl.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-  });
-
-  chatLog.forEach(function(m) { addBubble(m.role, m.text, m.time, false, m.isErr); });
-  if (chatLog.length) emptyState.style.display = 'none';
-  scrollBottom();
-
-  var params = new URLSearchParams(location.search);
-  var q = params.get('question') || localStorage.getItem('nura_pending_question');
-  if (q) {
-    localStorage.removeItem('nura_pending_question');
-    setTimeout(function() { inputEl.value = q; sendMessage(null, true); }, 350);
-  }
-
-  window.clearChat = function() {
-    if (!confirm('Очистить историю чата?')) return;
-    localStorage.removeItem('nura_chat_log');
-    chatLog = [];
-    msgs.innerHTML = '';
-    msgs.appendChild(emptyState);
-    emptyState.style.display = 'grid';
-  };
-
-  window.sendHint = function(el) { inputEl.value = el.textContent; sendMessage(); };
-
-  window.sendMessage = function(retryText, skipAuthCheck) {
-    var text = retryText || inputEl.value.trim();
-    if (!text) return;
-    if (__isGuest && !skipAuthCheck) {
-      if (!retryText) {
-        emptyState.style.display = 'none';
-        addBubble('user', text, N.now(), true);
-      }
-      promptGuestAccess();
-      return;
-    }
-    if (!hasUnlimited && qUsed >= FREE_LIMIT) {
-      if (!retryText) inputEl.value = '';
-      updateLimitNote(true);
-      addBubble('nura', 'Бесплатный лимит на сегодня исчерпан. Подключи подписку — доступ безлимитный.', N.now(), true, false, 'profile.html#subscription', 'Подключить подписку');
-      inputEl.disabled = true;
-      sendBtn.disabled = true;
-      return;
-    }
-    if (!retryText) { inputEl.value = ''; inputEl.style.height = 'auto'; sendBtn.disabled = true; }
-    emptyState.style.display = 'none';
-    var t = N.now();
-    if (!retryText) { addBubble('user', text, t, true); saveMsg('user', text, t); }
-    showTyping();
-
-    var history = chatLog.slice(-10).map(function(m) {
-      return { role: m.role === 'nura' ? 'assistant' : 'user', content: m.text };
-    });
-    fetch(BASE + '/web/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ message: text, history: history })
-    })
-    .then(function(r) {
-      if (r.status === 402 || r.status === 429) return { _limit: true };
-      if (r.status === 403) { location.href = '/app/?blocked=1'; return { _gone: true }; }
-      if (r.status === 401) {
-        hideTyping();
-        applyGuestMode();
-        promptGuestAccess();
-        return { _gone: true };
-      }
-      return r.json().then(function(j) { return r.ok ? j : Object.assign({ _status: r.status }, j); }).catch(function() { return { _status: r.status }; });
-    })
-    .then(function(d) {
-      if (!d || d._gone) return;
-      hideTyping();
-      if (d && d.reply) {
-        addBubble('nura', d.reply, N.now(), true);
-        saveMsg('nura', d.reply, N.now());
-        if (!hasUnlimited) { qUsed++; localStorage.setItem('nura_q_' + today, qUsed); updateLimitNote(); }
-      } else if (d && d._limit) {
-        var limitMsg = 'Бесплатный лимит на сегодня исчерпан. Подключи подписку — доступ безлимитный.';
-        addBubble('nura', limitMsg, N.now(), true, false, 'profile.html#subscription', 'Подключить подписку');
-        saveMsg('nura', limitMsg, N.now());
-        updateLimitNote(true);
-        inputEl.disabled = true;
-        sendBtn.disabled = true;
-      } else if (d && d._status === 503) {
-        addBubble('nura', 'AI набирается сил. Попробуй через минуту или загляни в карту дня — там тоже много интересного.', N.now(), true, true, 'tarot.html', 'Открыть карту дня', text);
-      } else {
-        addBubble('nura', 'Что-то пошло не так. Попробуй ещё раз или вернись к отчёту.', N.now(), true, true, 'profile.html#reports', 'Открыть отчёты', text);
-      }
-    })
-    .catch(function() {
-      hideTyping();
-      addBubble('nura', 'Нет соединения. Проверь сеть.', N.now(), true, true, null, null, text);
-    });
-  };
-
-  function addBubble(role, text, time, animate, isErr, linkHref, linkLabel, retryText) {
-    var wrap = document.createElement('div');
-    wrap.className = 'msg ' + role + (isErr ? ' err' : '');
-    if (animate) { wrap.style.opacity = '0'; wrap.style.transform = 'translateY(8px)'; }
-    var inner = '<div class="bubble">' + N.escHtml(text) + '</div>';
-    inner += '<span class="msg-time">' + time + '</span>';
-    if (retryText) {
-      inner += '<button class="retry-btn" onclick="(function(t){window.sendMessage(t)})(\''+retryText.replace(/'/g, "\\'")+'\')">' +
-               '<i class="ti ti-refresh" style="font-size:13px"></i> Повторить</button>';
-    }
-    if (linkHref && linkLabel) {
-      inner += '<a href="'+linkHref+'" class="retry-btn" style="text-decoration:none"><i class="ti ti-arrow-right" style="font-size:13px"></i> '+N.escHtml(linkLabel)+'</a>';
-    }
-    wrap.innerHTML = inner;
-    msgs.appendChild(wrap);
-    if (animate) requestAnimationFrame(function() { wrap.style.transition = 'opacity .25s, transform .25s'; wrap.style.opacity = '1'; wrap.style.transform = 'none'; });
-    scrollBottom();
-  }
-
-  function showTyping() {
-    document.getElementById('status-text').textContent = 'NURA печатает…';
-    typingEl = document.createElement('div'); typingEl.className = 'typing';
-    typingEl.innerHTML = '<span></span><span></span><span></span>';
-    msgs.appendChild(typingEl); scrollBottom();
-  }
-  function hideTyping() {
-    document.getElementById('status-text').textContent = __isGuest ? 'требуется вход для персонального ответа' : 'отвечает на основе твоей Матрицы';
-    if (typingEl) { typingEl.remove(); typingEl = null; }
-  }
-
-  function scrollBottom() { setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 40); }
-  function saveMsg(role, text, time) {
-    chatLog.push({ role: role, text: text, time: time });
-    if (chatLog.length > 80) chatLog = chatLog.slice(-80);
-    try { localStorage.setItem('nura_chat_log', JSON.stringify(chatLog)); } catch(e) {}
-  }
-
-  document.getElementById('themeToggle').addEventListener('click', function() {
-    var next = N.toggleTheme();
-    this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
-  });
-})();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
-</script>
-</body></html>
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
+  </script>
+</body>
+</html>
