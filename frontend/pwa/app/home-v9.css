@@ -122,6 +122,20 @@ body.nura-home-v9 {
   text-shadow: 0 1px 2px var(--bg-card);
 }
 
+@media (max-width: 759px) {
+  body.nura-home-v9 { padding-bottom: 16px; }
+  .nura-home-v9 .app-shell { min-height: auto; }
+  .nura-home-v9 .home-main { padding-bottom: 16px; }
+  .nura-home-v9 .tabbar {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin: 32px auto 16px;
+    transform: none;
+  }
+}
+
 @media (max-width: 380px) {
   .nura-home-v9 .header { padding-inline: 12px; }
   .nura-home-v9 .nura-text-logo { gap: 8px; }
