@@ -652,8 +652,8 @@
       $('day-name').textContent = d.arcana_name;
       $('day-name').classList.remove('skeleton', 'skeleton-name');
     }
-    if (d.key_phrase) {
-      $('day-phrase').textContent = d.key_phrase;
+    if (d.interpretation || d.key_phrase) {
+      $('day-phrase').textContent = d.interpretation || d.key_phrase;
     }
     if (!setDailyFace(d)) {
       applyHomeError();

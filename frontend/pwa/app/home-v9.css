@@ -122,6 +122,48 @@ body.nura-home-v9 {
   text-shadow: 0 1px 2px var(--bg-card);
 }
 
+/* Home v9 daily focus: the card is the anchor, the right column carries the AI focus. */
+.nura-home-v9 .home-today {
+  min-height: 252px;
+  grid-template-columns: 46% 54%;
+}
+
+.nura-home-v9 .home-today::after {
+  background: linear-gradient(90deg, transparent 0%, transparent 38%, var(--bg-card-soft) 51%, var(--bg-card-soft) 100%);
+}
+
+.nura-home-v9 .daily-card-slot {
+  min-height: 252px;
+  padding: 13px 3px 13px 12px;
+}
+
+.nura-home-v9 .daily-card-viewport {
+  width: 136px;
+  height: 226px;
+}
+
+.nura-home-v9 .home-today-copy {
+  min-height: 252px;
+  padding: 19px 18px 17px 9px;
+}
+
+.nura-home-v9 .home-today h3 {
+  font-size: clamp(22px, 5.9vw, 27px);
+}
+
+.nura-home-v9 .home-today p {
+  font-size: 12.5px;
+  line-height: 1.55;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.nura-home-v9 .today-cta {
+  padding-top: 12px;
+}
+
 @media (max-width: 759px) {
   body.nura-home-v9 { padding-bottom: 16px; }
   .nura-home-v9 .app-shell { min-height: auto; }
@@ -143,4 +185,9 @@ body.nura-home-v9 {
   .nura-home-v9 .header-title { font-size: 19px; }
   .nura-home-v9 .journey-row { grid-template-columns: 33px minmax(0, 1fr) auto 14px; }
   .nura-home-v9 .access-badge { max-width: 88px; font-size: 8.5px; }
+  .nura-home-v9 .home-today { min-height: 238px; grid-template-columns: 45% 55%; }
+  .nura-home-v9 .daily-card-slot { min-height: 238px; padding-left: 7px; }
+  .nura-home-v9 .daily-card-viewport { width: 126px; height: 209px; }
+  .nura-home-v9 .home-today-copy { min-height: 238px; padding: 17px 14px 15px 8px; }
+  .nura-home-v9 .home-today p { font-size: 11.5px; line-height: 1.48; }
 }
