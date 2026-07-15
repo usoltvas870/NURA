@@ -36,8 +36,12 @@ body.tarot-v2-1:not(.nura-shell-page) {
 
 .tarot-v2-1 .tarot-main {
   display: grid;
-  gap: 24px;
-  padding: 20px 16px calc(var(--tabbar-h) + 34px);
+  gap: var(--shell-section-gap);
+  padding: var(--shell-content-top) var(--shell-content-inline) var(--shell-tabbar-reserve);
+}
+
+@media (min-width: 760px) {
+  .tarot-v2-1 .tarot-main { padding-bottom: var(--shell-tabbar-breathing-room); }
 }
 
 .tarot-v2-1 h1,

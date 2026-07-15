@@ -1,8 +1,8 @@
-body.pwa-profile-page .profile-content { display:grid; gap:18px; padding-bottom:112px; }
+body.pwa-profile-page .profile-content { display:grid; gap:var(--shell-section-gap); padding-bottom:var(--shell-tabbar-reserve); }
 body.pwa-profile-page .profile-content[aria-busy="true"] { pointer-events:none; }
 body.pwa-profile-page [hidden] { display:none !important; }
 body.pwa-profile-page .profile-guest,
-body.pwa-profile-page .profile-account { display:grid; gap:18px; }
+body.pwa-profile-page .profile-account { display:grid; gap:var(--shell-section-gap); }
 body.pwa-profile-page .profile-kicker { color:var(--terra); font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
 body.pwa-profile-page .profile-section { display:grid; gap:10px; }
 body.pwa-profile-page .profile-section-heading { display:grid; gap:3px; padding:0 2px; }
@@ -55,5 +55,5 @@ body.pwa-profile-page .profile-delete { color:var(--danger); border:0; backgroun
 body.pwa-profile-page .profile-logout:disabled, body.pwa-profile-page .profile-delete:disabled, body.pwa-profile-page .profile-row-action:disabled { opacity:.55; cursor:wait; }
 @keyframes profile-shimmer { to { background-position:-200% 0; } }
 @media (max-width:380px) { body.pwa-profile-page .profile-content { gap:15px; } body.pwa-profile-page .profile-card-head { align-items:flex-start; } body.pwa-profile-page .profile-card-head h2 { font-size:24px; } body.pwa-profile-page .profile-row { padding-inline:11px; gap:8px; } }
-@media (min-width:760px) { body.pwa-profile-page .profile-content { padding-bottom:24px; } }
+@media (min-width:760px) { body.pwa-profile-page .profile-content { padding-bottom:var(--shell-tabbar-breathing-room); } }
 @media (prefers-reduced-motion:reduce) { body.pwa-profile-page .profile-skeleton { animation:none; } body.pwa-profile-page .profile-toggle, body.pwa-profile-page .profile-toggle::after { transition:none; } }

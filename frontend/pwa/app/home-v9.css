@@ -1,5 +1,23 @@
 /* Home v9: page-scoped header standard, access markers and theme refinement. */
+html:has(body.nura-home-v9) { scrollbar-gutter: stable; }
+
 body.nura-home-v9 {
+  --shell-canvas-max: 520px;
+  --shell-content-inline: 16px;
+  --shell-content-top: 10px;
+  --shell-section-gap: 20px;
+  --shell-card-gap: 12px;
+  --shell-card-padding: 16px;
+  --shell-tabbar-height: 68px;
+  --shell-tabbar-bottom: 8px;
+  --shell-tabbar-radius: 25px;
+  --shell-tabbar-breathing-room: 18px;
+  --shell-tabbar-reserve: calc(
+    var(--shell-tabbar-height) +
+    var(--shell-tabbar-bottom) +
+    env(safe-area-inset-bottom, 0px) +
+    var(--shell-tabbar-breathing-room)
+  );
   background: var(--bg);
 }
 
@@ -165,17 +183,31 @@ body.nura-home-v9 {
 }
 
 @media (max-width: 759px) {
-  body.nura-home-v9 { padding-bottom: 16px; }
-  .nura-home-v9 .app-shell { min-height: auto; }
-  .nura-home-v9 .home-main { padding-bottom: 16px; }
-  .nura-home-v9 .tabbar {
-    position: relative;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    margin: 32px auto 16px;
-    transform: none;
-  }
+  body.nura-home-v9 { padding-bottom: 0; }
+  .nura-home-v9 .home-main { padding-bottom: var(--shell-tabbar-reserve); }
+}
+
+/* Keep Home on the same fixed viewport contract as the shared shell. */
+body.nura-home-v8.nura-home-v9 .tabbar {
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  right: auto;
+  bottom: calc(var(--shell-tabbar-bottom) + env(safe-area-inset-bottom, 0px));
+  width: min(calc(100% - 30px), var(--shell-canvas-max));
+  height: var(--shell-tabbar-height);
+  margin: 0;
+  transform: translateX(-50%);
+  border-radius: var(--shell-tabbar-radius);
+}
+
+body.nura-home-v8.nura-home-v9 .home-main {
+  padding-bottom: var(--shell-tabbar-reserve);
+}
+
+@media (min-width: 760px) {
+  body.nura-home-v8.nura-home-v9 { padding-bottom: var(--shell-tabbar-reserve); }
+  body.nura-home-v8.nura-home-v9 .home-main { padding-bottom: var(--shell-tabbar-breathing-room); }
 }
 
 @media (max-width: 380px) {
