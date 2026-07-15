@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nura-v21';
+const CACHE_NAME = 'nura-v22';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
@@ -14,6 +14,7 @@ const STATIC_ASSETS = [
   '/app/tarot-v2-1.css',
   '/app/success.html',
   '/app/profile.html',
+  '/app/profile-v1.css',
   '/app/nura-pwa.js',
   '/app/nura-pwa.css',
   '/manifest.json',
