@@ -1,508 +1,110 @@
-<!DOCTYPE html><html lang="ru"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<link rel="manifest" href="/manifest.json">
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NURA">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<meta name="theme-color" content="#EFEEE9" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#12100E" media="(prefers-color-scheme: dark)">
-<script>
-  (function(){
-    var t = localStorage.getItem('nura-theme') || 'light';
-    document.documentElement.setAttribute('data-theme', t);
-  })();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
-</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
-<link rel="stylesheet" href="nura-pwa.css?v=11"/>
-<link rel="stylesheet" href="/theme.css?v=9"/>
-<title>NURA · Профиль</title>
-<style>
-.profile-hero{padding:22px 20px;display:grid;gap:16px}
-.profile-top{display:flex;gap:14px;align-items:flex-start}
-.avatar{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.16);color:var(--terra);font-weight:800;font-size:20px;flex-shrink:0}
-.profile-name{font-family:var(--font-serif);font-size:34px;line-height:1.02;color:var(--text);margin-bottom:4px}
-.profile-dob{font-size:12.5px;color:var(--text-m)}
-.profile-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:rgba(184,116,63,.10);border:1px solid rgba(184,116,63,.16);color:var(--terra);font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-.mini-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:var(--bg-card-soft);border:1px solid var(--line);color:var(--text-m);font-size:11px;font-weight:800;cursor:pointer}
-.report-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px}
-.report-status.ok{background:rgba(107,128,104,.12);color:var(--sage)}
-.report-status.buy{background:rgba(184,116,63,.10);color:var(--terra)}
-.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:4px 0 2px}
-.tabs::-webkit-scrollbar{display:none}
-.tab-btn{flex:0 0 auto;padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:var(--bg-card);color:var(--text-m);font-size:12px;font-weight:800;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
-.tab-btn.active{background:var(--terra);color:#fff;border-color:var(--terra);box-shadow:0 4px 14px rgba(184,116,63,.28)}
-.panel{display:none;gap:10px}
-.panel.active{display:grid}
-.list-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:16px}
-.list-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-size:18px;flex-shrink:0}
-.list-icon.danger{background:rgba(196,92,92,.10);color:var(--danger)}
-.list-title{font-size:14px;font-weight:800;margin-bottom:4px}
-.list-sub{font-size:12px;color:var(--text-m);line-height:1.45}
-.price{font-family:var(--font-serif);font-size:30px;color:var(--terra);line-height:1}
-.toggle-row{display:grid;grid-template-columns:auto 1fr 44px;gap:12px;align-items:center;padding:15px 16px;border-bottom:1px solid var(--line)}
-.toggle-row:last-child{border-bottom:0}
-.toggle-icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:rgba(184,116,63,.09);color:var(--terra);font-size:16px;flex-shrink:0}
-.switch{position:relative;width:44px;height:26px}
-.switch input{opacity:0;width:0;height:0}
-.track{position:absolute;inset:0;border-radius:99px;background:var(--line-strong)}
-.thumb{position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:var(--bg-card);box-shadow:var(--shadow-card);transition:.2s}
-.switch input:checked + .track{background:rgba(107,128,104,.42)}
-.switch input:checked + .track .thumb{transform:translateX(18px);background:var(--sage)}
-.chevron{color:var(--text-m);font-size:19px;line-height:1;flex-shrink:0}
-</style></head><body><div class="app-shell"><header class="header"><a href="index.html" class="nura-text-logo"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a><span class="header-title">Профиль</span><div class="header-actions"><button class="icon-btn" id="themeToggle" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div></header><main class="page">
-<section class="card soft-accent profile-hero">
-  <div class="profile-top">
-    <div class="avatar" id="avatar-initials">А</div>
-    <div style="min-width:0;flex:1">
-      <div class="profile-name" id="profile-name">—</div>
-      <div class="profile-dob" id="profile-dob">дата рождения</div>
-    </div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NURA">
+  <meta name="theme-color" content="#EFEEE9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#12100E" media="(prefers-color-scheme: dark)">
+  <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('nura-theme')||'light')})()</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="nura-pwa.css?v=11">
+  <link rel="stylesheet" href="/theme.css?v=9">
+  <link rel="stylesheet" href="nura-shell-v1.css?v=1">
+  <link rel="stylesheet" href="profile-v1.css?v=3">
+  <title>NURA · Профиль</title>
+</head>
+<body class="pwa-profile-page nura-shell-page" data-profile-state="loading">
+  <div class="app-shell nura-shell-canvas">
+    <header class="header nura-shell-header">
+      <a class="nura-text-logo nura-shell-brand" href="index.html" aria-label="NURA — главная"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a>
+      <span class="header-title nura-shell-title">Профиль</span>
+      <div class="header-actions nura-shell-header-actions"><button class="icon-btn nura-shell-theme-toggle" id="themeToggle" type="button" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div>
+    </header>
+
+    <main class="page nura-shell-content profile-content" id="profile-content" aria-live="polite">
+      <section class="profile-service-surface profile-loading" id="profile-loading" aria-label="Загрузка профиля">
+        <span class="profile-kicker">Личное пространство</span><div class="profile-skeleton profile-skeleton-title"></div><div class="profile-skeleton profile-skeleton-line"></div><div class="profile-skeleton profile-skeleton-line short"></div>
+      </section>
+      <section class="profile-service-surface" id="profile-error" hidden><span class="profile-kicker">Профиль</span><h1>Не удалось загрузить личное пространство</h1><p id="profile-error-copy">Проверь соединение и попробуй ещё раз.</p><button class="btn btn-soft" id="profile-retry" type="button">Повторить</button></section>
+
+      <section class="profile-guest" id="profile-guest" hidden>
+        <article class="profile-auth-surface"><span class="profile-kicker">Личное пространство</span><div class="profile-symbol" aria-hidden="true">✦</div><h1>Войди в NURA</h1><p>Войдите, чтобы сохранять материалы и управлять личным пространством.</p><button class="btn btn-primary profile-primary-action" id="profile-auth" type="button">Войти в NURA</button></article>
+        <section class="profile-section profile-legal-section" aria-labelledby="guest-legal-title"><div class="profile-section-heading"><span class="profile-kicker">Документы</span><h2 id="guest-legal-title">Важное</h2></div><div class="profile-list" id="guest-legal-list"></div></section>
+      </section>
+
+      <section class="profile-account" id="profile-account" hidden>
+        <article class="profile-identity-card"><div class="profile-avatar" aria-hidden="true"><span id="avatar-initials">N</span></div><div class="profile-identity-copy"><span class="profile-kicker">Личное пространство</span><h1 id="profile-name">Пользователь</h1><p id="profile-dob" hidden></p><p id="profile-archetype" hidden></p></div></article>
+
+        <article class="profile-subscription-card" id="subscription"><div class="profile-card-head"><div><span class="profile-kicker">Доступ</span><h2 id="subscription-title">Загружаем статус</h2></div><span class="nura-shell-badge" id="subscription-badge">—</span></div><p id="subscription-copy"></p><p class="profile-subscription-date" id="subscription-date" hidden></p><div class="profile-promo" id="promo-wrap" hidden><label for="promoCodeField">Промокод</label><input class="input" id="promoCodeField" type="text" autocomplete="off" maxlength="64" placeholder="Если есть"></div><button class="btn btn-primary profile-primary-action" id="subscribe-btn" type="button" hidden>Подключить Premium</button><p class="profile-inline-status" id="subscribe-status" hidden></p></article>
+
+        <section class="profile-section" id="reports"><div class="profile-section-heading"><span class="profile-kicker">Материалы</span><h2>Твои разборы</h2></div><div class="profile-list" id="materials-list"><article class="profile-row" id="static-matrix-card"><span class="profile-row-icon"><i class="ti ti-grid-dots"></i></span><span class="profile-row-copy"><strong>Матрица</strong><small id="matrix-report-status">Проверяем доступ</small></span><button class="btn btn-soft profile-row-action" id="matrix-open-btn" type="button" hidden>Открыть</button><button class="btn btn-soft profile-row-action" id="matrix-buy-btn" type="button" hidden>Получить</button></article><div id="reports-list"></div></div></section>
+
+        <section class="profile-section" aria-labelledby="telegram-title"><div class="profile-section-heading"><span class="profile-kicker">Связь</span><h2 id="telegram-title">Telegram</h2></div><div class="profile-list" id="tg-link-container"></div></section>
+
+        <section class="profile-section" aria-labelledby="notifications-title"><div class="profile-section-heading"><span class="profile-kicker">Настройки</span><h2 id="notifications-title">Уведомления</h2></div><div class="profile-list" id="notifications-list"></div></section>
+
+        <section class="profile-section profile-legal-section" aria-labelledby="legal-title"><div class="profile-section-heading"><span class="profile-kicker">Документы</span><h2 id="legal-title">Правила и согласия</h2></div><div class="profile-list" id="legal-list"></div></section>
+
+        <section class="profile-danger-section" aria-labelledby="account-actions-title"><span class="profile-kicker" id="account-actions-title">Аккаунт</span><button class="profile-logout" id="logout-btn" type="button"><i class="ti ti-logout"></i>Выйти из аккаунта</button><button class="profile-delete" id="delete-btn" type="button"><i class="ti ti-trash"></i>Удалить аккаунт</button><p class="profile-inline-status" id="account-action-status" hidden></p></section>
+      </section>
+    </main>
   </div>
-  <div class="profile-meta">
-    <span class="badge" id="profile-archetype">✦ Загрузка…</span>
-  </div>
-</section>
 
-<div class="tabs">
-  <button class="tab-btn active" data-tab="reports">Отчёты</button>
-  <button class="tab-btn" data-tab="subscription">Подписка</button>
-  <button class="tab-btn" data-tab="notifications">Уведомления</button>
-  <button class="tab-btn" data-tab="settings">Настройки</button>
-</div>
-
-<section class="panel active" id="tab-reports">
-  <div id="reports-list"></div>
-  <article class="card list-card" id="static-matrix-card">
-    <div class="list-icon"><i class="ti ti-grid-dots"></i></div>
-    <div>
-      <div class="list-title">Матрица Судьбы <span class="report-status buy" id="matrix-report-status">Купить</span></div>
-      <div class="list-sub">Полный разбор 22 арканов · разовая покупка · навсегда</div>
-    </div>
-    <button class="btn btn-soft" id="matrix-open-btn" onclick="openReport('matrix-full')" style="display:none">Открыть</button>
-    <button class="btn btn-primary" id="matrix-buy-btn" onclick="location.href='https://t.me/ai_nura_bot'">Купить</button>
-  </article>
-  <article class="card list-card"><div class="list-icon"><i class="ti ti-heart-handshake"></i></div><div><div class="list-title">Совместимость</div><div class="list-sub">Разбор пары по двум датам рождения</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
-  <article class="card list-card"><div class="list-icon"><i class="ti ti-trending-up"></i></div><div><div class="list-title">Прогноз на год</div><div class="list-sub">Циклы, риски, возможности</div></div><button class="btn btn-primary" onclick="location.href='https://t.me/ai_nura_bot'">Добавить</button></article>
-</section>
-
-<section class="panel" id="tab-subscription">
-  <article class="card card-pad accent-left">
-    <div class="eyebrow">Подписка</div>
-    <h2 class="title" style="font-size:32px;margin-top:8px">Ежедневные практики</h2>
-    <div style="margin:10px 0 14px"><span class="price">390 ₽</span> <span class="small">/ месяц</span></div>
-    <p class="lead">Карта дня, фокус недели и расширенный чат с NURA. Матрица — разовая покупка, не входит в ежемесячный платёж.</p>
-    <div style="margin-top:12px"><input type="text" id="promoCodeField" class="input" placeholder="Промокод (если есть)"></div>
-    <button class="btn btn-primary btn-full" id="subscribe-btn" style="margin-top:16px" onclick="activateSubscription()">Подключить подписку</button>
-    <p class="small" style="margin-top:10px;text-align:center">Нажимая кнопку, ты принимаешь условия <a href="/offer.html">Публичной оферты</a>, даёшь <a href="/personal-data-consent.html">Согласие на обработку персональных данных</a> и соглашаешься с <a href="/privacy.html">Политикой обработки персональных данных</a>.</p>
-    <div id="subscribe-status" style="margin-top:10px;font-size:12px;color:var(--sage);display:none"></div>
-  </article>
-  <article class="card list-card"><div class="list-icon"><i class="ti ti-grid-dots"></i></div><div><div class="list-title">Матрица Судьбы</div><div class="list-sub">Разовая покупка · отчёт навсегда</div></div>    <button class="btn btn-soft" id="matrix-status-btn" onclick="openReport()">Куплена</button></article>
-</section>
-
-<section class="panel" id="tab-notifications"><div class="card">
-<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-cards"></i></div><div><div class="list-title">Карта дня</div><div class="list-sub">Утром в 8:00</div></div><span class="switch"><input type="checkbox" checked data-notif-key="daily_card" onchange="saveNotif('daily_card', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
-<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-calendar-week"></i></div><div><div class="list-title">Фокус недели</div><div class="list-sub">В понедельник утром</div></div><span class="switch"><input type="checkbox" checked data-notif-key="weekly_spread" onchange="saveNotif('weekly_spread', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
-<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-bell"></i></div><div><div class="list-title">Практики из отчёта</div><div class="list-sub">Мягкие напоминания 7 дней</div></div><span class="switch"><input type="checkbox" data-notif-key="practices" onchange="saveNotif('practices', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
-<label class="toggle-row"><div class="toggle-icon"><i class="ti ti-speakerphone"></i></div><div><div class="list-title">Новости NURA</div><div class="list-sub">Обновления и новые функции</div></div><span class="switch"><input type="checkbox" data-notif-key="news" onchange="saveNotif('news', this.checked)"><span class="track"><span class="thumb"></span></span></span></label>
-</div></section>
-
-<section class="panel" id="tab-settings">
-<article class="card list-card" role="button" tabindex="0" onclick="editProfile()"><div class="list-icon"><i class="ti ti-user-edit"></i></div><div><div class="list-title">Редактировать профиль</div><div class="list-sub">Имя и дата рождения</div></div><span class="chevron">›</span></article>
-<div id="tg-link-container"><article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()"><div class="list-icon"><i class="ti ti-brand-telegram"></i></div><div><div class="list-title">Подключить Telegram</div><div class="list-sub" id="tg-link-status">не подключён</div></div><span class="chevron">›</span></article></div>
-<article class="card list-card" role="button" tabindex="0" id="themeToggle2" onclick="document.getElementById('themeToggle').click()"><div class="list-icon"><i class="ti ti-sun-moon"></i></div><div><div class="list-title">Тема</div><div class="list-sub" id="theme-label">Светлая</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="location.href='/offer.html'"><div class="list-icon"><i class="ti ti-file-text"></i></div><div><div class="list-title">Публичная оферта</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="location.href='/privacy.html'"><div class="list-icon"><i class="ti ti-shield-lock"></i></div><div><div class="list-title">Политика обработки персональных данных</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="location.href='/personal-data-consent.html'"><div class="list-icon"><i class="ti ti-id-badge-2"></i></div><div><div class="list-title">Согласие на обработку данных</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="location.href='/marketing-consent.html'"><div class="list-icon"><i class="ti ti-bell-ringing"></i></div><div><div class="list-title">Согласие на рассылки</div><div class="list-sub">Уведомления, новости и предложения</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="location.href='/acceptable-use.html'"><div class="list-icon"><i class="ti ti-file-check"></i></div><div><div class="list-title">Правила допустимого использования</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="location.href='https://t.me/nura_support'"><div class="list-icon"><i class="ti ti-message-2"></i></div><div><div class="list-title">Обратная связь</div></div><span class="chevron">›</span></article>
-<article class="card list-card" role="button" tabindex="0" onclick="logout()"><div class="list-icon danger"><i class="ti ti-logout"></i></div><div><div class="list-title" style="color:var(--danger)">Выйти из аккаунта</div></div></article>
-<article class="card list-card" role="button" tabindex="0" onclick="deleteAccount()"><div class="list-icon danger"><i class="ti ti-trash"></i></div><div><div class="list-title" style="color:var(--danger)">Удалить аккаунт</div><div class="list-sub">Удалит все данные безвозвратно</div></div></article>
-</section>
-</main></div>
-<nav class="tabbar"><div class="tabbar-inner">
-<a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
-<a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
-<a class="tab-item tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
-<a class="tab-item active" href="profile.html"><i class="ti ti-user-circle"></i><span>Профиль</span></a>
-</div></nav>
-<script src="nura-pwa.js?v=9"></script>
-<script type="text/javascript">
-(function() {
-  var N = window.NURA;
-  var BASE = N.BASE;
-  var $ = document.getElementById.bind(document);
-  var __isGuest = false;
-
-  document.querySelectorAll('.tab-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-      document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
-      btn.classList.add('active');
-      $('tab-' + btn.dataset.tab).classList.add('active');
-    });
-  });
-
-  if (location.hash === '#subscription') {
-    var s = document.querySelector('[data-tab="subscription"]'); if (s) s.click();
-  }
-  if (location.hash === '#reports') {
-    var r = document.querySelector('[data-tab="reports"]'); if (r) r.click();
-  }
-
-  var userReports = [];
-
-  function promptGuestAccess() {
-    N.showAuthModal({
-      title: 'Войди, чтобы открыть профиль',
-      copy: 'Профиль, отчёты, подписка и настройки появляются после входа в аккаунт NURA.',
-      extraLink: '/mini.html',
-      extraLinkLabel: 'Пройти бесплатный мини-разбор'
-    });
-  }
-
-  function applyGuestMode() {
-    __isGuest = true;
-    $('profile-name').textContent = 'Гость';
-    $('profile-dob').textContent = 'Войди через email или VK, чтобы открыть профиль и отчёты.';
-    $('profile-archetype').textContent = '✦ Гостевой режим';
-    $('avatar-initials').textContent = 'N';
-    renderReports([]);
-    $('static-matrix-card').style.display = '';
-    $('matrix-report-status').textContent = 'Мини-разбор';
-    $('matrix-open-btn').style.display = 'none';
-    $('matrix-buy-btn').textContent = 'Пройти';
-    $('matrix-buy-btn').onclick = function() { location.href = '/mini.html'; };
-    $('subscribe-btn').textContent = 'Войти в NURA';
-    $('subscribe-btn').disabled = false;
-    $('subscribe-btn').classList.remove('btn-soft');
-    $('subscribe-btn').classList.add('btn-primary');
-    $('subscribe-status').style.display = 'block';
-    $('subscribe-status').style.color = 'var(--text-m)';
-    $('subscribe-status').textContent = 'После входа здесь появятся подписка, карта дня и чат.';
-    document.querySelectorAll('input[data-notif-key]').forEach(function(input) {
-      input.checked = false;
-      input.disabled = true;
-    });
-    document.querySelectorAll('[onclick="logout()"], [onclick="deleteAccount()"]').forEach(function(el) {
-      el.style.display = 'none';
-    });
-    renderTgRow(false);
-  }
-
-  N.fetchJSON(BASE + '/web/me')
-    .then(function(d) {
-      if (d.name) {
-        $('profile-name').textContent = d.name;
-        var initials = d.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().slice(0, 2);
-        $('avatar-initials').textContent = initials;
-      }
-      if (d.birth_date) $('profile-dob').textContent = 'дата рождения · ' + d.birth_date;
-      if (d.archetype) $('profile-archetype').textContent = '✦ ' + d.archetype;
-      else $('profile-archetype').textContent = '✦ Мини-разбор';
-      renderTgRow(!!d.telegram_linked);
-      if (d.has_matrix) {
-        var mc = $('static-matrix-card'); if (mc) mc.style.display = 'none';
-        var msb = $('matrix-status-btn'); if (msb) { msb.textContent = 'Куплена'; msb.onclick = function() { openReport(); }; }
-      } else {
-        var msb2 = $('matrix-status-btn'); if (msb2) { msb2.textContent = 'Купить'; msb2.onclick = function() { location.href = 'https://t.me/ai_nura_bot'; }; }
-      }
-      if (d.has_tarot) {
-        var sBtn = $('subscribe-btn');
-        if (sBtn) {
-          sBtn.textContent = 'Активна';
-          sBtn.classList.remove('btn-primary');
-          sBtn.classList.add('btn-soft');
-          sBtn.disabled = true;
-        }
-      }
-      if (d.reports) { userReports = d.reports; renderReports(d.reports); }
-    })
-    .catch(function(err) {
-      if (err && err.status === 403) { location.href = '/app/?blocked=1'; return; }
-      if (err && err.status === 401) {
-        applyGuestMode();
-        if (!localStorage.getItem('nura_guest_token')) promptGuestAccess();
-      }
-    });
-
-  var notifPrefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
-  Object.keys(notifPrefs).forEach(function(k) {
-    var inp = document.querySelector('input[data-notif-key="' + k + '"]');
-    if (inp) inp.checked = notifPrefs[k];
-  });
-
-  window.saveNotif = function(key, val) {
-    if (__isGuest) {
-      var inp = document.querySelector('input[data-notif-key="' + key + '"]');
-      if (inp) inp.checked = false;
-      promptGuestAccess();
-      return;
-    }
-    var prefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}');
-    prefs[key] = val;
-    localStorage.setItem('nura_notif_prefs', JSON.stringify(prefs));
-    if (val && localStorage.getItem('nura_push_subscribed') !== '1') {
-      N.subscribeToPush().then(function() {
-        console.log('[push] subscribed');
-      }).catch(function(err) {
-        console.warn('[push] subscribe skipped:', err && err.message);
-      });
-    }
-    fetch(BASE + '/web/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ key: key, enabled: val })
-    }).then(function(r) {
-      if (!r.ok) {
-        r.json().then(function(e) {
-          console.error('[notifications] save failed:', r.status, (e && e.detail) || '');
-        });
-      }
-    }).catch(function(err) {
-      console.error('[notifications] network error:', err && err.message);
-    });
-  };
-
-  window.renderReports = function(reports) {
-    var container = $('reports-list');
-    if (!container) return;
-
-    if (!reports || !reports.length) {
-      container.innerHTML = __isGuest
-        ? '<article class="empty-state"><div class="empty-state-icon"><i class="ti ti-lock"></i></div><div class="empty-state-title">Профиль ждёт вход</div><div class="empty-state-copy">После входа здесь появятся твои отчёты, история и персональные материалы.</div></article>'
-        : '<article class="empty-state"><div class="empty-state-icon"><i class="ti ti-report"></i></div><div class="empty-state-title">Нет отчётов</div><div class="empty-state-copy">У тебя пока нет отчётов. Пройди мини-разбор, чтобы получить первый.</div></article>';
-      return;
-    }
-
-    var html = '';
-    for (var i = 0; i < reports.length; i++) {
-      var r = reports[i];
-      var icon = '';
-      var title = '';
-      var subtitle = '';
-      var url = r.url || '';
-      var bg = 'rgba(184,116,63,.09)';
-      var color = 'var(--terra)';
-
-      if (r.report_type === 'mini') {
-        icon = 'sparkles';
-        title = 'Мини-разбор';
-        subtitle = 'Архетип, сила, конфликт и отношения по дате рождения';
-        bg = 'rgba(107,128,104,.10)';
-        color = 'var(--sage)';
-      } else if (r.report_type === 'full') {
-        icon = 'grid-dots';
-        title = 'Матрица Судьбы';
-      } else if (r.report_type === 'compatibility') {
-        icon = 'heart-handshake';
-        title = 'Совместимость';
-      } else if (r.report_type === 'forecast') {
-        icon = 'trending-up';
-        title = 'Прогноз на год';
-      }
-
-      if (r.created_at) {
-        var parts = r.created_at.split('.');
-        var months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-        var dateStr = parseInt(parts[0], 10) + ' ' + (months[parseInt(parts[1], 10) - 1] || '') + ' ' + parts[2];
-        subtitle = (subtitle ? subtitle + ' · ' : '') + dateStr;
-      }
-
-      html += '<article class="card list-card">' +
-        '<div class="list-icon" style="background:' + bg + ';color:' + color + '">' +
-        '<i class="ti ti-' + icon + '"></i></div>' +
-        '<div><div class="list-title">' + N.escHtml(title) + '</div>' +
-        (subtitle ? '<div class="list-sub">' + N.escHtml(subtitle) + '</div>' : '') +
-        '</div>' +
-        '<button class="btn btn-soft" onclick="location.href=\'' + url.replace(/'/g, "\\'") + '\'">Открыть</button>' +
-        '</article>';
-    }
-
-    container.innerHTML = html;
-  };
-
-  window.openReport = function(id) {
-    if (__isGuest) {
-      promptGuestAccess();
-      return;
-    }
-    if (userReports.length > 0) {
-      location.href = userReports[0].url;
-      return;
-    }
-    location.href = '/mini.html';
-  };
-
-  window.editProfile = function() {
-    if (__isGuest) {
-      promptGuestAccess();
-      return;
-    }
-    location.href = 'https://t.me/ai_nura_bot';
-  };
-
-  window.renderTgRow = function(linked) {
-    var container = $('tg-link-container');
-    if (!container) return;
-    if (__isGuest) {
-      container.innerHTML =
-        '<article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="promptProfileAuth()">' +
-          '<div class="list-icon"><i class="ti ti-brand-telegram"></i></div>' +
-          '<div><div class="list-title">Подключить Telegram</div>' +
-          '<div class="list-sub" id="tg-link-status">доступно после входа</div></div>' +
-          '<span class="chevron">›</span>' +
-        '</article>';
-      return;
-    }
-    if (linked) {
-      container.innerHTML =
-        '<article class="card list-card" id="tg-linked-item">' +
-          '<div class="list-icon"><i class="ti ti-brand-telegram"></i></div>' +
-          '<div><div class="list-title">Telegram</div>' +
-          '<div class="list-sub" id="tg-link-status">подключён</div></div>' +
-          '<button class="btn btn-soft" onclick="unlinkTelegram()" style="color:var(--danger);border-color:rgba(196,92,92,.24)">Отключить</button>' +
-        '</article>';
-    } else {
-      container.innerHTML =
-        '<article class="card list-card" role="button" tabindex="0" id="tg-link-item" onclick="linkTelegram()">' +
-          '<div class="list-icon"><i class="ti ti-brand-telegram"></i></div>' +
-          '<div><div class="list-title">Подключить Telegram</div>' +
-          '<div class="list-sub" id="tg-link-status">не подключён</div></div>' +
-          '<span class="chevron">›</span>' +
-        '</article>';
-    }
-  };
-  window.promptProfileAuth = promptGuestAccess;
-
-  window.linkTelegram = async function() {
-    if (__isGuest) {
-      promptGuestAccess();
-      return;
-    }
-    var el = $('tg-link-status'); if (el) el.textContent = '…';
-    try {
-      var res = await fetch(BASE + '/web/generate-link-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-      });
-      if (res.ok) {
-        var data = await res.json();
-        if (data && data.tg_url) {
-          window.open(data.tg_url, '_blank');
-          if (el) el.textContent = 'открой Telegram';
-          setTimeout(function() { if (el) el.textContent = 'ожидание…'; }, 10000);
-        } else { if (el) el.textContent = 'не подключён'; }
-      } else { if (el) el.textContent = 'не подключён'; }
-    } catch(e) { if (el) el.textContent = 'не подключён'; }
-  };
-
-  window.unlinkTelegram = async function() {
-    if (!confirm('Отвязать Telegram? Уведомления перестанут приходить в бот.')) return;
-    var el = $('tg-link-status'); if (el) el.textContent = '…';
-    try {
-      var res = await fetch(BASE + '/web/unlink-telegram', {
-        method: 'DELETE',
-        credentials: 'same-origin',
-      });
-      if (res.ok) {
-        renderTgRow(false);
-      } else {
-        var data = await res.json().catch(function(){ return {}; });
-        alert(data.detail || 'Не удалось отвязать Telegram');
-        renderTgRow(true);
-      }
-    } catch(e) {
-      renderTgRow(true);
-    }
-  };
-
-  window.logout = function() {
-    if (!confirm('Выйти из аккаунта?')) return;
-    fetch(BASE + '/web/logout', { method: 'POST', credentials: 'same-origin' }).finally(function() {
-      localStorage.removeItem('nura_chat_log');
-      localStorage.removeItem('nura_notif_prefs');
-      location.href = '/mini.html';
-    });
-  };
-
-  window.deleteAccount = function() {
-    if (!confirm('Удалить аккаунт и все данные? Это действие необратимо.')) return;
-    fetch(BASE + '/web/account', { method: 'DELETE', credentials: 'same-origin' }).then(function(r) {
-      if (r.ok) {
-        localStorage.removeItem('nura_chat_log');
-        localStorage.removeItem('nura_notif_prefs');
-        location.href = '/mini.html';
-      } else {
-        alert('Не удалось удалить аккаунт. Попробуй позже.');
-      }
-    }).catch(function() { alert('Ошибка сети при удалении.'); });
-  };
-
-  window.activateSubscription = function() {
-    if (__isGuest) {
-      promptGuestAccess();
-      return;
-    }
-    var btn = $('subscribe-btn');
-    var status = $('subscribe-status');
-    btn.disabled = true;
-    btn.textContent = 'Активирую…';
-    status.style.display = 'none';
-    var promoCode = ($('promoCodeField') && $('promoCodeField').value.trim()) || null;
-    var reqBody = {};
-    if (promoCode) reqBody.promo_code = promoCode;
-    fetch(BASE + '/web/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: Object.keys(reqBody).length > 0 ? JSON.stringify(reqBody) : undefined
-    })
-    .then(function(r) {
-      if (!r.ok) {
-        return r.json().then(function(err) {
-          var msg = (err && err.detail) || ('HTTP ' + r.status);
-          throw new Error(msg);
-        });
-      }
-      return r.json();
-    })
-    .then(function(d) {
-      if (d && d.payment_url) {
-        status.textContent = 'Перенаправляю на оплату…';
-        status.style.display = 'block';
-        window.location.href = d.payment_url;
-      } else {
-        throw new Error('Нет payment_url в ответе');
-      }
-    })
-    .catch(function(err) {
-      btn.disabled = false;
-      btn.textContent = 'Подключить подписку';
-      status.textContent = (err && err.message) || 'Нет соединения';
-      status.style.color = 'var(--danger)';
-      status.style.display = 'block';
-    });
-  };
-
-  var label = $('theme-label');
-  document.getElementById('themeToggle').addEventListener('click', function() {
-    var next = N.toggleTheme();
-    this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon');
-    if (label) label.textContent = next === 'dark' ? 'Тёмная' : 'Светлая';
-  });
-})();
-</script>
-</body></html>
+  <nav class="tabbar nura-shell-tabbar" aria-label="Основная навигация"><div class="tabbar-inner"><a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a><a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a><a class="tab-item tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a><a class="tab-item active" href="profile.html" aria-current="page"><i class="ti ti-user-circle"></i><span>Профиль</span></a></div></nav>
+  <script src="nura-pwa.js?v=9"></script>
+  <script>
+  (function () {
+    'use strict';
+    var N = window.NURA, BASE = N.BASE, state = { user: null, confirmed: false, loading: false, reports: [], telegramLinked: false };
+    var $ = document.getElementById.bind(document);
+    var legalLinks = [['/offer.html','Оферта'],['/privacy.html','Политика конфиденциальности'],['/personal-data-consent.html','Согласие на обработку данных'],['/marketing-consent.html','Согласие на рассылку'],['/acceptable-use.html','Правила допустимого использования']];
+    var notificationOptions = [['daily_card','Карта дня','Напоминание о личном ритуале'],['weekly_spread','Фокус недели','Новый спокойный ориентир на неделю'],['practices','Практики','Подсказки по личным материалам'],['news','Новости NURA','Только важные обновления']];
+    function setState(name) { document.body.dataset.profileState = name; $('profile-loading').hidden = name !== 'loading'; $('profile-error').hidden = name !== 'error'; $('profile-guest').hidden = name !== 'guest'; $('profile-account').hidden = name !== 'account'; }
+    function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+    function element(tag, className, text) { var el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; }
+    function button(label, className, handler) { var el = element('button', className, label); el.type = 'button'; el.addEventListener('click', handler); return el; }
+    function expiryDate(value) { if (!value || !/^[0-3]\d\.[01]\d\.\d{4}$/.test(value)) return null; var p = value.split('.'); return new Date(Number(p[2]), Number(p[1]) - 1, Number(p[0]), 23, 59, 59); }
+    function isActiveSubscription(value, until) { var date = expiryDate(until); return (value === 'premium' || value === 'active') && (!date || date >= new Date()); }
+    function entitlement(user) { var premiumActive = isActiveSubscription(user.subscription_status, user.subscription_until), tarotDate = expiryDate(user.tarot_until), tarotActive = !!user.has_tarot && (!tarotDate || tarotDate >= new Date()), subscriptionExpired = !premiumActive && !!expiryDate(user.subscription_until) && expiryDate(user.subscription_until) < new Date(), tarotExpired = !tarotActive && !!tarotDate && tarotDate < new Date(); return { premiumActive: premiumActive, tarotActive: tarotActive, expired: subscriptionExpired || tarotExpired, until: user.subscription_until || user.tarot_until || '', tarotUntil: user.tarot_until || '' }; }
+    function syncThemeIcon() { var dark = document.documentElement.getAttribute('data-theme') === 'dark'; $('themeToggle').querySelector('i').className = 'ti ti-' + (dark ? 'moon' : 'sun-moon'); $('themeToggle').setAttribute('aria-label', dark ? 'Включить светлую тему' : 'Включить тёмную тему'); }
+    $('themeToggle').addEventListener('click', function () { N.toggleTheme(); syncThemeIcon(); }); syncThemeIcon();
+    function renderLegal(target) { clear(target); legalLinks.forEach(function (item) { var a = element('a','profile-row profile-link-row'); a.href = item[0]; a.append(element('span','profile-row-copy',item[1]), element('i','ti ti-chevron-right profile-chevron')); target.appendChild(a); }); }
+    function renderGuest() { renderLegal($('guest-legal-list')); $('profile-auth').onclick = function () { N.showAuthModal({ title:'Войди в NURA', copy:'Сохраняй материалы и управляй личным пространством.' }); }; setState('guest'); }
+    function setIdentity(user) { var name = user.name || 'Пользователь', initials = name.split(/\s+/).filter(Boolean).map(function (part) { return part.charAt(0); }).join('').slice(0,2).toUpperCase() || 'N'; $('avatar-initials').textContent = initials; $('profile-name').textContent = name; $('profile-dob').hidden = !user.birth_date; $('profile-dob').textContent = user.birth_date ? 'Дата рождения · ' + user.birth_date : ''; var archetype = user.archetype ? (user.archetype_number ? user.archetype_number + ' · ' : '') + user.archetype : ''; $('profile-archetype').hidden = !archetype; $('profile-archetype').textContent = archetype; }
+    function renderSubscription(user) { var access = entitlement(user), badge = $('subscription-badge'), title = $('subscription-title'), copy = $('subscription-copy'), date = $('subscription-date'), action = $('subscribe-btn'), promo = $('promo-wrap'); action.hidden = true; promo.hidden = true; date.hidden = true; $('subscribe-status').hidden = true; if (access.premiumActive) { badge.textContent = 'Premium'; title.textContent = 'Premium активен'; copy.textContent = 'Расширенный доступ к практикам и личному диалогу доступен по активному entitlement.'; if (access.until) { date.textContent = 'Доступ до ' + access.until; date.hidden = false; } return; } if (access.tarotActive) { badge.textContent = 'Таро'; title.textContent = 'Таро доступно'; copy.textContent = 'Доступ к ежедневной карте и раскладам активен.'; if (access.tarotUntil) { date.textContent = 'Доступ до ' + access.tarotUntil; date.hidden = false; } return; } if (access.expired) { badge.textContent = 'Истекла'; title.textContent = 'Подписка завершена'; copy.textContent = 'Купленные отчёты и Матрица сохраняются в личном пространстве.'; if (access.until) { date.textContent = 'Доступ завершился ' + access.until; date.hidden = false; } action.textContent = 'Возобновить'; action.hidden = false; promo.hidden = false; return; } badge.textContent = 'Free'; title.textContent = 'Базовый доступ'; copy.textContent = 'Подключи Premium, чтобы открыть расширенные практики и личный диалог без дневного лимита.'; action.textContent = 'Подключить Premium'; action.hidden = false; promo.hidden = false; }
+    function validReport(report) { return report && typeof report.token === 'string' && /^[A-Za-z0-9_-]+$/.test(report.token) && typeof report.url === 'string' && report.url === '/report/' + report.token; }
+    function reportTitle(type) { return ({mini:'Мини-разбор',full:'Матрица Судьбы',compatibility:'Совместимость',forecast:'Прогноз на год'})[type] || 'Личный материал'; }
+    function renderReports(reports) { state.reports = Array.isArray(reports) ? reports.filter(validReport) : []; var list = $('reports-list'); clear(list); if (!state.reports.length) { list.appendChild(element('p','profile-empty','Личных отчётов пока нет. Первый материал появится здесь после мини-разбора.')); return; } state.reports.forEach(function (report) { var row = element('a','profile-row profile-report-row'); row.href = report.url; var icon = element('span','profile-row-icon'); icon.appendChild(element('i','ti ti-' + (report.report_type === 'full' ? 'grid-dots' : 'sparkles'))); var copy = element('span','profile-row-copy'); copy.append(element('strong','',reportTitle(report.report_type)), element('small','',report.created_at || 'Личный материал')); row.append(icon,copy,element('i','ti ti-chevron-right profile-chevron')); list.appendChild(row); }); }
+    function renderMatrix(user) { var status = $('matrix-report-status'), open = $('matrix-open-btn'), buy = $('matrix-buy-btn'), matrix = $('static-matrix-card'); open.hidden = true; buy.hidden = true; if (user.has_matrix) { if (user.report_token && /^[A-Za-z0-9_-]+$/.test(user.report_token)) { status.textContent = 'Открыто'; open.hidden = false; open.onclick = function () { location.href = '/report/' + user.report_token; }; } else { status.textContent = 'Матрица доступна, ссылка временно недоступна'; } } else { status.textContent = 'Получить после мини-разбора'; buy.hidden = false; buy.onclick = function () { location.href = '/mini.html'; }; } matrix.hidden = false; }
+    function renderTelegram(linked) { state.telegramLinked = !!linked; var target = $('tg-link-container'); clear(target); var row = element('article','profile-row'); row.id = linked ? 'tg-linked-item' : 'tg-link-item'; var icon = element('span','profile-row-icon'); icon.appendChild(element('i','ti ti-brand-telegram')); var copy = element('span','profile-row-copy'); copy.append(element('strong','','Telegram'), element('small','', linked ? 'Подключено' : 'Не подключено')); var action = button(linked ? 'Отключить' : 'Подключить', 'btn btn-soft profile-row-action', linked ? window.unlinkTelegram : window.linkTelegram); action.id = 'tg-link-status'; row.append(icon,copy,action); target.appendChild(row); }
+    function renderNotifications(prefs) { var target = $('notifications-list'); clear(target); notificationOptions.forEach(function (option) { var label = element('label','profile-row profile-switch-row'); var copy = element('span','profile-row-copy'); copy.append(element('strong','',option[1]),element('small','',option[2])); var input = document.createElement('input'); input.type = 'checkbox'; input.checked = !!(prefs && prefs[option[0]]); input.setAttribute('data-notif-key', option[0]); input.addEventListener('change', function () { window.saveNotif(option[0], input.checked); }); var toggle = element('span','profile-toggle'); label.append(copy,input,toggle); target.appendChild(label); }); }
+    function setAccountError(message) { var node = $('account-action-status'); node.textContent = message; node.hidden = !message; }
+    function renderAccount(user) { setIdentity(user); renderSubscription(user); renderMatrix(user); renderReports(user.reports); renderTelegram(user.telegram_linked); renderLegal($('legal-list')); renderNotifications({}); setAccountError(''); setState('account'); loadNotifications(); }
+    function loadNotifications() { N.fetchJSON(BASE + '/web/notifications').then(function (data) { if (state.confirmed) renderNotifications(data.prefs || {}); }).catch(function () { if (state.confirmed) setAccountError('Не удалось загрузить настройки уведомлений.'); }); }
+    function loadProfile() { if (state.loading) return; state.loading = true; if (!state.confirmed) setState('loading'); N.fetchJSON(BASE + '/web/me').then(function (user) { state.user = user; state.confirmed = true; renderAccount(user); }).catch(function (err) { if (err && err.status === 401) { state.user = null; state.confirmed = false; renderGuest(); return; } if (state.confirmed && state.user) { $('profile-error-copy').textContent = 'Не удалось обновить данные. Показано последнее подтверждённое состояние.'; $('profile-error').hidden = false; return; } $('profile-error-copy').textContent = 'Проверь соединение и попробуй ещё раз.'; setState('error'); }).finally(function () { state.loading = false; }); }
+    $('profile-retry').addEventListener('click', loadProfile);
+    window.openReport = function () { if (!state.confirmed) { N.showAuthModal(); return; } if (state.reports.length) location.href = state.reports[0].url; else location.href = '/mini.html'; };
+    window.renderReports = renderReports;
+    window.renderTgRow = renderTelegram;
+    window.linkTelegram = async function () { if (!state.confirmed) return; var status = $('tg-link-status'); status.disabled = true; try { var response = await fetch(BASE + '/web/generate-link-token',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin'}); if (!response.ok) throw new Error(); var data = await response.json(); if (!data || typeof data.tg_url !== 'string' || !/^https:\/\/t\.me\//.test(data.tg_url)) throw new Error(); window.open(data.tg_url,'_blank','noopener,noreferrer'); setAccountError('Открой Telegram, чтобы завершить подключение.'); } catch (_) { setAccountError('Не удалось начать подключение Telegram. Попробуй ещё раз.'); } finally { if ($('tg-link-status')) $('tg-link-status').disabled = false; } };
+    window.unlinkTelegram = async function () { if (!state.confirmed || !confirm('Отвязать Telegram? Уведомления перестанут приходить в бот.')) return; var status = $('tg-link-status'); status.disabled = true; try { var response = await fetch(BASE + '/web/unlink-telegram',{method:'DELETE',credentials:'same-origin'}); if (!response.ok) throw new Error(); state.user.telegram_linked = false; renderTelegram(false); setAccountError(''); } catch (_) { setAccountError('Не удалось отвязать Telegram. Попробуй позже.'); if ($('tg-link-status')) $('tg-link-status').disabled = false; } };
+    window.saveNotif = function (key, value) { if (!state.confirmed) return; fetch(BASE + '/web/notifications',{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({key:key,enabled:value})}).then(function (response) { if (!response.ok) throw new Error(); var prefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}'); prefs[key] = value; localStorage.setItem('nura_notif_prefs', JSON.stringify(prefs)); setAccountError(''); }).catch(function () { var input = document.querySelector('input[data-notif-key="' + key + '"]'); if (input) input.checked = !value; setAccountError('Не удалось сохранить настройку уведомлений.'); }); };
+    window.activateSubscription = function () { if (!state.confirmed) { N.showAuthModal(); return; } var btn = $('subscribe-btn'), promo = $('promoCodeField'), status = $('subscribe-status'), body = {}; if (promo && promo.value.trim()) body.promo_code = promo.value.trim(); btn.disabled = true; status.hidden = true; fetch(BASE + '/web/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:Object.keys(body).length ? JSON.stringify(body) : undefined}).then(function (response) { if (!response.ok) throw new Error(); return response.json(); }).then(function (data) { if (!data || typeof data.payment_url !== 'string') throw new Error(); location.href = data.payment_url; }).catch(function () { btn.disabled = false; status.textContent = 'Не удалось перейти к оплате. Попробуй ещё раз.'; status.hidden = false; }); };
+    $('subscribe-btn').addEventListener('click', window.activateSubscription);
+    function clearPersonalState() { ['nura_chat_log','nura_chat_user_id','nura_notif_prefs'].forEach(function (key) { localStorage.removeItem(key); }); }
+    window.logout = function () { if (!state.confirmed || !confirm('Выйти из аккаунта?')) return; var btn = $('logout-btn'); btn.disabled = true; fetch(BASE + '/web/logout',{method:'POST',credentials:'same-origin'}).then(function (response) { if (!response.ok) throw new Error(); clearPersonalState(); state.user = null; state.confirmed = false; renderGuest(); }).catch(function () { btn.disabled = false; setAccountError('Не удалось выйти из аккаунта. Попробуй ещё раз.'); }); };
+    window.deleteAccount = function () { if (!state.confirmed || !confirm('Удалить аккаунт и все данные? Это действие необратимо.')) return; var btn = $('delete-btn'); btn.disabled = true; fetch(BASE + '/web/account',{method:'DELETE',credentials:'same-origin'}).then(function (response) { if (!response.ok) throw new Error(); clearPersonalState(); state.user = null; state.confirmed = false; renderGuest(); }).catch(function () { btn.disabled = false; setAccountError('Не удалось удалить аккаунт. Попробуй позже.'); }); };
+    $('logout-btn').addEventListener('click', window.logout); $('delete-btn').addEventListener('click', window.deleteAccount); loadProfile();
+  }());
+  </script>
+</body>
+</html>
