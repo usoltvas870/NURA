@@ -185,6 +185,9 @@
       var $ = document.getElementById.bind(document);
       var access = 'loading';
       var cardData = null;
+      var currentUserId = null;
+      var accessRequest = 0;
+      var dailyCardRequest = 0;
       var selectedFormat = null;
       var dateStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
       var faces = { 1:'01-magician',2:'02-high-priestess',3:'03-empress',4:'04-emperor',5:'05-hierophant',6:'06-lovers',7:'07-chariot',8:'08-justice',9:'09-hermit',10:'10-wheel-of-fortune',11:'11-strength',12:'12-hanged-man',13:'13-death',14:'14-temperance',15:'15-devil',16:'16-tower',17:'17-star',18:'18-moon',19:'19-sun',20:'20-judgement',21:'21-world',22:'00-fool' };
@@ -225,21 +228,52 @@
           $('hero-name').textContent = 'Таро откроется после входа';
           $('hero-phrase').textContent = 'Сохрани свой контекст в NURA, чтобы видеть персональную карту дня.';
         } else {
-          loadDailyCard();
+          loadDailyCard(currentUserId);
         }
       }
 
-      function loadDailyCard() {
-        var cacheKey = 'tarot_daily_card_' + new Date().toISOString().slice(0, 10);
-        try {
-          var cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-          if (cached && cached.ts && Date.now() - cached.ts < 3600000) applyCardData(cached.d);
-        } catch (ignore) {}
-        N.fetchJSON(BASE + '/tarot/daily-card').then(function (data) {
-          localStorage.setItem(cacheKey, JSON.stringify({ d: data, ts: Date.now() }));
-          applyCardData(data);
-        }).catch(function () {
-          if (!cardData) {
+      function dailyCardDateKey() {
+         return new Date().toISOString().slice(0, 10);
+       }
+
+      function dailyCardCacheKey(userId, dateKey) {
+         return 'nura_daily_card:' + encodeURIComponent(String(userId)) + ':' + dateKey;
+       }
+
+      function cachedDailyCardPayload(data) {
+         return { arcana_number: data.arcana_number, arcana_name: data.arcana_name, key_phrase: data.key_phrase, interpretation: data.interpretation, advice: data.advice };
+       }
+
+      function readDailyCardCache(cacheKey) {
+         try {
+           var cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+           if (!cached || !cached.ts || !cached.d || Date.now() - cached.ts >= 3600000) return null;
+           if (typeof cached.d.arcana_number !== 'number' || typeof cached.d.arcana_name !== 'string') throw new Error('invalid cache');
+           return cached.d;
+         } catch (ignore) {
+           try { localStorage.removeItem(cacheKey); } catch (storageError) {}
+           return null;
+         }
+       }
+
+      function loadDailyCard(userId) {
+         if (!userId) return;
+         var requestId = ++dailyCardRequest;
+         var dateKey = dailyCardDateKey();
+         var cacheKey = dailyCardCacheKey(userId, dateKey);
+         var legacyCacheKey = 'tarot_daily_card_' + dateKey;
+         cardData = null;
+         $('hero-num').textContent = '';
+         try { localStorage.removeItem(legacyCacheKey); } catch (storageError) {}
+         var cached = readDailyCardCache(cacheKey);
+         if (cached && requestId === dailyCardRequest && currentUserId === userId) applyCardData(cached);
+         N.fetchJSON(BASE + '/tarot/daily-card').then(function (data) {
+           if (requestId !== dailyCardRequest || currentUserId !== userId) return;
+           var payload = cachedDailyCardPayload(data);
+           try { localStorage.setItem(cacheKey, JSON.stringify({ d: payload, ts: Date.now() })); } catch (storageError) {}
+           applyCardData(data);
+         }).catch(function () {
+           if (requestId === dailyCardRequest && currentUserId === userId && !cardData) {
             $('hero-name').textContent = 'Не удалось загрузить карту';
             $('hero-phrase').textContent = 'Попробуй обновить страницу немного позже.';
           }
@@ -367,7 +401,7 @@
       window.subscribeTarot = function () {
         if (access === 'guest') return promptGuestAccess();
         var button = $('pw-subscribe-btn'); button.disabled = true; button.textContent = 'Загрузка…';
-        fetch(BASE + '/web/subscribe', { method: 'POST', credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) {
+        fetch(BASE + '/web/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({}) }).then(function (response) { return response.json(); }).then(function (data) {
           if (data.payment_url) location.href = data.payment_url; else throw new Error('payment_url missing');
         }).catch(function () { button.disabled = false; button.textContent = 'Подключить подписку'; });
       };
@@ -378,12 +412,32 @@
         if (window.NURA_PWA && window.NURA_PWA.showInstallBanner) window.NURA_PWA.showInstallBanner();
       }, 3000);
 
-      fetch(BASE + '/web/session-check', { credentials: 'same-origin' }).then(function (response) {
-        if (response.status === 403) { location.href = '/app/?blocked=1'; return null; }
-        if (response.status === 401) return 'guest';
-        if (!response.ok) throw new Error('session check failed');
-        return N.fetchJSON(BASE + '/web/me').then(function (user) { return user.has_tarot ? 'subscriber' : 'free'; });
-      }).then(function (next) { if (next) applyAccess(next); }).catch(function () { applyAccess('guest'); });
+      function resolveAccess() {
+         var requestId = ++accessRequest;
+         dailyCardRequest += 1;
+         currentUserId = null;
+         cardData = null;
+         $('hero-num').textContent = '';
+         $('hero-name').textContent = '';
+         $('hero-phrase').textContent = '';
+         fetch(BASE + '/web/session-check', { credentials: 'same-origin' }).then(function (response) {
+           if (response.status === 403) { location.href = '/app/?blocked=1'; return null; }
+           if (response.status === 401) return 'guest';
+           if (!response.ok) throw new Error('session check failed');
+           return N.fetchJSON(BASE + '/web/me').then(function (user) {
+             if (!user || typeof user.user_id !== 'string' || !user.user_id) throw new Error('user id missing');
+             return { access: user.has_tarot ? 'subscriber' : 'free', userId: user.user_id };
+           });
+         }).then(function (result) {
+           if (requestId !== accessRequest || !result) return;
+           if (result === 'guest') { applyAccess('guest'); return; }
+           currentUserId = result.userId;
+           applyAccess(result.access);
+         }).catch(function () { if (requestId === accessRequest) applyAccess('guest'); });
+       }
+
+      window.addEventListener('pageshow', function (event) { if (event.persisted) resolveAccess(); });
+      resolveAccess();
     })();
   </script>
 </body>
