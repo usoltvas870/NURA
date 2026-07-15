@@ -464,10 +464,6 @@ body.tarot-v2-1[data-access="loading"] .tarot-format:disabled { cursor: wait; }
   .tarot-v2-1 .tarot-format-icon { width: 31px; height: 31px; font-size: 23px; }
 }
 
-@media (max-width: 759px) {
-  body.tarot-v2-1.nura-shell-page .tarot-main { padding-bottom: 16px; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .tarot-v2-1 .sheet,
   .tarot-v2-1 .sheet-backdrop { transition: none; }

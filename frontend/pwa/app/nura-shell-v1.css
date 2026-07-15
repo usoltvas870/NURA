@@ -65,20 +65,6 @@ body.nura-shell-page {
   .nura-shell-page .nura-shell-content { padding-bottom: 16px; }
 }
 
-@media (max-width: 759px) {
-  .nura-shell-page .nura-shell-content { padding-bottom: 16px; }
-  .nura-shell-page .nura-shell-tabbar {
-    position: relative;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    margin: 32px auto 16px;
-    height: calc(68px + env(safe-area-inset-bottom, 0px));
-    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
-    transform: none;
-  }
-}
-
 @media (max-width: 380px) {
   .nura-shell-page .nura-shell-header { padding-inline: 12px; }
   .nura-shell-page .nura-shell-brand { gap: 8px; }
