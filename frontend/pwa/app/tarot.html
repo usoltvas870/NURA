@@ -25,22 +25,23 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="nura-pwa.css?v=11">
   <link rel="stylesheet" href="/theme.css?v=9">
+  <link rel="stylesheet" href="nura-shell-v1.css?v=1">
   <link rel="stylesheet" href="tarot-v2-1.css?v=5">
   <title>NURA · Таро</title>
 </head>
-<body class="tarot-v2-1" data-access="loading">
-  <div class="app-shell">
-    <header class="header tarot-header">
-      <a href="index.html" class="nura-text-logo" aria-label="NURA — главная">
+<body class="tarot-v2-1 nura-shell-page" data-access="loading">
+  <div class="app-shell nura-shell-canvas">
+    <header class="header tarot-header nura-shell-header">
+      <a href="index.html" class="nura-text-logo nura-shell-brand" aria-label="NURA — главная">
         <span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span>
       </a>
-      <span class="header-title">Таро</span>
-      <div class="header-actions">
-        <button class="icon-btn" id="themeToggle" type="button" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button>
+      <span class="header-title nura-shell-title">Таро</span>
+      <div class="header-actions nura-shell-header-actions">
+        <button class="icon-btn nura-shell-theme-toggle" id="themeToggle" type="button" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button>
       </div>
     </header>
 
-    <main class="page tarot-main">
+    <main class="page tarot-main nura-shell-content">
       <section class="tarot-daily-section" aria-labelledby="daily-heading">
         <div class="tarot-section-head">
           <div>
@@ -158,7 +159,7 @@
     <div class="sheet-inner"><div class="handle"></div><p class="eyebrow" id="spread-name">Расклад</p><div id="spread-body"></div></div>
   </section>
 
-  <nav class="tabbar"><div class="tabbar-inner">
+  <nav class="tabbar nura-shell-tabbar"><div class="tabbar-inner">
     <a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
     <a class="tab-item active" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
     <a class="tab-item tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
@@ -355,7 +356,14 @@
         });
       });
 
-      $('themeToggle').addEventListener('click', function () { var next = N.toggleTheme(); this.querySelector('i').className = 'ti ti-' + (next === 'dark' ? 'moon' : 'sun-moon'); });
+      function syncThemeToggle(theme) {
+        var toggle = $('themeToggle');
+        var isDark = theme === 'dark';
+        toggle.querySelector('i').className = 'ti ti-' + (isDark ? 'moon' : 'sun-moon');
+        toggle.setAttribute('aria-label', isDark ? 'Включить светлую тему' : 'Включить тёмную тему');
+      }
+      syncThemeToggle(document.documentElement.getAttribute('data-theme') || 'light');
+      $('themeToggle').addEventListener('click', function () { syncThemeToggle(N.toggleTheme()); });
       window.subscribeTarot = function () {
         if (access === 'guest') return promptGuestAccess();
         var button = $('pw-subscribe-btn'); button.disabled = true; button.textContent = 'Загрузка…';

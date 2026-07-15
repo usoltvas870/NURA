@@ -1,0 +1,92 @@
+/* Shared Home v9 shell for non-Home PWA pages. */
+body.nura-shell-page {
+  min-width: 320px;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.nura-shell-page .nura-shell-canvas {
+  width: min(100%, 520px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  position: relative;
+  background: var(--bg);
+}
+
+.nura-shell-page .nura-shell-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: calc(58px + env(safe-area-inset-top, 0px));
+  min-height: calc(58px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  display: flex;
+  align-items: center;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(44, 42, 30, .05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.nura-shell-page .nura-shell-brand { gap: 10px; color: var(--terra); }
+.nura-shell-page .nura-shell-brand .nura-star { color: var(--terra); font-size: 18px; }
+.nura-shell-page .nura-shell-brand .nura-sep { display: block; width: 1px; height: 18px; background: rgba(184, 116, 63, .32); }
+.nura-shell-page .nura-shell-brand .nura-word { color: var(--terra); font-family: var(--font-serif); font-size: 19px; font-weight: 600; letter-spacing: .16em; }
+.nura-shell-page .nura-shell-title { position: absolute; left: 50%; transform: translateX(-50%); font-family: var(--font-serif); font-size: 20px; line-height: 1; letter-spacing: .04em; font-weight: 400; }
+.nura-shell-page .nura-shell-header-actions { margin-left: auto; }
+.nura-shell-page .nura-shell-theme-toggle { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--bg-card); box-shadow: var(--shadow-card); color: var(--text-m); transition: transform .2s var(--ease), background .2s var(--ease), color .2s var(--ease); }
+.nura-shell-page .nura-shell-theme-toggle .ti { font-size: 21px; }
+.nura-shell-page .nura-shell-theme-toggle:active { transform: scale(.96); }
+.nura-shell-page .nura-shell-theme-toggle:hover { color: var(--terra); }
+.nura-shell-page .nura-shell-theme-toggle:focus-visible { outline-offset: 3px; }
+
+.nura-shell-page .nura-shell-content { padding: 20px 16px calc(var(--tabbar-h) + 34px); }
+.nura-shell-page .nura-shell-section-title { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-s); }
+.nura-shell-page .nura-shell-surface { background: var(--bg-card); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-card); }
+.nura-shell-page .nura-shell-badge { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; padding: 5px 10px; border: 1px solid var(--terra-d); border-radius: 999px; background: var(--terra-d); color: #fff; font-size: 9.5px; font-weight: 800; letter-spacing: .035em; line-height: 1.15; text-align: center; }
+.nura-shell-page .nura-shell-badge.is-available { border-color: var(--sage-d); background: var(--sage-d); }
+
+.nura-shell-page .nura-shell-tabbar { z-index: 50; left: 50%; right: auto; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); width: min(calc(100% - 30px), 520px); height: 68px; padding: 4px; transform: translateX(-50%); border: 1px solid var(--line); border-radius: 25px; background: var(--bg-tab); box-shadow: var(--shadow-soft); backdrop-filter: blur(16px); }
+.nura-shell-page .nura-shell-tabbar .tabbar-inner { width: 100%; height: 58px; margin: 0; padding: 0; border: 0; border-radius: 20px; background: transparent; box-shadow: none; }
+.nura-shell-page .nura-shell-tabbar .tab-item { border-radius: 19px; font-size: 10px; font-weight: 600; }
+.nura-shell-page .nura-shell-tabbar .tab-item.active { background: rgba(184, 116, 63, .065); color: var(--terra); box-shadow: none; }
+
+[data-theme="dark"] .nura-shell-page .nura-shell-header { box-shadow: 0 8px 24px rgba(0, 0, 0, .20); }
+[data-theme="dark"] .nura-shell-page .nura-shell-brand .nura-sep { background: rgba(201, 165, 92, .34); }
+
+@media (min-width: 760px) {
+  body.nura-shell-page { padding-top: 24px; padding-bottom: 96px; }
+  .nura-shell-page .nura-shell-canvas { min-height: auto; overflow: hidden; border: 1px solid rgba(255, 255, 255, .66); border-radius: 32px; box-shadow: 0 28px 80px rgba(44, 42, 30, .16); }
+  [data-theme="dark"] .nura-shell-page .nura-shell-canvas { border-color: var(--line); }
+  .nura-shell-page .nura-shell-header { position: relative; }
+  .nura-shell-page .nura-shell-tabbar { position: relative; left: auto; right: auto; bottom: auto; margin: 16px auto 0; transform: none; }
+  .nura-shell-page .nura-shell-content { padding-bottom: 16px; }
+}
+
+@media (max-width: 759px) {
+  .nura-shell-page .nura-shell-content { padding-bottom: 16px; }
+  .nura-shell-page .nura-shell-tabbar {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    margin: 32px auto 16px;
+    height: calc(68px + env(safe-area-inset-bottom, 0px));
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom, 0px));
+    transform: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .nura-shell-page .nura-shell-header { padding-inline: 12px; }
+  .nura-shell-page .nura-shell-brand { gap: 8px; }
+  .nura-shell-page .nura-shell-brand .nura-word { font-size: 17px; }
+  .nura-shell-page .nura-shell-title { font-size: 19px; }
+  .nura-shell-page .nura-shell-content { padding-inline: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nura-shell-page *, .nura-shell-page *::before, .nura-shell-page *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

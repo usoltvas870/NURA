@@ -20,15 +20,16 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="nura-pwa.css?v=11">
   <link rel="stylesheet" href="/theme.css?v=9">
+  <link rel="stylesheet" href="nura-shell-v1.css?v=1">
   <link rel="stylesheet" href="chat-v1-2.css?v=2">
   <title>NURA · Чат</title>
 </head>
-<body class="chat-page">
-  <div class="app-canvas">
-    <header class="app-header">
-      <a class="brand" href="index.html" aria-label="NURA"><span class="brand-star">✦</span><span class="brand-word">NURA</span></a>
-      <span class="header-context">Чат</span>
-      <a class="profile-button" href="profile.html" aria-label="Профиль"><i class="ti ti-user"></i></a>
+<body class="chat-page nura-shell-page">
+  <div class="app-canvas nura-shell-canvas">
+    <header class="app-header nura-shell-header">
+      <a class="brand nura-text-logo nura-shell-brand" href="index.html" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a>
+      <span class="header-context nura-shell-title">Чат</span>
+      <div class="nura-shell-header-actions"><button class="profile-button nura-shell-theme-toggle" id="themeToggle" type="button" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div>
     </header>
 
     <section class="context-strip" id="context-strip" aria-label="Контекст диалога">
@@ -79,7 +80,7 @@
     </section>
   </div>
 
-  <nav class="tabbar" aria-label="Основная навигация"><div class="tabbar-inner">
+  <nav class="tabbar nura-shell-tabbar" aria-label="Основная навигация"><div class="tabbar-inner">
     <a class="tab-item" href="index.html"><i class="ti ti-home"></i><span>Главная</span></a>
     <a class="tab-item" href="tarot.html"><i class="ti ti-cards"></i><span>Таро</span></a>
     <a class="tab-item active tab-chat" href="chat.html"><i class="ti ti-message-circle"></i><span>Чат</span></a>
@@ -91,6 +92,10 @@
   (function () {
     'use strict';
     var N = window.NURA;
+    var themeToggle = document.getElementById('themeToggle');
+    function syncThemeIcon() { var isDark = document.documentElement.getAttribute('data-theme') === 'dark'; themeToggle.querySelector('i').className = 'ti ti-' + (isDark ? 'moon' : 'sun-moon'); themeToggle.setAttribute('aria-label', isDark ? 'Включить светлую тему' : 'Включить тёмную тему'); }
+    syncThemeIcon();
+    themeToggle.addEventListener('click', function () { N.toggleTheme(); syncThemeIcon(); });
     var BASE = N.BASE;
     var viewport = document.getElementById('messages');
     var input = document.getElementById('chat-input');
