@@ -51,3 +51,4 @@ graphify-out/
 
 # Frontend assets (VK SDK, etc.) — deployed separately
 assets/
+!docs/brand/nura-universe/assets/
