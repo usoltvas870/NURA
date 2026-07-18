@@ -1,1 +1,1 @@
-self.NURA_RELEASE_ID = 'da6bdc356f12e693';
+self.NURA_RELEASE_ID = '7455d7b9783938fa';

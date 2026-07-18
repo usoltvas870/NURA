@@ -14,13 +14,13 @@
     "/pwa/app/nura-pwa.css": "0507e75ac64d4320bd9f8dc0c157d33870f86b872efe377bfaf059427ccc423c",
     "/pwa/app/nura-pwa.js": "da7aa255c563282331adcfeaa75c137b9b70653a611ec24878802343a8cc0dc7",
     "/pwa/app/nura-shell-v1.css": "5d8f23a1eca008bf81e7e5e8769cb59526115a89bdf19bda9a5b0b9bae4db1af",
-    "/pwa/app/profile-v1.css": "225fefb853b3e529aa44823fef8adb079eac5b43e2cb63b0ebaad4e7a1b30b68",
-    "/pwa/app/profile.html": "d0aeccb7ba7ba29562d3d669ba15df7ced72faa83ed825134016496fc7a3e4b0",
+    "/pwa/app/profile-v1.css": "7989dc3f5226b3428df8ccc07b862d9459079d02557acc3c1eb0ff3ad7957d15",
+    "/pwa/app/profile.html": "9f51c2edda66afb755bfa1232022d2b176d19067d9b4b10e113df29a6a595ad7",
     "/pwa/app/success.html": "b939c1620dd787b90dbf5323add27e9d3679cb36de58b59554976bc99ed161df",
     "/pwa/app/tarot-v2-1.css": "42fdf61e4de6b263e5b344c90952532f556da2f535d26075643fb84f958f0574",
-    "/pwa/app/tarot.html": "d968cb07d08abe7d3bb32d6e6da42ef52218673293d70cb72179d8406ed7dd3e",
+    "/pwa/app/tarot.html": "0d19ac5000f9f1588c5bc838d0f8395dd6832af829dc2bc321e3830abecb0140",
     "/success.html": "df032b0ebe23311c80a9e007f111fcbcbfe8e1ff3e84c596a1797361dabd9903",
     "/theme.css": "6824acae71b0fae71d26ca0ef044c7d44a40342061d3c55e0548eb23aeb3c20f"
   },
-  "release_id": "da6bdc356f12e693"
+  "release_id": "7455d7b9783938fa"
 }
