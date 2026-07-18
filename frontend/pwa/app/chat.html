@@ -192,7 +192,24 @@
         context.hidden = false;
       } catch (_) { if (user && user.has_matrix) { contextTitle.textContent = 'Личная Матрица'; context.hidden = false; } }
     }
-    function pending() { var value = new URLSearchParams(location.search).get('question') || localStorage.getItem('nura_pending_question'); if (!value || !state || !state.can_send) return; input.value = value; input.dispatchEvent(new Event('input')); window.sendMessage(value, true); }
+    function pending() {
+      var params = new URLSearchParams(location.search);
+      var value = params.get('question');
+      var fromUrl = !!value;
+      if (!value) {
+        try { value = localStorage.getItem('nura_pending_question'); } catch (_) {}
+      }
+      if (!value) return;
+      if (fromUrl) {
+        params.delete('question');
+        var search = params.toString();
+        var cleanUrl = location.pathname + (search ? '?' + search : '') + location.hash;
+        history.replaceState(null, '', cleanUrl);
+      }
+      try { localStorage.removeItem('nura_pending_question'); } catch (_) {}
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+    }
     async function init() {
       try { user = await N.fetchJSON(BASE + '/web/me'); loadHistory(); state = await N.fetchJSON(BASE + '/web/chat/state'); renderState(); loadContext(); pending(); }
       catch (error) { if (error && error.status === 401) { user = null; state = { can_send: false }; renderState(); return; } if (error && error.status === 403) location.href = '/app/?blocked=1'; }
