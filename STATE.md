@@ -1,8 +1,21 @@
 # NURA — State
 
-> Последнее обновление: **09.07.2026 — Сессия 85** — DeepSeek V4 Pro
+> Последнее обновление: **18.07.2026 — Сессия 86** — GPT-5 Codex
 
 ---
+
+## Сессия 86 — 18.07.2026
+- Модель: GPT-5 Codex
+- Что сделано: B2.1 Safe Ask NURA draft — убрана автоотправка черновика вопроса при открытии чата
+  - Изменён `frontend/pwa/app/chat.html`, функция `pending()`
+  - URL-параметр `?question=` теперь используется как primary source, `localStorage.nura_pending_question` — fallback для обратной совместимости с Home/Tarot
+  - Draft удаляется из URL (`history.replaceState`) и из `localStorage` при consume-once
+  - Подставляется в `#chat-input`, но `sendMessage()` не вызывается до явного нажатия кнопки отправки
+  - Это предотвращает списание quota до explicit submit
+  - QA: Playwright, 14/14 тестов, проверены viewports 360/390/430/768/1440, horizontal overflow, guest/subscriber/quota-exhausted, storage fallback, refresh, preserve other params
+  - Коммит: `4bd96d9`, запушен в `main`
+- Блокеры: нет
+- Следующие шаги: B2.2 Explicit user action + submit detection, затем B2.3 Quota visibility
 
 ## Сессия 85 — 09.07.2026
 - Модель: DeepSeek V4 Pro
