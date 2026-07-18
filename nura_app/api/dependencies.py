@@ -10,6 +10,14 @@ from core.repositories.user import UserRepository
 SESSION_COOKIE_NAME = "nura_session_id"
 
 
+def _is_expired(expires_at: datetime | None, now: datetime) -> bool:
+    if expires_at is None:
+        return False
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    return expires_at < now
+
+
 def set_session_cookie(response: Response, session_id: str) -> None:
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
@@ -41,7 +49,7 @@ async def get_current_web_user(
     if user is None:
         raise HTTPException(status_code=401, detail="Сессия не найдена")
     now = datetime.now(timezone.utc)
-    if user.web_session_expires_at and user.web_session_expires_at < now:
+    if _is_expired(user.web_session_expires_at, now):
         raise HTTPException(status_code=401, detail="Сессия истекла")
     if user.account_status == "blocked":
         raise HTTPException(status_code=403, detail="Аккаунт заблокирован за неактивность")
@@ -62,7 +70,7 @@ async def get_optional_web_user(
     if user is None:
         return None
     now = datetime.now(timezone.utc)
-    if user.web_session_expires_at and user.web_session_expires_at < now:
+    if _is_expired(user.web_session_expires_at, now):
         return None
     if user.account_status == "blocked":
         return None

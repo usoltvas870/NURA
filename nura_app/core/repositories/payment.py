@@ -1,9 +1,11 @@
 import uuid
+from datetime import datetime, timezone
 
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from core.models import Payment, ReferralReward
+from core.models import Payment, PromoCode, ReferralReward
 from core.repositories.base import SQLAlchemyRepository
 
 
@@ -17,6 +19,9 @@ class PaymentRepository(SQLAlchemyRepository[Payment]):
         amount: int,
         yookassa_id: str | None = None,
         payment_type: str = "subscription",
+        promo_code_id: uuid.UUID | None = None,
+        amount_kopecks: int | None = None,
+        promo_reserved: bool = False,
     ) -> Payment:
         payment = Payment(
             id=uuid.uuid4(),
@@ -24,8 +29,137 @@ class PaymentRepository(SQLAlchemyRepository[Payment]):
             amount=amount,
             yookassa_id=yookassa_id,
             payment_type=payment_type,
+            promo_code_id=promo_code_id,
+            amount_kopecks=amount_kopecks,
+            promo_reserved_at=(
+                datetime.now(timezone.utc) if promo_code_id is not None and promo_reserved else None
+            ),
         )
-        return await self.add(payment)
+        async with self._session_factory() as session:
+            try:
+                session.add(payment)
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+        return payment
+
+    async def create_or_get_by_yookassa_id(
+        self,
+        *,
+        user_id: uuid.UUID,
+        amount: int,
+        amount_kopecks: int,
+        yookassa_id: str,
+        payment_type: str,
+        promo_code_id: uuid.UUID | None = None,
+    ) -> Payment:
+        existing = await self.get_by_yookassa_id(yookassa_id)
+        if existing is not None:
+            self._validate_checkout_payment(
+                existing, user_id, amount_kopecks, payment_type, promo_code_id
+            )
+            return existing
+        try:
+            payment = await self.create(
+                user_id=user_id,
+                amount=amount,
+                amount_kopecks=amount_kopecks,
+                yookassa_id=yookassa_id,
+                payment_type=payment_type,
+                promo_code_id=promo_code_id,
+                promo_reserved=False,
+            )
+        except IntegrityError:
+            existing = await self.get_by_yookassa_id(yookassa_id)
+            if existing is None:
+                raise
+            self._validate_checkout_payment(
+                existing, user_id, amount_kopecks, payment_type, promo_code_id
+            )
+            return existing
+        return payment
+
+    @staticmethod
+    def _validate_checkout_payment(
+        payment: Payment,
+        user_id: uuid.UUID,
+        amount_kopecks: int,
+        payment_type: str,
+        promo_code_id: uuid.UUID | None,
+    ) -> None:
+        if (
+            payment.user_id != user_id
+            or payment.payment_type != payment_type
+            or payment.amount_kopecks != amount_kopecks
+            or payment.promo_code_id != promo_code_id
+        ):
+            raise ValueError("payment_attachment_conflict")
+
+    async def mark_promo_consumed_without_accounting(self, payment_id: uuid.UUID) -> None:
+        async with self._session_factory() as session:
+            payment = await session.get(Payment, payment_id, with_for_update=True)
+            if payment is None or payment.promo_consumed_at is not None:
+                return
+            payment.promo_consumed_at = datetime.now(timezone.utc)
+            try:
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+
+    async def consume_promo(self, payment_id: uuid.UUID) -> bool:
+        """Consume the promo linked to a verified payment exactly once."""
+        async with self._session_factory() as session:
+            payment = await session.get(Payment, payment_id, with_for_update=True)
+            if payment is None or payment.promo_code_id is None:
+                return payment is not None
+            if payment.promo_consumed_at is not None:
+                return True
+
+            promo = await session.get(
+                PromoCode, payment.promo_code_id, with_for_update=True
+            )
+            if promo is None:
+                return False
+            if payment.promo_reserved_at is not None:
+                if promo.reserved_count <= 0:
+                    return False
+                promo.reserved_count -= 1
+                payment.promo_reserved_at = None
+            elif promo.max_uses is not None and promo.used_count >= promo.max_uses:
+                return False
+            promo.used_count += 1
+            payment.promo_consumed_at = datetime.now(timezone.utc)
+            try:
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            return True
+
+    async def release_consumed_promo(self, payment_id: uuid.UUID) -> None:
+        """Undo promo consumption when entitlement activation is rolled back."""
+        async with self._session_factory() as session:
+            payment = await session.get(Payment, payment_id, with_for_update=True)
+            if payment is None or payment.promo_code_id is None:
+                return
+            if payment.promo_consumed_at is None:
+                return
+
+            promo = await session.get(
+                PromoCode, payment.promo_code_id, with_for_update=True
+            )
+            if promo is not None and promo.used_count > 0:
+                promo.used_count -= 1
+                promo.reserved_count += 1
+            payment.promo_consumed_at = None
+            payment.promo_reserved_at = datetime.now(timezone.utc)
+            try:
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
 
     async def get_by_yookassa_id(self, yookassa_id: str) -> Payment | None:
         async with self._session_factory() as session:

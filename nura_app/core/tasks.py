@@ -91,6 +91,26 @@ celery_app.conf.beat_schedule = {
         "task": "core.tasks.monitor_health",
         "schedule": 60 * 5,
     },
+    "dispatch-report-generation-jobs": {
+        "task": "core.tasks.dispatch_report_generation_jobs",
+        "schedule": timedelta(
+            seconds=settings.report_generation_dispatch_interval_seconds
+        ),
+        "kwargs": {"limit": settings.report_generation_dispatch_limit},
+        "options": {
+            "expires": settings.report_generation_dispatch_interval_seconds - 5
+        },
+    },
+    "reconcile-report-generation-jobs": {
+        "task": "core.tasks.reconcile_report_generation_jobs",
+        "schedule": timedelta(
+            seconds=settings.report_generation_reconciliation_interval_seconds
+        ),
+        "kwargs": {"limit": settings.report_generation_reconciliation_limit},
+        "options": {
+            "expires": settings.report_generation_reconciliation_interval_seconds - 30
+        },
+    },
 }
 
 
@@ -333,6 +353,113 @@ def generate_full_report(user_id: str, birth_date: str, report_token: str) -> di
             await _notify_full_report(telegram_id, result["token"])
         return result
     return _run_async(_run_all())
+
+
+@celery_app.task(
+    bind=True,
+    name="core.tasks.process_report_generation_job",
+    acks_late=True,
+    reject_on_worker_lost=True,
+    max_retries=3,
+    default_retry_delay=30,
+    task_time_limit=600,
+    task_soft_time_limit=480,
+)
+def process_report_generation_job(self, job_id: str, report_id: str) -> dict:
+    try:
+        job_uuid = uuid.UUID(job_id)
+        report_uuid = uuid.UUID(report_id)
+    except (ValueError, AttributeError):
+        return {"ok": False, "error": "invalid_task_arguments"}
+
+    async def _run() -> dict:
+        from core.database import get_async_sessionmaker
+        from core.services.matrix_report_generator import DefaultMatrixReportGenerator
+        from core.services.matrix_report_worker import (
+            GenerationDisposition,
+            MatrixReportGenerationWorker,
+        )
+
+        session_factory = get_async_sessionmaker()
+        generator = DefaultMatrixReportGenerator()
+        worker = MatrixReportGenerationWorker(session_factory, generator)
+        result = await worker.process(job_id=job_uuid, report_id=report_uuid)
+
+        if result.disposition == GenerationDisposition.COMPLETED:
+            return {"ok": True, "disposition": "completed"}
+        if result.disposition == GenerationDisposition.IDEMPOTENT_COMPLETED:
+            return {"ok": True, "idempotent": True, "disposition": "idempotent_completed"}
+        if result.disposition == GenerationDisposition.RETRYABLE_FAILURE:
+            return {"ok": False, "retryable": True, "error_category": result.error_category}
+        return {"ok": False, "terminal": True, "error_category": result.error_category}
+
+    return _run_async(_run())
+
+
+@celery_app.task(
+    name="core.tasks.dispatch_report_generation_jobs",
+    acks_late=False,
+    reject_on_worker_lost=True,
+    task_time_limit=120,
+    task_soft_time_limit=90,
+)
+def dispatch_report_generation_jobs(limit: int = 20) -> dict:
+    if limit <= 0 or limit > 100:
+        return {"ok": False, "error": "invalid_limit"}
+
+    async def _run() -> dict:
+        from core.services.celery_publisher import build_dispatcher
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
+        dispatcher = build_dispatcher()
+        result = await dispatcher.dispatch_batch(now=now, limit=limit)
+        return {
+            "selected": result.selected,
+            "claimed": result.claimed,
+            "published": result.published,
+            "retryable_failed": result.retryable_failed,
+            "terminal_failed": result.terminal_failed,
+            "claim_conflicts": result.claim_conflicts,
+        }
+
+    return _run_async(_run())
+
+
+@celery_app.task(
+    name="core.tasks.reconcile_report_generation_jobs",
+    acks_late=False,
+    reject_on_worker_lost=True,
+    task_time_limit=180,
+    task_soft_time_limit=150,
+)
+def reconcile_report_generation_jobs(limit: int = 50) -> dict:
+    if limit <= 0 or limit > 200:
+        return {"ok": False, "error": "invalid_limit"}
+
+    async def _run() -> dict:
+        from core.services.report_generation_reconciliation import (
+            build_report_generation_reconciler,
+        )
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
+        reconciler = build_report_generation_reconciler()
+        result = await reconciler.reconcile_batch(now=now, limit=limit)
+        return {
+            "inspected": result.inspected,
+            "dispatch_claims_recovered": result.dispatch_claims_recovered,
+            "queued_recovered": result.queued_recovered,
+            "running_recovered": result.running_recovered,
+            "retries_promoted": result.retries_promoted,
+            "terminalized": result.terminalized,
+            "missing_jobs_repaired": result.missing_jobs_repaired,
+            "completed_pairs_repaired": result.completed_pairs_repaired,
+            "conflicts": result.conflicts,
+            "errors": result.errors,
+        }
+
+    return _run_async(_run())
 
 
 @celery_app.task(name="core.tasks.generate_compatibility_report")

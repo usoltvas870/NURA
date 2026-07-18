@@ -12,7 +12,7 @@ import api.deps as deps_mod
 from api.dependencies import get_current_web_user
 from api.routes import web
 from core.models import User
-from core.services.payment import PaymentService
+from core.services.payment import CheckoutAmount, PaymentService
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def client(subscribed_user: MagicMock):
 def test_tarot_checkout_uses_empty_json_body() -> None:
     source = (Path(__file__).parents[2] / "frontend/pwa/app/tarot.html").read_text(encoding="utf-8")
 
-    assert "fetch(BASE + '/web/subscribe'" in source
+    assert "N.fetchJSON(BASE + '/web/subscribe'" in source
     assert "headers: { 'Content-Type': 'application/json' }" in source
     assert "body: JSON.stringify({})" in source
 
@@ -51,12 +51,28 @@ def test_subscribe_accepts_tarot_empty_json_body(
         return_value=payment,
     ) as create_payment, patch("api.routes.web.PaymentRepository") as repo_class:
         repo_class.return_value.create = AsyncMock()
+        repo_class.return_value.create_or_get_by_yookassa_id = AsyncMock()
 
-        response = client.post("/api/v1/web/subscribe", json={})
+        response = client.post(
+            "/api/v1/web/subscribe",
+            json={},
+            headers={"Idempotency-Key": str(uuid.uuid4())},
+        )
 
     assert response.status_code == 200
     assert response.json() == {"payment_url": payment["payment_url"]}
-    create_payment.assert_awaited_once_with(user_id=subscribed_user.id)
+    create_payment.assert_awaited_once()
+    call_kwargs = create_payment.call_args.kwargs
+    assert call_kwargs["user_id"] == subscribed_user.id
+    assert call_kwargs["checkout_amount"] == CheckoutAmount(
+        product="web_tarot",
+        base_amount_kopecks=39000,
+        discount_amount_kopecks=0,
+        discount_percent=0,
+        final_amount_kopecks=39000,
+        currency="RUB",
+    )
+    assert isinstance(call_kwargs.get("idempotence_key"), str)
 
 
 def test_subscribe_without_body_remains_invalid(client: TestClient) -> None:

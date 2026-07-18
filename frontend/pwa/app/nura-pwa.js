@@ -83,16 +83,55 @@
   /* ── API ───────────────────────────────── */
   window.NURA.BASE = (location.origin === 'https://nura-ai.ru') ? 'https://nura-ai.ru/api/v1' : '/api/v1';
 
+  var ANALYTICS_EVENTS = new Set([
+    'auth_success', 'mini_report_started', 'checkout_opened', 'payment_outcome',
+    'tarot_opened', 'chat_opened', 'quota_reached', 'client_error'
+  ]);
+  window.NURA.track = function(eventName, payload) {
+    if (!ANALYTICS_EVENTS.has(eventName)) return;
+    var safe = {};
+    ['surface', 'outcome', 'status', 'reason'].forEach(function(key) {
+      if (payload && typeof payload[key] === 'string' && payload[key].length <= 48) safe[key] = payload[key];
+    });
+    try { if (typeof window.nuraTrack === 'function') window.nuraTrack(eventName, safe); } catch (_) {}
+  };
+
   window.NURA.fetchJSON = function(url, options) {
     options = options || {};
-    if (!options.credentials) options.credentials = 'same-origin';
-    return fetch(url, options)
-      .then(function(r) {
-        if (r.ok) return r.json();
-        var err = new Error('HTTP ' + r.status);
-        err.status = r.status;
-        throw err;
+    var method = (options.method || 'GET').toUpperCase();
+    var attempts = method === 'GET' ? 2 : 1;
+    var timeout = Number(options.timeoutMs || 12000);
+    var requestId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now());
+    var baseHeaders = new Headers(options.headers || {});
+    baseHeaders.set('X-Request-ID', requestId);
+    function attempt(index) {
+      var controller = new AbortController();
+      var timer = setTimeout(function() { controller.abort(); }, timeout);
+      return fetch(url, Object.assign({}, options, {
+        headers: baseHeaders, credentials: options.credentials || 'same-origin', signal: controller.signal
+      })).then(function(response) {
+        clearTimeout(timer);
+        var errorId = response.headers.get('X-Request-ID') || requestId;
+        if (response.ok) return response.json();
+        if (index + 1 < attempts && (response.status === 502 || response.status === 503 || response.status === 504)) {
+          return new Promise(function(resolve) { setTimeout(resolve, 300); }).then(function() { return attempt(index + 1); });
+        }
+        var error = new Error('HTTP ' + response.status);
+        error.status = response.status;
+        error.requestId = errorId;
+        throw error;
+      }).catch(function(error) {
+        clearTimeout(timer);
+        if (index + 1 < attempts && (error.name === 'AbortError' || !navigator.onLine)) {
+          return new Promise(function(resolve) { setTimeout(resolve, 300); }).then(function() { return attempt(index + 1); });
+        }
+        error.kind = error.name === 'AbortError' ? 'timeout' : (!navigator.onLine ? 'offline' : (error.status ? 'http' : 'network'));
+        error.requestId = error.requestId || requestId;
+        window.NURA.track('client_error', { surface: 'network', reason: error.kind, status: String(error.status || '') });
+        throw error;
       });
+    }
+    return attempt(0);
   };
 
   /* ── Helpers ────────────────────────────── */
@@ -103,6 +142,82 @@
   window.NURA.now = function() {
     var d = new Date();
     return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+  };
+
+  var dialogStack = [];
+  var dialogOverflow = null;
+
+  window.NURA.activateDialog = function(backdrop, card, initialFocus, onClose, options) {
+    options = options || {};
+    var previousFocus = options.trigger || document.activeElement;
+    var closed = false;
+    var temporaryTabindex = false;
+    var dismissible = options.dismissible !== false;
+    var backdropClose = options.backdropClose !== false && dismissible;
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.removeAttribute('aria-hidden');
+    if (!dialogStack.length) {
+      dialogOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    function focusable() {
+      return Array.prototype.filter.call(card.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'), function(el) {
+        return !el.hidden && !el.inert && el.getClientRects().length > 0;
+      });
+    }
+    function isTop() { return dialogStack.length && dialogStack[dialogStack.length - 1] === instance; }
+    function canRestoreFocus(el) {
+      return el && document.contains(el) && !el.disabled && !el.hidden && !el.inert && el.getClientRects().length > 0;
+    }
+    function keydown(event) {
+      if (!isTop()) return;
+      if (event.key === 'Escape') { if (dismissible) { event.preventDefault(); close(); } return; }
+      if (event.key !== 'Tab') return;
+      var items = focusable();
+      if (!items.length) { event.preventDefault(); card.focus(); return; }
+      var first = items[0]; var last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+    function backdropClick(event) {
+      if (isTop() && backdropClose && event.target === backdrop) close();
+    }
+    function focusInitial() {
+      var target = initialFocus || focusable()[0];
+      if (!target) {
+        if (!card.hasAttribute('tabindex')) { card.setAttribute('tabindex', '-1'); temporaryTabindex = true; }
+        target = card;
+      }
+      target.focus();
+    }
+    function close() {
+      if (closed) return;
+      closed = true;
+      document.removeEventListener('keydown', keydown, true);
+      backdrop.removeEventListener('click', backdropClick);
+      var index = dialogStack.indexOf(instance);
+      if (index !== -1) dialogStack.splice(index, 1);
+      card.setAttribute('aria-hidden', 'true');
+      if (temporaryTabindex) card.removeAttribute('tabindex');
+      if (typeof onClose === 'function') onClose(); else backdrop.remove();
+      if (!dialogStack.length) {
+        document.body.style.overflow = dialogOverflow === null ? '' : dialogOverflow;
+        dialogOverflow = null;
+        if (canRestoreFocus(previousFocus)) previousFocus.focus();
+      } else {
+        dialogStack[dialogStack.length - 1].focus();
+      }
+    }
+    function destroy() { close(); }
+    var instance = { close: close, destroy: destroy, focus: focusInitial };
+    dialogStack.push(instance);
+    document.addEventListener('keydown', keydown, true);
+    backdrop.addEventListener('click', backdropClick);
+    setTimeout(function() { if (!closed && isTop()) focusInitial(); }, 0);
+    close.destroy = destroy;
+    close.focus = focusInitial;
+    return close;
   };
 
   /* ── Push Subscribe ────────────────────── */
@@ -227,6 +342,9 @@
     backdrop.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px';
 
     var card = document.createElement('div');
+    card.tabIndex = -1;
+    card.setAttribute('aria-labelledby', 'nura-auth-modal-title');
+    card.setAttribute('aria-describedby', 'nura-auth-modal-copy');
     card.style.cssText = 'width:min(100%,400px);background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative;max-height:90vh;overflow-y:auto';
 
     var extraLinkHtml = '';
@@ -241,8 +359,8 @@
       '<button id="auth-modal-close" aria-label="Закрыть" style="position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--bg-card-soft);color:var(--text-m);font-size:16px;cursor:pointer;display:grid;place-items:center">&times;</button>' +
       '<div style="text-align:center;margin-bottom:20px">' +
         '<div style="width:56px;height:56px;border-radius:50%;background:rgba(184,116,63,.12);color:var(--terra);display:grid;place-items:center;font-size:28px;margin:0 auto 16px">✦</div>' +
-        '<h3 style="font-family:var(--font-serif);font-size:24px;color:var(--text);margin-bottom:8px;font-weight:400">' + window.NURA.escHtml(title) + '</h3>' +
-        '<p style="font-size:13.5px;color:var(--text-m);line-height:1.5">' + window.NURA.escHtml(copy) + '</p>' +
+        '<h3 id="nura-auth-modal-title" style="font-family:var(--font-serif);font-size:24px;color:var(--text);margin-bottom:8px;font-weight:400">' + window.NURA.escHtml(title) + '</h3>' +
+        '<p id="nura-auth-modal-copy" style="font-size:13.5px;color:var(--text-m);line-height:1.5">' + window.NURA.escHtml(copy) + '</p>' +
       '</div>' +
       '<div style="display:grid;gap:10px">' +
         '<button class="btn btn-primary btn-full" id="auth-email-btn" type="button" style="min-height:50px"><span class="btn-text">Продолжить через Email</span><span class="loader"></span></button>' +
@@ -267,10 +385,7 @@
 
     backdrop.appendChild(card);
     document.body.appendChild(backdrop);
-
-    function closeModal() {
-      backdrop.remove();
-    }
+    var closeModal = window.NURA.activateDialog(backdrop, card, document.getElementById('auth-modal-close'));
 
     document.getElementById('auth-modal-close').addEventListener('click', closeModal);
     backdrop.addEventListener('click', function(e) {

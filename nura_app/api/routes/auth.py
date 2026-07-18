@@ -1,6 +1,5 @@
 import logging
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import RedirectResponse
 
@@ -20,7 +19,12 @@ from core.schemas.auth import (
     VKAuthResponse,
     VKTokenRequest,
 )
-from core.services.auth import AuthService
+from core.services.auth import (
+    AuthService,
+    VKAuthConflictError,
+    VKIdentityAmbiguousError,
+    VKProviderFailureError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -143,10 +147,13 @@ async def vk_auth(
             guest_token=body.guest_token,
             current_user=web_user,
         )
-    except ValueError as e:
-        raise HTTPException(status_code=401, detail=str(e) or "VK-токен не подтверждён")
-    except httpx.HTTPStatusError as e:
-        logger.error("VK ID user_info HTTP error: %s", e.response.status_code)
+    except VKAuthConflictError as e:
+        raise HTTPException(status_code=409, detail=e.category)
+    except VKIdentityAmbiguousError as e:
+        raise HTTPException(status_code=409, detail=e.category)
+    except ValueError:
+        raise HTTPException(status_code=401, detail="VK-токен не подтверждён")
+    except VKProviderFailureError:
         raise HTTPException(status_code=502, detail="VK-авторизация недоступна. Попробуйте позже.")
     except Exception:
         logger.exception("vk_auth endpoint failed")

@@ -16,6 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24.15.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
       - name: Set up Python 3.11.9
         uses: actions/setup-python@v6
         with:
@@ -37,6 +44,21 @@ jobs:
 
       - name: Ruff check
         run: python -m ruff check .
+
+      - name: Verify deterministic PWA release metadata
+        working-directory: .
+        run: |
+          npm ci --prefix frontend --ignore-scripts
+          test -s frontend/assets/vendor/vkid-sdk.js
+          test -s frontend/assets/vendor/vkid-sdk.meta.json
+          test -s frontend/assets/vendor/vkid-sdk.LICENSE
+          cmp -s frontend/assets/vendor/vkid-sdk.js frontend/node_modules/@vkid/sdk/dist-sdk/umd/index.js
+          npm run --prefix frontend build:vkid-vendor
+          git diff --exit-code -- frontend/assets/vendor
+          npm run --prefix frontend check:vkid-vendor
+          node --check frontend/assets/vendor/vkid-sdk.js
+          node frontend/test_pwa_release.mjs
+          python scripts/build_pwa_release.py --check
 
   test:
     needs: lint

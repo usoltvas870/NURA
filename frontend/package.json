@@ -1,0 +1,12 @@
+{
+  "name": "nura-frontend-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:vkid-vendor": "node tools/build-vkid-sdk.mjs",
+    "check:vkid-vendor": "node test_vkid_vendor.mjs"
+  },
+  "dependencies": {
+    "@vkid/sdk": "2.6.6"
+  }
+}

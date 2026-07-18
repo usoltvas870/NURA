@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import load_only
 
@@ -288,6 +289,14 @@ class UserRepository(SQLAlchemyRepository[User]):
             )
             return result.scalar_one_or_none()
 
+    async def get_all_by_vk_id(self, vk_id: str) -> list[User]:
+        """Return every matching VK identity so callers can reject ambiguity."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(User).where(User.vk_id == vk_id)
+            )
+            return list(result.scalars().all())
+
     async def set_email_verified(
         self, user_id: uuid.UUID, value: bool = True
     ) -> User | None:
@@ -354,21 +363,44 @@ class UserRepository(SQLAlchemyRepository[User]):
             await session.refresh(user)
             return user
 
-    async def update_telegram_id(
-        self,
-        user_id: uuid.UUID,
-        telegram_id: int,
-    ) -> User | None:
+    async def clear_web_session(self, user_id: uuid.UUID) -> None:
         async with self._session_factory() as session:
             user = await session.get(User, user_id)
             if user is None:
-                return None
-            if user.telegram_id and user.telegram_id != telegram_id:
-                return None
-            user.telegram_id = telegram_id
+                return
+            user.web_session_id = None
+            user.web_session_expires_at = None
             await session.commit()
-            await session.refresh(user)
-            return user
+
+    async def link_telegram_id_safely(
+        self,
+        user_id: uuid.UUID,
+        telegram_id: int,
+    ) -> bool:
+        """Link a Telegram identity without replacement or account merging.
+
+        True is a successful (including idempotent) link; False is a conflict.
+        """
+        async with self._session_factory() as session:
+            user = await session.get(User, user_id)
+            if user is None:
+                return False
+
+            owner = (
+                await session.execute(select(User.id).where(User.telegram_id == telegram_id))
+            ).scalar_one_or_none()
+            if owner is not None and owner != user_id:
+                return False
+            if user.telegram_id is not None:
+                return user.telegram_id == telegram_id
+
+            user.telegram_id = telegram_id
+            try:
+                await session.commit()
+            except IntegrityError:
+                await session.rollback()
+                return False
+            return True
 
     async def update_push_subscription(
         self,
@@ -451,27 +483,6 @@ class UserRepository(SQLAlchemyRepository[User]):
                 return
             user.pd_consent_at = datetime.now(timezone.utc)
             await session.commit()
-
-    async def ensure_web_session(
-        self,
-        telegram_id: int,
-        web_session_id: str,
-    ) -> User | None:
-        async with self._session_factory() as session:
-            result = await session.execute(
-                select(User).where(User.telegram_id == telegram_id)
-            )
-            user = result.scalar_one_or_none()
-            if user is None:
-                return None
-            user.web_session_id = web_session_id
-            user.web_session_expires_at = (
-                datetime.now(timezone.utc)
-                + timedelta(seconds=settings.web_session_ttl_seconds)
-            )
-            await session.commit()
-            await session.refresh(user)
-            return user
 
     async def extend_subscription(self, user_id: uuid.UUID, days: int) -> User | None:
         async with self._session_factory() as session:

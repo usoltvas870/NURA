@@ -1,0 +1,7 @@
+{
+  "package": "@vkid/sdk",
+  "version": "2.6.6",
+  "source": "node_modules/@vkid/sdk/dist-sdk/umd/index.js",
+  "sha256": "637faabbabe5feba3a4986a3802dea739668ca53c0986e11b81fcedb2fe2ca92",
+  "license": "vkid-sdk.LICENSE"
+}

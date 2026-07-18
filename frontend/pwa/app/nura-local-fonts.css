@@ -1,0 +1,5 @@
+@font-face{font-family:Manrope;src:url('/frontend/fonts/manrope-latin.woff2') format('woff2');font-display:swap}
+@font-face{font-family:Manrope;src:url('/frontend/fonts/manrope-cyrillic.woff2') format('woff2');font-display:swap;unicode-range:U+0400-04FF}
+@font-face{font-family:'Playfair Display';src:url('/frontend/fonts/playfair-latin.woff2') format('woff2');font-display:swap}
+@font-face{font-family:'Playfair Display';src:url('/frontend/fonts/playfair-cyrillic.woff2') format('woff2');font-display:swap;unicode-range:U+0400-04FF}
+.ti{font-style:normal;font-family:system-ui,sans-serif}.ti::before{display:inline-block}.ti-home::before{content:'⌂'}.ti-cards::before{content:'▤'}.ti-message-circle::before{content:'◌'}.ti-user-circle::before{content:'◉'}.ti-sun-moon::before{content:'◐'}.ti-arrow-up::before{content:'↑'}.ti-arrow-up-right::before{content:'↗'}.ti-chevron-right::before{content:'›'}.ti-circle-check::before{content:'✓'}.ti-calendar-week::before{content:'□'}.ti-flower::before,.ti-sparkles::before{content:'✦'}.ti-grid-dots::before{content:'⠿'}.ti-brand-telegram::before{content:'✈'}.ti-logout::before{content:'↪'}.ti-trash::before{content:'⌫'}

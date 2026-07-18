@@ -3,6 +3,8 @@
 # ═══════════════════════════════════════════════════════════════════════
 
 from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime, timedelta, timezone
+import uuid
 
 import pytest
 import pytest_asyncio
@@ -11,10 +13,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from core.config import settings
+from core.models import PromoReservation, Report, ReportGenerationState, ReportPaymentState
 from core.repositories.payment import PaymentRepository
 from core.repositories.user import UserRepository
 from core.services.access import can_access_full_report
-from core.services.payment import PaymentService
+from core.services.payment import CheckoutAmount, PaymentService
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -93,6 +96,34 @@ async def web_matrix_payment_in_db(session_factory, test_user):
         yookassa_id="yo-web-matrix-001",
         payment_type="web_matrix",
     )
+    async with session_factory() as session:
+        token = "web-matrix-fixture-token"
+        session.add_all(
+            [
+                Report(
+                    id=uuid.uuid4(),
+                    user_id=test_user.id,
+                    report_type="full",
+                    token=token,
+                    payment_state=ReportPaymentState.AWAITING_PAYMENT,
+                    generation_state=ReportGenerationState.NOT_REQUESTED,
+                ),
+                PromoReservation(
+                    id=uuid.uuid4(),
+                    user_id=test_user.id,
+                    payment_type="web_matrix",
+                    final_amount_kopecks=89000,
+                    currency="RUB",
+                    idempotency_key="web-matrix-fixture-key",
+                    report_token=token,
+                    payment_id=payment.id,
+                    provider_payment_id=payment.yookassa_id,
+                    state="reserved",
+                    expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                ),
+            ]
+        )
+        await session.commit()
     return payment
 
 
@@ -190,7 +221,16 @@ class TestPaymentCreate:
             mock_create.return_value = pm
 
             result = await PaymentService.create_web_matrix_payment(
-                user_id=uid, report_token="tok-abc"
+                user_id=uid,
+                report_token="tok-abc",
+                checkout_amount=CheckoutAmount(
+                    product="web_matrix",
+                    base_amount_kopecks=89000,
+                    discount_amount_kopecks=0,
+                    discount_percent=0,
+                    final_amount_kopecks=89000,
+                    currency="RUB",
+                ),
             )
 
         assert result["id"] == "pm-web-matrix-1"
@@ -209,7 +249,17 @@ class TestPaymentCreate:
             pm = _mock_yoo_payment(payment_id="pm-web-tarot-1")
             mock_create.return_value = pm
 
-            result = await PaymentService.create_web_tarot_payment(user_id=uid)
+            result = await PaymentService.create_web_tarot_payment(
+                user_id=uid,
+                checkout_amount=CheckoutAmount(
+                    product="web_tarot",
+                    base_amount_kopecks=39000,
+                    discount_amount_kopecks=0,
+                    discount_percent=0,
+                    final_amount_kopecks=39000,
+                    currency="RUB",
+                ),
+            )
 
         assert result["id"] == "pm-web-tarot-1"
         call_body = mock_create.call_args[0][0]
@@ -241,10 +291,12 @@ class TestProcessWebhook:
 
     @pytest.fixture(autouse=True)
     def _mock_yookassa_find_one(self):
+        # Legacy branch tests exercise metadata/state handling in development.
+        # Production verification is covered by test_payment_webhook_verification.
         remote = MagicMock()
         remote.status = "succeeded"
         remote.paid = True
-        with patch(
+        with patch.object(settings, "yookassa_verify_on_webhook", False), patch(
             "core.services.payment.YooPayment.find_one",
             return_value=remote,
         ):
@@ -432,6 +484,7 @@ class TestProcessWebhook:
                         "metadata": {
                             "user_id": str(test_user.id),
                             "payment_type": "web_matrix",
+                            "report_token": "web-matrix-fixture-token",
                         },
                     },
                 },
@@ -457,7 +510,7 @@ class TestProcessWebhook:
             },
         )
         assert result["status"] == "needs_review"
-        assert "Missing user_id" in result["detail"]
+        assert result["detail"] == "Matrix mapping unavailable"
 
     async def test_web_matrix_invalid_user_id(
         self, session_factory, web_matrix_payment_in_db,
@@ -477,7 +530,7 @@ class TestProcessWebhook:
             },
         )
         assert result["status"] == "needs_review"
-        assert "Invalid user_id" in result["detail"]
+        assert result["detail"] == "Matrix mapping unavailable"
 
     async def test_web_matrix_user_id_mismatch(
         self, session_factory, test_user, web_matrix_payment_in_db,
@@ -500,7 +553,7 @@ class TestProcessWebhook:
             },
         )
         assert result["status"] == "needs_review"
-        assert "Payment user_id mismatch" in result["detail"]
+        assert result["detail"] == "Matrix mapping unavailable"
 
     async def test_web_matrix_missing_yookassa_id(
         self, session_factory, web_matrix_payment_in_db,

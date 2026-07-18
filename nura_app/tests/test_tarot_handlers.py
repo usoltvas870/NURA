@@ -2225,7 +2225,7 @@ class TestBuySubscription:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_settings.test_mode = False
-            mock_ps.create_subscription = AsyncMock(
+            mock_ps.create_telegram_payment = AsyncMock(
                 return_value={
                     "payment_url": "https://pay.example.com",
                     "id": "pm-123",
@@ -2342,7 +2342,7 @@ class TestBuyTarotSubscription:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_settings.test_mode = False
-            mock_ps.create_tarot_payment = AsyncMock(
+            mock_ps.create_telegram_payment = AsyncMock(
                 return_value={
                     "payment_url": "https://pay.example.com",
                     "id": "pm-456",
@@ -3177,7 +3177,7 @@ class TestTarotEdgeCases:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_settings.test_mode = False
-            mock_ps.create_subscription = AsyncMock(
+            mock_ps.create_telegram_payment = AsyncMock(
                 side_effect=Exception("Service unavailable")
             )
             mock_mm.return_value = MagicMock()
@@ -3258,7 +3258,7 @@ class TestTarotEdgeCases:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_settings.test_mode = False
-            mock_ps.create_subscription = AsyncMock(
+            mock_ps.create_telegram_payment = AsyncMock(
                 side_effect=Exception("Payment error")
             )
             mock_mm.return_value = MagicMock()

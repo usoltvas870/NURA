@@ -1,7 +1,11 @@
 from urllib.parse import quote_plus
 
-from pydantic import field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
+
+
+def is_production_environment(app_env: str) -> bool:
+    return app_env.strip().lower() == "production"
 
 
 class Settings(BaseSettings):
@@ -40,6 +44,20 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
 
+    # Report generation scheduling
+    report_generation_dispatch_interval_seconds: int = Field(
+        default=60, ge=15, le=300
+    )
+    report_generation_dispatch_limit: int = Field(
+        default=20, ge=1, le=100
+    )
+    report_generation_reconciliation_interval_seconds: int = Field(
+        default=300, ge=60, le=1800
+    )
+    report_generation_reconciliation_limit: int = Field(
+        default=50, ge=1, le=200
+    )
+
     # DeepSeek AI
     deepseek_api_key: str | None = None
     deepseek_base_url: str = "https://api.deepseek.com/v1"
@@ -58,6 +76,27 @@ class Settings(BaseSettings):
     yookassa_secret_key: str | None = None
     yookassa_verify_on_webhook: bool = True
     yookassa_ip_whitelist: str = ""
+
+    @property
+    def is_production(self) -> bool:
+        return is_production_environment(self.app_env)
+
+    @property
+    def payment_webhook_configuration_error(self) -> str | None:
+        """Return a non-sensitive payment-webhook readiness failure, if any."""
+        if not self.is_production:
+            return None
+        if not self.yookassa_verify_on_webhook:
+            return "production_payment_webhook_verification_required"
+        if not self.yookassa_shop_id or not self.yookassa_secret_key:
+            return "production_payment_webhook_credentials_required"
+        return None
+
+    @model_validator(mode="after")
+    def _require_production_webhook_verification(self) -> "Settings":
+        if self.is_production and not self.yookassa_verify_on_webhook:
+            raise ValueError("production_payment_webhook_verification_required")
+        return self
 
     @property
     def yookassa_ip_whitelist_list(self) -> list[str]:
@@ -113,7 +152,7 @@ class Settings(BaseSettings):
     @classmethod
     def _protect_test_mode(cls, v: bool, info) -> bool:
         """Принудительно False в production, что бы ни было в .env."""
-        if info.data.get("app_env") == "production":
+        if is_production_environment(str(info.data.get("app_env", ""))):
             return False
         return v
 

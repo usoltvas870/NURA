@@ -1,0 +1,1 @@
+self.NURA_RELEASE_ID = 'da6bdc356f12e693';

@@ -6,7 +6,6 @@ from core.schemas import DailyInsightResult
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="bot.handlers.insights handler not implemented yet")
 class TestInsightsHandler:
     async def test_free_user_shows_static(self):
         mock_user = MagicMock()
@@ -133,11 +132,13 @@ class TestInsightsHandler:
         with (
             patch("bot.handlers.insights.UserRepository") as MockRepo,
             patch("bot.handlers.insights.subscription_keyboard") as mock_skb,
+            patch("bot.handlers.insights.date") as mock_date,
         ):
             repo_instance = MagicMock()
             repo_instance.get_by_telegram_id = AsyncMock(return_value=mock_user)
             MockRepo.return_value = repo_instance
             mock_skb.return_value = None
+            mock_date.today.return_value.isoformat.return_value = "2026-05-15"
 
             from bot.handlers.insights import show_insight
             from aiogram.fsm.context import FSMContext
