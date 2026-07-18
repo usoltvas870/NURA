@@ -31,6 +31,7 @@ cp contacts.html /var/www/nura-ai.ru/contacts.html 2>/dev/null || true
 cp mini.html /var/www/nura-ai.ru/mini.html 2>/dev/null || true
 cp personal-data-consent.html /var/www/nura-ai.ru/personal-data-consent.html 2>/dev/null || true
 cp marketing-consent.html /var/www/nura-ai.ru/marketing-consent.html 2>/dev/null || true
+cp acceptable-use.html /var/www/nura-ai.ru/acceptable-use.html 2>/dev/null || true
 cp theme.css /var/www/nura-ai.ru/theme.css 2>/dev/null || true
 install -m 0644 landing-v2.css "$WEB_ROOT/landing-v2.css"
 install -m 0644 landing-v2.js "$WEB_ROOT/landing-v2.js"
