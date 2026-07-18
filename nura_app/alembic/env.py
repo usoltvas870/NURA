@@ -5,6 +5,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from core.config import settings
+from core.database_url import normalize_sync_database_url
 from core.models import Base
 
 config = context.config
@@ -17,9 +18,8 @@ target_metadata = Base.metadata
 def _resolve_url() -> str:
     env_url = os.environ.get("DATABASE_URL")
     if env_url:
-        env_url = env_url.replace("postgresql+asyncpg://", "postgresql://")
-        return env_url
-    return settings.database_url_sync
+        return normalize_sync_database_url(env_url)
+    return normalize_sync_database_url(settings.database_url_sync)
 
 
 def run_migrations_offline():

@@ -1088,7 +1088,13 @@ tr:hover td { background: rgba(184,116,63,.05); }
   }
   function formatRubles(kopecks) {
     if (kopecks == null) return '-';
-    return (Number(kopecks) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ₽';
+    var amount = Number(kopecks);
+    var sign = amount < 0 ? '-' : '';
+    var absolute = Math.abs(Math.trunc(amount));
+    var rubles = Math.trunc(absolute / 100).toLocaleString('ru-RU');
+    var remainder = absolute % 100;
+    var fraction = remainder ? ',' + String(remainder).padStart(2, '0') : '';
+    return sign + rubles + fraction + ' ₽';
   }
   function formatDate(iso) {
     if (!iso) return '-';

@@ -39,6 +39,8 @@ install -m 0644 landing-v2.js "$WEB_ROOT/landing-v2.js"
 echo "→ Copying PWA app..."
 cp -r frontend/pwa/app/* /var/www/nura-ai.ru/app/ 2>/dev/null || true
 cp -r frontend/pwa/*.js /var/www/nura-ai.ru/ 2>/dev/null || true
+mkdir -p /var/www/nura-ai.ru/assets
+cp -r frontend/assets/* /var/www/nura-ai.ru/assets/ 2>/dev/null || true
 
 echo "→ Copying admin panel..."
 mkdir -p /var/www/nura-ai.ru/admin

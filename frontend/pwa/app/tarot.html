@@ -17,16 +17,17 @@
     (function () {
       document.documentElement.setAttribute('data-theme', localStorage.getItem('nura-theme') || 'light');
     })();
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
+    if (!new URLSearchParams(location.search).has('e2e') && 'serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="nura-local-fonts.css">
   <link rel="stylesheet" href="nura-pwa.css?v=11">
   <link rel="stylesheet" href="/theme.css?v=9">
   <link rel="stylesheet" href="nura-shell-v1.css?v=1">
   <link rel="stylesheet" href="tarot-v2-1.css?v=5">
+  <style>
+    .tarot-v2-1 .sheet-backdrop { z-index: 110; }
+    .tarot-v2-1 .sheet { z-index: 111; }
+  </style>
   <title>NURA · Таро</title>
 </head>
 <body class="tarot-v2-1 nura-shell-page" data-access="loading">
@@ -118,10 +119,10 @@
   </div>
 
   <div class="sheet-backdrop" id="card-backdrop" onclick="closeCardDetail()"></div>
-  <section class="sheet tarot-sheet" id="card-sheet" aria-label="Карта дня" aria-modal="true" role="dialog">
+  <section class="sheet tarot-sheet" id="card-sheet" hidden aria-hidden="true" aria-labelledby="card-sheet-title" aria-modal="true" role="dialog">
     <div class="sheet-inner"><div class="handle"></div>
       <p class="eyebrow">Карта дня · <span id="sheet-date"></span></p>
-      <h2 class="tarot-sheet-title"><span id="sheet-num"></span> <span id="sheet-name"></span></h2>
+      <h2 class="tarot-sheet-title" id="card-sheet-title"><span id="sheet-num"></span> <span id="sheet-name"></span></h2>
       <p class="tarot-sheet-copy" id="sheet-phrase"></p>
       <p class="tarot-sheet-copy" id="sheet-interpretation"></p>
       <p class="tarot-sheet-advice" id="sheet-advice"></p>
@@ -132,7 +133,7 @@
   </section>
 
   <div class="sheet-backdrop" id="topic-backdrop" onclick="closeTopic()"></div>
-  <section class="sheet tarot-sheet" id="topic-sheet" aria-label="Тема расклада" aria-modal="true" role="dialog">
+  <section class="sheet tarot-sheet" id="topic-sheet" hidden aria-hidden="true" aria-labelledby="topic-title" aria-modal="true" role="dialog">
     <form class="sheet-inner" id="topic-form"><div class="handle"></div>
       <p class="eyebrow" id="topic-kicker">Твой запрос</p>
       <h2 class="tarot-sheet-title" id="topic-title">О чём хочешь спросить?</h2>
@@ -144,7 +145,7 @@
   </section>
 
   <div class="sheet-backdrop" id="pw-backdrop" onclick="closePaywall()"></div>
-  <section class="sheet tarot-sheet" id="pw-sheet" aria-label="Подписка Tarot" aria-modal="true" role="dialog">
+  <section class="sheet tarot-sheet" id="pw-sheet" hidden aria-hidden="true" aria-labelledby="pw-practice-name" aria-modal="true" role="dialog">
     <div class="sheet-inner"><div class="handle"></div>
       <p class="eyebrow" id="pw-practice-title">Подписка Tarot</p>
       <h2 class="tarot-sheet-title" id="pw-practice-name">Этот формат доступен по подписке</h2>
@@ -155,7 +156,7 @@
   </section>
 
   <div class="sheet-backdrop" id="spread-backdrop" onclick="closeSpread()"></div>
-  <section class="sheet tarot-sheet tarot-spread-sheet" id="spread-sheet" aria-label="Расклад" aria-modal="true" role="dialog">
+  <section class="sheet tarot-sheet tarot-spread-sheet" id="spread-sheet" hidden aria-hidden="true" aria-labelledby="spread-name" aria-modal="true" role="dialog">
     <div class="sheet-inner"><div class="handle"></div><p class="eyebrow" id="spread-name">Расклад</p><div id="spread-body"></div></div>
   </section>
 
@@ -168,12 +169,12 @@
 
   <script src="nura-pwa.js?v=9"></script>
   <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
-  <div id="pwa-ios-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
-    <div style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
-      <button onclick="if(window.NURA_PWA)window.NURA_PWA.hideIOSInstallModal()" aria-label="Закрыть" style="position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--bg-card-soft);color:var(--text-m);font-size:14px;cursor:pointer">✕</button>
-      <div style="font-size:42px;margin-bottom:8px">✦</div><h3 style="font-family:var(--font-serif);font-size:22px;color:var(--text);margin:0 0 8px;font-weight:400">Добавь NURA на главный экран</h3>
-      <p style="font-size:13.5px;color:var(--text-m);margin:0 0 18px;line-height:1.5">Получай карту дня прямо на экране — без открытия браузера.</p>
-      <button onclick="if(window.NURA_PWA)window.NURA_PWA.hideIOSInstallModal()" style="background:var(--bg-card-soft);color:var(--text-m);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;width:100%">Может потом</button>
+  <div id="pwa-ios-modal" hidden style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
+    <div aria-labelledby="pwa-ios-modal-title" aria-describedby="pwa-ios-modal-copy" style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
+      <button id="pwa-ios-modal-close" aria-label="Закрыть" style="position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--bg-card-soft);color:var(--text-m);font-size:14px;cursor:pointer">✕</button>
+      <div style="font-size:42px;margin-bottom:8px">✦</div><h3 id="pwa-ios-modal-title" style="font-family:var(--font-serif);font-size:22px;color:var(--text);margin:0 0 8px;font-weight:400">Добавь NURA на главный экран</h3>
+      <p id="pwa-ios-modal-copy" style="font-size:13.5px;color:var(--text-m);margin:0 0 18px;line-height:1.5">Получай карту дня прямо на экране — без открытия браузера.</p>
+      <button id="pwa-ios-modal-cancel" style="background:var(--bg-card-soft);color:var(--text-m);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;width:100%">Может потом</button>
     </div>
   </div>
   <script src="/pwa-install.js"></script>
@@ -183,6 +184,38 @@
       var N = window.NURA;
       var BASE = N.BASE;
       var $ = document.getElementById.bind(document);
+      var iosModal = $('pwa-ios-modal');
+      var iosModalCard = iosModal.querySelector('div');
+      var iosModalClose = $('pwa-ios-modal-close');
+      var iosDialogCloser = null;
+      var originalIOSHide = window.NURA_PWA && window.NURA_PWA.hideIOSInstallModal;
+
+      function closeIOSInstallDialog() {
+        if (iosDialogCloser) { iosDialogCloser(); return; }
+        iosModal.hidden = true; iosModal.style.display = 'none';
+        if (originalIOSHide) originalIOSHide();
+      }
+      function openIOSInstallDialog(trigger) {
+        if (iosDialogCloser) return;
+        iosModal.style.display = 'flex';
+        iosModal.hidden = false;
+        iosDialogCloser = N.activateDialog(iosModal, iosModalCard, iosModalClose, function () {
+          iosModal.hidden = true; iosModal.style.display = 'none';
+          iosDialogCloser = null;
+          if (originalIOSHide) originalIOSHide();
+        }, {trigger: trigger || document.activeElement, dismissible: true, backdropClose: true});
+      }
+      iosModalClose.addEventListener('click', closeIOSInstallDialog);
+      $('pwa-ios-modal-cancel').addEventListener('click', closeIOSInstallDialog);
+      if (window.NURA_PWA) {
+        window.NURA_PWA.showIOSInstallModal = function () { openIOSInstallDialog(document.activeElement); };
+        window.NURA_PWA.hideIOSInstallModal = closeIOSInstallDialog;
+      }
+      window.showIOSInstallModal = function () { openIOSInstallDialog(document.activeElement); };
+      window.hideIOSInstallModal = closeIOSInstallDialog;
+      new MutationObserver(function () {
+        if (iosModal.hidden && iosModal.style.display === 'flex') openIOSInstallDialog(document.activeElement);
+      }).observe(iosModal, {attributes: true, attributeFilter: ['style']});
       var access = 'loading';
       var cardData = null;
       var currentUserId = null;
@@ -294,14 +327,17 @@
         $('topic-kicker').textContent = isMini ? 'Тема мини-расклада' : 'Твой вопрос';
         $('topic-title').textContent = isMini ? 'О какой теме хочешь подумать?' : type === 'yesno' ? 'Какой вопрос требует ответа?' : 'Что хочешь прояснить?';
         $('topic-input').value = '';
-        $('topic-backdrop').classList.add('open'); $('topic-sheet').classList.add('open');
+        openSheet('topic', $('topic-question'));
         setTimeout(function () { $('topic-input').focus(); }, 250);
       }
 
-      window.closeTopic = function () { $('topic-backdrop').classList.remove('open'); $('topic-sheet').classList.remove('open'); };
-      window.closeSpread = function () { $('spread-backdrop').classList.remove('open'); $('spread-sheet').classList.remove('open'); };
-      window.closeCardDetail = function () { $('card-backdrop').classList.remove('open'); $('card-sheet').classList.remove('open'); };
-      window.closePaywall = function () { $('pw-backdrop').classList.remove('open'); $('pw-sheet').classList.remove('open'); };
+      var dialogClosers = {};
+      function openSheet(name, focus) { var backdrop = $(name + '-backdrop'), sheet = $(name + '-sheet'); if (dialogClosers[name]) dialogClosers[name](); sheet.hidden = false; backdrop.classList.add('open'); sheet.classList.add('open'); dialogClosers[name] = N.activateDialog(backdrop, sheet, focus, function () { backdrop.classList.remove('open'); sheet.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true'); sheet.hidden = true; }); sheet.setAttribute('aria-hidden', 'false'); }
+      function closeSheet(name) { if (dialogClosers[name]) { dialogClosers[name](); dialogClosers[name] = null; } else { var backdrop = $(name + '-backdrop'), sheet = $(name + '-sheet'); backdrop.classList.remove('open'); sheet.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true'); sheet.hidden = true; } }
+      window.closeTopic = function () { closeSheet('topic'); };
+      window.closeSpread = function () { closeSheet('spread'); };
+      window.closeCardDetail = function () { closeSheet('card'); };
+      window.closePaywall = function () { closeSheet('pw'); };
 
       window.openCardDetail = function () {
         if (access === 'guest') return promptGuestAccess();
@@ -313,13 +349,13 @@
         $('sheet-interpretation').textContent = cardData.interpretation || '';
         $('sheet-advice').textContent = cardData.advice ? 'Совет: ' + cardData.advice : '';
         $('sheet-ask-btn').onclick = function () { window.askNura('Помоги применить мою карту дня на практике'); };
-        $('card-backdrop').classList.add('open'); $('card-sheet').classList.add('open');
+        openSheet('card', $('sheet-ask-btn'));
       };
 
       window.openPaywall = function (name) {
         $('pw-practice-title').textContent = 'Подписка Tarot';
         $('pw-practice-name').textContent = (name || 'Этот формат') + ' доступен по подписке';
-        $('pw-backdrop').classList.add('open'); $('pw-sheet').classList.add('open');
+        openSheet('pw', $('pw-subscribe-btn'));
       };
 
       window.askNura = function (text) {
@@ -358,12 +394,12 @@
         });
         if (data.summary) body.append(textElement('p', 'tarot-result-summary', data.summary));
         var close = textElement('button', 'btn btn-soft btn-full tarot-close', 'Закрыть'); close.type = 'button'; close.onclick = window.closeSpread; body.append(close);
-        $('spread-backdrop').classList.add('open'); $('spread-sheet').classList.add('open'); $('spread-sheet').scrollTop = 0;
+        openSheet('spread'); $('spread-sheet').scrollTop = 0;
       }
 
       function loadSpread(type, topic) {
         var body = $('spread-body'); body.replaceChildren(textElement('p', 'tarot-loading', 'Раскладываю карты…'));
-        $('spread-name').textContent = 'Расклад'; $('spread-backdrop').classList.add('open'); $('spread-sheet').classList.add('open');
+        $('spread-name').textContent = 'Расклад'; openSheet('spread');
         fetch(BASE + '/tarot/spread', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ spread_type: type, question: topic || undefined }) })
           .then(function (response) {
             if (response.ok) return response.json();
@@ -372,7 +408,7 @@
             window.closeSpread();
             if (error && error.status === 401) promptGuestAccess();
             else if (error && error.status === 402) window.openPaywall();
-            else { body.replaceChildren(textElement('p', 'tarot-loading', 'Не удалось загрузить расклад. Попробуй позже.')); $('spread-backdrop').classList.add('open'); $('spread-sheet').classList.add('open'); }
+            else { body.replaceChildren(textElement('p', 'tarot-loading', 'Не удалось загрузить расклад. Попробуй позже.')); openSheet('spread'); }
           });
       }
 
@@ -398,11 +434,13 @@
       }
       syncThemeToggle(document.documentElement.getAttribute('data-theme') || 'light');
       $('themeToggle').addEventListener('click', function () { syncThemeToggle(N.toggleTheme()); });
+      function tarotCheckoutKey() { var storageKey = 'nura_checkout_action_v1', signature = 'web_tarot|', current; try { current = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); } catch (_) {} if (current && current.signature === signature && typeof current.key === 'string') return current.key; var key = crypto.randomUUID(); sessionStorage.setItem(storageKey, JSON.stringify({signature:signature,key:key})); return key; }
+      function clearTarotCheckoutKey() { sessionStorage.removeItem('nura_checkout_action_v1'); }
       window.subscribeTarot = function () {
         if (access === 'guest') return promptGuestAccess();
         var button = $('pw-subscribe-btn'); button.disabled = true; button.textContent = 'Загрузка…';
-        fetch(BASE + '/web/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({}) }).then(function (response) { return response.json(); }).then(function (data) {
-          if (data.payment_url) location.href = data.payment_url; else throw new Error('payment_url missing');
+        var idempotencyKey = tarotCheckoutKey(); N.track('checkout_opened', { surface: 'tarot' }); N.fetchJSON(BASE + '/web/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({}) }).then(function (data) {
+          if (data.payment_url) { clearTarotCheckoutKey(); location.href = data.payment_url; } else throw new Error('payment_url missing');
         }).catch(function () { button.disabled = false; button.textContent = 'Подключить подписку'; });
       };
 

@@ -29,6 +29,14 @@ async def verify_admin_token(x_admin_token: str = Header(..., alias="X-Admin-Tok
 router = APIRouter(prefix="/api/v1/admin", dependencies=[Depends(verify_admin_token)])
 
 
+def _payment_amount_kopecks(payment: Payment) -> int:
+    """Return exact cents while keeping pre-migration payments readable."""
+    return payment.amount_kopecks if payment.amount_kopecks is not None else payment.amount * 100
+
+
+PAYMENT_AMOUNT_KOPECKS = func.coalesce(Payment.amount_kopecks, Payment.amount * 100)
+
+
 class StatsResponse(BaseModel):
     users_total: int
     users_new_24h: int
@@ -99,13 +107,13 @@ async def get_stats():
         users_push_subscribed = _scalar(r)
 
         r = await session.execute(
-            text("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'succeeded'")
+            text("SELECT COALESCE(SUM(COALESCE(amount_kopecks, amount * 100)), 0) FROM payments WHERE status = 'succeeded'")
         )
         revenue_total = _scalar(r)
 
         r = await session.execute(
             text(
-                "SELECT COALESCE(SUM(amount), 0) FROM payments"
+                "SELECT COALESCE(SUM(COALESCE(amount_kopecks, amount * 100)), 0) FROM payments"
                 " WHERE status = 'succeeded' AND created_at >= NOW() - INTERVAL '30 days'"
             )
         )
@@ -113,7 +121,7 @@ async def get_stats():
 
         r = await session.execute(
             text(
-                "SELECT COALESCE(SUM(amount), 0) FROM payments"
+                "SELECT COALESCE(SUM(COALESCE(amount_kopecks, amount * 100)), 0) FROM payments"
                 " WHERE status = 'succeeded' AND created_at >= NOW() - INTERVAL '7 days'"
             )
         )
@@ -126,7 +134,7 @@ async def get_stats():
 
         r = await session.execute(
             text(
-                "SELECT payment_type, COUNT(*), COALESCE(SUM(amount), 0)"
+                "SELECT payment_type, COUNT(*), COALESCE(SUM(COALESCE(amount_kopecks, amount * 100)), 0)"
                 " FROM payments WHERE status = 'succeeded' GROUP BY payment_type"
             )
         )
@@ -153,7 +161,7 @@ async def get_stats():
 
         r = await session.execute(
             text(
-                "SELECT DATE(created_at AT TIME ZONE 'UTC') as day, COALESCE(SUM(amount), 0) as revenue"
+                "SELECT DATE(created_at AT TIME ZONE 'UTC') as day, COALESCE(SUM(COALESCE(amount_kopecks, amount * 100)), 0) as revenue"
                 " FROM payments WHERE status = 'succeeded' AND created_at >= NOW() - INTERVAL '14 days'"
                 " GROUP BY day ORDER BY day"
             )
@@ -249,7 +257,7 @@ async def get_users(
             select(
                 Payment.user_id,
                 func.count(Payment.id).label("payments_count"),
-                func.coalesce(func.sum(Payment.amount), 0).label("total_paid"),
+                func.coalesce(func.sum(PAYMENT_AMOUNT_KOPECKS), 0).label("total_paid"),
             )
             .where(Payment.status == "succeeded")
             .group_by(Payment.user_id)
@@ -383,7 +391,7 @@ async def get_payments(
         total = (await session.execute(count_q)).scalar() or 0
 
         amount_r = await session.execute(
-            text("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE status = 'succeeded'")
+            text("SELECT COALESCE(SUM(COALESCE(amount_kopecks, amount * 100)), 0) FROM payments WHERE status = 'succeeded'")
         )
         total_succeeded_amount = amount_r.scalar() or 0
 
@@ -399,7 +407,7 @@ async def get_payments(
                 PaymentRow(
                     id=str(payment.id),
                     user_name=user_first_name or user_name,
-                    amount=payment.amount,
+                    amount=_payment_amount_kopecks(payment),
                     status=payment.status,
                     payment_type=payment.payment_type,
                     created_at=payment.created_at.isoformat() if payment.created_at else "",
@@ -531,7 +539,7 @@ async def get_user_detail(user_id: str):
             ],
             payments=[
                 UserDetailPayment(
-                    amount=p.amount,
+                    amount=_payment_amount_kopecks(p),
                     status=p.status,
                     payment_type=p.payment_type,
                     created_at=p.created_at.isoformat() if p.created_at else "",

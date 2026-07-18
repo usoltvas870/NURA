@@ -16,7 +16,13 @@ from bot.handlers.payment import router as payment_router
 from bot.handlers.profile import router as profile_router
 from bot.handlers.start import router as start_router, fallback_router
 from bot.handlers.tarot import router as tarot_router
-from bot.middlewares import UserRegistrationMiddleware, ThrottlingMiddleware, AntiFloodMiddleware
+from bot.handlers.insights import router as insights_router
+from bot.middlewares import (
+    AntiFloodMiddleware,
+    ThrottlingMiddleware,
+    UserRegistrationMiddleware,
+)
+from bot.middlewares.registration import LegacyTelegramAuthRetirementMiddleware
 from core.config import settings
 from core.database import create_engine
 from sqlalchemy import text
@@ -27,6 +33,28 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
+
+
+def configure_dispatcher(dp: Dispatcher) -> None:
+    dp.errors.register(global_error_handler)
+
+    dp.message.middleware(LegacyTelegramAuthRetirementMiddleware())
+    dp.message.middleware(UserRegistrationMiddleware())
+    dp.callback_query.middleware(UserRegistrationMiddleware())
+    dp.message.middleware(ThrottlingMiddleware())
+    dp.callback_query.middleware(ThrottlingMiddleware())
+    dp.message.middleware(AntiFloodMiddleware())
+    dp.callback_query.middleware(AntiFloodMiddleware())
+
+    dp.include_router(start_router)
+    dp.include_router(onboarding_router)
+    dp.include_router(compatibility_router)
+    dp.include_router(chat_router)
+    dp.include_router(payment_router)
+    dp.include_router(profile_router)
+    dp.include_router(tarot_router)
+    dp.include_router(insights_router)
+    dp.include_router(fallback_router)
 
 
 async def main():
@@ -46,24 +74,7 @@ async def main():
 
     storage = RedisStorage.from_url(settings.redis_url)
     dp = Dispatcher(storage=storage)
-
-    dp.errors.register(global_error_handler)
-
-    dp.message.middleware(UserRegistrationMiddleware())
-    dp.callback_query.middleware(UserRegistrationMiddleware())
-    dp.message.middleware(ThrottlingMiddleware())
-    dp.callback_query.middleware(ThrottlingMiddleware())
-    dp.message.middleware(AntiFloodMiddleware())
-    dp.callback_query.middleware(AntiFloodMiddleware())
-
-    dp.include_router(start_router)
-    dp.include_router(onboarding_router)
-    dp.include_router(compatibility_router)
-    dp.include_router(chat_router)
-    dp.include_router(payment_router)
-    dp.include_router(profile_router)
-    dp.include_router(tarot_router)
-    dp.include_router(fallback_router)
+    configure_dispatcher(dp)
 
     max_db_retries = 10
     for attempt in range(max_db_retries):

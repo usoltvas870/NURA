@@ -1,9 +1,15 @@
+import base64
+import hashlib
+import hmac
 import httpx
 import json
 import logging
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
+
+from redis.exceptions import WatchError
 
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
@@ -18,7 +24,247 @@ GUEST_CACHE_PREFIX = "guest_profile"
 MAGIC_LINK_PREFIX = "magic_link"
 LINK_TOKEN_PREFIX = "link_token"
 LINK_TOKEN_TTL_SECONDS = 900
+TELEGRAM_LINK_PENDING_PREFIX = "telegram_link_pending"
+TELEGRAM_LINK_PENDING_TTL_SECONDS = 600
+TELEGRAM_LINK_CONFIRMATION_MAX_ATTEMPTS = 5
+TELEGRAM_LINK_CONFIRMATION_TRANSACTION_RETRIES = 8
+_SIGNED_BIGINT_MAX = 2**63 - 1
 GUEST_NAME_PLACEHOLDER = "Гость"
+
+
+class VKAuthConflictError(Exception):
+    category = "vk_account_conflict"
+
+
+class VKIdentityAmbiguousError(Exception):
+    category = "vk_identity_ambiguous"
+
+
+class VKProviderRejectedError(ValueError):
+    """VK did not provide a usable authenticated identity."""
+
+
+class VKProviderFailureError(Exception):
+    """VK could not be reached or returned a server-side failure."""
+
+class TelegramConfirmationNotFoundError(Exception):
+    category = "telegram_confirmation_not_found"
+
+
+class TelegramConfirmationInvalidError(Exception):
+    category = "telegram_confirmation_invalid"
+
+    def __init__(self, attempts_remaining: int) -> None:
+        self.attempts_remaining = attempts_remaining
+
+
+class TelegramConfirmationUnavailableError(Exception):
+    category = "telegram_confirmation_unavailable"
+
+
+class TelegramLinkConfirmationService:
+    """Owns short-lived, server-side Telegram link confirmations."""
+
+    def _key(self, web_user_id: uuid.UUID) -> str:
+        return f"{TELEGRAM_LINK_PENDING_PREFIX}:{web_user_id}"
+
+    @staticmethod
+    def _masked_user_id(web_user_id: uuid.UUID) -> str:
+        return hashlib.sha256(str(web_user_id).encode()).hexdigest()[:12]
+
+    @staticmethod
+    def _validate_web_user_id(web_user_id: uuid.UUID | str) -> uuid.UUID:
+        try:
+            return web_user_id if isinstance(web_user_id, uuid.UUID) else uuid.UUID(web_user_id)
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("web_user_id must be a UUID") from exc
+
+    @staticmethod
+    def _validate_telegram_id(telegram_id: int) -> None:
+        if type(telegram_id) is not int or not 0 < telegram_id <= _SIGNED_BIGINT_MAX:
+            raise ValueError("telegram_id must be a positive signed BIGINT")
+
+    @staticmethod
+    def _encode_code_hash(code: str, salt: bytes) -> str:
+        digest = hashlib.pbkdf2_hmac("sha256", code.encode("ascii"), salt, 200_000)
+        return base64.b64encode(digest).decode("ascii")
+
+    @staticmethod
+    def _decode_record(value: str | bytes) -> dict[str, Any]:
+        if isinstance(value, bytes):
+            value = value.decode("utf-8")
+        record = json.loads(value)
+        if not isinstance(record, dict):
+            raise ValueError("invalid pending record")
+        return record
+
+    async def _consume_invalid_attempt(
+        self,
+        user_id: uuid.UUID,
+        code: str,
+        candidate: bytes,
+        original_salt: str | bytes,
+    ) -> tuple[bool, int]:
+        """Atomically consume one attempt, returning whether the code became valid."""
+        key = self._key(user_id)
+        redis = get_redis()
+        for _ in range(TELEGRAM_LINK_CONFIRMATION_TRANSACTION_RETRIES):
+            try:
+                async with redis.pipeline() as pipeline:
+                    await pipeline.watch(key)
+                    value = await pipeline.get(key)
+                    ttl_ms = await pipeline.pttl(key)
+                    if value is None:
+                        raise TelegramConfirmationNotFoundError()
+                    if ttl_ms <= 0:
+                        pipeline.multi()
+                        pipeline.delete(key)
+                        await pipeline.execute()
+                        raise TelegramConfirmationNotFoundError()
+                    try:
+                        record = self._decode_record(value)
+                        if record.get("web_user_id") != str(user_id):
+                            raise ValueError("pending record user mismatch")
+                        expires_at = datetime.fromisoformat(record["expires_at"])
+                        if expires_at <= datetime.now(timezone.utc):
+                            pipeline.multi()
+                            pipeline.delete(key)
+                            await pipeline.execute()
+                            raise TelegramConfirmationNotFoundError()
+                        expected = base64.b64decode(record["code_hash"], validate=True)
+                        salt_marker = record["code_salt"]
+                        if salt_marker != original_salt:
+                            salt = base64.b64decode(salt_marker, validate=True)
+                            candidate = base64.b64decode(self._encode_code_hash(code, salt), validate=True)
+                        telegram_id = record["telegram_id"]
+                        self._validate_telegram_id(telegram_id)
+                        attempts = int(record.get("attempts", 0))
+                    except TelegramConfirmationNotFoundError:
+                        raise
+                    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+                        pipeline.multi()
+                        pipeline.delete(key)
+                        await pipeline.execute()
+                        raise TelegramConfirmationNotFoundError() from None
+
+                    if hmac.compare_digest(expected, candidate):
+                        return True, telegram_id
+
+                    attempts += 1
+                    remaining = max(0, TELEGRAM_LINK_CONFIRMATION_MAX_ATTEMPTS - attempts)
+                    pipeline.multi()
+                    if remaining == 0:
+                        pipeline.delete(key)
+                    else:
+                        record["attempts"] = attempts
+                        pipeline.set(key, json.dumps(record), keepttl=True)
+                    await pipeline.execute()
+                    return False, remaining
+            except WatchError:
+                continue
+
+        logger.warning(
+            "telegram_link_confirmation_transaction_exhausted user=%s",
+            self._masked_user_id(user_id),
+        )
+        raise TelegramConfirmationUnavailableError()
+
+    async def create_pending(
+        self,
+        web_user_id: uuid.UUID | str,
+        telegram_id: int,
+        display_label: str | None = None,
+    ) -> str:
+        user_id = self._validate_web_user_id(web_user_id)
+        self._validate_telegram_id(telegram_id)
+        if display_label is not None and (not isinstance(display_label, str) or len(display_label) > 128):
+            raise ValueError("display_label is invalid")
+
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        salt = secrets.token_bytes(16)
+        now = datetime.now(timezone.utc)
+        record: dict[str, Any] = {
+            "version": 1,
+            "status": "pending_confirmation",
+            "web_user_id": str(user_id),
+            "telegram_id": telegram_id,
+            "code_hash": self._encode_code_hash(code, salt),
+            "code_salt": base64.b64encode(salt).decode("ascii"),
+            "created_at": now.isoformat(),
+            "expires_at": (now + timedelta(seconds=TELEGRAM_LINK_PENDING_TTL_SECONDS)).isoformat(),
+            "attempts": 0,
+        }
+        if display_label:
+            record["display_label"] = display_label
+        await get_redis().setex(self._key(user_id), TELEGRAM_LINK_PENDING_TTL_SECONDS, json.dumps(record))
+        logger.info("telegram_link_pending_created user=%s", self._masked_user_id(user_id))
+        return code
+
+    async def get_status(self, web_user_id: uuid.UUID | str) -> dict[str, Any]:
+        user_id = self._validate_web_user_id(web_user_id)
+        value = await get_redis().get(self._key(user_id))
+        if value is None:
+            return {"status": "idle"}
+        try:
+            record = self._decode_record(value)
+            expires_at = datetime.fromisoformat(record["expires_at"])
+            expires_in = max(0, int((expires_at - datetime.now(timezone.utc)).total_seconds()))
+            if expires_in == 0:
+                await get_redis().delete(self._key(user_id))
+                return {"status": "idle"}
+            attempts = int(record["attempts"])
+            result: dict[str, Any] = {
+                "status": "pending_confirmation",
+                "expires_in": expires_in,
+                "attempts_remaining": max(0, TELEGRAM_LINK_CONFIRMATION_MAX_ATTEMPTS - attempts),
+            }
+            if isinstance(record.get("display_label"), str):
+                result["display_label"] = record["display_label"]
+            return result
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            await get_redis().delete(self._key(user_id))
+            return {"status": "idle"}
+
+    async def verify_confirmation(self, web_user_id: uuid.UUID | str, code: str) -> int:
+        user_id = self._validate_web_user_id(web_user_id)
+        value = await get_redis().get(self._key(user_id))
+        if value is None:
+            raise TelegramConfirmationNotFoundError()
+        try:
+            record = self._decode_record(value)
+            if record.get("web_user_id") != str(user_id):
+                raise ValueError("pending record user mismatch")
+            expires_at = datetime.fromisoformat(record["expires_at"])
+            if expires_at <= datetime.now(timezone.utc):
+                await get_redis().delete(self._key(user_id))
+                raise TelegramConfirmationNotFoundError()
+            expected = base64.b64decode(record["code_hash"], validate=True)
+            salt = base64.b64decode(record["code_salt"], validate=True)
+            candidate = base64.b64decode(self._encode_code_hash(code, salt), validate=True)
+            telegram_id = record["telegram_id"]
+            self._validate_telegram_id(telegram_id)
+        except TelegramConfirmationNotFoundError:
+            raise
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            await get_redis().delete(self._key(user_id))
+            raise TelegramConfirmationNotFoundError() from None
+
+        if not hmac.compare_digest(expected, candidate):
+            is_valid, result = await self._consume_invalid_attempt(user_id, code, candidate, record["code_salt"])
+            if is_valid:
+                return result
+            logger.info(
+                "telegram_link_confirmation_failed user=%s attempts_remaining=%s",
+                self._masked_user_id(user_id),
+                result,
+            )
+            raise TelegramConfirmationInvalidError(result)
+        return telegram_id
+
+    async def delete_pending(self, web_user_id: uuid.UUID | str, event: str = "telegram_link_cancelled") -> None:
+        user_id = self._validate_web_user_id(web_user_id)
+        await get_redis().delete(self._key(user_id))
+        logger.info("%s user=%s", event, self._masked_user_id(user_id))
 
 
 class AuthService:
@@ -369,34 +615,75 @@ class AuthService:
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
                 resp.raise_for_status()
-                user_info = resp.json()
-                logger.info("VK ID user_info response: %s", json.dumps(user_info, ensure_ascii=False))
+                try:
+                    user_info = resp.json()
+                except ValueError as exc:
+                    logger.warning("vk_auth_provider_rejected category=malformed_response")
+                    raise VKProviderRejectedError("VK token validation failed") from exc
 
             if not isinstance(user_info, dict):
-                logger.error("VK ID user_info returned non-dict: %s", type(user_info).__name__)
-                raise ValueError("VK user_info is invalid")
+                logger.warning("vk_auth_provider_rejected category=invalid_response")
+                raise VKProviderRejectedError("VK token validation failed")
 
             if user_info.get("error"):
-                logger.error("VK ID user_info error: %s", user_info.get("error"))
-                raise ValueError("VK token validation failed")
+                logger.warning("vk_auth_provider_rejected category=provider_error")
+                raise VKProviderRejectedError("VK token validation failed")
 
             user_data = user_info.get("user") if "user" in user_info else user_info
+            if not isinstance(user_data, dict):
+                logger.warning("vk_auth_provider_rejected category=invalid_user")
+                raise VKProviderRejectedError("VK token validation failed")
 
-            vk_user_id = str(user_data.get("user_id")) if user_data.get("user_id") is not None else None
-            if not vk_user_id:
-                logger.error("VK ID user_info missing user_id")
-                raise ValueError("VK user_info is invalid")
+            raw_vk_user_id = user_data.get("user_id")
+            if (
+                not isinstance(raw_vk_user_id, str)
+                or not raw_vk_user_id.strip()
+                or len(raw_vk_user_id) > 64
+            ):
+                logger.warning("vk_auth_provider_rejected category=invalid_user_id")
+                raise VKProviderRejectedError("VK token validation failed")
+            vk_user_id = raw_vk_user_id.strip()
 
             first_name = user_data.get("first_name", "")
+            first_name = first_name if isinstance(first_name, str) else ""
             last_name = user_data.get("last_name", "")
+            last_name = last_name if isinstance(last_name, str) else ""
             vk_name = f"{first_name} {last_name}".strip() if last_name else first_name
             email = user_data.get("email")
+            email = email if isinstance(email, str) else None
             birthday = user_data.get("birthday", "")
+            birthday = birthday if isinstance(birthday, str) else ""
 
             user_repo = UserRepository(self._session_factory)
-            user = await user_repo.get_by_vk_id(vk_user_id)
+            matches = await user_repo.get_all_by_vk_id(vk_user_id)
+            if len(matches) > 1:
+                logger.warning("vk_auth_identity_ambiguous")
+                raise VKIdentityAmbiguousError()
+            linked_user = matches[0] if matches else None
 
-            if user is None:
+            if current_user is not None:
+                if current_user.vk_id and current_user.vk_id != vk_user_id:
+                    logger.warning("vk_auth_account_conflict category=current_user_has_other_vk")
+                    raise VKAuthConflictError()
+                if linked_user is not None and linked_user.id != current_user.id:
+                    logger.warning("vk_auth_account_conflict category=vk_linked_to_other_user")
+                    raise VKAuthConflictError()
+                user = current_user
+                if user.vk_id is None:
+                    await user_repo.set_vk_id(user.id, vk_user_id)
+                if user.name in (None, GUEST_NAME_PLACEHOLDER, "Пользователь", "") and vk_name:
+                    await user_repo.update_web_user(user.id, name=vk_name)
+                if user.birth_date in (None, "") and birthday:
+                    await user_repo.update_web_user(user.id, birth_date=birthday)
+                if user.email is None and email:
+                    await user_repo.set_email(user.id, email)
+                web_session_id = user.web_session_id
+                if web_session_id is None:
+                    web_session_id = uuid.uuid4().hex
+                    await user_repo.update_web_session(user.id, web_session_id)
+                else:
+                    await user_repo.renew_session_expiry(user.id)
+            elif linked_user is None:
                 name = vk_name or "Пользователь"
                 web_session_id = uuid.uuid4().hex
                 user = await user_repo.create_web_user(
@@ -407,6 +694,7 @@ class AuthService:
                     vk_id=vk_user_id,
                 )
             else:
+                user = linked_user
                 if user.name in (None, GUEST_NAME_PLACEHOLDER, "Пользователь", "") and vk_name:
                     await user_repo.update_web_user(user.id, name=vk_name)
                 if user.birth_date in (None, "") and birthday:
@@ -433,9 +721,14 @@ class AuthService:
                 "user_id": str(user.id),
                 "web_session_id": web_session_id,
             }
-        except httpx.HTTPStatusError as exc:
-            logger.error("VK ID user_info HTTP error: %s", exc.response.status_code)
+        except (VKAuthConflictError, VKIdentityAmbiguousError, VKProviderRejectedError):
             raise
+        except httpx.HTTPStatusError as exc:
+            logger.warning("vk_auth_provider_failure category=http_status status=%s", exc.response.status_code)
+            raise VKProviderFailureError() from exc
+        except httpx.HTTPError as exc:
+            logger.warning("vk_auth_provider_failure category=transport error=%s", type(exc).__name__)
+            raise VKProviderFailureError() from exc
         except Exception:
-            logger.exception("vk_auth failed")
+            logger.exception("vk_auth_provider_failure category=unexpected")
             raise

@@ -1,4 +1,5 @@
 import logging
+import uuid
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
@@ -32,6 +33,12 @@ async def _get_report_by_token(token: str):
     report_repo = ReportRepository(session_factory)
     return await report_repo.get_by_token(token)
 
+
+def _callback_idempotence_key(callback: CallbackQuery) -> str:
+    return uuid.uuid5(
+        uuid.NAMESPACE_URL,
+        f"telegram-checkout:{callback.id}",
+    ).hex
 
 
 
@@ -86,8 +93,12 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
         return
 
     try:
-        subscription = await PaymentService.create_subscription(
+        subscription = await PaymentService.create_telegram_payment(
+            get_async_sessionmaker(),
+            user_id=user.id,
             telegram_id=user.telegram_id,
+            payment_type="subscription",
+            idempotence_key=_callback_idempotence_key(callback),
         )
 
         await callback.message.edit_text(
@@ -106,7 +117,7 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
         await callback.message.answer(payment_pending_text())
 
     except Exception:
-        logger.exception("Failed to create subscription for user %s", user.id)
+        logger.warning("telegram_subscription_checkout_failed")
         await callback.message.edit_text(
             payment_error_text(),
             reply_markup=main_menu_keyboard(),
@@ -152,8 +163,12 @@ async def initiate_tarot_subscription(callback: CallbackQuery) -> None:
         return
 
     try:
-        subscription = await PaymentService.create_tarot_payment(
+        subscription = await PaymentService.create_telegram_payment(
+            get_async_sessionmaker(),
+            user_id=user.id,
             telegram_id=user.telegram_id,
+            payment_type="tarot",
+            idempotence_key=_callback_idempotence_key(callback),
         )
 
         await callback.message.edit_text(
@@ -176,7 +191,7 @@ async def initiate_tarot_subscription(callback: CallbackQuery) -> None:
         )
 
     except Exception:
-        logger.exception("Failed to create tarot subscription for user %s", user.id)
+        logger.warning("telegram_tarot_checkout_failed")
         await callback.message.edit_text(
             payment_error_text(),
             reply_markup=main_menu_keyboard(),

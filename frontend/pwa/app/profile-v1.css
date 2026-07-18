@@ -18,6 +18,13 @@ body.pwa-profile-page .profile-skeleton-line.short { width:74%; }
 body.pwa-profile-page .profile-auth-surface { position:relative; display:grid; gap:13px; min-height:290px; overflow:hidden; padding:25px; align-content:center; }
 body.pwa-profile-page .profile-symbol { position:absolute; right:23px; top:18px; color:var(--gold); font-size:56px; line-height:1; opacity:.52; }
 body.pwa-profile-page .profile-primary-action { width:100%; min-height:46px; margin-top:4px; }
+body.pwa-profile-page .profile-telegram-confirmation { display:grid; gap:12px; padding:18px; border:1px solid var(--line); border-radius:var(--r-lg); background:var(--bg-card-soft); }
+body.pwa-profile-page .profile-telegram-confirmation h3 { margin:0; color:var(--text); font-family:var(--font-serif); font-size:22px; font-weight:400; }
+body.pwa-profile-page .profile-telegram-confirmation p { margin:0; color:var(--text-m); font-size:13px; line-height:1.5; }
+body.pwa-profile-page .profile-telegram-confirmation label { color:var(--text); font-size:13px; font-weight:700; }
+body.pwa-profile-page .profile-telegram-confirmation .input { min-height:44px; letter-spacing:.2em; text-align:center; }
+body.pwa-profile-page .profile-telegram-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+body.pwa-profile-page .profile-telegram-actions .btn:first-child { grid-column:1 / -1; min-height:44px; }
 body.pwa-profile-page .profile-identity-card { display:grid; grid-template-columns:64px minmax(0,1fr); gap:14px; padding:17px; align-items:center; }
 body.pwa-profile-page .profile-avatar { display:grid; width:64px; height:64px; place-items:center; border:1px solid color-mix(in srgb,var(--gold) 40%,transparent); border-radius:50%; color:var(--terra); background:var(--bg-card-soft); font-family:var(--font-serif); font-size:24px; }
 body.pwa-profile-page .profile-identity-copy { min-width:0; }

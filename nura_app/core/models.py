@@ -7,6 +7,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -25,6 +26,31 @@ class ReportType(str, enum.Enum):
     MINI = "mini"
     FULL = "full"
     COMPATIBILITY = "compatibility"
+
+
+class ReportPaymentState:
+    AWAITING_PAYMENT = "awaiting_payment"
+    PAYMENT_CONFIRMED = "payment_confirmed"
+    LEGACY_UNLINKED = "legacy_unlinked"
+
+
+class ReportGenerationState:
+    NOT_REQUESTED = "not_requested"
+    PENDING_DISPATCH = "pending_dispatch"
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED_RETRYABLE = "failed_retryable"
+    FAILED_TERMINAL = "failed_terminal"
+
+
+class ReportGenerationJobState:
+    PENDING_DISPATCH = "pending_dispatch"
+    DISPATCHING = "dispatching"
+    QUEUED = "queued"
+    COMPLETED = "completed"
+    FAILED_RETRYABLE = "failed_retryable"
+    FAILED_TERMINAL = "failed_terminal"
 
 
 class User(Base):
@@ -136,6 +162,10 @@ class GuestProfile(Base):
 
 class Report(Base):
     __tablename__ = "reports"
+    __table_args__ = (
+        UniqueConstraint("payment_id", name="uq_reports_payment_id"),
+        Index("ix_reports_payment_id", "payment_id"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -160,6 +190,104 @@ class Report(Base):
     expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
+    payment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("payments.id"), nullable=True
+    )
+    payment_state: Mapped[str] = mapped_column(
+        String(32),
+        default=ReportPaymentState.AWAITING_PAYMENT,
+        server_default=ReportPaymentState.AWAITING_PAYMENT,
+        nullable=False,
+    )
+    payment_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    generation_state: Mapped[str] = mapped_column(
+        String(32),
+        default=ReportGenerationState.NOT_REQUESTED,
+        server_default=ReportGenerationState.NOT_REQUESTED,
+        nullable=False,
+    )
+    generation_enqueued_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    generation_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    generated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    generation_failed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    generation_attempts: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    generation_error_category: Mapped[str | None] = mapped_column(
+        String(128), nullable=True
+    )
+
+
+class ReportGenerationJob(Base):
+    __tablename__ = "report_generation_jobs"
+    __table_args__ = (
+        UniqueConstraint(
+            "report_id", "job_type", name="uq_report_generation_jobs_report_job_type"
+        ),
+        Index(
+            "ix_report_generation_jobs_state_next_attempt_created",
+            "state",
+            "next_attempt_at",
+            "created_at",
+        ),
+        Index("ix_report_generation_jobs_report_id", "report_id"),
+        Index("ix_report_generation_jobs_celery_task_id", "celery_task_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    report_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("reports.id"), nullable=False
+    )
+    job_type: Mapped[str] = mapped_column(
+        String(32), default="full_report", server_default="full_report", nullable=False
+    )
+    state: Mapped[str] = mapped_column(
+        String(32),
+        default=ReportGenerationJobState.PENDING_DISPATCH,
+        server_default=ReportGenerationJobState.PENDING_DISPATCH,
+        nullable=False,
+    )
+    attempts: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    next_attempt_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    claimed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    failed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_error_category: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    celery_task_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
 
 
 class Payment(Base):
@@ -172,6 +300,7 @@ class Payment(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    amount_kopecks: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(
         String(20), default="pending", nullable=False
     )
@@ -180,6 +309,15 @@ class Payment(Base):
     )
     payment_type: Mapped[str] = mapped_column(
         String(20), default="subscription", nullable=False
+    )
+    promo_code_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("promo_codes.id"), nullable=True, index=True
+    )
+    promo_consumed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    promo_reserved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -212,6 +350,27 @@ class PromoCode(Base):
     discount_percent: Mapped[int] = mapped_column(Integer, nullable=False)
     max_uses: Mapped[int | None] = mapped_column(Integer, nullable=True)
     used_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reserved_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PromoReservation(Base):
+    __tablename__ = "promo_reservations"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    promo_code_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("promo_codes.id"), nullable=True, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    payment_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    final_amount_kopecks: Mapped[int] = mapped_column(Integer, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    report_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    state: Mapped[str] = mapped_column(String(20), default="reserved", nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    provider_payment_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    payment_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("payments.id"), unique=True, nullable=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

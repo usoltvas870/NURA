@@ -56,8 +56,14 @@ async def payment_webhook(request: Request):
 
     data = await request.json()
     try:
-        return await PaymentService.process_webhook(
+        result = await PaymentService.process_webhook(
             get_async_sessionmaker(), data
         )
+        if result.get("reason") == "verification_unavailable":
+            raise HTTPException(
+                status_code=503,
+                detail="payment_verification_unavailable",
+            )
+        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

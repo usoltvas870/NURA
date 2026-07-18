@@ -1,33 +1,42 @@
+import hashlib
 import json
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
-
 from api.deps import limiter
 from api.dependencies import (
     clear_session_cookie,
     get_current_web_user,
     get_optional_web_user,
-    set_session_cookie,
 )
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
-from core.models import PromoCode, ReportType, User
+from core.models import ReportType, User
 from core.repositories.payment import PaymentRepository
+from core.repositories.promo_reservation import PromoReservationRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.repositories.guest import GuestProfileRepository
 
 from core.services.ai import AIService
 from core.services.matrix import MatrixService
-from core.services.payment import PaymentService
-from core.services.report import ReportService
+from core.services.payment import PaymentService, PromoCheckoutError
+from core.services.report_lifecycle import ReportLifecycleCoordinator
+
 from core.services.chat_quota import ChatQuotaService
+from core.services.auth import (
+    TelegramConfirmationInvalidError,
+    TelegramConfirmationNotFoundError,
+    TelegramLinkConfirmationService,
+)
 from core.schemas.chat import ChatQuotaState, ChatRequest, ChatResponse
+
+logger = logging.getLogger(__name__)
 
 
 class ReportItem(BaseModel):
@@ -55,25 +64,160 @@ class UserProfileResponse(BaseModel):
     ref_link: str | None
 
 
-async def _validate_promo_code(session_factory, code: str, price_kopecks: int) -> tuple[int, PromoCode]:
-    async with session_factory() as session:
-        result = await session.execute(
-            select(PromoCode).where(PromoCode.code == code.strip().upper())
-        )
-        promo = result.scalar_one_or_none()
-        if not promo or not promo.is_active:
-            raise HTTPException(status_code=400, detail="Промокод недействителен")
-        if promo.expires_at and promo.expires_at < datetime.now(timezone.utc):
-            raise HTTPException(status_code=400, detail="Промокод истёк")
-        if promo.max_uses is not None and promo.used_count >= promo.max_uses:
-            raise HTTPException(status_code=400, detail="Промокод исчерпан")
-        discounted = int(price_kopecks * (100 - promo.discount_percent) / 100)
-        promo.used_count += 1
-        await session.commit()
-        return discounted, promo
+_PROMO_ERROR_DETAILS = {
+    "invalid": "Промокод недействителен",
+    "expired": "Промокод истёк",
+    "exhausted": "Промокод исчерпан",
+}
 
 
 router = APIRouter(prefix="/api/v1/web")
+
+
+def _parse_idempotency_key(request: Request) -> str:
+    headers = getattr(request, "headers", None)
+    values: list[object]
+    if headers is None:
+        values = []
+    elif hasattr(headers, "getlist"):
+        values = list(headers.getlist("Idempotency-Key"))
+    elif isinstance(headers, dict):
+        values = [
+            value
+            for name, value in headers.items()
+            if name.lower() == "idempotency-key"
+        ]
+    else:
+        values = []
+    if len(values) != 1 or not isinstance(values[0], str):
+        raise HTTPException(status_code=422, detail="invalid_idempotency_key")
+    raw_key = values[0]
+    try:
+        parsed = uuid.UUID(raw_key)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=422, detail="invalid_idempotency_key") from None
+    if raw_key != str(parsed) or parsed.version != 4:
+        raise HTTPException(status_code=422, detail="invalid_idempotency_key")
+    return raw_key
+
+
+def _checkout_keys(user_id: uuid.UUID, payment_type: str, raw_key: str) -> tuple[str, str]:
+    scoped_key = hashlib.sha256(
+        f"nura.web-checkout.v1|{user_id}|{payment_type}|standard|{raw_key}".encode()
+    ).hexdigest()
+    report_token = hashlib.sha256(
+        f"nura.web-report.v1|{scoped_key}".encode()
+    ).hexdigest()
+    return scoped_key, report_token
+
+
+def _provider_key(scoped_key: str, checkout_amount) -> str:
+    promo_identity = checkout_amount.promo_code_id or "none"
+    return hashlib.sha256(
+        f"nura.web-provider.v1|{scoped_key}|{promo_identity}|"
+        f"{checkout_amount.final_amount_kopecks}|{checkout_amount.currency}".encode()
+    ).hexdigest()
+
+
+def _provider_checkout_url(payment: dict) -> str:
+    provider_id = payment.get("id")
+    payment_url = payment.get("payment_url")
+    if (
+        not isinstance(provider_id, str)
+        or not provider_id
+        or not isinstance(payment_url, str)
+        or not payment_url.startswith(("https://", "http://"))
+    ):
+        raise ValueError("invalid_provider_checkout")
+    return payment_url
+
+
+async def _complete_web_checkout(
+    *,
+    session_factory,
+    user: User,
+    checkout_amount,
+    scoped_key: str,
+    provider_key: str,
+    report_token: str | None,
+) -> str:
+    if checkout_amount.product == "web_matrix":
+        async with session_factory() as session:
+            coordinator = ReportLifecycleCoordinator(session)
+            reservation, _ = await coordinator.create_or_get_matrix_placeholder(
+                user_id=user.id,
+                idempotency_key=scoped_key,
+                report_token=report_token or "",
+                promo_code_id=checkout_amount.promo_code_id,
+                final_amount_kopecks=checkout_amount.final_amount_kopecks,
+                currency=checkout_amount.currency,
+                expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+            )
+            await session.commit()
+
+        provider_payment = await PaymentService.create_web_matrix_payment(
+            user_id=user.id,
+            report_token=report_token or "",
+            checkout_amount=checkout_amount,
+            idempotence_key=provider_key,
+        )
+        payment_url = _provider_checkout_url(provider_payment)
+        provider_payment_id = provider_payment["id"]
+        async with session_factory() as session:
+            coordinator = ReportLifecycleCoordinator(session)
+            await coordinator.attach_matrix_provider_intent(
+                reservation_id=reservation.id,
+                provider_payment_id=provider_payment_id,
+                user_id=user.id,
+                amount_kopecks=checkout_amount.final_amount_kopecks,
+                promo_code_id=checkout_amount.promo_code_id,
+            )
+            await session.commit()
+        return payment_url
+
+    reservation = None
+    if checkout_amount.promo_code_id is not None:
+        reservation = await PromoReservationRepository(session_factory).create_or_get(
+            promo_code_id=checkout_amount.promo_code_id,
+            user_id=user.id,
+            payment_type=checkout_amount.product,
+            final_amount_kopecks=checkout_amount.final_amount_kopecks,
+            currency=checkout_amount.currency,
+            idempotency_key=scoped_key,
+            report_token=report_token,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+        )
+
+    payment = await PaymentService.create_web_tarot_payment(
+            user_id=user.id,
+            checkout_amount=checkout_amount,
+            idempotence_key=provider_key,
+    )
+    payment_url = _provider_checkout_url(payment)
+
+    if reservation is not None:
+        if reservation.provider_payment_id is None:
+            await PromoReservationRepository(session_factory).attach_provider_payment(
+                reservation.id, payment["id"]
+            )
+        elif reservation.provider_payment_id != payment["id"]:
+            raise ValueError("reservation_attachment_conflict")
+    local_payment = await PaymentRepository(session_factory).create_or_get_by_yookassa_id(
+        user_id=user.id,
+        amount=checkout_amount.final_amount_kopecks // 100,
+        amount_kopecks=checkout_amount.final_amount_kopecks,
+        yookassa_id=payment["id"],
+        payment_type=checkout_amount.product,
+        promo_code_id=checkout_amount.promo_code_id,
+    )
+    if reservation is not None:
+        if reservation.payment_id is None:
+            await PromoReservationRepository(session_factory).attach_local_payment(
+                reservation.id, local_payment.id
+            )
+        elif reservation.payment_id != local_payment.id:
+            raise ValueError("reservation_attachment_conflict")
+    return payment_url
 
 
 class MiniAnalysisRequest(BaseModel):
@@ -98,15 +242,6 @@ class CreatePaymentRequest(BaseModel):
 
 class CreatePaymentResponse(BaseModel):
     payment_url: str
-
-
-class AuthStartResponse(BaseModel):
-    token: str
-    tg_url: str
-
-
-class AuthCheckResponse(BaseModel):
-    status: str
 
 
 @router.post("/mini-analysis", response_model=MiniAnalysisResponse)
@@ -153,7 +288,10 @@ async def create_payment(
     user: User = Depends(get_current_web_user),
 ):
     session_factory = get_async_sessionmaker()
-
+    raw_key = _parse_idempotency_key(request)
+    scoped_key, report_token = _checkout_keys(
+        user.id, "web_matrix", raw_key
+    )
     if body.email:
         async with session_factory() as session:
             db_user = await session.get(type(user), user.id)
@@ -161,28 +299,40 @@ async def create_payment(
                 db_user.email = body.email
                 await session.commit()
 
-    report_token = ReportService.generate_token()
-    amount = 89000
-    if body.promo_code:
-        amount, _ = await _validate_promo_code(session_factory, body.promo_code, amount)
+    try:
+        checkout_amount = await PaymentService.resolve_web_checkout_amount(
+            session_factory,
+            product="web_matrix",
+            promo_code=body.promo_code,
+        )
+    except PromoCheckoutError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=_PROMO_ERROR_DETAILS[error.reason],
+        ) from None
+    provider_key = _provider_key(scoped_key, checkout_amount)
 
     try:
-        payment = await PaymentService.create_web_matrix_payment(
-            user_id=user.id,
+        payment_url = await _complete_web_checkout(
+            session_factory=session_factory,
+            user=user,
+            checkout_amount=checkout_amount,
+            scoped_key=scoped_key,
+            provider_key=provider_key,
             report_token=report_token,
         )
+    except ValueError as error:
+        if str(error) == "promo_capacity_exhausted":
+            raise HTTPException(status_code=400, detail=_PROMO_ERROR_DETAILS["exhausted"]) from None
+        if str(error) == "idempotency_key_conflict":
+            raise HTTPException(status_code=409, detail="idempotency_key_conflict") from None
+        if str(error) in {"invalid_promo_reservation", "invalid_reservation_transition", "reservation_attachment_conflict", "payment_attachment_conflict"}:
+            raise HTTPException(status_code=409, detail="checkout_conflict") from None
+        raise HTTPException(status_code=503, detail="checkout_unavailable") from None
     except Exception:
-        raise HTTPException(status_code=503, detail="Платёжный сервис недоступен")
+        raise HTTPException(status_code=503, detail="Платёжный сервис недоступен") from None
 
-    payment_repo = PaymentRepository(session_factory)
-    await payment_repo.create(
-        user_id=user.id,
-        amount=amount // 100,
-        yookassa_id=payment["id"],
-        payment_type="web_matrix",
-    )
-
-    return CreatePaymentResponse(payment_url=payment["payment_url"])
+    return CreatePaymentResponse(payment_url=payment_url)
 
 
 class GenerateLinkTokenResponse(BaseModel):
@@ -190,8 +340,15 @@ class GenerateLinkTokenResponse(BaseModel):
     tg_url: str
 
 
-class CheckLinkTokenResponse(BaseModel):
-    user_id: str
+class TelegramLinkStatusResponse(BaseModel):
+    status: Literal["idle", "pending_confirmation", "linked"]
+    display_label: str | None = None
+    expires_in: int | None = None
+    attempts_remaining: int | None = None
+
+
+class ConfirmTelegramLinkRequest(BaseModel):
+    code: str = Field(pattern=r"^[0-9]{6}$")
 
 
 @router.post("/generate-link-token", response_model=GenerateLinkTokenResponse)
@@ -211,12 +368,9 @@ async def generate_link_token(
     )
 
 
-@router.get("/check-link-token", response_model=CheckLinkTokenResponse)
-@limiter.limit("30/minute")
-async def check_link_token(
-    request: Request,
-    x_link_token: str = Header(..., alias="X-Link-Token"),
-):
+async def _consume_link_token(
+    x_link_token: str,
+) -> str:
     redis = get_redis()
     key = f"link_token:{x_link_token}"
     user_id = await redis.execute_command("GETDEL", key)
@@ -224,7 +378,47 @@ async def check_link_token(
         raise HTTPException(status_code=404, detail="Токен не найден или истёк")
     if isinstance(user_id, bytes):
         user_id = user_id.decode()
-    return CheckLinkTokenResponse(user_id=user_id)
+    return user_id
+
+
+@router.get("/telegram-link-status", response_model=TelegramLinkStatusResponse)
+async def telegram_link_status(user: User = Depends(get_current_web_user)):
+    if user.telegram_id is not None:
+        return TelegramLinkStatusResponse(status="linked")
+    return TelegramLinkStatusResponse(**(await TelegramLinkConfirmationService().get_status(user.id)))
+
+
+@router.post("/confirm-telegram-link")
+@limiter.limit("10/minute")
+async def confirm_telegram_link(
+    request: Request,
+    body: ConfirmTelegramLinkRequest,
+    user: User = Depends(get_current_web_user),
+):
+    confirmation_service = TelegramLinkConfirmationService()
+    try:
+        telegram_id = await confirmation_service.verify_confirmation(user.id, body.code)
+    except TelegramConfirmationNotFoundError:
+        raise HTTPException(status_code=404, detail="telegram_confirmation_not_found") from None
+    except TelegramConfirmationInvalidError:
+        raise HTTPException(status_code=400, detail="telegram_confirmation_invalid") from None
+
+    user_repo = UserRepository(get_async_sessionmaker())
+    if not await user_repo.link_telegram_id_safely(user.id, telegram_id):
+        await confirmation_service.delete_pending(user.id, event="telegram_link_conflict")
+        raise HTTPException(status_code=409, detail="telegram_account_conflict")
+    await confirmation_service.delete_pending(user.id, event="telegram_link_confirmed")
+    return {"ok": True}
+
+
+@router.delete("/cancel-telegram-link")
+@limiter.limit("10/minute")
+async def cancel_telegram_link(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
+    await TelegramLinkConfirmationService().delete_pending(user.id)
+    return {"ok": True}
 
 
 @router.get("/me", response_model=UserProfileResponse)
@@ -295,25 +489,43 @@ async def subscribe_tarot(
     user: User = Depends(get_current_web_user),
 ):
     session_factory = get_async_sessionmaker()
-
-    amount = 39000
-    if body.promo_code:
-        amount, _ = await _validate_promo_code(session_factory, body.promo_code, amount)
+    raw_key = _parse_idempotency_key(request)
+    scoped_key, _ = _checkout_keys(user.id, "web_tarot", raw_key)
 
     try:
-        payment = await PaymentService.create_web_tarot_payment(user_id=user.id)
+        checkout_amount = await PaymentService.resolve_web_checkout_amount(
+            session_factory,
+            product="web_tarot",
+            promo_code=body.promo_code,
+        )
+    except PromoCheckoutError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=_PROMO_ERROR_DETAILS[error.reason],
+        ) from None
+    provider_key = _provider_key(scoped_key, checkout_amount)
+
+    try:
+        payment_url = await _complete_web_checkout(
+            session_factory=session_factory,
+            user=user,
+            checkout_amount=checkout_amount,
+            scoped_key=scoped_key,
+            provider_key=provider_key,
+            report_token=None,
+        )
+    except ValueError as error:
+        if str(error) == "promo_capacity_exhausted":
+            raise HTTPException(status_code=400, detail=_PROMO_ERROR_DETAILS["exhausted"]) from None
+        if str(error) == "idempotency_key_conflict":
+            raise HTTPException(status_code=409, detail="idempotency_key_conflict") from None
+        if str(error) in {"invalid_promo_reservation", "invalid_reservation_transition", "reservation_attachment_conflict", "payment_attachment_conflict"}:
+            raise HTTPException(status_code=409, detail="checkout_conflict") from None
+        raise HTTPException(status_code=503, detail="checkout_unavailable") from None
     except Exception:
-        raise HTTPException(status_code=503, detail="Платёжный сервис недоступен")
+        raise HTTPException(status_code=503, detail="Платёжный сервис недоступен") from None
 
-    payment_repo = PaymentRepository(session_factory)
-    await payment_repo.create(
-        user_id=user.id,
-        amount=amount // 100,
-        yookassa_id=payment["id"],
-        payment_type="web_tarot",
-    )
-
-    return SubscribeResponse(payment_url=payment["payment_url"])
+    return SubscribeResponse(payment_url=payment_url)
 
 
 _WEB_CHAT_HISTORY_TTL = 7 * 86400
@@ -488,7 +700,16 @@ async def test_subscribe(
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(
+    response: Response,
+    user: User | None = Depends(get_optional_web_user),
+):
+    if user is not None:
+        await UserRepository(get_async_sessionmaker()).clear_web_session(user.id)
+        try:
+            await TelegramLinkConfirmationService().delete_pending(user.id)
+        except Exception:
+            logger.warning("telegram_link_pending_cleanup_failed")
     clear_session_cookie(response)
     return {"ok": True}
 
@@ -521,36 +742,31 @@ async def session_check(user: User = Depends(get_current_web_user)):
     return {"authenticated": True}
 
 
-@router.post("/auth/start", response_model=AuthStartResponse)
-@limiter.limit("10/hour")
-async def auth_start(
-    request: Request,
-    user: User | None = Depends(get_optional_web_user),
-):
-    token = str(uuid.uuid4())
-    redis = get_redis()
-    session_value = user.web_session_id if user else "pending"
-    await redis.setex(f"auth_token:{token}", 300, session_value)
-    return AuthStartResponse(
-        token=token,
-        tg_url=f"https://t.me/{settings.bot_username}?start=tgauth_{token}",
+_LEGACY_TELEGRAM_AUTH_RETIRED_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
+
+def _legacy_telegram_auth_retired() -> None:
+    raise HTTPException(
+        status_code=410,
+        detail="legacy_telegram_auth_retired",
+        headers=_LEGACY_TELEGRAM_AUTH_RETIRED_HEADERS,
     )
 
 
-@router.get("/auth/check", response_model=AuthCheckResponse)
+@router.post("/auth/start")
+@limiter.limit("10/hour")
+async def auth_start(request: Request) -> None:
+    _legacy_telegram_auth_retired()
+
+
+@router.get("/auth/check")
 @limiter.limit("60/minute")
-async def auth_check(request: Request, response: Response, token: str):
-    redis = get_redis()
-    value = await redis.get(f"auth_token:{token}")
-    if value is None:
-        return AuthCheckResponse(status="expired")
-    if isinstance(value, bytes):
-        value = value.decode()
-    if value == "pending":
-        return AuthCheckResponse(status="pending")
-    await redis.delete(f"auth_token:{token}")
-    set_session_cookie(response, value)
-    return AuthCheckResponse(status="ok")
+async def auth_check(request: Request) -> None:
+    _legacy_telegram_auth_retired()
 
 
 @router.delete("/account")

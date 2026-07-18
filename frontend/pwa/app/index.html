@@ -16,12 +16,9 @@
     var t = localStorage.getItem('nura-theme') || 'light';
     document.documentElement.setAttribute('data-theme', t);
   })();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
+  if (!new URLSearchParams(location.search).has('e2e') && 'serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<link rel="stylesheet" href="nura-local-fonts.css">
 <script src="/assets/vendor/vkid-sdk.js" defer></script>
 <link rel="stylesheet" href="nura-pwa.css?v=11"/>
 <link rel="stylesheet" href="/theme.css?v=9"/>
@@ -336,18 +333,18 @@
 
 <script src="nura-pwa.js?v=10"></script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
-<div id="pwa-ios-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
-  <div style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
-    <button onclick="hideIOSInstallModal()" aria-label="Закрыть" style="position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--bg-card-soft);color:var(--text-m);font-size:14px;cursor:pointer;display:grid;place-items:center">✕</button>
+<div id="pwa-ios-modal" hidden style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
+  <div aria-labelledby="pwa-ios-modal-title" aria-describedby="pwa-ios-modal-copy" style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
+    <button id="pwa-ios-modal-close" aria-label="Закрыть" style="position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--bg-card-soft);color:var(--text-m);font-size:14px;cursor:pointer;display:grid;place-items:center">✕</button>
     <div style="font-size:48px;margin-bottom:8px">✦</div>
-    <h3 style="font-family:var(--font-serif);font-size:22px;color:var(--text);margin-bottom:8px;font-weight:400">Добавь NURA на главный экран</h3>
-    <p style="font-size:13.5px;color:var(--text-m);margin-bottom:18px;line-height:1.5">Получай карту дня прямо на экране — без открытия Telegram и браузера</p>
+    <h3 id="pwa-ios-modal-title" style="font-family:var(--font-serif);font-size:22px;color:var(--text);margin-bottom:8px;font-weight:400">Добавь NURA на главный экран</h3>
+    <p id="pwa-ios-modal-copy" style="font-size:13.5px;color:var(--text-m);margin-bottom:18px;line-height:1.5">Получай карту дня прямо на экране — без открытия Telegram и браузера</p>
     <div style="display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:18px">
       <div style="display:flex;gap:12px;align-items:center"><span style="width:26px;height:26px;border-radius:50%;background:rgba(184,116,63,.12);color:var(--terra);font-weight:800;font-size:13px;display:grid;place-items:center;flex-shrink:0">1</span><span style="font-size:13.5px;color:var(--text)">Нажми <strong style="color:var(--terra)">«Поделиться»</strong> внизу Safari</span></div>
       <div style="display:flex;gap:12px;align-items:center"><span style="width:26px;height:26px;border-radius:50%;background:rgba(184,116,63,.12);color:var(--terra);font-weight:800;font-size:13px;display:grid;place-items:center;flex-shrink:0">2</span><span style="font-size:13.5px;color:var(--text)">Выбери <strong style="color:var(--terra)">«На экран Домой»</strong></span></div>
       <div style="display:flex;gap:12px;align-items:center"><span style="width:26px;height:26px;border-radius:50%;background:rgba(184,116,63,.12);color:var(--terra);font-weight:800;font-size:13px;display:grid;place-items:center;flex-shrink:0">3</span><span style="font-size:13.5px;color:var(--text)">Нажми <strong style="color:var(--terra)">«Добавить»</strong></span></div>
     </div>
-    <button onclick="hideIOSInstallModal()" style="background:var(--bg-card-soft);color:var(--text-m);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;width:100%">Может потом</button>
+    <button id="pwa-ios-modal-cancel" style="background:var(--bg-card-soft);color:var(--text-m);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;width:100%">Может потом</button>
   </div>
 </div>
 <script src="/pwa-install.js?v=9"></script>
@@ -356,6 +353,38 @@
   var N = window.NURA;
   var BASE = N.BASE;
   var $ = document.getElementById.bind(document);
+  var iosModal = $('pwa-ios-modal');
+  var iosModalCard = iosModal.querySelector('div');
+  var iosModalClose = $('pwa-ios-modal-close');
+  var iosDialogCloser = null;
+  var originalIOSHide = window.NURA_PWA && window.NURA_PWA.hideIOSInstallModal;
+
+  function closeIOSInstallDialog() {
+    if (iosDialogCloser) { iosDialogCloser(); return; }
+    iosModal.hidden = true; iosModal.style.display = 'none';
+    if (originalIOSHide) originalIOSHide();
+  }
+  function openIOSInstallDialog(trigger) {
+    if (iosDialogCloser) return;
+    iosModal.style.display = 'flex';
+    iosModal.hidden = false;
+    iosDialogCloser = N.activateDialog(iosModal, iosModalCard, iosModalClose, function () {
+      iosModal.hidden = true; iosModal.style.display = 'none';
+      iosDialogCloser = null;
+      if (originalIOSHide) originalIOSHide();
+    }, {trigger: trigger || document.activeElement, dismissible: true, backdropClose: true});
+  }
+  iosModalClose.addEventListener('click', closeIOSInstallDialog);
+  $('pwa-ios-modal-cancel').addEventListener('click', closeIOSInstallDialog);
+  if (window.NURA_PWA) {
+    window.NURA_PWA.showIOSInstallModal = function () { openIOSInstallDialog(document.activeElement); };
+    window.NURA_PWA.hideIOSInstallModal = closeIOSInstallDialog;
+  }
+  window.showIOSInstallModal = function () { openIOSInstallDialog(document.activeElement); };
+  window.hideIOSInstallModal = closeIOSInstallDialog;
+  new MutationObserver(function () {
+    if (iosModal.hidden && iosModal.style.display === 'flex') openIOSInstallDialog(document.activeElement);
+  }).observe(iosModal, {attributes: true, attributeFilter: ['style']});
 
   var __isGuest = false;
   var dailyCacheKey = 'tarot_daily_card_' + new Date().toISOString().slice(0, 10);
@@ -815,6 +844,7 @@
   }
 
   function showAuthModal() {
+    if (window.NURA && window.NURA.showAuthModal) { window.NURA.showAuthModal(); return; }
     if (document.getElementById('nura-auth-modal')) return;
     var backdrop = document.createElement('div');
     backdrop.id = 'nura-auth-modal';

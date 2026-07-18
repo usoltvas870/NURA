@@ -1,4 +1,5 @@
 import logging
+import re
 import uuid
 
 from aiogram import F, Router
@@ -6,7 +7,8 @@ from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from bot.keyboards.main_menu import main_menu_keyboard, open_pwa_keyboard
+from bot.keyboards.main_menu import main_menu_keyboard
+from bot.middlewares.registration import _RETIRED_LEGACY_TG_AUTH_MESSAGE
 from bot.states.onboarding_state import OnboardingStates
 from bot.texts.onboarding import (
     ask_birth_date_onboarding_text,
@@ -16,17 +18,20 @@ from bot.texts.onboarding import (
     onboarding_greeting_text,
     pd_consent_declined_text,
     pd_consent_text,
-    tg_auth_success_text,
 )
 from bot.texts.start import help_text, welcome_back_text
 from core.database import get_async_sessionmaker, get_redis
 from core.repositories.payment import PaymentRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
+from core.services.auth import TelegramLinkConfirmationService
 
 logger = logging.getLogger(__name__)
 
 router = Router()
+
+_LINK_TOKEN_PATTERN = re.compile(r"[0-9a-f]{32}")
+_SIGNED_BIGINT_MAX = 2**63 - 1
 
 
 def _pd_consent_keyboard() -> InlineKeyboardMarkup:
@@ -45,14 +50,13 @@ def _delete_account_keyboard() -> InlineKeyboardMarkup:
 
 @router.message(Command("start"))
 async def cmd_start(message: Message, state: FSMContext, command: CommandObject) -> None:
-    await state.clear()
-
     args = command.args
 
     if args and args.startswith("tgauth_"):
-        token = args[7:]
-        await _handle_tg_auth_token(message, token)
+        await message.answer(_RETIRED_LEGACY_TG_AUTH_MESSAGE)
         return
+
+    await state.clear()
 
     if args and args.startswith("link_"):
         token = args[5:]
@@ -135,57 +139,6 @@ async def callback_delete_account_cancel(callback: CallbackQuery) -> None:
     await callback.message.answer(delete_account_cancelled_text())
 
 
-async def _handle_tg_auth_token(message: Message, token: str) -> None:
-    try:
-        redis = get_redis()
-        key = f"auth_token:{token}"
-        value = await redis.execute_command("GETDEL", key)
-
-        if value is None:
-            await message.answer("Ссылка недействительна или истекла.")
-            return
-
-        if isinstance(value, bytes):
-            value = value.decode()
-
-        session_factory = get_async_sessionmaker()
-        user_repo = UserRepository(session_factory)
-
-        if value != "pending":
-            web_user = await user_repo.get_by_web_session_id(value)
-            if web_user is None:
-                await message.answer("Пользователь не найден. Попробуй заново.")
-                return
-
-            result = await user_repo.update_telegram_id(web_user.id, message.from_user.id)
-            if result is None:
-                await message.answer(
-                    "Этот Telegram-аккаунт уже привязан к другому профилю NURA."
-                )
-                return
-
-            await user_repo.renew_session_expiry(web_user.id)
-
-            await redis.setex(key, 60, value)
-            await message.answer(tg_auth_success_text(), reply_markup=open_pwa_keyboard())
-            return
-
-        user = await user_repo.get_or_create_by_telegram_id(
-            message.from_user.id,
-            username=message.from_user.username,
-            first_name=message.from_user.first_name,
-        )
-
-        web_session_id = uuid.uuid4().hex
-        await user_repo.ensure_web_session(user.telegram_id, web_session_id)
-        await redis.setex(key, 300, web_session_id)
-        await message.answer(tg_auth_success_text(), reply_markup=open_pwa_keyboard())
-
-    except Exception:
-        logger.exception("TG auth token error for telegram_id=%s", message.from_user.id)
-        await message.answer("Что-то пошло не так. Попробуй ещё раз.")
-
-
 async def _show_authenticated_menu(message: Message, user) -> None:
     name = user.first_name or user.username or "пользователь"
     archetype = user.main_archetype or "не определён"
@@ -201,47 +154,68 @@ async def _show_authenticated_menu(message: Message, user) -> None:
 
 
 async def _handle_link_token(message: Message, token: str) -> None:
-    telegram_id = message.from_user.id
+    from_user = message.from_user
+    telegram_id = getattr(from_user, "id", None)
+    if (
+        not _LINK_TOKEN_PATTERN.fullmatch(token)
+        or type(telegram_id) is not int
+        or not 0 < telegram_id <= _SIGNED_BIGINT_MAX
+    ):
+        logger.info("telegram_link_token_invalid")
+        await message.answer(
+            "Ссылка недействительна или истекла.\n\n"
+            "Вернитесь в профиль NURA и создайте новую ссылку."
+        )
+        return
 
     try:
-        redis = get_redis()
-        key = f"link_token:{token}"
-        user_id = await redis.execute_command("GETDEL", key)
-
-        if not user_id:
-            await message.answer(
-                "❌ Ссылка недействительна или истекла.\n\n"
-                "Вернись в приложение NURA и запроси новую ссылку.",
-                reply_markup=open_pwa_keyboard(),
-            )
-            return
-
-        if isinstance(user_id, bytes):
-            user_id = user_id.decode()
-
-        session_factory = get_async_sessionmaker()
-        user_repo = UserRepository(session_factory)
-        updated = await user_repo.update_telegram_id(
-            uuid.UUID(user_id), telegram_id
-        )
-
-        if updated is None:
-            await message.answer(
-                "⚠️ Этот Telegram-аккаунт уже привязан к другому профилю NURA.\n\n"
-                "Напиши в поддержку если считаешь это ошибкой."
-            )
-            return
-
-        await message.answer(
-            "✅ Аккаунты связаны!\n\n"
-            "Теперь карта дня будет приходить сюда, "
-            "если ты не разрешил уведомления в приложении.",
-            reply_markup=open_pwa_keyboard(),
-        )
-
+        user_id = await get_redis().execute_command("GETDEL", f"link_token:{token}")
     except Exception:
-        logger.exception("Link token error for telegram_id=%s", telegram_id)
-        await message.answer("Что-то пошло не так. Попробуй ещё раз.")
+        logger.warning("telegram_link_token_consume_failure")
+        await message.answer(
+            "Не удалось начать привязку. Попробуйте ещё раз немного позже."
+        )
+        return
+
+    if not user_id:
+        logger.info("telegram_link_token_invalid")
+        await message.answer(
+            "Ссылка недействительна или истекла.\n\n"
+            "Вернитесь в профиль NURA и создайте новую ссылку."
+        )
+        return
+
+    try:
+        if isinstance(user_id, bytes):
+            user_id = user_id.decode("utf-8")
+        web_user_id = uuid.UUID(user_id)
+    except (TypeError, ValueError, UnicodeDecodeError):
+        logger.info("telegram_link_token_invalid")
+        await message.answer(
+            "Ссылка недействительна или истекла.\n\n"
+            "Вернитесь в профиль NURA и создайте новую ссылку."
+        )
+        return
+
+    try:
+        code = await TelegramLinkConfirmationService().create_pending(
+            web_user_id,
+            telegram_id,
+        )
+    except Exception:
+        logger.warning("telegram_link_pending_failure")
+        await message.answer(
+            "Привязка не завершена. Вернитесь в профиль NURA и создайте новую ссылку."
+        )
+        return
+
+    logger.info("telegram_link_token_consumed")
+    await message.answer(
+        "Код подтверждения: <code>%s</code>\n\n"
+        "Вернитесь в профиль NURA и введите его там. Код действует 10 минут. "
+        "Никому не сообщайте этот код: открытие ссылки само по себе не завершает привязку."
+        % code
+    )
 
 
 @router.message(Command("menu"))

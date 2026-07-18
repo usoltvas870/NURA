@@ -14,10 +14,7 @@
   <meta name="theme-color" content="#EFEEE9" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#12100E" media="(prefers-color-scheme: dark)">
   <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('nura-theme')||'light')})()</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="nura-local-fonts.css">
   <link rel="stylesheet" href="nura-pwa.css?v=11">
   <link rel="stylesheet" href="/theme.css?v=9">
   <link rel="stylesheet" href="nura-shell-v1.css?v=1">
@@ -224,9 +221,9 @@
     document.getElementById('guest-auth').addEventListener('click', auth); document.getElementById('guest-mini').addEventListener('click', function () { location.href = '/mini.html'; }); document.getElementById('limit-premium').addEventListener('click', openPremium); document.getElementById('limit-tomorrow').addEventListener('click', function () { location.href = 'index.html'; });
     input.addEventListener('input', function () { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 105) + 'px'; send.disabled = !this.value.trim() || sending || !state || !state.can_send; });
     input.addEventListener('keydown', function (event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); window.sendMessage(); } });
+    if (!new URLSearchParams(location.search).has('e2e') && 'serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
     init();
   })();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js', { scope: '/app/' });
   </script>
 </body>
 </html>
