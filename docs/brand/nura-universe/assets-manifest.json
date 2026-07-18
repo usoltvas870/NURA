@@ -1,0 +1,590 @@
+{
+  "schema_version": "1.0",
+  "universe_id": "nura_universe",
+  "style_id": "nura_cinematic_editorial_realism",
+  "document_status": "approved_v1",
+  "asset_count": 24,
+  "notes": [
+    "Изображения в каталоге — оптимизированные превью для документации.",
+    "Производственные оригиналы рекомендуется хранить отдельно в медиатеке проекта.",
+    "Стабильные asset id могут использоваться LOOPRA в Production Brief."
+  ],
+  "assets": [
+    {
+      "id": "nura.house.exterior.day",
+      "name_ru": "Дом тихого света — внешний вид, день",
+      "location": "house_quiet_light",
+      "time_of_day": "day",
+      "scene_role": "establishing",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/house-quiet-light-exterior-day.webp",
+      "source_filename": "Дом тихого света(2).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленное приближение или пролёт",
+        "движение листвы и занавесей",
+        "изменение света",
+        "лёгкий параллакс"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.house.exterior.night",
+      "name_ru": "Дом тихого света — внешний вид, ночь",
+      "location": "house_quiet_light",
+      "time_of_day": "night",
+      "scene_role": "establishing",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/house-quiet-light-exterior-night.webp",
+      "source_filename": "Дом тихого света - ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленное приближение или пролёт",
+        "движение листвы и занавесей",
+        "изменение света",
+        "лёгкий параллакс"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    },
+    {
+      "id": "nura.house.interior.salon.day",
+      "name_ru": "Дом тихого света — салон присутствия",
+      "location": "house_quiet_light",
+      "time_of_day": "day",
+      "scene_role": "interior",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/house-quiet-light-interior-salon-day.webp",
+      "source_filename": "Дом тихого света интерьер 2.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленный push-in",
+        "движение занавесей",
+        "световые блики",
+        "едва заметное движение растений"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.house.interior.reflection.day",
+      "name_ru": "Дом тихого света — комната размышления",
+      "location": "house_quiet_light",
+      "time_of_day": "day",
+      "scene_role": "interior",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/house-quiet-light-interior-reflection-day.webp",
+      "source_filename": "Дом тихого света интерьер 1.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленный push-in",
+        "движение занавесей",
+        "световые блики",
+        "едва заметное движение растений"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.garden.silence.day",
+      "name_ru": "Сад тишины — день",
+      "location": "garden_silence",
+      "time_of_day": "day",
+      "scene_role": "establishing",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/garden-silence-day.webp",
+      "source_filename": "Сад тишины(1).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленное приближение или пролёт",
+        "движение листвы и занавесей",
+        "изменение света",
+        "лёгкий параллакс"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.garden.silence.night",
+      "name_ru": "Сад тишины — ночь",
+      "location": "garden_silence",
+      "time_of_day": "night",
+      "scene_role": "establishing",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/garden-silence-night.webp",
+      "source_filename": "Сад тишины — ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленное приближение или пролёт",
+        "движение листвы и занавесей",
+        "изменение света",
+        "лёгкий параллакс"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    },
+    {
+      "id": "nura.tree.presence.day",
+      "name_ru": "Дерево присутствия — день",
+      "location": "tree_presence",
+      "time_of_day": "day",
+      "scene_role": "symbolic",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/tree-presence-day.webp",
+      "source_filename": "Дерево присутствия(1).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленное приближение",
+        "движение кроны",
+        "скольжение света",
+        "мягкий параллакс"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.tree.presence.night",
+      "name_ru": "Дерево присутствия — ночь",
+      "location": "tree_presence",
+      "time_of_day": "night",
+      "scene_role": "symbolic",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/tree-presence-night.webp",
+      "source_filename": "Дерево присутствия — ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленное приближение",
+        "движение кроны",
+        "скольжение света",
+        "мягкий параллакс"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    },
+    {
+      "id": "nura.stone.conversation.day",
+      "name_ru": "Камень беседы — день",
+      "location": "conversation_stone",
+      "time_of_day": "day",
+      "scene_role": "dialogue",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/conversation-stone-day.webp",
+      "source_filename": "Камень беседы(1).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "приближение к месту беседы",
+        "движение растений",
+        "пятна света",
+        "локальное мерцание ночью"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.stone.conversation.night",
+      "name_ru": "Камень беседы — ночь",
+      "location": "conversation_stone",
+      "time_of_day": "night",
+      "scene_role": "dialogue",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/conversation-stone-night.webp",
+      "source_filename": "Камень беседы — ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "приближение к месту беседы",
+        "движение растений",
+        "пятна света",
+        "локальное мерцание ночью"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    },
+    {
+      "id": "nura.path.golden.day",
+      "name_ru": "Золотая тропа — день",
+      "location": "golden_path",
+      "time_of_day": "day",
+      "scene_role": "transition",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/golden-path-day.webp",
+      "source_filename": "Золотая тропа(1).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "движение камеры вперёд",
+        "мягкая пульсация золотой линии",
+        "движение трав",
+        "изменение фокуса"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.path.golden.night",
+      "name_ru": "Золотая тропа — ночь",
+      "location": "golden_path",
+      "time_of_day": "night",
+      "scene_role": "transition",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/golden-path-night.webp",
+      "source_filename": "Золотая тропа — ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "движение камеры вперёд",
+        "мягкая пульсация золотой линии",
+        "движение трав",
+        "изменение фокуса"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    },
+    {
+      "id": "nura.river.questions.day",
+      "name_ru": "Река вопросов — день",
+      "location": "river_questions",
+      "time_of_day": "day",
+      "scene_role": "reflection",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/river-questions-day.webp",
+      "source_filename": "Река вопросов(2).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "движение воды",
+        "блики и отражения",
+        "круги на воде",
+        "медленный пролёт"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.river.questions.night",
+      "name_ru": "Река вопросов — ночь",
+      "location": "river_questions",
+      "time_of_day": "night",
+      "scene_role": "reflection",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/river-questions-night.webp",
+      "source_filename": "Река вопросов — ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "движение воды",
+        "блики и отражения",
+        "круги на воде",
+        "медленный пролёт"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    },
+    {
+      "id": "nura.lake.mirror.day",
+      "name_ru": "Зеркальное озеро — день",
+      "location": "mirror_lake",
+      "time_of_day": "day",
+      "scene_role": "reflection",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/mirror-lake-day.webp",
+      "source_filename": "Зеркальное озеро(2).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "движение воды",
+        "блики и отражения",
+        "круги на воде",
+        "медленный пролёт"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.lake.mirror.night",
+      "name_ru": "Зеркальное озеро — ночь",
+      "location": "mirror_lake",
+      "time_of_day": "night",
+      "scene_role": "reflection",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/mirror-lake-night.webp",
+      "source_filename": "Зеркальное озеро — ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "движение воды",
+        "блики и отражения",
+        "круги на воде",
+        "медленный пролёт"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    },
+    {
+      "id": "nura.mountains.perspective.day",
+      "name_ru": "Горы перспективы — день",
+      "location": "mountains_perspective",
+      "time_of_day": "day",
+      "scene_role": "perspective",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/mountains-perspective-day.webp",
+      "source_filename": "Горы перспективы(3).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленный zoom-out",
+        "атмосферная дымка",
+        "облака",
+        "движение переднего плана"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.mountains.perspective.night",
+      "name_ru": "Горы перспективы — ночь",
+      "location": "mountains_perspective",
+      "time_of_day": "night",
+      "scene_role": "perspective",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/mountains-perspective-night.webp",
+      "source_filename": "Горы перспективы — ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленный zoom-out",
+        "атмосферная дымка",
+        "облака",
+        "движение переднего плана"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    },
+    {
+      "id": "nura.valley.choice.day",
+      "name_ru": "Долина выбора — день",
+      "location": "valley_choice",
+      "time_of_day": "day",
+      "scene_role": "decision",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/valley-choice-day.webp",
+      "source_filename": "Долина выбора(1).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленный подъём камеры",
+        "свет вдоль нескольких путей",
+        "движение трав",
+        "параллакс"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.valley.choice.night",
+      "name_ru": "Долина выбора — ночь",
+      "location": "valley_choice",
+      "time_of_day": "night",
+      "scene_role": "decision",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/valley-choice-night.webp",
+      "source_filename": "Долина выбора — ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленный подъём камеры",
+        "свет вдоль нескольких путей",
+        "движение трав",
+        "параллакс"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    },
+    {
+      "id": "nura.pavilion.symbols.exterior.day",
+      "name_ru": "Павильон символов — внешний вид, день",
+      "location": "pavilion_symbols",
+      "time_of_day": "day",
+      "scene_role": "establishing",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/pavilion-symbols-exterior-day.webp",
+      "source_filename": "Павильон символов(2).png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленное приближение или пролёт",
+        "движение листвы и занавесей",
+        "изменение света",
+        "лёгкий параллакс"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.pavilion.symbols.table.day",
+      "name_ru": "Павильон символов — стол смыслов, день",
+      "location": "pavilion_symbols",
+      "time_of_day": "day",
+      "scene_role": "ritual",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/pavilion-symbols-table-day.webp",
+      "source_filename": "Павильон 1.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленное приближение",
+        "движение занавесей",
+        "блики на золоте",
+        "лёгкое движение символического объекта"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.pavilion.conversation.day",
+      "name_ru": "Павильон тихих разговоров — день",
+      "location": "pavilion_symbols",
+      "time_of_day": "day",
+      "scene_role": "dialogue",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/pavilion-conversation-lounge-day.webp",
+      "source_filename": "Павильон 2.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "приближение к месту беседы",
+        "движение растений",
+        "пятна света",
+        "локальное мерцание ночью"
+      ],
+      "caption_safe_zone": "верхняя левая, верхняя центральная или спокойная область неба/стены"
+    },
+    {
+      "id": "nura.pavilion.symbols.night",
+      "name_ru": "Павильон символов — ночь",
+      "location": "pavilion_symbols",
+      "time_of_day": "night",
+      "scene_role": "ritual",
+      "formats": [
+        "A",
+        "B"
+      ],
+      "documentation_path": "assets/pavilion-symbols-night.webp",
+      "source_filename": "Павильон символов — ночь.png",
+      "pixel_size": {
+        "width": 760,
+        "height": 1350
+      },
+      "motion": [
+        "медленное приближение",
+        "движение занавесей",
+        "блики на золоте",
+        "лёгкое движение символического объекта"
+      ],
+      "caption_safe_zone": "свободная область ночного неба, преимущественно сверху"
+    }
+  ]
+}
