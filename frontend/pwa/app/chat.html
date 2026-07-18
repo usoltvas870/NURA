@@ -73,6 +73,12 @@
       </section>
     </main>
 
+    <div class="chat-limit-banner" id="limit-banner" hidden>
+      <span class="chat-limit-banner-icon">✦</span>
+      <span class="chat-limit-banner-text">Лимит вопросов на сегодня исчерпан. <strong>История диалога сохранена.</strong></span>
+      <a class="chat-limit-banner-link" href="profile.html#subscription">Premium</a>
+    </div>
+
     <section class="composer-shell is-disabled" id="composer-shell">
       <div class="composer-context" id="limit-note"><span>✦</span><span id="status-text">Загружаем личный диалог…</span></div>
       <div class="composer-service" id="composer-service" hidden><div><strong id="service-title">Нужен вход</strong><small id="service-copy">Авторизуйся, чтобы открыть личный диалог.</small></div><button id="service-action" type="button">Войти</button></div>
@@ -131,6 +137,7 @@
     function renderState() {
       service.hidden = true;
       resetContext();
+      document.getElementById('limit-banner').hidden = true;
       if (!state) { showOnly(empty); setComposer(false); return; }
       if (!user) {
         showOnly(guest); setComposer(false); setNote('Личный диалог станет доступен после входа', true);
@@ -138,7 +145,14 @@
         setService('Нужен вход', 'Авторизуйся, чтобы NURA могла учитывать твой личный контекст.', 'Войти', auth);
         return;
       }
-      if (!state.can_send) { showOnly(limit); setComposer(false); setNote('Вопросы на сегодня закончились', true); setService('Лимит вопросов исчерпан', 'История сохранена. Продолжить можно с Premium.', 'Premium', openPremium); return; }
+      if (!state.can_send) {
+        showOnly(chatLog.length ? conversation : empty);
+        document.getElementById('limit-banner').hidden = false;
+        setComposer(false);
+        setNote('Вопросы на сегодня закончились', true);
+        service.hidden = true;
+        return;
+      }
       showOnly(chatLog.length ? conversation : empty);
       setComposer(!sending);
       if (sending) { setNote('NURA формирует ответ', false); return; }
@@ -195,7 +209,7 @@
         context.hidden = false;
       } catch (_) { if (user && user.has_matrix) { contextTitle.textContent = 'Личная Матрица'; context.hidden = false; } }
     }
-    function pending() { var value = new URLSearchParams(location.search).get('question') || localStorage.getItem('nura_pending_question'); if (!value || !state || !state.can_send) return; input.value = value; input.dispatchEvent(new Event('input')); window.sendMessage(value, true); }
+    function pending() { var value = sessionStorage.getItem('nura_chat_draft'); if (!value) { value = new URLSearchParams(location.search).get('question'); } if (!value || !state || !state.can_send) return; sessionStorage.removeItem('nura_chat_draft'); input.value = value; input.dispatchEvent(new Event('input')); history.replaceState(null, '', location.pathname); }
     async function init() {
       try { user = await N.fetchJSON(BASE + '/web/me'); loadHistory(); state = await N.fetchJSON(BASE + '/web/chat/state'); renderState(); loadContext(); pending(); }
       catch (error) { if (error && error.status === 401) { user = null; state = { can_send: false }; renderState(); return; } if (error && error.status === 403) location.href = '/app/?blocked=1'; }
@@ -214,8 +228,8 @@
         typing(false);
         if (!response.ok) { if (data.code === 'daily_limit_reached') { state = data; return; } throw new Error('chat'); }
         state = data.quota; var replyTime = messageTime(); bubble('nura', data.reply, replyTime); save('nura', data.reply, replyTime); addFollowups();
-        if (pendingSend) { localStorage.removeItem('nura_pending_question'); history.replaceState(null, '', location.pathname); }
-      } catch (_) { typing(false); bubble('nura', 'Не удалось получить ответ. Проверь соединение и попробуй ещё раз.', messageTime(), text); if (pendingSend) localStorage.setItem('nura_pending_question', text); }
+        history.replaceState(null, '', location.pathname);
+      } catch (_) { typing(false); bubble('nura', 'Не удалось получить ответ. Проверь соединение и попробуй ещё раз.', messageTime(), text); }
       finally { sending = false; renderState(); scroll(); }
     };
     window.clearChat = function () { localStorage.removeItem('nura_chat_log'); chatLog = []; conversation.replaceChildren(); renderState(); };

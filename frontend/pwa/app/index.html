@@ -125,9 +125,6 @@
   font-weight:700;
 }
 [data-theme="dark"] .hero-point{background:rgba(255,255,255,.04)}
-.section-head-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.section-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-s)}
-.section-link{font-size:12px;color:var(--terra);font-weight:700}
 .today-card{
   padding:20px;
   display:grid;
@@ -161,34 +158,6 @@
 .today-phrase{font-size:13px;line-height:1.6;color:var(--text-m)}
 .today-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .today-actions .btn{padding:0 14px}
-.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.quick-link{
-  padding:18px 16px;
-  min-height:136px;
-  display:grid;
-  align-content:start;
-  gap:12px;
-  cursor:pointer;
-  transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s var(--ease);
-}
-.quick-link:active{transform:scale(.985)}
-.quick-link:hover{transform:translateY(-2px);box-shadow:var(--shadow-soft);border-color:rgba(184,116,63,.18)}
-.quick-icon{
-  width:44px;
-  height:44px;
-  border-radius:14px;
-  display:grid;
-  place-items:center;
-  background:rgba(184,116,63,.10);
-  color:var(--terra);
-  font-size:20px;
-}
-.quick-link.day .quick-icon{background:rgba(194,164,118,.16);color:var(--gold-ink)}
-.quick-link.chat .quick-icon{background:rgba(107,128,104,.14);color:var(--sage)}
-.quick-link.profile .quick-icon{background:rgba(26,26,26,.06);color:var(--text)}
-[data-theme="dark"] .quick-link.profile .quick-icon{background:rgba(255,255,255,.08);color:var(--text)}
-.quick-title{font-size:15px;font-weight:800;line-height:1.25;color:var(--text)}
-.quick-copy{font-size:12.5px;line-height:1.5;color:var(--text-m)}
 .matrix-card-clean{
   padding:20px;
   display:grid;
@@ -253,7 +222,6 @@
 @media(max-width:360px){
   .hero-actions,
   .today-actions,
-  .quick-grid,
   .matrix-actions,
   .status-grid{grid-template-columns:1fr}
   .today-top,
@@ -308,22 +276,12 @@
     <button class="journey-complete" id="journey-complete" type="button" hidden><span class="journey-complete-icon">✦</span><span><strong>Твой личный контур собран</strong><span class="journey-complete-copy">Отчёт, карта дня и диалог с NURA доступны.</span></span><span class="row-chevron">›</span></button>
   </section>
 
-  <section class="home-section" aria-labelledby="access-heading">
-    <h2 class="home-section-title" id="access-heading"><span>✦</span>Быстрый доступ</h2>
-    <div class="access-panel">
-      <button class="access-row" type="button" onclick="openReport()"><span class="access-icon"><i class="ti ti-grid-dots"></i></span><span><span class="access-title">Матрица и отчёты</span><span class="access-copy" id="quick-matrix-copy">Мини-разбор и личные отчёты</span></span><span class="access-badge" id="quick-matrix-badge">Гость</span><span class="row-chevron">›</span></button>
-      <button class="access-row is-sage" type="button" onclick="askNura('С чего мне лучше начать сегодня?')"><span class="access-icon"><i class="ti ti-message-circle"></i></span><span><span class="access-title">Чат с NURA</span><span class="access-copy" id="quick-chat-copy">Диалог после входа</span></span><span class="access-badge" id="quick-chat-badge">После входа</span><span class="row-chevron">›</span></button>
-      <button class="access-row" id="third-access-row" type="button" onclick="location.href='profile.html'"><span class="access-icon"><i class="ti ti-user-circle"></i></span><span><span class="access-title" id="third-access-title">Профиль и настройки</span><span class="access-copy" id="third-access-copy">Аккаунт, подписка и доступ</span></span><span class="access-badge" id="quick-profile-badge">После входа</span><span class="row-chevron">›</span></button>
-    </div>
-  </section>
-
   <section class="home-philosophy" aria-label="Философия NURA"><p>NURA не предсказывает будущее — она помогает увидеть, что уже происходит внутри.</p></section>
 
   <div class="home-data-cache" aria-hidden="true" hidden>
     <span id="matrix-num"></span><span id="matrix-name"></span><span id="matrix-desc"></span>
     <span id="report-status-state">Проверяем</span><span id="report-status-copy"></span>
     <span id="subscription-status-state">Проверяем</span><span id="subscription-status-copy"></span>
-    <span id="quick-profile-copy"></span>
   </div>
 </main></div>
 
@@ -412,37 +370,26 @@
   function setAccessBadges(state, hasMini, hasFull) {
     var badges = {
       guest: [
-        ['Начать', 'action'], ['После мини-разбора', 'action'], ['После входа', 'action'],
-        ['Пройти мини-разбор', 'action'], ['После входа', 'action'], ['После входа', 'action']
+        ['Начать', 'action'], ['После мини-разбора', 'action'], ['После входа', 'action']
       ],
       free: [
         [hasMini ? 'Готово' : 'Получить отчёт', hasMini ? 'available' : 'action'],
         [hasFull ? 'Открыто' : hasMini ? 'Купить отчёт' : 'После мини-разбора', hasFull ? 'available' : 'action'],
-        ['По подписке', 'action'],
-        [hasFull || hasMini ? 'Открыто' : 'Получить отчёт', hasFull || hasMini ? 'available' : 'action'],
-        ['По подписке', 'action'], ['Открыто', 'available']
+        ['По подписке', 'action']
       ],
       subscriber: [
         [hasMini ? 'Готово' : 'Открыть профиль', 'available'],
         [hasFull ? 'Открыто' : 'Купить отчёт', hasFull ? 'available' : 'action'],
-        ['Открыто', 'available'],
-        [hasFull || hasMini ? 'Открыто' : 'Открыть профиль', 'available'],
-        ['Открыто', 'available'], ['Открыто', 'available']
+        ['Открыто', 'available']
       ]
     }[state];
-    var ids = ['journey-mini-badge', 'journey-report-badge', 'journey-ritual-badge', 'quick-matrix-badge', 'quick-chat-badge', 'quick-profile-badge'];
+    var ids = ['journey-mini-badge', 'journey-report-badge', 'journey-ritual-badge'];
     ids.forEach(function(id, index) {
       var badge = $(id);
       badge.textContent = badges[index][0];
       badge.dataset.access = state;
       badge.dataset.status = badges[index][1];
     });
-  }
-
-  function setAccess(authorized) {
-    $('third-access-title').textContent = authorized ? 'Расклады' : 'Профиль и настройки';
-    $('third-access-copy').textContent = authorized ? 'Глубже разобрать вопрос или ситуацию' : 'Аккаунт, подписка и доступ';
-    $('third-access-row').onclick = authorized ? openDailyCard : function() { location.href = 'profile.html'; };
   }
 
   function setReportSummary(state, copy) {
@@ -453,12 +400,6 @@
   function setSubscriptionSummary(state, copy) {
     $('subscription-status-state').textContent = state;
     $('subscription-status-copy').textContent = copy;
-  }
-
-  function setQuickCopies(matrixCopy, chatCopy, profileCopy) {
-    $('quick-matrix-copy').textContent = matrixCopy;
-    $('quick-chat-copy').textContent = chatCopy;
-    $('quick-profile-copy').textContent = profileCopy;
   }
 
   var params = new URLSearchParams(location.search);
@@ -549,7 +490,6 @@
 
         setAccessBadges(hasTarot ? 'subscriber' : 'free', hasMini, hasFull);
 
-        setAccess(true);
         configureJourneyActions();
         if (hasFull && hasTarot) {
           setHero('Твой мягкий ритуал на сегодня', 'Отчёт, карта дня и диалог уже собраны в одном спокойном пространстве.');
@@ -595,12 +535,6 @@
         } else {
           setSubscriptionSummary('Не активна', 'Подписка открывает практики, карту дня и более глубокий диалог с NURA.');
         }
-
-        setQuickCopies(
-          hasFull ? 'Вернуться к отчёту и главным энергиям' : 'Собрать Матрицу и открыть личный отчёт',
-          hasTarot ? 'Продолжить диалог с NURA без лимита' : 'Спросить про день, отношения или деньги',
-          hasTarot ? 'Подписка активна, настройки и отчёты внутри' : 'Подписка, отчёты и настройки доступа'
-        );
 
         if (d.archetype_number) {
           $('matrix-num').textContent = d.archetype_number;
@@ -718,7 +652,7 @@
 
   function openDailyCard() {
     if (__isGuest) { showAuthModal(); return; }
-    location.href = 'tarot.html';
+    location.href = 'tarot.html?open=daily';
   }
 
   function configureJourneyActions() {
@@ -743,8 +677,8 @@
 
   function askNura(text) {
     if (__isGuest) { showAuthModal(); return; }
-    localStorage.setItem('nura_pending_question', text);
-    location.href = 'chat.html?question=' + encodeURIComponent(text);
+    sessionStorage.setItem('nura_chat_draft', text);
+    location.href = 'chat.html';
   }
   window.askNura = askNura;
 
@@ -759,7 +693,6 @@
     $('report-cta').textContent = 'Пройти мини-разбор';
     $('report-cta').onclick = function() { location.href = '/mini.html'; };
     setJourney('Начать', 'После мини-разбора', 'После входа', false);
-    setAccess(false);
     configureJourneyActions();
     setDailyBack();
     $('home-today').classList.remove('is-loading');
@@ -769,11 +702,6 @@
     setDailyAction('Войти и открыть →', false, showAuthModal);
     setReportSummary('Гостевой режим', 'Мини-разбор откроет твой первый персональный сценарий внутри NURA.');
     setSubscriptionSummary('Не активна', 'После регистрации можно включить карту дня, практики и расширенный чат.');
-    setQuickCopies(
-      'Сначала мини-разбор, затем полный отчёт по Матрице',
-      'После входа можно задавать вопросы через личный контекст',
-      'Здесь появятся подписка, отчёты и настройки'
-    );
     $('matrix-desc').textContent = 'Пройди мини-разбор, чтобы на этом экране появился твой архетип и краткая расшифровка.';
     $('matrix-num').classList.remove('skeleton', 'skeleton-num');
     $('matrix-num').textContent = '—';
@@ -792,7 +720,6 @@
     $('report-cta').textContent = 'Войти в NURA';
     $('report-cta').onclick = function() { showAuthModal(); };
     setJourney('Войти', 'После входа', 'После входа', false);
-    setAccess(false);
     configureJourneyActions();
     setDailyBack();
     $('home-today').classList.remove('is-loading');
@@ -802,11 +729,6 @@
     setDailyAction('Войти и открыть →', false, showAuthModal);
     setReportSummary('Доступ закрыт', 'После входа снова появятся отчёт, история и личные материалы.');
     setSubscriptionSummary('Требуется вход', 'Статус подписки и карты дня станет виден после авторизации.');
-    setQuickCopies(
-      'Войди снова, чтобы вернуть доступ к Матрице',
-      'После входа можно продолжить диалог с NURA',
-      'Профиль и настройки восстановятся после авторизации'
-    );
     $('matrix-desc').textContent = 'Войди через email или VK, чтобы восстановить свой личный экран и мини-разбор.';
     $('matrix-num').classList.remove('skeleton', 'skeleton-num');
     $('matrix-num').textContent = '?';

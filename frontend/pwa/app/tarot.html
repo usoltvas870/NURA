@@ -286,6 +286,13 @@
         $('hero-phrase').textContent = data.key_phrase || '';
         $('hero-num').textContent = data.arcana_number || '';
         if (faces[data.arcana_number]) $('daily-card-image').src = 'images/' + faces[data.arcana_number] + '.png';
+        var params = new URLSearchParams(location.search);
+        if (params.get('open') === 'daily' && data && data.arcana_number != null) {
+          params.delete('open');
+          var cleanUrl = location.pathname + (params.toString() ? '?' + params.toString() : '');
+          history.replaceState(null, '', cleanUrl);
+          window.openCardDetail();
+        }
       }
 
       function openTopic(type) {
@@ -323,8 +330,8 @@
       };
 
       window.askNura = function (text) {
-        localStorage.setItem('nura_pending_question', text);
-        location.href = 'chat.html?question=' + encodeURIComponent(text);
+        sessionStorage.setItem('nura_chat_draft', text);
+        location.href = 'chat.html';
       };
 
       window.shareDayCard = function () {
