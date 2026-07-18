@@ -22,6 +22,8 @@ from core.models import (
 
 LEGACY_REVISION = "f7a8b9c0d1e2"
 PRE_LEGACY_REVISION = "e6f7a8b9c0d1"
+# c0d1e2f3a4b5 is PostgreSQL-only FK normalization; SQLite round-trip stops at the previous revision.
+SQLITE_COMPATIBLE_HEAD = "b9c0d1e2f3a4"
 REPORT_LIFECYCLE_COLUMNS = {
     "payment_id",
     "payment_state",
@@ -200,7 +202,8 @@ def test_migration_backfills_legacy_reports_and_round_trips(tmp_path, monkeypatc
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{database_path.as_posix()}")
 
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ["b9c0d1e2f3a4"]
+    heads = script.get_heads()
+    assert heads == ["c0d1e2f3a4b5"]
 
     _create_pre_legacy_schema(database_path)
     command.stamp(config, PRE_LEGACY_REVISION)
@@ -251,7 +254,7 @@ def test_migration_backfills_legacy_reports_and_round_trips(tmp_path, monkeypatc
             ),
         )
 
-    command.upgrade(config, "head")
+    command.upgrade(config, SQLITE_COMPATIBLE_HEAD)
 
     engine = create_engine(f"sqlite:///{database_path.as_posix()}")
     try:
@@ -351,7 +354,7 @@ def test_migration_backfills_legacy_reports_and_round_trips(tmp_path, monkeypatc
     assert job_defaults == ("full_report", ReportGenerationJobState.PENDING_DISPATCH, 0)
 
     command.downgrade(config, LEGACY_REVISION)
-    command.upgrade(config, "head")
+    command.upgrade(config, SQLITE_COMPATIBLE_HEAD)
 
     with sqlite3.connect(database_path) as connection:
         report_after_repeat_upgrade = connection.execute(
