@@ -100,6 +100,9 @@ jobs:
           python -m pip install -r requirements-dev.txt -c constraints-py311.txt
           python -m pip check
 
+      - name: Install Chromium for Playwright E2E tests
+        run: python -m playwright install --with-deps chromium
+
       - name: Run tests
         run: python -m pytest
         env:
