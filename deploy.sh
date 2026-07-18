@@ -1,8 +1,27 @@
 #!/bin/bash
 set -e
+WEB_ROOT=/var/www/nura-ai.ru
+
 echo "→ Pulling from GitHub main..."
 cd /opt/nura
 git pull origin main
+
+echo "→ Checking required sources..."
+for f in index.html landing-v2.css landing-v2.js \
+  frontend/nura-hero-final.webp frontend/nura-hero-final-mobile.webp \
+  frontend/landing-v2/tools-matrix.webp frontend/landing-v2/tools-tarot.webp \
+  frontend/landing-v2/tools-dialogue.webp \
+  frontend/landing-v2/pwa-home-neutral.webp \
+  frontend/landing-v2/pwa-tarot-neutral.webp; do
+  if ! test -f "$f"; then
+    echo "Missing required file: $f" >&2
+    exit 1
+  fi
+done
+if ! test -d frontend/landing-v2; then
+  echo "Missing required directory: frontend/landing-v2" >&2
+  exit 1
+fi
 
 echo "→ Copying landing page..."
 cp index.html /var/www/nura-ai.ru/index.html 2>/dev/null || true
@@ -13,6 +32,8 @@ cp mini.html /var/www/nura-ai.ru/mini.html 2>/dev/null || true
 cp personal-data-consent.html /var/www/nura-ai.ru/personal-data-consent.html 2>/dev/null || true
 cp marketing-consent.html /var/www/nura-ai.ru/marketing-consent.html 2>/dev/null || true
 cp theme.css /var/www/nura-ai.ru/theme.css 2>/dev/null || true
+install -m 0644 landing-v2.css "$WEB_ROOT/landing-v2.css"
+install -m 0644 landing-v2.js "$WEB_ROOT/landing-v2.js"
 
 echo "→ Copying PWA app..."
 cp -r frontend/pwa/app/* /var/www/nura-ai.ru/app/ 2>/dev/null || true
@@ -40,7 +61,10 @@ echo "→ Copying favicon and images..."
 cp favicon.ico /var/www/nura-ai.ru/favicon.ico 2>/dev/null || true
 cp favicon.png /var/www/nura-ai.ru/favicon.png 2>/dev/null || true
 cp hero.png /var/www/nura-ai.ru/hero.png 2>/dev/null || true
-cp frontend/nura-hero.webp /var/www/nura-ai.ru/nura-hero.webp 2>/dev/null || true
+cp frontend/nura-hero-final.webp /var/www/nura-ai.ru/nura-hero-final.webp 2>/dev/null || true
+install -m 0644 frontend/nura-hero-final-mobile.webp "$WEB_ROOT/nura-hero-final-mobile.webp"
+mkdir -p "$WEB_ROOT/landing-v2"
+cp -a frontend/landing-v2/. "$WEB_ROOT/landing-v2/"
 
 echo "→ Updating nginx config..."
 cp nura_app/nginx/nura-ai.ru.conf /etc/nginx/sites-available/nura-ai.ru.conf 2>/dev/null || true
