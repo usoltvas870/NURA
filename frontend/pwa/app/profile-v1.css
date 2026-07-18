@@ -57,3 +57,8 @@ body.pwa-profile-page .profile-logout:disabled, body.pwa-profile-page .profile-d
 @media (max-width:380px) { body.pwa-profile-page .profile-content { gap:15px; } body.pwa-profile-page .profile-card-head { align-items:flex-start; } body.pwa-profile-page .profile-card-head h2 { font-size:24px; } body.pwa-profile-page .profile-row { padding-inline:11px; gap:8px; } }
 @media (min-width:760px) { body.pwa-profile-page .profile-content { padding-bottom:var(--shell-tabbar-breathing-room); } }
 @media (prefers-reduced-motion:reduce) { body.pwa-profile-page .profile-skeleton { animation:none; } body.pwa-profile-page .profile-toggle, body.pwa-profile-page .profile-toggle::after { transition:none; } }
+body.pwa-profile-page .tg-helper { padding:10px 13px 14px; color:var(--text-m); font-size:12px; line-height:1.5; border-top:1px solid var(--line); }
+body.pwa-profile-page .tg-helper-error { color:var(--danger); }
+body.pwa-profile-page .tg-helper-wrap { display:grid; gap:8px; padding:10px 13px 14px; border-top:1px solid var(--line); }
+body.pwa-profile-page .tg-helper-text { margin:0; color:var(--text-m); font-size:12px; line-height:1.5; }
+body.pwa-profile-page .tg-fallback-link { width:100%; min-height:44px; }

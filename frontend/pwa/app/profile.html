@@ -85,7 +85,14 @@
     function reportTitle(type) { return ({mini:'Мини-разбор',full:'Матрица Судьбы',compatibility:'Совместимость',forecast:'Прогноз на год'})[type] || 'Личный материал'; }
     function renderReports(reports) { state.reports = Array.isArray(reports) ? reports.filter(validReport) : []; var list = $('reports-list'); clear(list); if (!state.reports.length) { list.appendChild(element('p','profile-empty','Личных отчётов пока нет. Первый материал появится здесь после мини-разбора.')); return; } state.reports.forEach(function (report) { var row = element('a','profile-row profile-report-row'); row.href = report.url; var icon = element('span','profile-row-icon'); icon.appendChild(element('i','ti ti-' + (report.report_type === 'full' ? 'grid-dots' : 'sparkles'))); var copy = element('span','profile-row-copy'); copy.append(element('strong','',reportTitle(report.report_type)), element('small','',report.created_at || 'Личный материал')); row.append(icon,copy,element('i','ti ti-chevron-right profile-chevron')); list.appendChild(row); }); }
     function renderMatrix(user) { var status = $('matrix-report-status'), open = $('matrix-open-btn'), buy = $('matrix-buy-btn'), matrix = $('static-matrix-card'); open.hidden = true; buy.hidden = true; if (user.has_matrix) { if (user.report_token && /^[A-Za-z0-9_-]+$/.test(user.report_token)) { status.textContent = 'Открыто'; open.hidden = false; open.onclick = function () { location.href = '/report/' + user.report_token; }; } else { status.textContent = 'Матрица доступна, ссылка временно недоступна'; } } else { status.textContent = 'Получить после мини-разбора'; buy.hidden = false; buy.onclick = function () { location.href = '/mini.html'; }; } matrix.hidden = false; }
-    function renderTelegram(linked) { state.telegramLinked = !!linked; var target = $('tg-link-container'); clear(target); var row = element('article','profile-row'); row.id = linked ? 'tg-linked-item' : 'tg-link-item'; var icon = element('span','profile-row-icon'); icon.appendChild(element('i','ti ti-brand-telegram')); var copy = element('span','profile-row-copy'); copy.append(element('strong','','Telegram'), element('small','', linked ? 'Подключено' : 'Не подключено')); var action = button(linked ? 'Отключить' : 'Подключить', 'btn btn-soft profile-row-action', linked ? window.unlinkTelegram : window.linkTelegram); action.id = 'tg-link-status'; row.append(icon,copy,action); target.appendChild(row); }
+    var tgPoll = { timer: null, count: 0, max: 30, url: null, state: 'idle', error: '', inFlight: false };
+    function stopTgPoll() { if (tgPoll.timer) { clearInterval(tgPoll.timer); tgPoll.timer = null; } }
+    function checkTgStatus() { if (tgPoll.inFlight) return Promise.resolve(false); tgPoll.inFlight = true; return N.fetchJSON(BASE + '/web/me').then(function (user) { state.user = user; if (user.telegram_linked && tgPoll.state !== 'idle' && tgPoll.state !== 'connected') { stopTgPoll(); tgPoll.state = 'connected'; state.telegramLinked = true; renderTgBlock(); setAccountError(''); return true; } return false; }).catch(function (err) { if (err && (err.status === 401 || err.status === 403)) { stopTgPoll(); tgPoll.state = 'idle'; tgPoll.url = null; renderTgBlock(); } return false; }).finally(function () { tgPoll.inFlight = false; }); }
+    function startTgPoll() { tgPoll.count = 0; stopTgPoll(); checkTgStatus(); tgPoll.timer = setInterval(function () { tgPoll.count++; if (tgPoll.count >= tgPoll.max) { stopTgPoll(); tgPoll.state = 'timeout'; renderTgBlock(); return; } checkTgStatus(); }, 3000); }
+    function openTgUrl() { if (tgPoll.url) { var w = window.open(tgPoll.url, '_blank', 'noopener,noreferrer'); if (!w) location.href = tgPoll.url; } }
+    function checkTgOnce() { if (tgPoll.inFlight) return; var status = $('tg-link-status'); if (status) { status.disabled = true; status.textContent = 'Проверяем…'; } checkTgStatus().then(function (linked) { if (!linked && tgPoll.state !== 'connected') { tgPoll.state = 'timeout'; renderTgBlock(); } }); }
+    function renderTgBlock() { var target = $('tg-link-container'); clear(target); state.telegramLinked = tgPoll.state === 'connected'; var s = tgPoll.state; var row = element('article', 'profile-row'); var icon = element('span', 'profile-row-icon'); icon.appendChild(element('i', 'ti ti-brand-telegram')); var copy = element('span', 'profile-row-copy'); copy.appendChild(element('strong', '', 'Telegram')); var small, action; if (s === 'connected') { small = element('small', '', 'Подключено'); action = button('Отключить', 'btn btn-soft profile-row-action', window.unlinkTelegram); } else if (s === 'loading') { small = element('small', '', 'Подключаем…'); action = button('Готовим подключение…', 'btn btn-soft profile-row-action', function () {}); action.disabled = true; } else if (s === 'waiting') { small = element('small', '', 'Ожидаем подтверждение в Telegram'); action = button('Открыть Telegram', 'btn btn-soft profile-row-action', openTgUrl); } else if (s === 'timeout') { small = element('small', '', 'Подключение пока не подтверждено'); action = button('Проверить снова', 'btn btn-soft profile-row-action', checkTgOnce); } else { small = element('small', '', 'Не подключено'); action = button('Подключить', 'btn btn-soft profile-row-action', window.linkTelegram); } action.id = 'tg-link-status'; copy.appendChild(small); row.append(icon, copy, action); target.appendChild(row); if (s === 'waiting') { target.appendChild(element('div', 'tg-helper', 'После подтверждения вернитесь в NURA — статус обновится автоматически.')); } else if (s === 'timeout') { var wrap = element('div', 'tg-helper-wrap'); wrap.appendChild(element('p', 'tg-helper-text', 'Завершите действие в Telegram и нажмите «Проверить снова».')); var fb = button('Открыть Telegram', 'btn btn-soft tg-fallback-link', openTgUrl); wrap.appendChild(fb); target.appendChild(wrap); } else if (tgPoll.error) { target.appendChild(element('div', 'tg-helper tg-helper-error', tgPoll.error)); } }
+    function renderTelegram(linked) { stopTgPoll(); tgPoll.url = null; tgPoll.error = ''; tgPoll.state = linked ? 'connected' : 'idle'; renderTgBlock(); }
     function renderNotifications(prefs) { var target = $('notifications-list'); clear(target); notificationOptions.forEach(function (option) { var label = element('label','profile-row profile-switch-row'); var copy = element('span','profile-row-copy'); copy.append(element('strong','',option[1]),element('small','',option[2])); var input = document.createElement('input'); input.type = 'checkbox'; input.checked = !!(prefs && prefs[option[0]]); input.setAttribute('data-notif-key', option[0]); input.addEventListener('change', function () { window.saveNotif(option[0], input.checked); }); var toggle = element('span','profile-toggle'); label.append(copy,input,toggle); target.appendChild(label); }); }
     function setAccountError(message) { var node = $('account-action-status'); node.textContent = message; node.hidden = !message; }
     function renderAccount(user) { setIdentity(user); renderSubscription(user); renderMatrix(user); renderReports(user.reports); renderTelegram(user.telegram_linked); renderLegal($('legal-list')); renderNotifications({}); setAccountError(''); setState('account'); loadNotifications(); }
@@ -95,15 +102,61 @@
     window.openReport = function () { if (!state.confirmed) { N.showAuthModal(); return; } if (state.reports.length) location.href = state.reports[0].url; else location.href = '/mini.html'; };
     window.renderReports = renderReports;
     window.renderTgRow = renderTelegram;
-    window.linkTelegram = async function () { if (!state.confirmed) return; var status = $('tg-link-status'); status.disabled = true; try { var response = await fetch(BASE + '/web/generate-link-token',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin'}); if (!response.ok) throw new Error(); var data = await response.json(); if (!data || typeof data.tg_url !== 'string' || !/^https:\/\/t\.me\//.test(data.tg_url)) throw new Error(); window.open(data.tg_url,'_blank','noopener,noreferrer'); setAccountError('Открой Telegram, чтобы завершить подключение.'); } catch (_) { setAccountError('Не удалось начать подключение Telegram. Попробуй ещё раз.'); } finally { if ($('tg-link-status')) $('tg-link-status').disabled = false; } };
-    window.unlinkTelegram = async function () { if (!state.confirmed || !confirm('Отвязать Telegram? Уведомления перестанут приходить в бот.')) return; var status = $('tg-link-status'); status.disabled = true; try { var response = await fetch(BASE + '/web/unlink-telegram',{method:'DELETE',credentials:'same-origin'}); if (!response.ok) throw new Error(); state.user.telegram_linked = false; renderTelegram(false); setAccountError(''); } catch (_) { setAccountError('Не удалось отвязать Telegram. Попробуй позже.'); if ($('tg-link-status')) $('tg-link-status').disabled = false; } };
+    window.linkTelegram = async function () {
+      if (!state.confirmed) return;
+      if (tgPoll.state === 'loading' || tgPoll.state === 'waiting') return;
+      tgPoll.state = 'loading';
+      tgPoll.error = '';
+      renderTgBlock();
+      var tgWindow = null;
+      try { tgWindow = window.open('', '_blank'); } catch (_) {}
+      try {
+        var response = await fetch(BASE + '/web/generate-link-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin' });
+        if (!response.ok) throw new Error();
+        var data = await response.json();
+        if (!data || typeof data.tg_url !== 'string' || !/^https:\/\/t\.me\//.test(data.tg_url)) throw new Error();
+        tgPoll.url = data.tg_url;
+        if (tgWindow && !tgWindow.closed) { try { tgWindow.location.href = data.tg_url; } catch (_) {} }
+        tgPoll.state = 'waiting';
+        renderTgBlock();
+        startTgPoll();
+      } catch (_) {
+        if (tgWindow && !tgWindow.closed) { try { tgWindow.close(); } catch (_) {} }
+        tgPoll.state = 'idle';
+        tgPoll.error = 'Не удалось начать подключение. Попробуйте ещё раз.';
+        renderTgBlock();
+      }
+    };
+    window.unlinkTelegram = async function () {
+      if (!state.confirmed || !confirm('Отвязать Telegram? Уведомления перестанут приходить в бот.')) return;
+      stopTgPoll();
+      var status = $('tg-link-status');
+      if (status) status.disabled = true;
+      try {
+        var response = await fetch(BASE + '/web/unlink-telegram', { method: 'DELETE', credentials: 'same-origin' });
+        if (!response.ok) throw new Error();
+        state.user.telegram_linked = false;
+        tgPoll.state = 'idle';
+        tgPoll.url = null;
+        tgPoll.error = '';
+        renderTgBlock();
+        setAccountError('');
+      } catch (_) {
+        setAccountError('Не удалось отвязать Telegram. Попробуй позже.');
+        if ($('tg-link-status')) $('tg-link-status').disabled = false;
+      }
+    };
     window.saveNotif = function (key, value) { if (!state.confirmed) return; fetch(BASE + '/web/notifications',{method:'PATCH',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({key:key,enabled:value})}).then(function (response) { if (!response.ok) throw new Error(); var prefs = JSON.parse(localStorage.getItem('nura_notif_prefs') || '{}'); prefs[key] = value; localStorage.setItem('nura_notif_prefs', JSON.stringify(prefs)); setAccountError(''); }).catch(function () { var input = document.querySelector('input[data-notif-key="' + key + '"]'); if (input) input.checked = !value; setAccountError('Не удалось сохранить настройку уведомлений.'); }); };
     window.activateSubscription = function () { if (!state.confirmed) { N.showAuthModal(); return; } var btn = $('subscribe-btn'), promo = $('promoCodeField'), status = $('subscribe-status'), body = {}; if (promo && promo.value.trim()) body.promo_code = promo.value.trim(); btn.disabled = true; status.hidden = true; fetch(BASE + '/web/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:Object.keys(body).length ? JSON.stringify(body) : undefined}).then(function (response) { if (!response.ok) throw new Error(); return response.json(); }).then(function (data) { if (!data || typeof data.payment_url !== 'string') throw new Error(); location.href = data.payment_url; }).catch(function () { btn.disabled = false; status.textContent = 'Не удалось перейти к оплате. Попробуй ещё раз.'; status.hidden = false; }); };
     $('subscribe-btn').addEventListener('click', window.activateSubscription);
     function clearPersonalState() { ['nura_chat_log','nura_chat_user_id','nura_notif_prefs'].forEach(function (key) { localStorage.removeItem(key); }); try { Object.keys(localStorage).forEach(function (key) { if (key.indexOf('nura_daily_card:') === 0 || /^tarot_daily_card_\d{4}-\d{2}-\d{2}$/.test(key)) localStorage.removeItem(key); }); } catch (storageError) {} }
     window.logout = function () { if (!state.confirmed || !confirm('Выйти из аккаунта?')) return; var btn = $('logout-btn'); btn.disabled = true; fetch(BASE + '/web/logout',{method:'POST',credentials:'same-origin'}).then(function (response) { if (!response.ok) throw new Error(); clearPersonalState(); state.user = null; state.confirmed = false; renderGuest(); }).catch(function () { btn.disabled = false; setAccountError('Не удалось выйти из аккаунта. Попробуй ещё раз.'); }); };
     window.deleteAccount = function () { if (!state.confirmed || !confirm('Удалить аккаунт и все данные? Это действие необратимо.')) return; var btn = $('delete-btn'); btn.disabled = true; fetch(BASE + '/web/account',{method:'DELETE',credentials:'same-origin'}).then(function (response) { if (!response.ok) throw new Error(); clearPersonalState(); state.user = null; state.confirmed = false; renderGuest(); }).catch(function () { btn.disabled = false; setAccountError('Не удалось удалить аккаунт. Попробуй позже.'); }); };
-    $('logout-btn').addEventListener('click', window.logout); $('delete-btn').addEventListener('click', window.deleteAccount); loadProfile();
+    $('logout-btn').addEventListener('click', window.logout); $('delete-btn').addEventListener('click', window.deleteAccount);
+    function onTgVisibility() { if (tgPoll.state === 'waiting' && document.visibilityState === 'visible') checkTgStatus(); }
+    document.addEventListener('visibilitychange', onTgVisibility);
+    window.addEventListener('focus', function () { if (tgPoll.state === 'waiting') checkTgStatus(); });
+    loadProfile();
   }());
   </script>
 </body>
