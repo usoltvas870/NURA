@@ -16,7 +16,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.build_pwa_release import ASSETS, _build_metadata, canonical_asset_bytes
+from scripts.build_pwa_release import ASSETS, _build_metadata, canonical_asset_bytes  # noqa: E402
 
 
 @pytest.mark.parametrize(
