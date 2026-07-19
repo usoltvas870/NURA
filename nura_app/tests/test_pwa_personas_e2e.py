@@ -10,7 +10,7 @@ import urllib.request
 from collections.abc import Iterator
 
 import pytest
-from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
+from playwright.sync_api import Browser, BrowserContext, Page, Route, sync_playwright
 
 
 BASE = "http://127.0.0.1:4174/app"
@@ -178,6 +178,95 @@ def test_chat_personas_keyboard_and_single_request(browser: Browser) -> None:
         try:
             open_page(page, "chat.html")
             page.locator(selector).wait_for(state="visible")
+            assert_no_unexpected_errors(errors)
+        finally:
+            context.close()
+
+
+def test_chat_exhausted_quota_preserves_history_and_banner(browser: Browser) -> None:
+    context, page, errors = new_page(browser, "chat_limit")
+    try:
+        context.add_init_script("""
+            localStorage.setItem('nura_chat_user_id', 'e2e-free-user');
+            localStorage.setItem('nura_chat_log', JSON.stringify([
+                {role: 'user', text: 'Первый вопрос', time: '10:00'},
+                {role: 'nura', text: 'Ответ NURA', time: '10:01'}
+            ]));
+        """)
+        open_page(page, "chat.html")
+        page.locator("#conversation").wait_for(state="visible")
+        assert page.locator("#conversation").inner_text().find("Ответ NURA") >= 0
+        assert page.locator("#quota-banner").is_visible()
+        assert page.locator("#limit-state").is_hidden()
+        assert page.locator("#chat-input").is_disabled()
+        assert page.locator("#send-btn").is_disabled()
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+def test_chat_exhausted_empty_state_hides_banner(browser: Browser) -> None:
+    context, page, errors = new_page(browser, "chat_limit")
+    try:
+        open_page(page, "chat.html")
+        page.locator("#limit-state").wait_for(state="visible")
+        assert page.locator("#quota-banner").is_hidden()
+        assert page.locator("#chat-input").is_disabled()
+        assert page.locator("#send-btn").is_disabled()
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+def test_chat_final_send_shows_banner_after_response(browser: Browser) -> None:
+    context, page, errors = new_page(browser, "free")
+    try:
+        request_count = 0
+
+        def last_quota(route: Route) -> None:
+            nonlocal request_count
+            request_count += 1
+            route.fulfill(
+                json={
+                    "reply": "Последний ответ NURA",
+                    "quota": {
+                        "access": "free",
+                        "can_send": False,
+                        "daily_limit": 10,
+                        "used": 10,
+                        "messages_left": 0,
+                        "reset_at": "2026-07-19T00:00:00Z",
+                        "timezone": "UTC",
+                        "code": "limit_reached",
+                    },
+                }
+            )
+
+        page.route("**/api/v1/web/chat", last_quota)
+        open_page(page, "chat.html")
+        page.request.post("http://127.0.0.1:4174/__e2e__/reset")
+        page.locator("#chat-input").fill("Последний вопрос")
+        page.locator("#send-btn").click()
+        page.locator("text=Последний ответ NURA").wait_for(state="visible")
+        assert page.locator("#quota-banner").is_visible()
+        assert page.locator("#limit-state").is_hidden()
+        assert page.locator("#chat-input").is_disabled()
+        assert page.locator("#send-btn").is_disabled()
+        assert page.locator("text=Последний ответ NURA").count() == 1
+        assert request_count == 1
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+def test_chat_available_and_subscriber_hide_quota_banner(browser: Browser) -> None:
+    for persona in ("free", "premium"):
+        context, page, errors = new_page(browser, persona)
+        try:
+            open_page(page, "chat.html")
+            page.locator("#chat-input").wait_for(state="visible")
+            assert page.locator("#quota-banner").is_hidden()
+            assert page.locator("#chat-input").is_enabled()
             assert_no_unexpected_errors(errors)
         finally:
             context.close()

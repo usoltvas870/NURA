@@ -58,6 +58,11 @@
         </div>
       </section>
 
+      <section class="quota-banner" id="quota-banner" role="status" aria-live="polite" hidden>
+        <span class="quota-banner-symbol" aria-hidden="true">✦</span>
+        <p>Вопросы на сегодня закончились. История диалога остаётся доступной.</p>
+      </section>
+
       <section class="conversation" id="conversation" hidden aria-live="polite"></section>
 
       <section class="chat-state limit-state" id="limit-state" hidden>
@@ -105,6 +110,7 @@
     var guest = document.getElementById('guest-state');
     var empty = document.getElementById('empty-state');
     var conversation = document.getElementById('conversation');
+    var quotaBanner = document.getElementById('quota-banner');
     var limit = document.getElementById('limit-state');
     var context = document.getElementById('context-strip');
     var contextImage = document.getElementById('context-card-image');
@@ -118,6 +124,7 @@
     var CARD = {0:'00-fool.png',1:'01-magician.png',2:'02-high-priestess.png',3:'03-empress.png',4:'04-emperor.png',5:'05-hierophant.png',6:'06-lovers.png',7:'07-chariot.png',8:'08-justice.png',9:'09-hermit.png',10:'10-wheel-of-fortune.png',11:'11-strength.png',12:'12-hanged-man.png',13:'13-death.png',14:'14-temperance.png',15:'15-devil.png',16:'16-tower.png',17:'17-star.png',18:'18-moon.png',19:'19-sun.png',20:'20-judgement.png',21:'21-world.png'};
 
     function showOnly(target) { [guest, empty, conversation, limit].forEach(function (el) { el.hidden = el !== target; }); }
+    function setQuotaBanner(visible) { quotaBanner.hidden = !visible; }
     function setComposer(enabled) { shell.classList.toggle('is-disabled', !enabled); input.disabled = !enabled; send.disabled = !enabled || !input.value.trim(); document.querySelectorAll('.prompt-chip').forEach(function (button) { button.disabled = !enabled; }); }
     function setService(title, copy, label, handler) { service.hidden = false; document.getElementById('service-title').textContent = title; document.getElementById('service-copy').textContent = copy; serviceAction.textContent = label; serviceAction.onclick = handler; }
     function setNote(text, warning) { status.textContent = text; note.classList.toggle('is-warning', Boolean(warning)); }
@@ -127,6 +134,7 @@
 
     function renderState() {
       service.hidden = true;
+      setQuotaBanner(false);
       resetContext();
       if (!state) { showOnly(empty); setComposer(false); return; }
       if (!user) {
@@ -135,7 +143,7 @@
         setService('Нужен вход', 'Авторизуйся, чтобы NURA могла учитывать твой личный контекст.', 'Войти', auth);
         return;
       }
-      if (!state.can_send) { showOnly(limit); setComposer(false); setNote('Вопросы на сегодня закончились', true); setService('Лимит вопросов исчерпан', 'История сохранена. Продолжить можно с Premium.', 'Premium', openPremium); return; }
+      if (!state.can_send) { var hasHistory = chatLog.length > 0; showOnly(hasHistory ? conversation : limit); setQuotaBanner(hasHistory); setComposer(false); setNote('Вопросы на сегодня закончились', true); if (!hasHistory) setService('Лимит вопросов исчерпан', 'История сохранена. Продолжить можно с Premium.', 'Premium', openPremium); return; }
       showOnly(chatLog.length ? conversation : empty);
       setComposer(!sending);
       if (sending) { setNote('NURA формирует ответ', false); return; }
