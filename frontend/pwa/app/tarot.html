@@ -319,6 +319,15 @@
         $('hero-phrase').textContent = data.key_phrase || '';
         $('hero-num').textContent = data.arcana_number || '';
         if (faces[data.arcana_number]) $('daily-card-image').src = 'images/' + faces[data.arcana_number] + '.png';
+        consumeDailyOpenRequest();
+      }
+
+      function consumeDailyOpenRequest() {
+        var url = new URL(window.location.href);
+        if (url.searchParams.get('open') !== 'daily' || !cardData || typeof cardData.arcana_number !== 'number' || !cardData.arcana_name) return;
+        url.searchParams.delete('open');
+        history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+        window.openCardDetail();
       }
 
       function openTopic(type) {

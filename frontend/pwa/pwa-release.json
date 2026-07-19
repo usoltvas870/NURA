@@ -10,7 +10,7 @@
     "/pwa/app/chat-v1-2.css": "967221dda5e2b892a69066da7fc0e8a9a12cc22028e9e13c59a25554ddf9a6b2",
     "/pwa/app/chat.html": "532dc01574287c6d5bb3d191f62ad87d6c162768530751bb02b11c3e8871c082",
     "/pwa/app/home-v9.css": "0b2b9aa962c8edb9db98da1ede2f809b8140449ab7c4f527bc319c6dbf926f4b",
-    "/pwa/app/index.html": "07e961f5e79a75598af263ceee886e82d56505df80db4d1674eb56e5fe162bdb",
+    "/pwa/app/index.html": "d5b1c032b797bc84d2e96a115831ea151c4d838d865189d1267a446d203ecfdc",
     "/pwa/app/nura-pwa.css": "29319dd17cc45d716f939f7b5313aee8cc9e4f2e14c49ddd48c88a2b0f5421d1",
     "/pwa/app/nura-pwa.js": "98e46416b2e0103d352825e8f3eb765872e03f65afddc7341033637c51bf4280",
     "/pwa/app/nura-shell-v1.css": "4f3a15a4d493204a89ef356ba1ea27a01c77880f321b8642afc41f9fc8434208",
@@ -18,9 +18,9 @@
     "/pwa/app/profile.html": "fea020c5115951cbd9fadc120bdb43671581bb8fe584649ba3e286f4e47651e8",
     "/pwa/app/success.html": "76b103252988d4badcafbdfdc448496d794b528b0e74279c78773d8f6ffa8918",
     "/pwa/app/tarot-v2-1.css": "1c8fbb04afc9fb32f58f999d9ed1445a674c06ba220f3423db506a3f12a59051",
-    "/pwa/app/tarot.html": "ebea6d011531870cb62092c1f7c31943bdefd46d4d207d1a68d8900fe46b68a3",
+    "/pwa/app/tarot.html": "99e2ee316f662fc23d07f8bf578f3062a2f81e9c89fb8a607da0af9d701590a1",
     "/success.html": "ec32c7a0c5d0ef7f7e4dc7cf534da2f0b5f3c353cd64079f657b5007d5c70a05",
     "/theme.css": "ac9d303cdb8a503c38f30d9f705f85ee79aff6cd696006d6698c40f0196d1f1a"
   },
-  "release_id": "fdab5e877917d223"
+  "release_id": "cb54a83050c15d40"
 }
