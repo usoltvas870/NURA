@@ -8,6 +8,7 @@ import sys
 import time
 import urllib.request
 from collections.abc import Iterator
+from urllib.parse import urlparse
 
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Page, Route, sync_playwright
@@ -275,23 +276,39 @@ def test_home_quick_actions_premium_are_enabled_and_truthful(browser: Browser) -
 
 
 @pytest.mark.parametrize(
-    ("action", "expected_selector", "expected_url"),
+    ("action", "expected_selector", "expected_path"),
     (
-        ("quick-matrix", "#profile-account", "/profile.html"),
-        ("quick-chat", "#chat-input", "/chat.html?question="),
-        ("quick-daily", "#card-sheet", "/tarot.html"),
-        ("quick-profile", "#profile-account", "/profile.html"),
+        ("quick-matrix", "#profile-account", "/app/profile.html"),
+        ("quick-chat", "#chat-input", "/app/chat.html"),
+        ("quick-daily", "#card-sheet", "/app/tarot.html"),
+        ("quick-profile", "#profile-account", "/app/profile.html"),
     ),
 )
-def test_home_quick_actions_premium_routes(browser: Browser, action: str, expected_selector: str, expected_url: str) -> None:
+def test_home_quick_actions_premium_routes(browser: Browser, action: str, expected_selector: str, expected_path: str) -> None:
     context, page, errors = new_page(browser, "premium")
     try:
         open_home_actions(page)
+        page.request.post("http://127.0.0.1:4174/__e2e__/reset")
         page.locator(f"#{action}").click()
         page.locator(expected_selector).wait_for(state="visible")
-        assert expected_url in page.url
+        if action == "quick-chat":
+            page.wait_for_function("""() => {
+                const input = document.querySelector('#chat-input');
+                return input && input.value === 'С чего мне лучше начать сегодня?' && !new URL(location.href).searchParams.has('question');
+            }""")
+        parsed_url = urlparse(page.url)
+        assert parsed_url.path == expected_path
         if action != "quick-daily":
-            assert "tarot.html" not in page.url
+            assert parsed_url.path != "/app/tarot.html"
+        if action == "quick-chat":
+            assert "question" not in parsed_url.query
+            assert page.locator("#chat-input").input_value() == "С чего мне лучше начать сегодня?"
+            assert page.evaluate("localStorage.getItem('nura_pending_question')") is None
+            records = page.request.get("http://127.0.0.1:4174/__e2e__/requests").json()
+            assert not [record for record in records["requests"] if record["path"] == "/api/v1/web/chat"]
+            assert page.locator("#chat-input").count() == 1
+        if action == "quick-daily":
+            assert "open" not in parsed_url.query
         assert_no_unexpected_errors(errors)
     finally:
         context.close()
