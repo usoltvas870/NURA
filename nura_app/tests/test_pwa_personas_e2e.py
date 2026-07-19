@@ -187,7 +187,7 @@ def test_chat_exhausted_quota_preserves_history_and_banner(browser: Browser) -> 
     context, page, errors = new_page(browser, "chat_limit")
     try:
         context.add_init_script("""
-            localStorage.setItem('nura_chat_user_id', 'e2e-free-user');
+            localStorage.setItem('nura_chat_user_id', 'e2e-chat_limit');
             localStorage.setItem('nura_chat_log', JSON.stringify([
                 {role: 'user', text: 'Первый вопрос', time: '10:00'},
                 {role: 'nura', text: 'Ответ NURA', time: '10:01'}
