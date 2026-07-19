@@ -1,3 +1,5 @@
+import asyncio
+import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock
 
@@ -27,6 +29,10 @@ class FakeRedis:
         self.values: dict[str, int] = {}
         self.reservations: dict[str, dict[str, int]] = {}
         self.history: dict[str, str] = {}
+        self.generations: dict[str, int] = {}
+        self.generation_ttls: dict[str, int] = {}
+        self.setex_calls: list[tuple[str, int, str]] = []
+        self.deleted_keys: list[str] = []
 
     def _active(self, key: str, now_ms: int) -> dict[str, int]:
         active = self.reservations.setdefault(key, {})
@@ -35,7 +41,26 @@ class FakeRedis:
                 del active[token]
         return active
 
-    async def eval(self, script: str, _keys: int, quota_key: str, reservation_key: str, *args: object) -> list[int]:
+    async def eval(self, script: str, _keys: int, *arguments: object) -> list[int] | int:
+        if script == web._WEB_HISTORY_WRITE_IF_CURRENT:
+            generation_key, history_key, generation, ttl, value = arguments
+            current = str(self.generations.get(str(generation_key), 0))
+            if current != str(generation):
+                return 0
+            await self.setex(str(history_key), int(ttl), str(value))
+            return 1
+        if script == web._WEB_HISTORY_DELETE:
+            generation_key, history_key, ttl = arguments
+            generation_key = str(generation_key)
+            history_key = str(history_key)
+            self.generations[generation_key] = self.generations.get(generation_key, 0) + 1
+            self.generation_ttls[generation_key] = int(ttl)
+            self.deleted_keys.append(history_key)
+            return int(self.history.pop(history_key, None) is not None)
+
+        quota_key, reservation_key, *args = arguments
+        quota_key = str(quota_key)
+        reservation_key = str(reservation_key)
         now_ms = int(args[0])
         active = self._active(reservation_key, now_ms)
         used = self.values.get(quota_key, 0)
@@ -61,10 +86,17 @@ class FakeRedis:
         raise AssertionError("Unexpected Lua script")
 
     async def get(self, key: str) -> str | None:
+        if key in self.generations:
+            return str(self.generations[key])
         return self.history.get(key)
 
     async def setex(self, key: str, _ttl: int, value: str) -> None:
         self.history[key] = value
+        self.setex_calls.append((key, _ttl, value))
+
+    async def delete(self, key: str) -> int:
+        self.deleted_keys.append(key)
+        return int(self.history.pop(key, None) is not None)
 
 
 @pytest.fixture
@@ -296,3 +328,152 @@ def test_quota_keys_are_bound_to_moscow_calendar_day(now: datetime) -> None:
         "chat_quota:user-4:2026-07-14",
         "chat_quota_reservations:user-4:2026-07-14",
     )
+
+
+def test_web_chat_uses_only_pwa_history_key(chat_client: tuple[TestClient, FakeRedis, AsyncMock]) -> None:
+    client, redis, _ = chat_client
+    legacy_key = "chat:history:route-user"
+    pwa_key = "chat:pwa:history:route-user"
+    redis.history[legacy_key] = '[{"role":"user","content":"Telegram"}]'
+    redis.history[pwa_key] = '[{"role":"assistant","content":"PWA context"}]'
+
+    response = client.post("/api/v1/web/chat", json={"message": "Новый вопрос", "history": [{"role": "user", "content": "Legacy local"}]})
+
+    assert response.status_code == 200
+    assert redis.history[legacy_key] == '[{"role":"user","content":"Telegram"}]'
+    assert 'PWA context' in redis.history[pwa_key]
+    assert 'Legacy local' not in redis.history[pwa_key]
+    assert redis.setex_calls[-1][0] == pwa_key
+    assert redis.setex_calls[-1][1] == web._WEB_CHAT_HISTORY_TTL
+
+
+def test_chat_state_returns_only_pwa_history(chat_client: tuple[TestClient, FakeRedis, AsyncMock]) -> None:
+    client, redis, _ = chat_client
+    redis.history["chat:history:route-user"] = '[{"role":"user","content":"Telegram"}]'
+    redis.history["chat:pwa:history:route-user"] = '[{"role":"assistant","content":"PWA"}]'
+
+    response = client.get("/api/v1/web/chat/state")
+
+    assert response.status_code == 200
+    assert response.json()["history"] == [{"role": "assistant", "content": "PWA"}]
+
+
+def test_chat_state_limits_pwa_history_to_configured_maximum(
+    chat_client: tuple[TestClient, FakeRedis, AsyncMock],
+) -> None:
+    client, redis, _ = chat_client
+    entries = [{"role": "user", "content": str(index)} for index in range(web._WEB_CHAT_HISTORY_MAX + 3)]
+    redis.history["chat:pwa:history:route-user"] = json.dumps(entries)
+
+    response = client.get("/api/v1/web/chat/state")
+
+    assert response.status_code == 200
+    assert response.json()["history"] == entries[-web._WEB_CHAT_HISTORY_MAX:]
+
+
+def test_delete_chat_removes_only_current_users_pwa_history(
+    chat_client: tuple[TestClient, FakeRedis, AsyncMock],
+) -> None:
+    client, redis, _ = chat_client
+    pwa_key = "chat:pwa:history:route-user"
+    legacy_key = "chat:history:route-user"
+    other_key = "chat:pwa:history:other-user"
+    quota_key, _ = ChatQuotaService._keys("route-user", ChatQuotaService._window()[0])
+    redis.history[pwa_key] = '[]'
+    redis.history[legacy_key] = '[{"role":"user","content":"Telegram"}]'
+    redis.history[other_key] = '[{"role":"user","content":"Other"}]'
+    redis.values[quota_key] = 3
+
+    first = client.delete("/api/v1/web/chat")
+    second = client.delete("/api/v1/web/chat")
+
+    assert first.json() == {"ok": True}
+    assert second.json() == {"ok": True}
+    assert pwa_key not in redis.history
+    assert redis.history[legacy_key] == '[{"role":"user","content":"Telegram"}]'
+    assert redis.history[other_key] == '[{"role":"user","content":"Other"}]'
+    assert redis.values[quota_key] == 3
+    assert redis.deleted_keys == [pwa_key, pwa_key]
+    assert redis.generation_ttls["chat:pwa:history:generation:route-user"] == web._WEB_HISTORY_GENERATION_TTL
+
+
+def test_delete_chat_requires_authentication(chat_client: tuple[TestClient, FakeRedis, AsyncMock]) -> None:
+    client, redis, _ = chat_client
+
+    def unauthorized() -> None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    client.app.dependency_overrides[get_current_web_user] = unauthorized
+    response = client.delete("/api/v1/web/chat")
+
+    assert response.status_code == 401
+    assert redis.deleted_keys == []
+
+
+@pytest.mark.asyncio
+async def test_delete_wins_over_an_inflight_chat_post(
+    chat_client: tuple[TestClient, FakeRedis, AsyncMock],
+) -> None:
+    _, redis, ai_response = chat_client
+    user = MagicMock(
+        id="route-user",
+        tarot_subscription=False,
+        tarot_subscription_until=None,
+        subscription_status="free",
+        subscription_until=None,
+        first_name="Test",
+        name="Test",
+    )
+    pwa_key = "chat:pwa:history:route-user"
+    legacy_key = "chat:history:route-user"
+    quota_key, _ = ChatQuotaService._keys("route-user", ChatQuotaService._window()[0])
+    redis.history[pwa_key] = '[{"role":"user","content":"Старый PWA диалог"}]'
+    redis.history[legacy_key] = '[{"role":"user","content":"Telegram история"}]'
+    redis.values[quota_key] = 1
+    ai_started = asyncio.Event()
+    ai_continue = asyncio.Event()
+
+    async def delayed_ai(**_kwargs: object) -> str:
+        ai_started.set()
+        await ai_continue.wait()
+        return "Запоздалый ответ"
+
+    ai_response.side_effect = delayed_ai
+    post_task = asyncio.create_task(
+        web.web_chat(MagicMock(), ChatRequest(message="Новый вопрос"), user),
+    )
+    await ai_started.wait()
+    assert await web.delete_web_chat_history(MagicMock(), user) == {"ok": True}
+    ai_continue.set()
+    await post_task
+
+    assert pwa_key not in redis.history
+    assert redis.history[legacy_key] == '[{"role":"user","content":"Telegram история"}]'
+    assert redis.values[quota_key] == 2
+
+
+@pytest.mark.asyncio
+async def test_new_chat_post_after_delete_creates_a_clean_pwa_history(
+    chat_client: tuple[TestClient, FakeRedis, AsyncMock],
+) -> None:
+    _, redis, _ = chat_client
+    user = MagicMock(
+        id="route-user",
+        tarot_subscription=False,
+        tarot_subscription_until=None,
+        subscription_status="free",
+        subscription_until=None,
+        first_name="Test",
+        name="Test",
+    )
+    pwa_key = "chat:pwa:history:route-user"
+    legacy_key = "chat:history:route-user"
+    redis.history[pwa_key] = '[{"role":"user","content":"Старый PWA диалог"}]'
+    redis.history[legacy_key] = '[{"role":"user","content":"Telegram история"}]'
+
+    await web.delete_web_chat_history(MagicMock(), user)
+    await web.web_chat(MagicMock(), ChatRequest(message="Новый вопрос"), user)
+
+    assert "Старый PWA диалог" not in redis.history[pwa_key]
+    assert "Новый вопрос" in redis.history[pwa_key]
+    assert redis.history[legacy_key] == '[{"role":"user","content":"Telegram история"}]'

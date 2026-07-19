@@ -26,6 +26,9 @@ body.chat-page:not(.nura-shell-page) { margin: 0; min-height: 100dvh; color: var
 .header-context { color: var(--text); }
 .profile-button { padding: 0; }
 .profile-button i { font-size: 21px; }
+.nura-shell-clear-chat { width: 44px; min-width: 44px; height: 44px; min-height: 44px; display: grid; place-items: center; }
+.nura-shell-clear-chat:disabled { cursor: wait; opacity: .55; }
+.nura-shell-clear-chat:focus-visible { outline: 2px solid var(--chat-terra); outline-offset: 2px; }
 
 .context-strip { flex: 0 0 auto; min-height: 76px; margin: var(--shell-content-top) var(--shell-content-inline) 10px; padding: 9px 10px; display: grid; grid-template-columns: 43px minmax(0,1fr) auto; gap: 10px; align-items: center; border: 1px solid rgba(143,112,67,.13); border-radius: 20px; background: rgba(255,253,248,.82); box-shadow: 0 8px 24px rgba(73,57,37,.05); }
 .context-strip[hidden], .context-access[hidden], .composer-service[hidden] { display: none !important; }

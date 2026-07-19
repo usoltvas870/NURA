@@ -1,8 +1,18 @@
 # NURA — State
 
-> Последнее обновление: **09.07.2026 — Сессия 85** — DeepSeek V4 Pro
+> Последнее обновление: **19.07.2026 — Сессия 86** — GPT-5 Codex
 
 ---
+
+## Сессия 86 — 19.07.2026
+- Что сделано: PWA-история чата отделена от Telegram и получила постоянное удаление
+  - PWA использует отдельный Redis-ключ `chat:pwa:history:{user_id}`; legacy `chat:history:{user_id}` оставлен Telegram без изменений
+  - `GET /api/v1/web/chat/state` возвращает PWA history, а `DELETE /api/v1/web/chat` идемпотентно удаляет только её
+  - Redis generation/CAS гарантирует, что DELETE не позволит запоздалому POST восстановить удалённую историю
+  - PWA синхронизирует DOM и `localStorage` с server-side history, не переносит legacy local/Telegram историю
+  - Добавлены backend-тесты изоляции ключей, quota и авторизации
+- Блокеры: runtime browser QA недоступен из-за сетевой изоляции встроенного браузера от локального mock-сервера
+- Следующие шаги: выполнить runtime PWA QA в среде с доступом браузера к локальному backend
 
 ## Сессия 85 — 09.07.2026
 - Модель: DeepSeek V4 Pro

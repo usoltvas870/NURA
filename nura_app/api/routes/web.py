@@ -27,7 +27,7 @@ from core.services.matrix import MatrixService
 from core.services.payment import PaymentService
 from core.services.report import ReportService
 from core.services.chat_quota import ChatQuotaService
-from core.schemas.chat import ChatQuotaState, ChatRequest, ChatResponse
+from core.schemas.chat import ChatRequest, ChatResponse, ChatStateResponse
 
 
 class ReportItem(BaseModel):
@@ -318,10 +318,46 @@ async def subscribe_tarot(
 
 _WEB_CHAT_HISTORY_TTL = 7 * 86400
 _WEB_CHAT_HISTORY_MAX = 20
+_WEB_HISTORY_GENERATION_TTL = _WEB_CHAT_HISTORY_TTL * 2
+_WEB_HISTORY_WRITE_IF_CURRENT = """
+local current = redis.call('GET', KEYS[1]) or '0'
+if current == ARGV[1] then
+    redis.call('SETEX', KEYS[2], ARGV[2], ARGV[3])
+    return 1
+end
+return 0
+"""
+_WEB_HISTORY_DELETE = """
+redis.call('INCR', KEYS[1])
+redis.call('EXPIRE', KEYS[1], ARGV[1])
+return redis.call('DEL', KEYS[2])
+"""
 
 
 def _web_history_key(uid) -> str:
-    return f"chat:history:{uid}"
+    return f"chat:pwa:history:{uid}"
+
+
+def _web_history_generation_key(uid) -> str:
+    return f"chat:pwa:history:generation:{uid}"
+
+
+def _web_history_from_raw(raw_history: str | None) -> list[dict[str, str]]:
+    if not raw_history:
+        return []
+    try:
+        history = json.loads(raw_history)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(history, list):
+        return []
+    return [
+        {"role": item["role"], "content": item["content"]}
+        for item in history[-_WEB_CHAT_HISTORY_MAX:]
+        if isinstance(item, dict)
+        and item.get("role") in {"user", "assistant"}
+        and isinstance(item.get("content"), str)
+    ]
 
 
 def _chat_subscriber(user: User) -> bool:
@@ -333,14 +369,17 @@ def _chat_subscriber(user: User) -> bool:
     )
 
 
-@router.get("/chat/state", response_model=ChatQuotaState)
+@router.get("/chat/state", response_model=ChatStateResponse)
 @limiter.limit("60/minute")
 async def web_chat_state(
     request: Request,
     user: User = Depends(get_current_web_user),
 ):
-    quota = ChatQuotaService(get_redis())
-    return await quota.state(user.id, subscriber=_chat_subscriber(user))
+    redis = get_redis()
+    quota = ChatQuotaService(redis)
+    quota_state = await quota.state(user.id, subscriber=_chat_subscriber(user))
+    history = _web_history_from_raw(await redis.get(_web_history_key(user.id)))
+    return ChatStateResponse(**quota_state.model_dump(), history=history)
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -358,14 +397,9 @@ async def web_chat(
     quota_service = ChatQuotaService(redis)
 
     history_key = _web_history_key(user.id)
-    raw_history = await redis.get(history_key)
-    if raw_history:
-        try:
-            server_history: list[dict] = json.loads(raw_history)
-        except (json.JSONDecodeError, TypeError):
-            server_history = body.history[-10:]
-    else:
-        server_history = body.history[-10:]
+    generation_key = _web_history_generation_key(user.id)
+    generation = await redis.get(generation_key) or "0"
+    server_history = _web_history_from_raw(await redis.get(history_key))
 
     reservation = await quota_service.reserve(user.id, subscriber=has_unlimited)
     if reservation.token is None and not has_unlimited:
@@ -410,8 +444,12 @@ async def web_chat(
         server_history = server_history[-_WEB_CHAT_HISTORY_MAX:]
 
     try:
-        await redis.setex(
+        await redis.eval(
+            _WEB_HISTORY_WRITE_IF_CURRENT,
+            2,
+            generation_key,
             history_key,
+            generation,
             _WEB_CHAT_HISTORY_TTL,
             json.dumps(server_history, ensure_ascii=False),
         )
@@ -419,6 +457,23 @@ async def web_chat(
         pass
 
     return ChatResponse(reply=reply, quota=quota_state)
+
+
+@router.delete("/chat")
+@limiter.limit("20/minute")
+async def delete_web_chat_history(
+    request: Request,
+    user: User = Depends(get_current_web_user),
+):
+    redis = get_redis()
+    await redis.eval(
+        _WEB_HISTORY_DELETE,
+        2,
+        _web_history_generation_key(user.id),
+        _web_history_key(user.id),
+        _WEB_HISTORY_GENERATION_TTL,
+    )
+    return {"ok": True}
 
 
 class TestSubscribeResponse(BaseModel):

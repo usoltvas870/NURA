@@ -29,7 +29,7 @@
     <header class="app-header nura-shell-header">
       <a class="brand nura-text-logo nura-shell-brand" href="index.html" aria-label="NURA"><span class="nura-star">✦</span><span class="nura-sep"></span><span class="nura-word">NURA</span></a>
       <span class="header-context nura-shell-title">Чат</span>
-      <div class="nura-shell-header-actions"><button class="profile-button nura-shell-theme-toggle" id="themeToggle" type="button" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div>
+      <div class="nura-shell-header-actions"><button class="profile-button nura-shell-clear-chat" id="clear-chat" type="button" aria-label="Удалить историю диалога" title="Удалить историю диалога" hidden><i class="ti ti-trash"></i></button><button class="profile-button nura-shell-theme-toggle" id="themeToggle" type="button" aria-label="Сменить тему"><i class="ti ti-sun-moon"></i></button></div>
     </header>
 
     <section class="context-strip" id="context-strip" aria-label="Контекст диалога">
@@ -120,10 +120,13 @@
     var contextTitle = document.getElementById('context-title');
     var contextNote = document.getElementById('context-note');
     var access = document.getElementById('chat-access');
+    var clearChatButton = document.getElementById('clear-chat');
     var chatLog = [];
     var state = null;
     var user = null;
     var sending = false;
+    var deleting = false;
+    var feedback = null;
     var CARD = {0:'00-fool.png',1:'01-magician.png',2:'02-high-priestess.png',3:'03-empress.png',4:'04-emperor.png',5:'05-hierophant.png',6:'06-lovers.png',7:'07-chariot.png',8:'08-justice.png',9:'09-hermit.png',10:'10-wheel-of-fortune.png',11:'11-strength.png',12:'12-hanged-man.png',13:'13-death.png',14:'14-temperance.png',15:'15-devil.png',16:'16-tower.png',17:'17-star.png',18:'18-moon.png',19:'19-sun.png',20:'20-judgement.png',21:'21-world.png'};
 
     function showOnly(target) { [guest, empty, conversation, limit].forEach(function (el) { el.hidden = el !== target; }); }
@@ -138,6 +141,8 @@
       service.hidden = true;
       resetContext();
       document.getElementById('limit-banner').hidden = true;
+      clearChatButton.hidden = !user || !chatLog.length;
+      clearChatButton.disabled = deleting || sending;
       if (!state) { showOnly(empty); setComposer(false); return; }
       if (!user) {
         showOnly(guest); setComposer(false); setNote('Личный диалог станет доступен после входа', true);
@@ -156,6 +161,7 @@
       showOnly(chatLog.length ? conversation : empty);
       setComposer(!sending);
       if (sending) { setNote('NURA формирует ответ', false); return; }
+      if (feedback) { setNote(feedback.text, feedback.warning); return; }
       setNote(state.access === 'subscriber' ? 'Безлимитный диалог' : 'Осталось ' + state.messages_left + ' вопросов сегодня', state.messages_left === 1);
     }
 
@@ -201,6 +207,12 @@
       try { chatLog = JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) { chatLog = []; }
       conversation.replaceChildren(); chatLog.forEach(function (item) { bubble(item.role, item.text, item.time); });
     }
+    function syncServerHistory(history) {
+      chatLog = (Array.isArray(history) ? history : []).filter(function (item) { return item && (item.role === 'user' || item.role === 'assistant') && typeof item.content === 'string'; }).map(function (item) { return { role: item.role === 'assistant' ? 'nura' : 'user', text: item.content, time: '' }; });
+      conversation.replaceChildren();
+      chatLog.forEach(function (item) { bubble(item.role, item.text, item.time); });
+      try { if (chatLog.length) localStorage.setItem('nura_chat_log', JSON.stringify(chatLog)); else localStorage.removeItem('nura_chat_log'); } catch (_) {}
+    }
     async function loadContext() {
       try {
         var card = await N.fetchJSON(BASE + '/tarot/daily-card'); var file = CARD[card.arcana_number];
@@ -211,7 +223,7 @@
     }
     function pending() { var value = sessionStorage.getItem('nura_chat_draft'); if (!value) { value = new URLSearchParams(location.search).get('question'); } if (!value || !state || !state.can_send) return; sessionStorage.removeItem('nura_chat_draft'); input.value = value; input.dispatchEvent(new Event('input')); history.replaceState(null, '', location.pathname); }
     async function init() {
-      try { user = await N.fetchJSON(BASE + '/web/me'); loadHistory(); state = await N.fetchJSON(BASE + '/web/chat/state'); renderState(); loadContext(); pending(); }
+      try { user = await N.fetchJSON(BASE + '/web/me'); state = await N.fetchJSON(BASE + '/web/chat/state'); syncServerHistory(state.history); renderState(); loadContext(); pending(); }
       catch (error) { if (error && error.status === 401) { user = null; state = { can_send: false }; renderState(); return; } if (error && error.status === 403) location.href = '/app/?blocked=1'; }
     }
 
@@ -219,7 +231,7 @@
       var text = retry || input.value.trim();
       if (!text || sending || !state || !state.can_send) return;
       if (!user) { auth(); return; }
-      sending = true; renderState();
+      feedback = null; sending = true; renderState();
       if (!retry) { input.value = ''; input.style.height = 'auto'; var time = messageTime(); bubble('user', text, time); save('user', text, time); }
       showOnly(conversation); typing(true);
       try {
@@ -232,10 +244,24 @@
       } catch (_) { typing(false); bubble('nura', 'Не удалось получить ответ. Проверь соединение и попробуй ещё раз.', messageTime(), text); }
       finally { sending = false; renderState(); scroll(); }
     };
-    window.clearChat = function () { localStorage.removeItem('nura_chat_log'); chatLog = []; conversation.replaceChildren(); renderState(); };
+    window.clearChat = async function () {
+      if (!user || !chatLog.length || deleting || sending) return;
+      if (!window.confirm('Удалить историю этого диалога? Матрица, отчёты и данные профиля сохранятся')) return;
+      deleting = true; feedback = null; renderState();
+      try {
+        var response = await fetch(BASE + '/web/chat', { method: 'DELETE', credentials: 'same-origin' });
+        if (!response.ok) throw new Error('delete-chat');
+        chatLog = []; conversation.replaceChildren();
+        try { localStorage.removeItem('nura_chat_log'); } catch (_) {}
+        feedback = { text: 'История диалога удалена', warning: false };
+      } catch (_) {
+        feedback = { text: 'Не удалось удалить историю. Попробуйте ещё раз', warning: true };
+      } finally { deleting = false; renderState(); }
+    };
     window.sendHint = function (element) { input.value = element.textContent; input.dispatchEvent(new Event('input')); window.sendMessage(); };
     document.querySelectorAll('.prompt-chip').forEach(function (button) { button.addEventListener('click', function () { window.sendHint(button); }); });
     document.getElementById('guest-auth').addEventListener('click', auth); document.getElementById('guest-mini').addEventListener('click', function () { location.href = '/mini.html'; }); document.getElementById('limit-premium').addEventListener('click', openPremium); document.getElementById('limit-tomorrow').addEventListener('click', function () { location.href = 'index.html'; });
+    clearChatButton.addEventListener('click', window.clearChat);
     input.addEventListener('input', function () { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 105) + 'px'; send.disabled = !this.value.trim() || sending || !state || !state.can_send; });
     input.addEventListener('keydown', function (event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); window.sendMessage(); } });
     init();

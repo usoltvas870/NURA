@@ -28,6 +28,15 @@ class ChatQuotaState(BaseModel):
     code: str | None = None
 
 
+class ChatHistoryItem(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatStateResponse(ChatQuotaState):
+    history: list[ChatHistoryItem] = Field(default_factory=list)
+
+
 class ChatResponse(BaseModel):
     reply: str
     quota: ChatQuotaState
