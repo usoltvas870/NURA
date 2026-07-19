@@ -69,6 +69,11 @@ def assert_no_unexpected_errors(errors: list[str]) -> None:
     assert not [error for error in errors if "Failed to load resource" not in error]
 
 
+def open_home_actions(page: Page) -> None:
+    open_page(page, "index.html")
+    page.locator("#quick-actions-grid[aria-busy='false']").wait_for(state="visible")
+
+
 @pytest.mark.parametrize("viewport", VIEWPORTS)
 @pytest.mark.parametrize("theme", ("light", "dark"))
 def test_shell_matrix_real_pages(browser: Browser, viewport: tuple[int, int], theme: str) -> None:
@@ -203,6 +208,90 @@ def test_home_quick_actions_wait_for_auth_and_preserve_routes(browser: Browser) 
         page.keyboard.press("Space")
         page.locator("#card-sheet").wait_for(state="visible")
         assert "open=" not in page.url
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize("action", ("quick-matrix", "quick-chat", "quick-daily"))
+def test_home_quick_actions_guest_auth_routes(browser: Browser, action: str) -> None:
+    context, page, errors = new_page(browser, "guest")
+    try:
+        open_home_actions(page)
+        page.request.post("http://127.0.0.1:4174/__e2e__/reset")
+        page.locator(f"#{action}").click()
+        page.locator("#nura-auth-modal").wait_for(state="visible")
+        assert page.url.endswith("/index.html?e2e=1")
+        assert "chat.html" not in page.url and "tarot.html" not in page.url
+        records = page.request.get("http://127.0.0.1:4174/__e2e__/requests").json()
+        assert not [record for record in records["requests"] if record["path"] == "/api/v1/web/chat"]
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+def test_home_quick_actions_profile_routes_for_guest_and_free(browser: Browser) -> None:
+    for persona, expected in (("guest", "#profile-guest"), ("free", "#profile-account")):
+        context, page, errors = new_page(browser, persona)
+        try:
+            open_home_actions(page)
+            assert page.locator("#quick-profile").inner_text().startswith("Профиль и настройки")
+            page.locator("#quick-profile").click()
+            page.locator(expected).wait_for(state="visible")
+            assert page.url.endswith("/profile.html") and "tarot.html" not in page.url
+            assert_no_unexpected_errors(errors)
+        finally:
+            context.close()
+
+
+def test_home_quick_actions_free_matrix_uses_subscription_route(browser: Browser) -> None:
+    context, page, errors = new_page(browser, "free")
+    try:
+        open_home_actions(page)
+        page.locator("#quick-matrix").click()
+        page.locator("#profile-account").wait_for(state="visible")
+        assert page.url.endswith("/profile.html#subscription")
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+def test_home_quick_actions_premium_are_enabled_and_truthful(browser: Browser) -> None:
+    context, page, errors = new_page(browser, "premium")
+    try:
+        open_home_actions(page)
+        buttons = page.locator("#quick-actions-grid button")
+        assert buttons.count() == 4
+        assert all(not buttons.nth(index).is_disabled() for index in range(4))
+        assert page.locator("#quick-matrix-badge").inner_text() == "Открыть профиль"
+        assert page.locator("#quick-chat-badge").inner_text() == "Открыто"
+        assert page.locator("#quick-daily-badge").inner_text() == "Открыто"
+        assert page.locator("#quick-profile-badge").inner_text() == "Открыто"
+        assert page.locator("#quick-profile").inner_text().startswith("Профиль и настройки")
+        assert "Расклады" not in page.locator("#quick-actions-grid").inner_text()
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize(
+    ("action", "expected_selector", "expected_url"),
+    (
+        ("quick-matrix", "#profile-account", "/profile.html"),
+        ("quick-chat", "#chat-input", "/chat.html?question="),
+        ("quick-daily", "#card-sheet", "/tarot.html"),
+        ("quick-profile", "#profile-account", "/profile.html"),
+    ),
+)
+def test_home_quick_actions_premium_routes(browser: Browser, action: str, expected_selector: str, expected_url: str) -> None:
+    context, page, errors = new_page(browser, "premium")
+    try:
+        open_home_actions(page)
+        page.locator(f"#{action}").click()
+        page.locator(expected_selector).wait_for(state="visible")
+        assert expected_url in page.url
+        if action != "quick-daily":
+            assert "tarot.html" not in page.url
         assert_no_unexpected_errors(errors)
     finally:
         context.close()
