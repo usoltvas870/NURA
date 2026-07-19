@@ -110,6 +110,51 @@ def test_tarot_guest_free_premium_expired_and_spread(browser: Browser) -> None:
             context.close()
 
 
+def test_daily_card_deep_link_is_consumed_after_loading(browser: Browser) -> None:
+    context, page, errors = new_page(browser, "free")
+    try:
+        response = page.goto(f"{BASE}/tarot.html?open=daily&e2e=1", wait_until="domcontentloaded")
+        assert response and response.status == 200
+        page.locator("#card-sheet").wait_for(state="visible")
+        assert "open=" not in page.url
+        page.reload(wait_until="domcontentloaded")
+        page.locator("#card-sheet").wait_for(state="hidden")
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+def test_daily_card_deep_link_preserves_other_url_parts_and_home_cta(browser: Browser) -> None:
+    context, page, errors = new_page(browser, "free")
+    try:
+        open_page(page, "index.html")
+        page.wait_for_function("() => !document.querySelector('#day-cta').disabled")
+        page.locator("#day-cta").click()
+        page.locator("#card-sheet").wait_for(state="visible")
+        assert "open=" not in page.url
+
+        response = page.goto(f"{BASE}/tarot.html?foo=bar&open=daily&e2e=1#test", wait_until="domcontentloaded")
+        assert response and response.status == 200
+        page.locator("#card-sheet").wait_for(state="visible")
+        assert "foo=bar" in page.url and "open=" not in page.url and page.url.endswith("#test")
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+def test_daily_card_invalid_or_failed_deep_link_does_not_open_sheet(browser: Browser) -> None:
+    for persona, query in (("free", "open=other"), ("http_500", "open=daily")):
+        context, page, errors = new_page(browser, persona)
+        try:
+            response = page.goto(f"{BASE}/tarot.html?{query}&e2e=1", wait_until="domcontentloaded")
+            assert response and response.status == 200
+            page.wait_for_function("() => document.body.dataset.access !== 'loading'")
+            assert page.locator("#card-sheet").is_hidden()
+            assert_no_unexpected_errors(errors)
+        finally:
+            context.close()
+
+
 def test_chat_personas_keyboard_and_single_request(browser: Browser) -> None:
     context, page, errors = new_page(browser, "free")
     try:
