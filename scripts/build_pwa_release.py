@@ -22,18 +22,33 @@ ASSETS = (
 )
 
 
-def build_metadata() -> dict[str, object]:
+def canonical_asset_bytes(raw: bytes) -> bytes:
+    """Return canonical bytes for a PWA text asset.
+
+    The current ASSETS list contains only text files (HTML/CSS/JS/JSON/LICENSE),
+    so normalizing line endings makes the resulting SHA-256 independent of the
+    platform checkout mode (CRLF on Windows, LF on Linux). Future binary assets
+    must be excluded from this normalization or added to a separate binary list.
+    """
+    return raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+
+
+def _build_metadata(root: Path) -> dict[str, object]:
     digests: dict[str, str] = {}
     for asset in ASSETS:
-        path = ROOT / asset
+        path = root / asset
         if not path.is_file():
             raise FileNotFoundError(f"required PWA asset is missing: {asset}")
         url = "/" + asset.removeprefix("frontend/")
-        digests[url] = hashlib.sha256(path.read_bytes()).hexdigest()
+        digests[url] = hashlib.sha256(canonical_asset_bytes(path.read_bytes())).hexdigest()
     aggregate = hashlib.sha256(
         "".join(f"{path}:{digest}\n" for path, digest in sorted(digests.items())).encode()
     ).hexdigest()
     return {"release_id": aggregate[:16], "assets": digests}
+
+
+def build_metadata() -> dict[str, object]:
+    return _build_metadata(ROOT)
 
 
 def expected_files(metadata: dict[str, object]) -> dict[Path, str]:
