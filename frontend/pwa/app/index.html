@@ -307,10 +307,11 @@
 
   <section class="home-section" aria-labelledby="access-heading">
     <h2 class="home-section-title" id="access-heading"><span>✦</span>Быстрый доступ</h2>
-    <div class="access-panel">
-      <button class="access-row" type="button" onclick="openReport()"><span class="access-icon"><i class="ti ti-grid-dots"></i></span><span><span class="access-title">Матрица и отчёты</span><span class="access-copy" id="quick-matrix-copy">Мини-разбор и личные отчёты</span></span><span class="access-badge" id="quick-matrix-badge">Гость</span><span class="row-chevron">›</span></button>
-      <button class="access-row is-sage" type="button" onclick="askNura('С чего мне лучше начать сегодня?')"><span class="access-icon"><i class="ti ti-message-circle"></i></span><span><span class="access-title">Чат с NURA</span><span class="access-copy" id="quick-chat-copy">Диалог после входа</span></span><span class="access-badge" id="quick-chat-badge">После входа</span><span class="row-chevron">›</span></button>
-      <button class="access-row" id="third-access-row" type="button" onclick="location.href='profile.html'"><span class="access-icon"><i class="ti ti-user-circle"></i></span><span><span class="access-title" id="third-access-title">Профиль и настройки</span><span class="access-copy" id="third-access-copy">Аккаунт, подписка и доступ</span></span><span class="access-badge" id="quick-profile-badge">После входа</span><span class="row-chevron">›</span></button>
+    <div class="quick-grid" id="quick-actions-grid" aria-busy="true">
+      <button class="quick-link" id="quick-matrix" type="button" disabled onclick="openReport()"><span class="quick-icon"><i class="ti ti-grid-dots"></i></span><span class="quick-title">Матрица и отчёты</span><span class="quick-copy" id="quick-matrix-copy">Мини-разбор и личные отчёты</span><span class="access-badge" id="quick-matrix-badge">Гость</span></button>
+      <button class="quick-link chat" id="quick-chat" type="button" disabled onclick="askNura('С чего мне лучше начать сегодня?')"><span class="quick-icon"><i class="ti ti-message-circle"></i></span><span class="quick-title">Спросить NURA</span><span class="quick-copy" id="quick-chat-copy">Диалог после входа</span><span class="access-badge" id="quick-chat-badge">После входа</span></button>
+      <button class="quick-link day" id="quick-daily" type="button" disabled onclick="openDailyCard()"><span class="quick-icon"><i class="ti ti-cards"></i></span><span class="quick-title">Карта дня</span><span class="quick-copy">Личный символ и фокус на сегодня</span><span class="access-badge" id="quick-daily-badge">После входа</span></button>
+      <button class="quick-link profile" id="quick-profile" type="button" disabled onclick="location.href='profile.html'"><span class="quick-icon"><i class="ti ti-user-circle"></i></span><span class="quick-title">Профиль и настройки</span><span class="quick-copy" id="quick-profile-copy">Аккаунт, подписка и доступ</span><span class="access-badge" id="quick-profile-badge">Открыто</span></button>
     </div>
   </section>
 
@@ -320,7 +321,6 @@
     <span id="matrix-num"></span><span id="matrix-name"></span><span id="matrix-desc"></span>
     <span id="report-status-state">Проверяем</span><span id="report-status-copy"></span>
     <span id="subscription-status-state">Проверяем</span><span id="subscription-status-copy"></span>
-    <span id="quick-profile-copy"></span>
   </div>
 </main></div>
 
@@ -387,6 +387,7 @@
   }).observe(iosModal, {attributes: true, attributeFilter: ['style']});
 
   var __isGuest = false;
+  var __homeAuthResolved = false;
   var dailyCacheKey = 'tarot_daily_card_' + new Date().toISOString().slice(0, 10);
   var DAILY_CARD_FILES = {
     1: '01-magician.png', 2: '02-high-priestess.png', 3: '03-empress.png', 4: '04-emperor.png',
@@ -442,24 +443,24 @@
     var badges = {
       guest: [
         ['Начать', 'action'], ['После мини-разбора', 'action'], ['После входа', 'action'],
-        ['Пройти мини-разбор', 'action'], ['После входа', 'action'], ['После входа', 'action']
+        ['Начать', 'action'], ['После входа', 'action'], ['После входа', 'action'], ['Открыто', 'available']
       ],
       free: [
         [hasMini ? 'Готово' : 'Получить отчёт', hasMini ? 'available' : 'action'],
         [hasFull ? 'Открыто' : hasMini ? 'Купить отчёт' : 'После мини-разбора', hasFull ? 'available' : 'action'],
         ['По подписке', 'action'],
         [hasFull || hasMini ? 'Открыто' : 'Получить отчёт', hasFull || hasMini ? 'available' : 'action'],
-        ['По подписке', 'action'], ['Открыто', 'available']
+        ['Базовый', 'available'], ['Открыто', 'available'], ['Открыто', 'available']
       ],
       subscriber: [
         [hasMini ? 'Готово' : 'Открыть профиль', 'available'],
         [hasFull ? 'Открыто' : 'Купить отчёт', hasFull ? 'available' : 'action'],
         ['Открыто', 'available'],
         [hasFull || hasMini ? 'Открыто' : 'Открыть профиль', 'available'],
-        ['Открыто', 'available'], ['Открыто', 'available']
+        ['Открыто', 'available'], ['Открыто', 'available'], ['Открыто', 'available']
       ]
     }[state];
-    var ids = ['journey-mini-badge', 'journey-report-badge', 'journey-ritual-badge', 'quick-matrix-badge', 'quick-chat-badge', 'quick-profile-badge'];
+    var ids = ['journey-mini-badge', 'journey-report-badge', 'journey-ritual-badge', 'quick-matrix-badge', 'quick-chat-badge', 'quick-daily-badge', 'quick-profile-badge'];
     ids.forEach(function(id, index) {
       var badge = $(id);
       badge.textContent = badges[index][0];
@@ -468,10 +469,11 @@
     });
   }
 
-  function setAccess(authorized) {
-    $('third-access-title').textContent = authorized ? 'Расклады' : 'Профиль и настройки';
-    $('third-access-copy').textContent = authorized ? 'Глубже разобрать вопрос или ситуацию' : 'Аккаунт, подписка и доступ';
-    $('third-access-row').onclick = authorized ? openDailyCard : function() { location.href = 'profile.html'; };
+  function setQuickActionsReady(ready) {
+    __homeAuthResolved = ready;
+    var grid = $('quick-actions-grid');
+    grid.setAttribute('aria-busy', String(!ready));
+    grid.querySelectorAll('button').forEach(function(button) { button.disabled = !ready; });
   }
 
   function setReportSummary(state, copy) {
@@ -578,7 +580,7 @@
 
         setAccessBadges(hasTarot ? 'subscriber' : 'free', hasMini, hasFull);
 
-        setAccess(true);
+        setQuickActionsReady(true);
         configureJourneyActions();
         if (hasFull && hasTarot) {
           setHero('Твой мягкий ритуал на сегодня', 'Отчёт, карта дня и диалог уже собраны в одном спокойном пространстве.');
@@ -749,6 +751,7 @@
     if (__isGuest) { showAuthModal(); return; }
     location.href = 'tarot.html?open=daily';
   }
+  window.openDailyCard = openDailyCard;
 
   function configureJourneyActions() {
     $('journey-mini').onclick = __isGuest ? function() { location.href = '/mini.html'; } : openReport;
@@ -788,7 +791,7 @@
     $('report-cta').textContent = 'Пройти мини-разбор';
     $('report-cta').onclick = function() { location.href = '/mini.html'; };
     setJourney('Начать', 'После мини-разбора', 'После входа', false);
-    setAccess(false);
+    setQuickActionsReady(true);
     configureJourneyActions();
     setDailyBack();
     $('home-today').classList.remove('is-loading');
@@ -821,7 +824,7 @@
     $('report-cta').textContent = 'Войти в NURA';
     $('report-cta').onclick = function() { showAuthModal(); };
     setJourney('Войти', 'После входа', 'После входа', false);
-    setAccess(false);
+    setQuickActionsReady(true);
     configureJourneyActions();
     setDailyBack();
     $('home-today').classList.remove('is-loading');

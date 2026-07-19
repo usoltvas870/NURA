@@ -93,8 +93,41 @@ body.nura-home-v9 {
 
 .nura-home-v9 .journey-state { display: none; }
 
-.nura-home-v9 .access-row {
-  grid-template-columns: 39px minmax(0, 1fr) auto 16px;
+.nura-home-v9 .quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.nura-home-v9 .quick-link {
+  width: 100%;
+  min-width: 0;
+  min-height: 156px;
+  padding: 16px;
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.nura-home-v9 .quick-link:active { transform: scale(.985); }
+.nura-home-v9 .quick-link:focus-visible { outline: 3px solid var(--terra); outline-offset: 3px; }
+.nura-home-v9 .quick-link:disabled { cursor: progress; opacity: .62; }
+.nura-home-v9 .quick-icon { width: 40px; height: 40px; font-size: 20px; }
+.nura-home-v9 .quick-title, .nura-home-v9 .quick-copy { min-width: 0; overflow-wrap: anywhere; }
+.nura-home-v9 .quick-title { font-size: 14px; }
+.nura-home-v9 .quick-copy { font-size: 12px; }
+.nura-home-v9 .quick-link .access-badge { justify-self: start; margin-top: auto; }
+
+@media (max-width: 360px) {
+  .nura-home-v9 .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nura-home-v9 .quick-link { min-height: 164px; padding: 14px; }
 }
 
 .nura-home-v9 .access-badge {

@@ -142,6 +142,72 @@ def test_daily_card_deep_link_preserves_other_url_parts_and_home_cta(browser: Br
         context.close()
 
 
+@pytest.mark.parametrize("viewport", VIEWPORTS)
+def test_home_quick_actions_render_as_four_two_column_buttons(browser: Browser, viewport: tuple[int, int]) -> None:
+    context, page, errors = new_page(browser, "free", viewport)
+    try:
+        open_page(page, "index.html")
+        grid = page.locator("#quick-actions-grid")
+        buttons = grid.locator("button")
+        buttons.first.wait_for(state="visible")
+        assert buttons.count() == 4
+        assert [buttons.nth(index).get_attribute("id") for index in range(4)] == [
+            "quick-matrix", "quick-chat", "quick-daily", "quick-profile"
+        ]
+        assert page.evaluate("""() => {
+            const cards = [...document.querySelectorAll('#quick-actions-grid button')];
+            const grid = getComputedStyle(document.querySelector('#quick-actions-grid'));
+            const boxes = cards.map(card => card.getBoundingClientRect());
+            return {
+              columns: grid.gridTemplateColumns.split(' ').length,
+              validSize: boxes.every(box => box.width >= 44 && box.height >= 44),
+              rows: Math.abs(boxes[0].y - boxes[1].y) < 1 && Math.abs(boxes[2].y - boxes[3].y) < 1,
+              noOverlap: boxes.every((box, index) => boxes.every((other, otherIndex) => index === otherIndex || box.right <= other.left || other.right <= box.left || box.bottom <= other.top || other.bottom <= box.top)),
+              noOverflow: document.documentElement.scrollWidth <= window.innerWidth
+            };
+        }""") == {"columns": 2, "validSize": True, "rows": True, "noOverlap": True, "noOverflow": True}
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
+def test_home_quick_actions_wait_for_auth_and_preserve_routes(browser: Browser) -> None:
+    context, page, errors = new_page(browser, "loading")
+    try:
+        open_page(page, "index.html")
+        grid = page.locator("#quick-actions-grid")
+        buttons = grid.locator("button")
+        assert grid.get_attribute("aria-busy") == "true"
+        assert all(buttons.nth(index).is_disabled() for index in range(4))
+        page.request.post("http://127.0.0.1:4174/__e2e__/release")
+        page.wait_for_function("() => document.querySelector('#quick-actions-grid').getAttribute('aria-busy') === 'false'")
+        assert all(not buttons.nth(index).is_disabled() for index in range(4))
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+    context, page, errors = new_page(browser, "free")
+    try:
+        open_page(page, "index.html")
+        page.locator("#quick-actions-grid[aria-busy='false']").wait_for(state="visible")
+        page.request.post("http://127.0.0.1:4174/__e2e__/reset")
+        page.locator("#quick-chat").press("Enter")
+        page.locator("#chat-input").wait_for(state="visible")
+        page.wait_for_function("() => document.querySelector('#chat-input').value === 'С чего мне лучше начать сегодня?'")
+        assert page.locator("#chat-input").input_value() == "С чего мне лучше начать сегодня?"
+        records = page.request.get("http://127.0.0.1:4174/__e2e__/requests").json()
+        assert not [record for record in records["requests"] if record["path"] == "/api/v1/web/chat"]
+        page.go_back(wait_until="domcontentloaded")
+        page.wait_for_function("() => !document.querySelector('#quick-daily').disabled")
+        page.locator("#quick-daily").focus()
+        page.keyboard.press("Space")
+        page.locator("#card-sheet").wait_for(state="visible")
+        assert "open=" not in page.url
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
 def test_daily_card_invalid_or_failed_deep_link_does_not_open_sheet(browser: Browser) -> None:
     for persona, query in (("free", "open=other"), ("http_500", "open=daily")):
         context, page, errors = new_page(browser, persona)
