@@ -73,9 +73,25 @@ def _assert_open(page: Page) -> None:
     assert page.evaluate("document.body.style.overflow") == "hidden"
 
 
+def _focus_trigger(page: Page) -> None:
+    page.locator("#themeToggle").focus()
+    assert page.locator("#themeToggle").evaluate("element => element === document.activeElement")
+
+
+def _assert_closed(page: Page, trigger: str | None = None, fallback: bool = False) -> None:
+    modal = page.locator("#pwa-ios-modal")
+    modal.wait_for(state="hidden")
+    assert not modal.evaluate("element => element.contains(document.activeElement)")
+    assert page.evaluate("document.body.style.overflow") == ""
+    assert page.evaluate("!document.body.hasAttribute('tabindex')")
+    if trigger:
+        assert page.locator(trigger).evaluate("element => element === document.activeElement")
+    if fallback:
+        assert page.evaluate("document.activeElement === document.body")
+
+
 def test_ios_install_dialog_keyboard_focus_scroll_and_reopen(page: Page) -> None:
-    trigger = page.locator("#pwa-install-banner")
-    page.evaluate("document.getElementById('pwa-install-banner').focus()")
+    _focus_trigger(page)
     _open(page)
     _assert_open(page)
     page.keyboard.press("Shift+Tab")
@@ -83,23 +99,42 @@ def test_ios_install_dialog_keyboard_focus_scroll_and_reopen(page: Page) -> None
     page.keyboard.press("Tab")
     assert page.locator("#pwa-ios-modal-close").evaluate("element => element === document.activeElement")
     page.keyboard.press("Escape")
-    page.locator("#pwa-ios-modal").wait_for(state="hidden")
-    assert page.evaluate("document.body.style.overflow") == ""
+    _assert_closed(page, "#themeToggle")
+    _focus_trigger(page)
     _open(page, legacy=True)
     page.locator("#pwa-ios-modal-close").click()
-    page.locator("#pwa-ios-modal").wait_for(state="hidden")
-    assert not page.locator("#pwa-ios-modal").evaluate("element => element.contains(document.activeElement)")
+    _assert_closed(page, "#themeToggle")
 
 
 def test_ios_install_dialog_backdrop_and_controls(page: Page) -> None:
+    _focus_trigger(page)
     _open(page)
     page.locator("#pwa-ios-modal > div").click()
     assert page.locator("#pwa-ios-modal").is_visible()
     page.locator("#pwa-ios-modal").dispatch_event("click")
-    page.locator("#pwa-ios-modal").wait_for(state="hidden")
+    _assert_closed(page, "#themeToggle")
+    _focus_trigger(page)
     _open(page)
     page.locator("#pwa-ios-modal-cancel").click()
-    page.locator("#pwa-ios-modal").wait_for(state="hidden")
+    _assert_closed(page, "#themeToggle")
+
+
+@pytest.mark.parametrize("invalidation", ("body", "disabled", "hidden", "detached"))
+def test_ios_install_dialog_invalid_trigger_uses_safe_fallback(page: Page, invalidation: str) -> None:
+    if invalidation == "body":
+        page.evaluate("document.activeElement.blur()")
+        assert page.evaluate("document.activeElement === document.body")
+    else:
+        _focus_trigger(page)
+    _open(page)
+    if invalidation == "disabled":
+        page.evaluate("document.getElementById('themeToggle').disabled = true")
+    elif invalidation == "hidden":
+        page.evaluate("document.getElementById('themeToggle').hidden = true")
+    elif invalidation == "detached":
+        page.evaluate("document.getElementById('themeToggle').remove()")
+    page.keyboard.press("Escape")
+    _assert_closed(page, fallback=True)
 
 
 def test_tarot_ios_dialog_stacks_with_existing_dialog(e2e_server: None) -> None:
@@ -117,6 +152,7 @@ def test_tarot_ios_dialog_stacks_with_existing_dialog(e2e_server: None) -> None:
         page.locator("#pwa-ios-modal").wait_for(state="hidden")
         assert page.locator("#pw-sheet").is_visible()
         assert page.evaluate("document.body.style.overflow") == "hidden"
+        assert page.locator("#pw-sheet").evaluate("element => element.contains(document.activeElement)")
         page.evaluate("window.closePaywall()")
         assert page.evaluate("document.body.style.overflow") == ""
         context.close()

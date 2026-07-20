@@ -12,7 +12,7 @@
     "/pwa/app/home-v9.css": "d7d29df8b291b046f8b290c7b684126cbc058f1d19d895495ba419f7e40b8401",
     "/pwa/app/index.html": "c8b1255eb518013818be1a0a14577346df1e2a69a8c14a1cdfc6b2f893a931e0",
     "/pwa/app/nura-pwa.css": "29319dd17cc45d716f939f7b5313aee8cc9e4f2e14c49ddd48c88a2b0f5421d1",
-    "/pwa/app/nura-pwa.js": "98e46416b2e0103d352825e8f3eb765872e03f65afddc7341033637c51bf4280",
+    "/pwa/app/nura-pwa.js": "d0e3644cf2212664de7f6ae316e9276b661409da5155b5651547dfab73af5781",
     "/pwa/app/nura-shell-v1.css": "4f3a15a4d493204a89ef356ba1ea27a01c77880f321b8642afc41f9fc8434208",
     "/pwa/app/profile-v1.css": "182d00472632d4d2b5adc3a7cc5805cd973243fbce71a5519c6a9bb1145f2a02",
     "/pwa/app/profile.html": "fea020c5115951cbd9fadc120bdb43671581bb8fe584649ba3e286f4e47651e8",
@@ -22,5 +22,5 @@
     "/success.html": "ec32c7a0c5d0ef7f7e4dc7cf534da2f0b5f3c353cd64079f657b5007d5c70a05",
     "/theme.css": "ac9d303cdb8a503c38f30d9f705f85ee79aff6cd696006d6698c40f0196d1f1a"
   },
-  "release_id": "0c2bbe46f361eff1"
+  "release_id": "ff3483ed5f141b14"
 }
