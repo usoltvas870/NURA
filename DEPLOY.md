@@ -47,11 +47,13 @@ Staging и final releases обязаны находиться на одном fi
 2. безусловный migration delta gate;
 3. artifact checksum/inventory и dynamic disk/inode gates;
 4. unique staging, verification и same-filesystem finalization;
-5. один local image `nura-release:<sha>` из exact tracked archive с OCI revision/source/created labels;
+5. уникальный candidate image `nura-release-candidate:<sha>-<run-id>` из exact tracked archive с OCI revision/source/created labels, проверка его image ID/labels и однократная публикация отсутствующего final tag `nura-release:<sha>`;
 6. activation API, bot, celery-worker, celery-beat и admin-bot с `RUN_MIGRATIONS=0`;
 7. проверку container uniqueness, running/health, exact tag, image ID и revision label;
 8. atomic static `current` switch;
 9. public smoke и только затем atomic release-state update;
+
+Один SHA имеет одну immutable release identity: archive checksum, manifest checksum, static path, final image tag/ID, OCI labels и пять service image mappings/IDs записываются до первой application mutation и далее не меняются. Существующий final static или final tag без полного state-record считается recovery-ситуацией и не перезаписывается. Повторная активация ранее successful/rolled-back release (либо failed release только после доказанной полной compensation) переиспользует точные static/image provenance без rebuild и без повторной записи static. Отсутствующий final tag можно восстановить только из записанного локального image ID после полной сверки labels; конфликтующий tag блокирует операцию.
 10. best-effort locked retention cleanup.
 
 Postgres и Redis проверяются, но не пересоздаются. `deploy.sh` не запускает Alembic upgrade/downgrade и не имеет `allow_migrations`: любой delta в `nura_app/alembic/versions` блокирует release до extraction, Docker build и active mutations.
@@ -72,7 +74,9 @@ Postgres и Redis проверяются, но не пересоздаются. 
 
 Tracked config обслуживает release-owned static из `/var/www/nura-releases/current/public`, а ACME остаётся на `/var/www/nura-ai.ru`. Обычный release не меняет и не reload Nginx. Preflight требует ровно один enabled canonical config и fail-closed сообщает о незавершённом transition.
 
-`scripts/prepare_atomic_release_host.py` по умолчанию выполняет только read-only inventory. Apply mode предназначен для отдельного owner-approved блока и требует `--apply`, exact legacy SHA `d0d39ae8717ceb0920d98f27dd9092f746755c6c`, exact reviewed `--target-sha`, `--acknowledge-production-change` и canonical roots. Он сохраняет полный forensic snapshot/inventory, три строго разрешённых legacy Nginx файла, прежний sites-available config, пять service image mappings и protected tags, атомарно устанавливает tracked Nginx config exact target, создаёт legacy release/state, нормализует enabled config, делает `nginx -t` и reload только в apply mode. При ошибке Nginx или state commit прежние canonical/include configs и active symlink восстанавливаются. `/var/www/nura-ai.ru` и legacy evidence не удаляются.
+`scripts/prepare_atomic_release_host.py` по умолчанию выполняет только read-only inventory. Apply mode предназначен для отдельного owner-approved блока и требует `--apply`, exact legacy SHA `d0d39ae8717ceb0920d98f27dd9092f746755c6c`, exact reviewed `--target-sha`, `--acknowledge-production-change` и canonical roots. Он сохраняет полный forensic snapshot/inventory, три строго разрешённых legacy Nginx файла, прежний sites-available config, пять service image mappings и immutable protected tags. Любой legacy public file, отсутствующий в immutable release, блокирует переход; узкое исключение — стабильный `.well-known/acme-challenge/`, который продолжает обслуживаться отдельным root. До active mutation и повторно после установки tracked Nginx/current+reload transition manifest-driven проверяет по HTTPS точные bytes/size/SHA-256 всего canonical public inventory, `VERSION`, aliases/SPA, `/health` и три canonical redirect с no-cache и bounded timeout. Только затем создаётся legacy state. При ошибке прежние canonical/include configs и active symlink восстанавливаются, Nginx повторно проверяется/reload, а старый public baseline проверяется снова; недоказанное восстановление создаёт отдельный exclusive recovery marker и возвращает особую ошибку. `/var/www/nura-ai.ru` и legacy evidence не удаляются.
+
+Release-artifact job использует те же фиксированные runtime versions, что обычный CI: Python 3.11.9 и Node.js 24.15.0, с явным выводом версий. GitHub artifact digest не участвует в identity: authoritative checks остаются внутри archive checksum sidecar и public manifest.
 
 Эта implementation-задача helper не запускает, host files не меняет, workflow не dispatch-ит и production activation не выполняет.
 

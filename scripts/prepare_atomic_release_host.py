@@ -18,9 +18,11 @@ import sys
 import tarfile
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 try:
     import fcntl
@@ -34,10 +36,114 @@ ENABLED_CONFIG_ALLOWLIST = frozenset(
 )
 APPLICATION_SERVICES = ("api", "bot", "celery-worker", "celery-beat", "admin-bot")
 SENSITIVE_SUFFIXES = (".env", ".key", ".pem", ".p12", ".pfx")
+PUBLIC_TIMEOUT_SECONDS = 10.0
+PUBLIC_ALIASES = {
+    "/": "public/index.html",
+    "/VERSION": "public/VERSION",
+    "/vk-callback.html": "public/vk-callback.html",
+    "/mini": "public/mini.html",
+    "/success": "public/success.html",
+    "/admin/": "public/admin/index.html",
+    "/app/": "public/app/index.html",
+}
+REDIRECT_CONTRACTS = {
+    "https://www.nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
+    "http://www.nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
+    "http://nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
+}
+LEGACY_PUBLIC_EXCLUDED_PREFIXES = (".well-known/acme-challenge/",)
 
 
 class TransitionError(RuntimeError):
     """Raised when the host is not safe for the one-time transition."""
+
+
+class FetchResult(NamedTuple):
+    status: int
+    body: bytes
+    location: str | None = None
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req: Any, fp: Any, code: int, msg: str, headers: Any, newurl: str) -> None:
+        return None
+
+
+def _fetch_public(url: str, timeout: float = PUBLIC_TIMEOUT_SECONDS) -> FetchResult:
+    request = urllib.request.Request(
+        url,
+        headers={"Cache-Control": "no-cache, no-store", "Pragma": "no-cache"},
+    )
+    opener = urllib.request.build_opener(_NoRedirect)
+    try:
+        with opener.open(request, timeout=timeout) as response:
+            return FetchResult(response.status, response.read(), response.headers.get("Location"))
+    except urllib.error.HTTPError as exc:
+        return FetchResult(exc.code, exc.read(), exc.headers.get("Location"))
+
+
+def verify_public_equivalence(
+    release: Path,
+    *,
+    base_url: str = "https://nura-ai.ru",
+    fetcher: Any = _fetch_public,
+) -> dict[str, str]:
+    """Prove exact public bytes, aliases, health and canonical redirects."""
+    manifest_path = release / "public" / "release-manifest.json"
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise TransitionError("legacy public release manifest is missing")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    files = {entry["destination"]: entry for entry in manifest.get("files", [])}
+    if not files or "public/VERSION" not in files:
+        raise TransitionError("legacy public release manifest inventory is incomplete")
+    evidence: dict[str, str] = {}
+    for destination, entry in sorted(files.items()):
+        relative = destination.removeprefix("public/")
+        source = release / destination
+        if source.is_symlink() or not source.is_file():
+            raise TransitionError(f"manifest public file is missing: {destination}")
+        expected = source.read_bytes()
+        if len(expected) != entry.get("size") or hashlib.sha256(expected).hexdigest() != entry.get("sha256"):
+            raise TransitionError(f"manifest hash/size mismatch: {destination}")
+        result = fetcher(f"{base_url.rstrip('/')}/{relative}")
+        if result.status != 200 or result.body != expected:
+            raise TransitionError(f"public byte equivalence failed: /{relative}")
+        evidence[f"/{relative}"] = entry["sha256"]
+    for endpoint, destination in PUBLIC_ALIASES.items():
+        result = fetcher(f"{base_url.rstrip('/')}{endpoint}")
+        expected = (release / destination).read_bytes()
+        if result.status != 200 or result.body != expected:
+            raise TransitionError(f"public alias equivalence failed: {endpoint}")
+        evidence[endpoint] = hashlib.sha256(expected).hexdigest()
+    health = fetcher(f"{base_url.rstrip('/')}/health")
+    if health.status != 200:
+        raise TransitionError("public health verification failed")
+    for source, destination in REDIRECT_CONTRACTS.items():
+        result = fetcher(source)
+        if result.status not in {301, 302, 307, 308} or result.location != destination:
+            raise TransitionError(f"canonical redirect verification failed: {source}")
+        evidence[source] = destination
+    return evidence
+
+
+def verify_legacy_inventory_coverage(inventory: dict[str, Any], release: Path) -> None:
+    """Reject legacy public files that the immutable release would drop."""
+    manifest = json.loads(
+        (release / "public" / "release-manifest.json").read_text(encoding="utf-8")
+    )
+    release_paths = {
+        entry["destination"].removeprefix("public/") for entry in manifest.get("files", [])
+    }
+    legacy_paths = {
+        entry["path"]
+        for entry in inventory.get("files", [])
+        if not entry["path"].startswith(LEGACY_PUBLIC_EXCLUDED_PREFIXES)
+    }
+    missing = sorted(legacy_paths - release_paths)
+    if missing:
+        raise TransitionError(
+            f"legacy public inventory contains files absent from immutable release: {missing[:10]}"
+        )
 
 
 def _run(*args: str, cwd: Path | None = None) -> str:
@@ -210,12 +316,62 @@ def _protect_legacy_images(service_map: dict[str, dict[str, str]]) -> dict[str, 
     protected: dict[str, str] = {}
     for service, value in service_map.items():
         tag = f"nura-legacy:{service}-{EXPECTED_LEGACY_SHA[:12]}"
+        inspection = subprocess.run(
+            ["docker", "image", "inspect", "--format", "{{.Id}}", tag],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if inspection.returncode == 0:
+            if inspection.stdout.strip() != value["image_id"]:
+                raise TransitionError(f"protected legacy image tag conflict: {service}")
+            protected[service] = tag
+            continue
         _run("docker", "image", "tag", value["image_id"], tag)
         inspected = _run("docker", "image", "inspect", "--format", "{{.Id}}", tag).strip()
         if inspected != value["image_id"]:
             raise TransitionError(f"protected legacy image tag mismatch: {service}")
         protected[service] = tag
     return protected
+
+
+def _write_recovery_marker(transition_dir: Path, reason: str) -> Path:
+    path = transition_dir / "transition-recovery-required.json"
+    value = {
+        "schema": 1,
+        "status": "recovery_required",
+        "reason": reason[:500],
+        "recorded_at": datetime_utc(),
+    }
+    try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o640)
+    except FileExistsError as exc:
+        raise TransitionError("transition recovery evidence already exists; refusing overwrite") from exc
+    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        json.dump(value, stream, sort_keys=True, separators=(",", ":"))
+        stream.write("\n")
+    return path
+
+
+def _restore_and_verify_public(
+    args: argparse.Namespace,
+    transition_dir: Path,
+    legacy_release: Path,
+    original_error: BaseException,
+) -> None:
+    current = args.release_root / "current"
+    if current.is_symlink() and current.resolve(strict=False) == legacy_release.resolve():
+        current.unlink()
+    _restore_enabled_configs(args, transition_dir)
+    _restore_canonical_config(args, transition_dir)
+    _run("nginx", "-t")
+    _run("systemctl", "reload", "nginx")
+    try:
+        verify_public_equivalence(legacy_release, base_url=args.base_url)
+    except Exception as restore_error:
+        reason = f"activation failed: {original_error}; restored baseline verification failed: {restore_error}"
+        _write_recovery_marker(transition_dir, reason)
+        raise TransitionError(reason) from restore_error
 
 
 def _build_legacy_release(args: argparse.Namespace, transition_dir: Path) -> Path:
@@ -313,7 +469,6 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> Non
         transition_dir = args.backup_root / f"{int(time.time())}-{inventory['inventory_sha256'][:16]}"
         transition_dir.mkdir(parents=True, mode=0o750)
         _snapshot(args, inventory, transition_dir)
-        protected_tags = _protect_legacy_images(inventory["services"])
         for directory in (
             args.release_root / "releases",
             args.release_root / "staging",
@@ -322,6 +477,9 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> Non
         ):
             directory.mkdir(parents=True, exist_ok=True)
         legacy_release = _build_legacy_release(args, transition_dir)
+        verify_legacy_inventory_coverage(inventory, legacy_release)
+        verify_public_equivalence(legacy_release, base_url=args.base_url)
+        protected_tags = _protect_legacy_images(inventory["services"])
         current = args.release_root / "current"
         if current.exists() or current.is_symlink():
             raise TransitionError("current already exists; refusing to overwrite transition state")
@@ -349,15 +507,11 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> Non
                 raise TransitionError("temporary legacy current symlink is invalid")
             os.replace(temporary, current)
             _run("systemctl", "reload", "nginx")
-        except Exception:
+            verify_public_equivalence(legacy_release, base_url=args.base_url)
+        except Exception as exc:
             if temporary.exists() or temporary.is_symlink():
                 temporary.unlink()
-            if current.is_symlink() and current.resolve(strict=False) == legacy_release.resolve():
-                current.unlink()
-            _restore_enabled_configs(args, transition_dir)
-            _restore_canonical_config(args, transition_dir)
-            _run("nginx", "-t")
-            _run("systemctl", "reload", "nginx")
+            _restore_and_verify_public(args, transition_dir, legacy_release, exc)
             raise
         state = {
             "schema": 1,
@@ -389,16 +543,11 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> Non
         try:
             _write_json(record_path, state)
             _write_json(current_state_path, state)
-        except Exception:
-            if current.is_symlink():
-                current.unlink()
+        except Exception as exc:
             for state_path in (record_path, current_state_path):
                 if state_path.is_file() and not state_path.is_symlink():
                     state_path.unlink()
-            _restore_enabled_configs(args, transition_dir)
-            _restore_canonical_config(args, transition_dir)
-            _run("nginx", "-t")
-            _run("systemctl", "reload", "nginx")
+            _restore_and_verify_public(args, transition_dir, legacy_release, exc)
             raise
 
 
@@ -420,6 +569,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--sites-enabled", type=Path, default=Path("/etc/nginx/sites-enabled"))
     parser.add_argument("--sites-available", type=Path, default=Path("/etc/nginx/sites-available"))
     parser.add_argument("--lock-file", type=Path, default=Path("/var/lock/nura-deploy.lock"))
+    parser.add_argument("--base-url", default="https://nura-ai.ru")
     parser.add_argument("--output", type=Path)
     return parser
 

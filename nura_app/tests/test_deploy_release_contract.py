@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -250,6 +251,7 @@ def test_release_workflows_are_manual_main_protected_and_serial(path: Path) -> N
     assert "refs/heads/main" in workflow
     assert "fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}" in workflow
     assert "git pull" not in workflow
+    assert re.search(r"uses:\s+actions/[^@]+@v\d+\s*$", workflow, re.MULTILINE) is None
 
 
 def test_deploy_workflow_builds_exact_deterministic_artifact_for_14_days() -> None:
@@ -264,6 +266,13 @@ def test_deploy_workflow_builds_exact_deterministic_artifact_for_14_days() -> No
     assert 'bash "$launcher" deploy "$TARGET_SHA"' in workflow
     assert "allow_migrations" not in workflow
     assert "MIGRATIONS_APPROVED" not in workflow
+    assert 'node-version: "24.15.0"' in workflow
+    assert 'python-version: "3.11.9"' in workflow
+    assert "python --version" in workflow and "node --version" in workflow
+    assert "artifact-digest" not in workflow
+    assert "EXPECTED_ACTION_DIGEST" not in workflow
+    assert "actions/setup-node@v5" not in workflow
+    assert "actions/setup-python@v6" not in workflow
 
 
 def test_rollback_workflow_requires_exact_target_and_acknowledgement() -> None:
@@ -274,6 +283,50 @@ def test_rollback_workflow_requires_exact_target_and_acknowledgement() -> None:
     assert 'bash deploy.sh rollback "$TARGET_SHA"' in workflow
     assert "git checkout" not in workflow
     assert "alembic" not in workflow.lower()
+    assert workflow.count("release-check=1") == 6
+
+
+@pytest.mark.parametrize(
+    "contract",
+    [
+        'CANDIDATE_TAG="nura-release-candidate:$TARGET_SHA-$RUN_ID"',
+        "final image tag exists without immutable state",
+        "final static release exists without immutable state",
+        "incomplete release state requires operator recovery",
+        "failed release is not proven compensated",
+        "immutable release provenance mismatch",
+        "recorded immutable image ID is unavailable",
+        "final release tag conflicts with immutable state",
+        "candidate application image OCI labels mismatch",
+        "final application image OCI labels mismatch",
+        "write_state staged",
+        "compensation_verified",
+        "oci_source",
+        "oci_created",
+        "recovery evidence already exists; refusing overwrite",
+    ],
+)
+def test_immutable_release_identity_contracts_are_explicit(contract: str) -> None:
+    assert contract in DEPLOY_SCRIPT.read_text(encoding="utf-8")
+
+
+def test_candidate_is_validated_published_and_removed_before_application_mutation() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    build = script.index('docker build --pull=false --tag "$CANDIDATE_TAG"')
+    publish = script.index('docker image tag "$CANDIDATE_TAG" "$IMAGE_TAG"')
+    staged = script.index("write_state staged")
+    mutate = script.index("APP_MUTATED=1", staged)
+    assert build < publish < staged < mutate
+    assert script.index('docker image rm "$CANDIDATE_TAG"', publish) < staged
+
+
+def test_reactivation_path_reuses_recorded_static_and_image_without_build() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    reuse = script[script.index('if [[ -e "$TARGET_STATE_FILE"') : script.index("if [[ $REUSE_RELEASE -eq 0 ]]")]
+    assert "verify_release_directory" in reuse
+    assert 'docker image tag "$TARGET_IMAGE_ID" "$IMAGE_TAG"' in reuse
+    assert "docker build" not in reuse
+    assert "extract --archive" not in reuse
 
 
 def test_ci_workflow_has_no_deployment() -> None:

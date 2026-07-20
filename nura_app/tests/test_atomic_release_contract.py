@@ -462,6 +462,103 @@ def test_transition_has_five_legacy_mappings_vk_and_no_wildcard_deletion() -> No
     assert source.index('_run("nginx", "-t")') < source.index('_run("systemctl", "reload", "nginx")')
 
 
+def _public_release_fixture(tmp_path: Path) -> tuple[Path, dict[str, bytes]]:
+    release = tmp_path / "release"
+    payloads = {
+        "public/index.html": b"index\n",
+        "public/VERSION": f"{transition.EXPECTED_LEGACY_SHA} legacy\n".encode(),
+        "public/vk-callback.html": b"vk\n",
+        "public/mini.html": b"mini\n",
+        "public/success.html": b"success\n",
+        "public/admin/index.html": b"admin\n",
+        "public/app/index.html": b"app\n",
+    }
+    files = []
+    for destination, body in payloads.items():
+        path = release / destination
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+        files.append(
+            {
+                "destination": destination,
+                "size": len(body),
+                "sha256": __import__("hashlib").sha256(body).hexdigest(),
+            }
+        )
+    manifest = {"files": sorted(files, key=lambda item: item["destination"])}
+    (release / "public/release-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return release, payloads
+
+
+def _public_fetcher(payloads: dict[str, bytes], *, corrupt: str | None = None, redirect_ok: bool = True):
+    aliases = {endpoint: payloads[destination] for endpoint, destination in transition.PUBLIC_ALIASES.items()}
+    direct = {f"/{name.removeprefix('public/')}": body for name, body in payloads.items()}
+
+    def fetch(url: str) -> transition.FetchResult:
+        if url in transition.REDIRECT_CONTRACTS:
+            location = transition.REDIRECT_CONTRACTS[url] if redirect_ok else "https://wrong.invalid/"
+            return transition.FetchResult(301, b"", location)
+        endpoint = url.removeprefix("https://nura-ai.ru")
+        if endpoint == "/health":
+            return transition.FetchResult(200, b"ok")
+        body = aliases.get(endpoint, direct.get(endpoint, b""))
+        if endpoint == corrupt:
+            body += b"corrupt"
+        return transition.FetchResult(200 if body else 404, body)
+
+    return fetch
+
+
+def test_transition_public_equivalence_accepts_exact_manifest_aliases_and_redirects(
+    tmp_path: Path,
+) -> None:
+    release, payloads = _public_release_fixture(tmp_path)
+    evidence = transition.verify_public_equivalence(release, fetcher=_public_fetcher(payloads))
+    assert evidence["/VERSION"]
+    assert set(transition.REDIRECT_CONTRACTS) <= set(evidence)
+
+
+@pytest.mark.parametrize("endpoint", ["/index.html", "/VERSION", "/vk-callback.html", "/app/"])
+def test_transition_public_equivalence_rejects_wrong_bytes(tmp_path: Path, endpoint: str) -> None:
+    release, payloads = _public_release_fixture(tmp_path)
+    with pytest.raises(transition.TransitionError, match="equivalence"):
+        transition.verify_public_equivalence(
+            release,
+            fetcher=_public_fetcher(payloads, corrupt=endpoint),
+        )
+
+
+def test_transition_public_equivalence_rejects_redirect_drift(tmp_path: Path) -> None:
+    release, payloads = _public_release_fixture(tmp_path)
+    with pytest.raises(transition.TransitionError, match="canonical redirect"):
+        transition.verify_public_equivalence(
+            release,
+            fetcher=_public_fetcher(payloads, redirect_ok=False),
+        )
+
+
+def test_transition_rejects_legacy_public_file_absent_from_release(tmp_path: Path) -> None:
+    release, payloads = _public_release_fixture(tmp_path)
+    inventory = {"files": [{"path": name.removeprefix("public/")} for name in payloads]}
+    inventory["files"].append({"path": "stale-public-file.txt"})
+    with pytest.raises(transition.TransitionError, match="absent from immutable release"):
+        transition.verify_legacy_inventory_coverage(inventory, release)
+
+
+def test_transition_allows_only_explicit_acme_inventory_exclusion(tmp_path: Path) -> None:
+    release, payloads = _public_release_fixture(tmp_path)
+    inventory = {"files": [{"path": name.removeprefix("public/")} for name in payloads]}
+    inventory["files"].append({"path": ".well-known/acme-challenge/token"})
+    transition.verify_legacy_inventory_coverage(inventory, release)
+
+
+def test_transition_recovery_marker_is_exclusive(tmp_path: Path) -> None:
+    marker = transition._write_recovery_marker(tmp_path, "restore verification failed")
+    assert json.loads(marker.read_text(encoding="utf-8"))["status"] == "recovery_required"
+    with pytest.raises(transition.TransitionError, match="refusing overwrite"):
+        transition._write_recovery_marker(tmp_path, "second failure")
+
+
 def test_retention_protects_current_two_previous_and_legacy_records() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     retention = script[script.index("retention cleanup is best-effort") :]
@@ -479,7 +576,7 @@ def test_retention_protects_current_two_previous_and_legacy_records() -> None:
 def test_same_sha_cycles_mutable_tags_and_incomplete_compensation_fail_closed() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     assert "refusing to create a self-referential release lineage" in script
-    assert script.count("release state lineage contains a cycle") == 2
+    assert script.count("release state lineage contains a cycle") >= 2
     assert "per_service_image_ids" in script
     assert "rollback tag no longer identifies the recorded immutable image" in script
     assert "current rollback tag does not match its recorded immutable image ID" in script

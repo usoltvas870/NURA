@@ -60,3 +60,5 @@ jobs:
           done
           test "$(curl --fail --silent --show-error "$base_url/VERSION" | awk 'NR==1 {print $1; exit}')" = "$TARGET_SHA"
           test "$(curl --silent --show-error --output /dev/null --write-out '%{redirect_url}' 'https://www.nura-ai.ru/app/?release-check=1')" = 'https://nura-ai.ru/app/?release-check=1'
+          test "$(curl --silent --show-error --output /dev/null --write-out '%{redirect_url}' 'http://www.nura-ai.ru/app/?release-check=1')" = 'https://nura-ai.ru/app/?release-check=1'
+          test "$(curl --silent --show-error --output /dev/null --write-out '%{redirect_url}' 'http://nura-ai.ru/app/?release-check=1')" = 'https://nura-ai.ru/app/?release-check=1'

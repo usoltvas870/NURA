@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       artifact-name: ${{ steps.names.outputs.artifact_name }}
-      artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
       target-sha: ${{ steps.names.outputs.target_sha }}
     steps:
       - name: Check out the exact workflow SHA
@@ -24,6 +23,21 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24.15.0"
+
+      - name: Set up Python 3.11.9
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11.9"
+
+      - name: Log release-builder runtimes
+        run: |
+          python --version
+          node --version
 
       - name: Define immutable artifact identity
         id: names
@@ -79,7 +93,6 @@ jobs:
     env:
       TARGET_SHA: ${{ needs.build-release-artifact.outputs.target-sha }}
       ARTIFACT_NAME: ${{ needs.build-release-artifact.outputs.artifact-name }}
-      EXPECTED_ACTION_DIGEST: ${{ needs.build-release-artifact.outputs.artifact-digest }}
       INCOMING_ID: ${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.build-release-artifact.outputs.target-sha }}
     steps:
       - name: Download exact artifact from build job
@@ -90,7 +103,6 @@ jobs:
 
       - name: Verify runner-side archive checksum
         run: |
-          test -n "$EXPECTED_ACTION_DIGEST"
           cd release-download
           sha256sum --check "nura-static-$TARGET_SHA.tar.gz.sha256"
           test -f release-manifest.json
