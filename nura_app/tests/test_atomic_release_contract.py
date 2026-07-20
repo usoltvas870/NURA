@@ -334,7 +334,9 @@ def _transition_args(tmp_path: Path) -> argparse.Namespace:
     repo = tmp_path / "repo"
     for path in (web, enabled, available, repo):
         path.mkdir()
-    _write(web / "VERSION", f"{transition.EXPECTED_LEGACY_SHA} legacy\n")
+    (web / "VERSION").write_bytes(
+        f"{transition.EXPECTED_LEGACY_SHA} - 2026-07-18T09:06:46Z\n".encode("ascii")
+    )
     _write(web / "index.html", "legacy\n")
     for name in transition.ENABLED_CONFIG_ALLOWLIST:
         _write(enabled / name, f"# {name}\n")
@@ -408,7 +410,8 @@ def test_transition_apply_requires_exact_acknowledgements(
 def test_transition_rejects_wrong_legacy_version(tmp_path: Path) -> None:
     args = _transition_args(tmp_path)
     _write(args.legacy_web_root / "VERSION", f"{'0' * 40} wrong\n")
-    assert transition._read_version(args.legacy_web_root) == "0" * 40
+    with pytest.raises(transition.TransitionError, match="strict legacy contract"):
+        transition._read_version(args.legacy_web_root)
     args.apply = True
     args.expected_production_sha = transition.EXPECTED_LEGACY_SHA
     args.acknowledge_production_change = True
@@ -488,7 +491,7 @@ def _public_release_fixture(tmp_path: Path) -> tuple[Path, dict[str, bytes]]:
     release = tmp_path / "release"
     payloads = {
         "public/index.html": b"index\n",
-        "public/VERSION": f"{transition.EXPECTED_LEGACY_SHA} legacy\n".encode(),
+        "public/VERSION": f"{transition.EXPECTED_LEGACY_SHA} 2026-07-18T09:05:39Z\n".encode(),
         "public/vk-callback.html": b"vk\n",
         "public/mini.html": b"mini\n",
         "public/success.html": b"success\n",
@@ -557,6 +560,96 @@ def test_transition_public_equivalence_rejects_redirect_drift(tmp_path: Path) ->
             release,
             fetcher=_public_fetcher(payloads, redirect_ok=False),
         )
+
+
+@pytest.mark.parametrize(
+    "version_bytes",
+    [
+        f"{transition.EXPECTED_LEGACY_SHA} 2026-07-18T09:05:39Z\n".encode(),
+        f"{'0' * 40} - 2026-07-18T09:06:46Z\n".encode(),
+        f"{transition.EXPECTED_LEGACY_SHA}-2026-07-18T09:06:46Z\n".encode(),
+        f"{transition.EXPECTED_LEGACY_SHA} - 2026-02-30T09:06:46Z\n".encode(),
+        f"{transition.EXPECTED_LEGACY_SHA} - 2026-07-18T09:06:46Z\nextra\n".encode(),
+    ],
+)
+def test_legacy_version_contract_rejects_non_legacy_or_malformed_bytes(version_bytes: bytes) -> None:
+    with pytest.raises(transition.TransitionError):
+        transition._legacy_version_evidence_from_bytes(version_bytes)
+
+
+def test_legacy_version_contract_records_exact_old_format() -> None:
+    version_bytes = f"{transition.EXPECTED_LEGACY_SHA} - 2026-07-18T09:06:46Z\n".encode()
+    evidence = transition._legacy_version_evidence_from_bytes(version_bytes)
+    assert evidence == {
+        "size": len(version_bytes),
+        "sha256": __import__("hashlib").sha256(version_bytes).hexdigest(),
+        "parsed_sha": transition.EXPECTED_LEGACY_SHA,
+        "deployment_timestamp": "2026-07-18T09:06:46Z",
+    }
+
+
+def test_legacy_public_baseline_accepts_old_version_but_post_switch_requires_deterministic_version(
+    tmp_path: Path,
+) -> None:
+    release, payloads = _public_release_fixture(tmp_path)
+    legacy_version = f"{transition.EXPECTED_LEGACY_SHA} - 2026-07-18T09:06:46Z\n".encode()
+    legacy_evidence = transition._legacy_version_evidence_from_bytes(legacy_version)
+    live_payloads = {**payloads, "public/VERSION": legacy_version}
+    baseline = transition.verify_legacy_public_baseline(
+        release,
+        legacy_version,
+        legacy_evidence,
+        fetcher=_public_fetcher(live_payloads),
+    )
+    assert baseline["/VERSION"] == legacy_evidence["sha256"]
+    with pytest.raises(transition.TransitionError, match="equivalence"):
+        transition.verify_public_equivalence(release, fetcher=_public_fetcher(live_payloads))
+    transition.verify_public_equivalence(release, fetcher=_public_fetcher(payloads))
+
+
+def test_legacy_public_baseline_rejects_changed_old_version_or_non_version_file(tmp_path: Path) -> None:
+    release, payloads = _public_release_fixture(tmp_path)
+    legacy_version = f"{transition.EXPECTED_LEGACY_SHA} - 2026-07-18T09:06:46Z\n".encode()
+    evidence = transition._legacy_version_evidence_from_bytes(legacy_version)
+    live_payloads = {**payloads, "public/VERSION": legacy_version}
+    with pytest.raises(transition.TransitionError, match="equivalence"):
+        transition.verify_legacy_public_baseline(
+            release,
+            legacy_version,
+            evidence,
+            fetcher=_public_fetcher({**live_payloads, "public/index.html": b"changed\n"}),
+        )
+    with pytest.raises(transition.TransitionError, match="equivalence"):
+        transition.verify_legacy_public_baseline(
+            release,
+            legacy_version,
+            evidence,
+            fetcher=_public_fetcher({**live_payloads, "public/VERSION": b"different\n"}),
+        )
+
+
+def test_legacy_public_baseline_records_raw_version_and_forensic_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    release, payloads = _public_release_fixture(tmp_path)
+    legacy_version = f"{transition.EXPECTED_LEGACY_SHA} - 2026-07-18T09:06:46Z\n".encode()
+    evidence = transition._legacy_version_evidence_from_bytes(legacy_version)
+    monkeypatch.setattr(transition, "datetime_utc", lambda: "2026-07-20T00:00:00Z")
+    baseline = transition._write_legacy_public_baseline(
+        tmp_path / "forensics",
+        release,
+        legacy_version,
+        evidence,
+        base_url="https://nura-ai.ru",
+        fetcher=_public_fetcher({**payloads, "public/VERSION": legacy_version}),
+    )
+    saved = json.loads((tmp_path / "forensics/legacy-public-baseline.json").read_text(encoding="utf-8"))
+    assert saved == baseline
+    assert saved["legacy_version"] == evidence
+    assert saved["expected_legacy_sha"] == transition.EXPECTED_LEGACY_SHA
+    assert (tmp_path / "forensics/legacy-VERSION").read_bytes() == legacy_version
+    loaded_bytes, loaded_evidence = transition._load_legacy_public_baseline(tmp_path / "forensics", release)
+    assert loaded_bytes == legacy_version and loaded_evidence == evidence
 
 
 def test_transition_rejects_legacy_public_file_absent_from_release(tmp_path: Path) -> None:
@@ -830,7 +923,7 @@ def test_transition_retry_contract_keeps_legacy_root_and_verified_final() -> Non
     assert "already_prepared" in source
     assert "rmtree(args.legacy_web_root" not in source
     assert "unlink(args.legacy_web_root" not in source
-    assert apply_source.index("verify_public_equivalence(prepared.verification_path") < apply_source.index("_finalize_prepared_release")
+    assert apply_source.index("_write_legacy_public_baseline(") < apply_source.index("_finalize_prepared_release")
     assert apply_source.index("_existing_transition_status") < apply_source.index("candidate.write_bytes")
 
 

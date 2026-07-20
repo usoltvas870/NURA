@@ -21,6 +21,7 @@ import time
 import urllib.error
 import urllib.request
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -31,6 +32,10 @@ except ImportError:  # pragma: no cover - apply mode is Linux-host only
 
 EXPECTED_LEGACY_SHA = "d0d39ae8717ceb0920d98f27dd9092f746755c6c"
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+LEGACY_VERSION_PATTERN = re.compile(
+    rf"^(?P<sha>{EXPECTED_LEGACY_SHA}) - "
+    r"(?P<deployment_timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)\n$"
+)
 ENABLED_CONFIG_ALLOWLIST = frozenset(
     {"nura-ai.ru", "nura-ai.ru.bak", "nura-ai.ru.conf"}
 )
@@ -113,6 +118,85 @@ def verify_public_equivalence(
     for endpoint, destination in PUBLIC_ALIASES.items():
         result = fetcher(f"{base_url.rstrip('/')}{endpoint}")
         expected = (release / destination).read_bytes()
+        if result.status != 200 or result.body != expected:
+            raise TransitionError(f"public alias equivalence failed: {endpoint}")
+        evidence[endpoint] = hashlib.sha256(expected).hexdigest()
+    health = fetcher(f"{base_url.rstrip('/')}/health")
+    if health.status != 200:
+        raise TransitionError("public health verification failed")
+    for source, destination in REDIRECT_CONTRACTS.items():
+        result = fetcher(source)
+        if result.status not in {301, 302, 307, 308} or result.location != destination:
+            raise TransitionError(f"canonical redirect verification failed: {source}")
+        evidence[source] = destination
+    return evidence
+
+
+def _legacy_version_evidence_from_bytes(version_bytes: bytes) -> dict[str, Any]:
+    try:
+        version = version_bytes.decode("ascii")
+    except UnicodeDecodeError as exc:
+        raise TransitionError("legacy VERSION must be ASCII") from exc
+    match = LEGACY_VERSION_PATTERN.fullmatch(version)
+    if match is None:
+        raise TransitionError("legacy VERSION does not match the strict legacy contract")
+    deployment_timestamp = match["deployment_timestamp"]
+    try:
+        datetime.strptime(deployment_timestamp, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError as exc:
+        raise TransitionError("legacy VERSION deployment timestamp is invalid") from exc
+    return {
+        "size": len(version_bytes),
+        "sha256": hashlib.sha256(version_bytes).hexdigest(),
+        "parsed_sha": match["sha"],
+        "deployment_timestamp": deployment_timestamp,
+    }
+
+
+def _read_legacy_version(web_root: Path) -> tuple[bytes, dict[str, Any]]:
+    version = web_root / "VERSION"
+    if version.is_symlink() or not version.is_file():
+        raise TransitionError("legacy VERSION is missing, non-regular, or a symlink")
+    version_bytes = version.read_bytes()
+    return version_bytes, _legacy_version_evidence_from_bytes(version_bytes)
+
+
+def verify_legacy_public_baseline(
+    release: Path,
+    legacy_version_bytes: bytes,
+    legacy_version: dict[str, Any],
+    *,
+    base_url: str = "https://nura-ai.ru",
+    fetcher: Any = _fetch_public,
+) -> dict[str, str]:
+    """Verify the pre-transition legacy public baseline without masking VERSION drift."""
+    if _legacy_version_evidence_from_bytes(legacy_version_bytes) != legacy_version:
+        raise TransitionError("legacy VERSION evidence does not match saved bytes")
+    manifest_path = release / "public" / "release-manifest.json"
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise TransitionError("legacy public release manifest is missing")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    files = {entry["destination"]: entry for entry in manifest.get("files", [])}
+    if not files or "public/VERSION" not in files:
+        raise TransitionError("legacy public release manifest inventory is incomplete")
+    evidence: dict[str, str] = {}
+    for destination, entry in sorted(files.items()):
+        relative = destination.removeprefix("public/")
+        source = release / destination
+        if source.is_symlink() or not source.is_file():
+            raise TransitionError(f"manifest public file is missing: {destination}")
+        expected = source.read_bytes()
+        if len(expected) != entry.get("size") or hashlib.sha256(expected).hexdigest() != entry.get("sha256"):
+            raise TransitionError(f"manifest hash/size mismatch: {destination}")
+        if destination == "public/VERSION":
+            expected = legacy_version_bytes
+        result = fetcher(f"{base_url.rstrip('/')}/{relative}")
+        if result.status != 200 or result.body != expected:
+            raise TransitionError(f"public byte equivalence failed: /{relative}")
+        evidence[f"/{relative}"] = hashlib.sha256(expected).hexdigest()
+    for endpoint, destination in PUBLIC_ALIASES.items():
+        expected = legacy_version_bytes if destination == "public/VERSION" else (release / destination).read_bytes()
+        result = fetcher(f"{base_url.rstrip('/')}{endpoint}")
         if result.status != 200 or result.body != expected:
             raise TransitionError(f"public alias equivalence failed: {endpoint}")
         evidence[endpoint] = hashlib.sha256(expected).hexdigest()
@@ -249,13 +333,8 @@ def _sha256(path: Path) -> str:
 
 
 def _read_version(web_root: Path) -> str:
-    version = web_root / "VERSION"
-    if version.is_symlink() or not version.is_file():
-        raise TransitionError("legacy VERSION is missing, non-regular, or a symlink")
-    fields = version.read_text(encoding="utf-8").split()
-    if not fields:
-        raise TransitionError("legacy VERSION is empty")
-    return fields[0]
+    _version_bytes, evidence = _read_legacy_version(web_root)
+    return evidence["parsed_sha"]
 
 
 def _enabled_configs(sites_enabled: Path) -> list[Path]:
@@ -344,10 +423,12 @@ def collect_inventory(
         if entry["path"].startswith(LEGACY_PUBLIC_EXCLUDED_PREFIXES)
     ]
     configs = _enabled_configs(args.sites_enabled)
+    _legacy_version_bytes, legacy_version = _read_legacy_version(args.legacy_web_root)
     return {
         "schema": 1,
         "mode": "apply" if args.apply else "dry-run",
         "production_version": _read_version(args.legacy_web_root),
+        "legacy_version": legacy_version,
         "legacy_web_root": str(args.legacy_web_root),
         "file_count": len(inventory),
         "total_bytes": sum(entry["size"] for entry in inventory),
@@ -386,6 +467,64 @@ def _write_canonical_json(path: Path, value: Any) -> None:
     temporary.write_bytes(_canonical_json(value) + b"\n")
     temporary.chmod(0o640)
     os.replace(temporary, path)
+
+
+def _write_legacy_public_baseline(
+    transition_dir: Path,
+    release: Path,
+    legacy_version_bytes: bytes,
+    legacy_version: dict[str, Any],
+    *,
+    base_url: str,
+    fetcher: Any = _fetch_public,
+) -> dict[str, Any]:
+    public_evidence = verify_legacy_public_baseline(
+        release,
+        legacy_version_bytes,
+        legacy_version,
+        base_url=base_url,
+        fetcher=fetcher,
+    )
+    transition_dir.mkdir(parents=True, exist_ok=True, mode=0o750)
+    version_evidence_path = transition_dir / "legacy-VERSION"
+    try:
+        descriptor = os.open(version_evidence_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o640)
+    except FileExistsError as exc:
+        raise TransitionError("legacy VERSION evidence already exists; refusing overwrite") from exc
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(legacy_version_bytes)
+    baseline = {
+        "schema": 1,
+        "expected_legacy_sha": EXPECTED_LEGACY_SHA,
+        "legacy_version": legacy_version,
+        "canonical_manifest_sha256": _sha256(release / "public" / "release-manifest.json"),
+        "aliases_checked": sorted(PUBLIC_ALIASES),
+        "health_checked": True,
+        "redirects_checked": sorted(REDIRECT_CONTRACTS),
+        "public_evidence": public_evidence,
+        "recorded_at": datetime_utc(),
+    }
+    _write_json(transition_dir / "legacy-public-baseline.json", baseline)
+    return baseline
+
+
+def _load_legacy_public_baseline(transition_dir: Path, legacy_release: Path) -> tuple[bytes, dict[str, Any]]:
+    baseline_path = transition_dir / "legacy-public-baseline.json"
+    version_path = transition_dir / "legacy-VERSION"
+    if baseline_path.is_symlink() or version_path.is_symlink() or not baseline_path.is_file() or not version_path.is_file():
+        raise TransitionError("saved legacy public baseline evidence is missing")
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    version_bytes = version_path.read_bytes()
+    evidence = _legacy_version_evidence_from_bytes(version_bytes)
+    if (
+        baseline.get("schema") != 1
+        or baseline.get("expected_legacy_sha") != EXPECTED_LEGACY_SHA
+        or baseline.get("legacy_version") != evidence
+        or baseline.get("canonical_manifest_sha256")
+        != _sha256(legacy_release / "public" / "release-manifest.json")
+    ):
+        raise TransitionError("saved legacy public baseline evidence is invalid")
+    return version_bytes, evidence
 
 
 def _snapshot(args: argparse.Namespace, inventory: dict[str, Any], transition_dir: Path) -> None:
@@ -490,7 +629,15 @@ def _restore_and_verify_public(
     _run("nginx", "-t")
     _run("systemctl", "reload", "nginx")
     try:
-        verify_public_equivalence(legacy_release, base_url=args.base_url)
+        legacy_version_bytes, legacy_version = _load_legacy_public_baseline(
+            transition_dir, legacy_release
+        )
+        verify_legacy_public_baseline(
+            legacy_release,
+            legacy_version_bytes,
+            legacy_version,
+            base_url=args.base_url,
+        )
     except Exception as restore_error:
         reason = f"activation failed: {original_error}; restored baseline verification failed: {restore_error}"
         _write_recovery_marker(transition_dir, reason)
@@ -735,14 +882,32 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> str
         prepared: PreparedLegacyRelease | None = None
         try:
             prepared = _prepare_legacy_release(args, transition_dir)
-            verify_public_equivalence(prepared.verification_path, base_url=args.base_url)
+            state_paths = (
+                args.release_root / "current",
+                args.state_root / "releases" / f"{EXPECTED_LEGACY_SHA}.json",
+                args.state_root / "current.json",
+            )
+            if any(path.exists() or path.is_symlink() for path in state_paths):
+                protected_tags = _protect_legacy_images(inventory["services"])
+                status = _existing_transition_status(
+                    args, prepared, protected_tags, inventory, reviewed_nginx
+                )
+                if status != "already_prepared":
+                    raise TransitionError("legacy transition state changed unexpectedly")
+                verify_public_equivalence(prepared.final_path, base_url=args.base_url)
+                return status
+            legacy_version_bytes, legacy_version = _read_legacy_version(args.legacy_web_root)
+            if legacy_version != inventory["legacy_version"]:
+                raise TransitionError("legacy VERSION changed after locked inventory")
+            _write_legacy_public_baseline(
+                transition_dir,
+                prepared.verification_path,
+                legacy_version_bytes,
+                legacy_version,
+                base_url=args.base_url,
+            )
             _copy_approved_drop_evidence(args, inventory, transition_dir)
             protected_tags = _protect_legacy_images(inventory["services"])
-            status = _existing_transition_status(
-                args, prepared, protected_tags, inventory, reviewed_nginx
-            )
-            if status == "already_prepared":
-                return status
             legacy_release = _finalize_prepared_release(args, prepared)
         except Exception as exc:
             _remove_staging(prepared, args)
