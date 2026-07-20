@@ -157,37 +157,6 @@ class DockerClient:
             resp = await client.get("http://api:8000/health")
             return resp.status_code == 200
 
-    async def run_deploy(self) -> str:
-        import subprocess  # noqa: S404
-
-        commands = [
-            ["git", "-C", "/opt/nura", "pull", "origin", "main"],
-            ["docker", "compose", "-f", "/opt/nura/nura_app/docker-compose.yml", "up", "-d", "--build"],
-        ]
-        output_parts: list[str] = []
-        for cmd in commands:
-            logger.info("Running: %s", " ".join(cmd))
-            try:
-                result = subprocess.run(  # noqa: S602
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=300,
-                )
-                out = result.stdout.strip()
-                err = result.stderr.strip()
-                if out:
-                    output_parts.append(f"$ {' '.join(cmd)}\n{out}")
-                if err:
-                    output_parts.append(f"$ {' '.join(cmd)} [stderr]\n{err}")
-                if result.returncode != 0:
-                    output_parts.append(f"⚠️ Exit code: {result.returncode}")
-            except subprocess.TimeoutExpired:
-                output_parts.append(f"⏰ Timed out: {' '.join(cmd)}")
-            except FileNotFoundError:
-                output_parts.append(f"❌ Command not found: {cmd[0]}")
-        return "\n\n".join(output_parts)
-
     async def clear_redis_cache(self) -> bool:
         try:
             import redis.asyncio as aioredis  # noqa: N812

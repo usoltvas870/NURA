@@ -2,33 +2,32 @@
 
 ## Концепция
 
-Отдельный Telegram-бот для оперативного управления VPS через чат.
-Бот читает логи, мониторит ошибки, информирует админа и применяет фиксы
-только после подтверждения.
+Отдельный Telegram-бот для наблюдения и ограниченных оперативных действий через чат.
+Бот читает состояние контейнеров, информирует администратора и выполняет только
+явно разрешённые runtime-операции.
 
 ## Принципы безопасности
 
 1. Бот доступен только по whitelist telegram_id (админ)
-2. Все изменения кода — только после подтверждения админа
+2. Бот не изменяет source checkout и не собирает production release
 3. Автофикс разрешён только для безопасных операций:
    - перезапуск контейнера
    - очистка кэша Redis
    - перезапуск Celery worker
-4. Сложные правки (изменение кода, деплой) — только с явного `/approve`
+4. Production deploy разрешён только через approved manual GitHub Actions workflow
 5. Secrets никогда не попадают в логи и сообщения
 
 ## Команды
 
 ```
 /status        — сводка: все контейнеры, health, последние ошибки
-/errors [N]    — последние N ошибок из логов с AI-анализом причины
-/logs [name]   — логи конкретного контейнера за последний час
 /restart [svc] — перезапустить контейнер (api|bot|celery-worker|celery-beat)
 /cache clear   — очистить Redis кэш
-/deploy        — git pull + docker compose up -d --build
-/db query SQL  — выполнить read-only SQL запрос
 /help          — список команд
 ```
+
+Admin Bot не выполняет source checkout, production build или deploy. В нём нет
+production-deploy command или deployment service method.
 
 ## Авто-мониторинг (Celery)
 
@@ -75,12 +74,12 @@ nura_app/
 │   ├── handlers/
 │   │   ├── __init__.py
 │   │   ├── status.py        # /status
-│   │   ├── errors.py        # /errors
-│   │   ├── logs.py          # /logs
 │   │   ├── restart.py       # /restart
-│   │   └── deploy.py        # /deploy, /cache
+│   │   ├── cache.py         # /cache clear
+│   │   ├── help.py          # /help
+│   │   └── chat.py          # текстовые status/restart/cache запросы
 │   ├── services/
-│   │   ├── docker_client.py # httpx + Docker socket
+│   │   ├── docker_client.py # inspection/logs/restart через Docker socket
 │   │   ├── log_parser.py    # парсинг логов
 │   │   └── ai_advisor.py    # DeepSeek анализ ошибок
 │   └── middleware.py        # проверка admin telegram_id
@@ -97,12 +96,8 @@ nura_app/
 3. `/setcommands`:
    ```
    status - Сводка состояния сервера
-   errors - Последние ошибки
-   logs - Логи контейнера
    restart - Перезапустить сервис
    cache - Управление кэшем
-   deploy - Деплой
-   db - SQL запрос
    help - Справка
    ```
 
