@@ -21,9 +21,11 @@ Workflow один раз фиксирует target как SHA выбранног
 - разрешает только fast-forward к exact target;
 - проверяет `HEAD == target`;
 - выполняет metadata, manifest, migration и source gates до production-файлов;
+- активирует и проверяет cache-safe nginx policy до публикации release metadata;
 - публикует tracked manifest entries и проверяет SHA-256 источников и назначений;
-- собирает общий API/admin-bot image только из `git archive` exact target, не включая ignored host state или `.env` в build context;
-- принудительно отключает Alembic в deployment Compose override, ожидает запуска API/admin-bot и выполняет smoke checks;
+- собирает один application image только из `git archive` exact target, не включая ignored host state или `.env` в build context;
+- применяет этот image к API, bot, celery-worker, celery-beat и admin-bot, проверяя running/health state и exact image каждого контейнера;
+- принудительно отключает Alembic для API в deployment Compose override, ожидает запуска всех application services и выполняет smoke checks;
 - валидирует nginx с восстановлением предыдущего конфига при ошибке validation/reload;
 - записывает `VERSION` последней операцией, начиная строку с exact target SHA.
 
@@ -52,7 +54,7 @@ Input `allow_migrations` по умолчанию равен `false`. Entry point
 - `/app/nura-pwa.js`;
 - `/health`.
 
-Проверка требует exact SHA в `VERSION`, валидный release JSON, одинаковый release ID в JS/JSON, ожидаемый import в service worker, соответствие публичных metadata tracked source и canonical redirect с `www` на apex.
+Проверка требует exact SHA в `VERSION`, валидный release JSON, одинаковый release ID в JS/JSON, ожидаемый import в service worker, соответствие публичных metadata tracked source и три canonical redirects: HTTPS `www` на apex, HTTP `www` на HTTPS apex и HTTP apex на HTTPS apex.
 
 ## Deprecated CLI
 
@@ -60,7 +62,7 @@ Input `allow_migrations` по умолчанию равен `false`. Entry point
 
 ## Текущие ограничения
 
-P4.2B1 всё ещё копирует файлы in place и не удаляет stale destinations, исчезнувшие из следующего manifest. Atomic release-directory activation, чистый inventory и rollback относятся только к P4.2B2.
+Порядок P4.2B1: preflight и migration gate, cache-safe nginx activation, in-place static copy, build/activation всех application services, smoke checks, затем `VERSION`. Static publication всё ещё выполняется in place и не удаляет stale destinations, исчезнувшие из следующего manifest. Atomic release-directory activation, чистый inventory и rollback относятся только к P4.2B2.
 
 **DO NOT DEPLOY после merge P4.2B1.** Production deployment остаётся запрещён до завершения P4.2B2, P4.1B, API/migration readiness review, финального deploy-readiness audit и отдельного явного approval владельца.
 

@@ -313,6 +313,17 @@ def _create_deploy_fixture(tmp_path: Path, *, migration_delta: bool = False) -> 
         'echo "docker $*" >> "$NURA_TEST_CALL_LOG"\n'
         'if test "$1" = "build"; then cat >/dev/null; fi\n'
         'if test "${NURA_TEST_FAIL_PHASE:-}" = "docker"; then exit 23; fi\n'
+        'case " $* " in\n'
+        '  *" ps -q --all "*) printf "fixture-container\\n" ;;\n'
+        '  *" inspect --format "*)\n'
+        '    case "${NURA_TEST_FAIL_PHASE:-}" in\n'
+        '      service-running) printf "false|none|nura-release:%s\\n" "$NURA_TEST_TARGET_SHA" ;;\n'
+        '      service-health) printf "true|unhealthy|nura-release:%s\\n" "$NURA_TEST_TARGET_SHA" ;;\n'
+        '      service-image) printf "true|none|unexpected-image\\n" ;;\n'
+        '      *) printf "true|none|nura-release:%s\\n" "$NURA_TEST_TARGET_SHA" ;;\n'
+        '    esac\n'
+        '    ;;\n'
+        'esac\n'
         "exit 0\n",
     )
 
@@ -348,6 +359,7 @@ def _run_deploy(
             "NURA_TEST_LOCK_FILE": fixture.lock_file.as_posix(),
             "NURA_TEST_CALL_LOG": fixture.call_log.as_posix(),
             "NURA_TEST_FAIL_PHASE": fail_phase,
+            "NURA_TEST_TARGET_SHA": fixture.target_sha,
             "PATH": f"{fixture.fake_bin}{os.pathsep}{env.get('PATH', '')}",
         }
     )
@@ -399,7 +411,20 @@ def test_migration_delta_with_explicit_true_completes_fixture_flow(tmp_path: Pat
     assert (fixture.web_root / "pwa-release.json").is_file()
 
 
-@pytest.mark.parametrize("phase", ["lock", "copy", "nginx", "systemctl", "docker", "curl"])
+@pytest.mark.parametrize(
+    "phase",
+    [
+        "lock",
+        "copy",
+        "nginx",
+        "systemctl",
+        "docker",
+        "service-running",
+        "service-health",
+        "service-image",
+        "curl",
+    ],
+)
 def test_injected_phase_failure_prevents_version_update(tmp_path: Path, phase: str) -> None:
     fixture = _create_deploy_fixture(tmp_path)
     original_version = fixture.version_file.read_text(encoding="utf-8")
@@ -416,6 +441,16 @@ def test_injected_phase_failure_prevents_version_update(tmp_path: Path, phase: s
         assert "docker" not in calls
     if phase in {"copy", "nginx", "systemctl"}:
         assert "docker" not in calls
+    if phase in {"nginx", "systemctl"}:
+        assert "phase static-copy" not in calls
+    if phase == "copy":
+        assert "nginx -t" in calls
+        assert "systemctl reload nginx" in calls
+        assert "phase static-copy" in calls
+        assert fixture.nginx_destination.read_text(encoding="utf-8") == "events {}\n"
+    if phase.startswith("service-"):
+        assert "phase smoke" not in calls
+        assert "phase version" not in calls
 
 
 def test_successful_fixture_flow_writes_version_last(tmp_path: Path) -> None:
@@ -427,7 +462,21 @@ def test_successful_fixture_flow_writes_version_last(tmp_path: Path) -> None:
     assert "nginx -t" in calls
     assert "systemctl reload nginx" in calls
     assert "docker build --pull=false --tag nura-release:" in calls
-    assert "up -d --no-build --no-deps --wait --wait-timeout 180 api admin-bot" in calls
+    assert "up -d --no-build --no-deps --wait --wait-timeout 180 api bot celery-worker celery-beat admin-bot" in calls
+    for service in ("api", "bot", "celery-worker", "celery-beat", "admin-bot"):
+        assert f"ps -q --all {service}" in calls
+    assert calls.count("inspect --format") == 5
+    phase_order = (
+        "nginx -t",
+        "systemctl reload nginx",
+        "phase static-copy",
+        "phase image-build",
+        "up -d --no-build --no-deps --wait --wait-timeout 180",
+        "phase service-verification",
+        "phase smoke",
+        "phase version",
+    )
+    assert [calls.index(item) for item in phase_order] == sorted(calls.index(item) for item in phase_order)
     assert "mandatory smoke/health phase reached" in result.stdout
     assert "in-place" in result.stdout
     assert "atomicity" in result.stdout
@@ -468,6 +517,13 @@ def test_workflow_is_manual_main_only_and_passes_exact_sha() -> None:
         assert endpoint in workflow
     assert "release ID mismatch" in workflow
     assert "importScripts('/pwa-release.js');" in workflow
+    for source, target in (
+        ("https://www.nura-ai.ru/app/?release-check=1", "https://nura-ai.ru/app/?release-check=1"),
+        ("http://www.nura-ai.ru/app/?release-check=1", "https://nura-ai.ru/app/?release-check=1"),
+        ("http://nura-ai.ru/app/?release-check=1", "https://nura-ai.ru/app/?release-check=1"),
+    ):
+        assert source in workflow
+        assert target in workflow
 
 
 def _location_body(config: str, path: str) -> str:
@@ -512,7 +568,20 @@ def test_deploy_build_and_migration_execution_paths_are_fail_closed() -> None:
     assert "docker build --pull=false" in script
     assert 'show "${TARGET_SHA}:${NGINX_SOURCE}"' in script
     assert 'show "${TARGET_SHA}:nura_app/docker-compose.yml"' in script
-    assert "--no-build --no-deps --wait --wait-timeout 180 api admin-bot" in script
+    assert "cache-safe nginx policy active" in script
+    assert script.index("cache-safe nginx policy active") < script.index("copy-manifest")
+    assert script.index("copy-manifest") < script.index("docker build --pull=false")
+    assert "--no-build --no-deps --wait --wait-timeout 180" in script
+    assert 'APPLICATION_SERVICES=(api bot celery-worker celery-beat admin-bot)' in script
+    assert script.count('RUN_MIGRATIONS: "0"') == 1
+    override_block = script[script.index('cat > "$COMPOSE_OVERRIDE"') : script.index('readonly -a APPLICATION_SERVICES')]
+    assert 'RUN_MIGRATIONS: "1"' not in override_block
+    for service in ("api", "bot", "celery-worker", "celery-beat", "admin-bot"):
+        assert f"  {service}:\n    image: $RELEASE_IMAGE" in script
+    assert "ps -q --all" in script
+    assert "application service image does not match target" in script
+    assert "postgres" not in script[script.index("APPLICATION_SERVICES=") : script.index("log \"running mandatory smoke")]
+    assert "redis" not in script[script.index("APPLICATION_SERVICES=") : script.index("log \"running mandatory smoke")]
     assert "docker compose up -d --build" not in script
 
 

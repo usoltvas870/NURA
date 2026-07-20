@@ -12,6 +12,12 @@ log() {
   echo "[deploy] $*"
 }
 
+record_test_phase() {
+  if [[ "${NURA_DEPLOY_TEST_MODE:-0}" == 1 && -n "${NURA_TEST_CALL_LOG:-}" ]]; then
+    printf 'phase %s\n' "$1" >> "$NURA_TEST_CALL_LOG"
+  fi
+}
+
 require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "required command is unavailable: $1"
 }
@@ -205,16 +211,7 @@ else
   log "no migration delta detected"
 fi
 
-log "preflight complete; beginning verified in-place static copy"
-if [[ "${NURA_DEPLOY_TEST_MODE:-0}" == 1 && "${NURA_TEST_FAIL_PHASE:-}" == copy ]]; then
-  fail "injected mandatory copy failure"
-fi
-python3 "$REPO_ROOT/$MANIFEST_HELPER" copy-manifest \
-  --repo-root "$REPO_ROOT" \
-  --web-root "$WEB_ROOT" \
-  --manifest "$MANIFEST_FILE"
-
-log "installing and validating nginx configuration"
+log "preflight complete; activating cache-safe nginx policy before release metadata publication"
 [[ -f "$NGINX_DEST" && ! -L "$NGINX_DEST" ]] \
   || fail "active nginx configuration must be an existing regular file"
 NGINX_BACKUP="$(mktemp "$(dirname "$NGINX_DEST")/.nura-nginx-backup.XXXXXX")"
@@ -238,8 +235,19 @@ NGINX_BACKUP=""
 rm -f -- "$NGINX_CANDIDATE"
 NGINX_CANDIDATE=""
 
+log "cache-safe nginx policy active; beginning verified in-place static copy"
+record_test_phase "static-copy"
+if [[ "${NURA_DEPLOY_TEST_MODE:-0}" == 1 && "${NURA_TEST_FAIL_PHASE:-}" == copy ]]; then
+  fail "injected mandatory copy failure"
+fi
+python3 "$REPO_ROOT/$MANIFEST_HELPER" copy-manifest \
+  --repo-root "$REPO_ROOT" \
+  --web-root "$WEB_ROOT" \
+  --manifest "$MANIFEST_FILE"
+
 readonly RELEASE_IMAGE="nura-release:$TARGET_SHA"
 log "building application image from the exact tracked target archive"
+record_test_phase "image-build"
 git -C "$REPO_ROOT" archive --format=tar "${TARGET_SHA}:nura_app" \
   | docker build --pull=false --tag "$RELEASE_IMAGE" -
 
@@ -252,21 +260,55 @@ services:
     image: $RELEASE_IMAGE
     environment:
       RUN_MIGRATIONS: "0"
+  bot:
+    image: $RELEASE_IMAGE
+  celery-worker:
+    image: $RELEASE_IMAGE
+  celery-beat:
+    image: $RELEASE_IMAGE
   admin-bot:
     image: $RELEASE_IMAGE
 EOF
 
-log "activating API and admin-bot from the exact target image without migrations"
-(
-  cd "$REPO_ROOT/nura_app"
+readonly -a APPLICATION_SERVICES=(api bot celery-worker celery-beat admin-bot)
+run_release_compose() {
   docker compose \
     --project-directory "$REPO_ROOT/nura_app" \
     -f "$COMPOSE_BASE" \
     -f "$COMPOSE_OVERRIDE" \
-    up -d --no-build --no-deps --wait --wait-timeout 180 api admin-bot
+    "$@"
+}
+
+verify_application_service() {
+  local service_name="$1"
+  local container_id inspection running_state health_state image_name
+  container_id="$(run_release_compose ps -q --all "$service_name")"
+  [[ -n "$container_id" && "$container_id" != *$'\n'* ]] \
+    || fail "application service is missing or ambiguous: $service_name"
+
+  inspection="$(docker inspect --format \
+    '{{.State.Running}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{.Config.Image}}' \
+    "$container_id")"
+  IFS='|' read -r running_state health_state image_name <<< "$inspection"
+  [[ "$running_state" == true ]] || fail "application service is not running: $service_name"
+  [[ "$health_state" != unhealthy ]] || fail "application service is unhealthy: $service_name"
+  [[ "$image_name" == "$RELEASE_IMAGE" ]] \
+    || fail "application service image does not match target: $service_name"
+}
+
+log "activating all application services from the exact target image without migrations"
+(
+  cd "$REPO_ROOT/nura_app"
+  run_release_compose up -d --no-build --no-deps --wait --wait-timeout 180 \
+    "${APPLICATION_SERVICES[@]}"
 )
+for service_name in "${APPLICATION_SERVICES[@]}"; do
+  verify_application_service "$service_name"
+done
+record_test_phase "service-verification"
 
 log "running mandatory smoke checks before VERSION update"
+record_test_phase "smoke"
 readonly -a SMOKE_PATHS=(
   "/"
   "/service-worker.js"
@@ -289,12 +331,13 @@ else
 fi
 
 VERSION_TEMP="$(mktemp "$(dirname "$VERSION_FILE")/.VERSION.XXXXXX")"
+record_test_phase "version"
 printf '%s - %s\n' "$TARGET_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$VERSION_TEMP"
 chmod 0644 "$VERSION_TEMP"
 mv "$VERSION_TEMP" "$VERSION_FILE"
 [[ "$(awk 'NR == 1 { print $1; exit }' "$VERSION_FILE")" == "$TARGET_SHA" ]] \
   || fail "VERSION verification failed"
 
-log "deploy complete at exact SHA $TARGET_SHA"
+log "deploy complete at exact SHA $TARGET_SHA; VERSION covers static output and all code-bearing application containers"
 log "WARNING: P4.2B1 still copies in place; release-level atomicity and rollback are absent."
 log "WARNING: production release remains blocked pending P4.2B2, P4.1B, final readiness, and owner approval."
