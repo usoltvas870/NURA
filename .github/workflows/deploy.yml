@@ -2,6 +2,12 @@ name: Deploy to production
 
 on:
   workflow_dispatch:
+    inputs:
+      allow_migrations:
+        description: Allow a reviewed target that contains an Alembic file delta
+        required: true
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-production
@@ -9,56 +15,111 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
+    env:
+      TARGET_SHA: ${{ github.sha }}
+      DEPLOY_REF: ${{ github.ref }}
+      MIGRATIONS_APPROVED: ${{ inputs.allow_migrations }}
     steps:
       - uses: actions/checkout@v5
 
-      - name: Pre-flight — verify working tree on VPS is clean
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            set -e
-            cd /opt/nura
-            if git diff --quiet && git diff --cached --quiet; then
-              echo "✓ Working tree is clean — safe to deploy."
-              exit 0
-            else
-              echo "::error::Working tree on VPS is NOT clean. Automatic deploy aborted."
-              echo ""
-              echo "--- git diff --stat ---"
-              git diff --stat
-              exit 1
-            fi
+      - name: Log immutable deployment request
+        run: |
+          echo "Target SHA: $TARGET_SHA"
+          echo "Ref: $GITHUB_REF"
+          echo "Migration delta approval: $MIGRATIONS_APPROVED"
 
-      - name: Deploy to VPS
+      - name: Deploy exact target through protected entrypoint
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: TARGET_SHA,DEPLOY_REF,MIGRATIONS_APPROVED
           script: |
-            set -e
+            bash -se <<'NURA_DEPLOY_BOOTSTRAP'
+            set -Eeuo pipefail
+            echo "Target SHA: $TARGET_SHA"
+            echo "Ref: $DEPLOY_REF"
+            echo "Migration delta approval: $MIGRATIONS_APPROVED"
             cd /opt/nura
-            git fetch origin
-            git pull --ff-only origin main
-            bash deploy.sh
-            echo "$(git rev-parse HEAD) - $(date -u +%Y-%m-%dT%H:%M:%SZ)" > /var/www/nura-ai.ru/VERSION
+            [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+              echo "::error::Invalid exact target SHA"
+              exit 1
+            }
+            git fetch --no-tags origin main
+            git cat-file -e "$TARGET_SHA^{commit}"
+            git merge-base --is-ancestor "$TARGET_SHA" refs/remotes/origin/main
+            launcher="$(mktemp)"
+            trap 'rm -f "$launcher"' EXIT
+            git show "$TARGET_SHA:deploy.sh" > "$launcher"
+            chmod 0700 "$launcher"
+            ALLOW_MIGRATIONS="$MIGRATIONS_APPROVED" bash "$launcher" "$TARGET_SHA"
+            deployed_sha="$(awk 'NR == 1 { print $1; exit }' /var/www/nura-ai.ru/VERSION)"
+            test "$deployed_sha" = "$TARGET_SHA"
+            echo "Deployed SHA: $deployed_sha"
+            NURA_DEPLOY_BOOTSTRAP
 
-      - name: Verify deployment
+      - name: Verify public release contracts
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: TARGET_SHA
           script: |
-            set -e
-            if curl -sf https://nura-ai.ru/ > /dev/null; then
-              echo "✓ Site is up (https://nura-ai.ru/ returned 2xx)"
-            else
-              echo "::error::Site check failed after deploy (https://nura-ai.ru/ did not return 2xx)"
-              exit 1
-            fi
+            bash -se <<'NURA_VERIFY_RELEASE'
+            set -Eeuo pipefail
+            target_sha="$TARGET_SHA"
+            base_url="https://nura-ai.ru"
+            tmp_dir="$(mktemp -d)"
+            trap 'rm -rf "$tmp_dir"' EXIT
+
+            for endpoint in \
+              / /VERSION /service-worker.js /pwa-release.js /pwa-release.json \
+              /manifest.json /offline.html /app/ /app/index.html /app/nura-pwa.js /health; do
+              curl --fail --silent --show-error "$base_url$endpoint" --output /dev/null
+            done
+
+            curl --fail --silent --show-error "$base_url/VERSION" --output "$tmp_dir/VERSION"
+            curl --fail --silent --show-error "$base_url/service-worker.js" --output "$tmp_dir/service-worker.js"
+            curl --fail --silent --show-error "$base_url/pwa-release.js" --output "$tmp_dir/pwa-release.js"
+            curl --fail --silent --show-error "$base_url/pwa-release.json" --output "$tmp_dir/pwa-release.json"
+
+            test "$(awk 'NR == 1 { print $1; exit }' "$tmp_dir/VERSION")" = "$target_sha"
+            grep -Fq "importScripts('/pwa-release.js');" "$tmp_dir/service-worker.js"
+            git -C /opt/nura show "$target_sha:frontend/pwa/pwa-release.js" \
+              > "$tmp_dir/target-pwa-release.js"
+            git -C /opt/nura show "$target_sha:frontend/pwa/pwa-release.json" \
+              > "$tmp_dir/target-pwa-release.json"
+            cmp "$tmp_dir/pwa-release.js" "$tmp_dir/target-pwa-release.js"
+            cmp "$tmp_dir/pwa-release.json" "$tmp_dir/target-pwa-release.json"
+
+            python3 - "$tmp_dir/pwa-release.js" "$tmp_dir/pwa-release.json" <<'PY'
+            import json
+            import re
+            import sys
+            from pathlib import Path
+
+            release_js = Path(sys.argv[1]).read_text(encoding="utf-8")
+            release_json = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+            match = re.fullmatch(r"self\.NURA_RELEASE_ID = '([0-9a-f]{16})';\s*", release_js)
+            if match is None:
+                raise SystemExit("invalid public release JavaScript")
+            if release_json.get("release_id") != match.group(1):
+                raise SystemExit("release ID mismatch between public JS and JSON")
+            PY
+
+            test "$(curl --silent --show-error --output /dev/null --write-out '%{redirect_url}' \
+              'https://www.nura-ai.ru/app/?release-check=1')" = \
+              'https://nura-ai.ru/app/?release-check=1'
+            test "$(curl --silent --show-error --output /dev/null --write-out '%{redirect_url}' \
+              'http://www.nura-ai.ru/app/?release-check=1')" = \
+              'https://nura-ai.ru/app/?release-check=1'
+            test "$(curl --silent --show-error --output /dev/null --write-out '%{redirect_url}' \
+              'http://nura-ai.ru/app/?release-check=1')" = \
+              'https://nura-ai.ru/app/?release-check=1'
+            echo "Verified deployed SHA: $target_sha"
+            NURA_VERIFY_RELEASE
