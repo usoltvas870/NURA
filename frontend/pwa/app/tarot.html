@@ -168,6 +168,7 @@
   </div></nav>
 
   <script src="nura-pwa.js?v=9"></script>
+  <script src="tarot-assets-v1.84cd63c207a7.js"></script>
   <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
   <div id="pwa-ios-modal" hidden style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
     <div aria-labelledby="pwa-ios-modal-title" aria-describedby="pwa-ios-modal-copy" style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
@@ -223,7 +224,6 @@
       var dailyCardRequest = 0;
       var selectedFormat = null;
       var dateStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-      var faces = { 1:'01-magician',2:'02-high-priestess',3:'03-empress',4:'04-emperor',5:'05-hierophant',6:'06-lovers',7:'07-chariot',8:'08-justice',9:'09-hermit',10:'10-wheel-of-fortune',11:'11-strength',12:'12-hanged-man',13:'13-death',14:'14-temperance',15:'15-devil',16:'16-tower',17:'17-star',18:'18-moon',19:'19-sun',20:'20-judgement',21:'21-world',22:'00-fool' };
       var freeFormats = { question: true, yesno: true, mini: true };
 
       $('hero-date').textContent = dateStr;
@@ -318,7 +318,12 @@
         $('hero-name').textContent = data.arcana_name || 'Карта дня';
         $('hero-phrase').textContent = data.key_phrase || '';
         $('hero-num').textContent = data.arcana_number || '';
-        if (faces[data.arcana_number]) $('daily-card-image').src = 'images/' + faces[data.arcana_number] + '.png';
+        var asset = N.TarotAssets && N.TarotAssets.forArcana(data.arcana_number);
+        if (asset) N.TarotAssets.apply($('daily-card-image'), asset, '151px', function () {
+          $('daily-card-image').hidden = true;
+          $('hero-name').textContent = 'Не удалось загрузить карту';
+          $('hero-phrase').textContent = 'Попробуй обновить страницу немного позже.';
+        });
         consumeDailyOpenRequest();
       }
 

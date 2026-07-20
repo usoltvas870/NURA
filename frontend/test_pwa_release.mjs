@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 
 const frontend = new URL('./', import.meta.url);
@@ -64,32 +65,19 @@ for (const [filename, expectedHash, expectedWidth, expectedHeight, expectedBitDe
 }
 assert.equal(new Set(approvedMajorArcana.map(([, hash]) => hash)).size, 22, 'approved images must be distinct');
 
-const expectedCardFiles = new Map([
-  [1, '01-magician.png'], [2, '02-high-priestess.png'], [3, '03-empress.png'], [4, '04-emperor.png'],
-  [5, '05-hierophant.png'], [6, '06-lovers.png'], [7, '07-chariot.png'], [8, '08-justice.png'],
-  [9, '09-hermit.png'], [10, '10-wheel-of-fortune.png'], [11, '11-strength.png'], [12, '12-hanged-man.png'],
-  [13, '13-death.png'], [14, '14-temperance.png'], [15, '15-devil.png'], [16, '16-tower.png'],
-  [17, '17-star.png'], [18, '18-moon.png'], [19, '19-sun.png'], [20, '20-judgement.png'],
-  [21, '21-world.png'], [22, '00-fool.png'],
-]);
+const mappingModules = readdirSync(new URL('./pwa/app/', frontend))
+  .filter((name) => /^tarot-assets-v1\.[a-f0-9]{12}\.js$/.test(name));
+assert.equal(mappingModules.length, 1, 'exactly one Tarot mapping module is required');
+const mappingModule = mappingModules[0];
+const context = { window: {} };
+vm.runInNewContext(readFileSync(new URL(`./pwa/app/${mappingModule}`, frontend), 'utf8'), context, { filename: mappingModule });
+const tarotAssets = context.window.NURA.TarotAssets;
+assert.equal(tarotAssets.forArcana(0), null);
+assert.match(tarotAssets.forArcana(22).compact, /images\/major-v1\/00-fool\.[a-f0-9]{12}\.w480\.webp$/);
 
-function parseCardMap(html, mapName, suffix = '') {
-  const declaration = new RegExp(`\\b${mapName}\\s*=\\s*\\{([\\s\\S]*?)\\}`, 'm').exec(html);
-  assert.ok(declaration, `${mapName} mapping is missing`);
-  const entries = [...declaration[1].matchAll(/(?:^|,)\s*(\d+)\s*:\s*['"]([^'"]+)['"]/g)]
-    .map(([, key, value]) => [Number(key), `${value}${suffix}`]);
-  assert.equal(entries.length, 22, `${mapName} must have exactly 22 entries`);
-  assert.equal(new Set(entries.map(([key]) => key)).size, 22, `${mapName} has duplicate keys`);
-  return new Map(entries);
-}
-
-for (const [file, mapName, suffix] of [
-  ['app/index.html', 'DAILY_CARD_FILES', ''],
-  ['app/tarot.html', 'faces', '.png'],
-  ['app/chat.html', 'CARD', ''],
-]) {
-  const map = parseCardMap(readFileSync(new URL(`./pwa/${file}`, frontend), 'utf8'), mapName, suffix);
-  assert.equal(map.has(0), false, `${file} must not use key 0 for Fool`);
-  assert.deepEqual([...map.keys()].sort((left, right) => left - right), [...expectedCardFiles.keys()]);
-  for (const [number, filename] of expectedCardFiles) assert.equal(map.get(number), filename, `${file} maps ${number} incorrectly`);
+for (const file of ['app/index.html', 'app/tarot.html', 'app/chat.html']) {
+  const html = readFileSync(new URL(`./pwa/${file}`, frontend), 'utf8');
+  assert.match(html, new RegExp(`<script src="${mappingModule.replace('.', '\\.')}"`));
+  assert.match(html, /TarotAssets\.forArcana/);
+  assert.doesNotMatch(html, /['"]images\/[^'"]+\.png['"]/);
 }
