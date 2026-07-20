@@ -1,0 +1,62 @@
+name: Roll back coordinated production release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Exact protected successful release SHA
+        required: true
+        type: string
+      acknowledge_rollback:
+        description: I acknowledge static-first coordinated rollback without database restore
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    if: github.ref == 'refs/heads/main' && inputs.acknowledge_rollback
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TARGET_SHA: ${{ inputs.target_sha }}
+    steps:
+      - name: Validate exact rollback request
+        run: |
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Roll back through the common protected engine
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          TARGET_SHA: ${{ env.TARGET_SHA }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: TARGET_SHA
+          script: |
+            bash -se <<'NURA_ROLLBACK'
+            set -Eeuo pipefail
+            [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+            cd /opt/nura
+            test "$(git branch --show-current)" = main
+            bash deploy.sh rollback "$TARGET_SHA"
+            NURA_ROLLBACK
+
+      - name: Verify rolled-back public release
+        run: |
+          set -Eeuo pipefail
+          base_url=https://nura-ai.ru
+          for endpoint in / /VERSION /service-worker.js /pwa-release.js /pwa-release.json /manifest.json /offline.html /app/ /app/index.html /app/nura-pwa.js /health /vk-callback.html; do
+            curl --fail --silent --show-error "$base_url$endpoint" --output /dev/null
+          done
+          test "$(curl --fail --silent --show-error "$base_url/VERSION" | awk 'NR==1 {print $1; exit}')" = "$TARGET_SHA"
+          test "$(curl --silent --show-error --output /dev/null --write-out '%{redirect_url}' 'https://www.nura-ai.ru/app/?release-check=1')" = 'https://nura-ai.ru/app/?release-check=1'

@@ -1,69 +1,81 @@
-# NURA — production deployment contract
+# NURA — coordinated production release contract
 
-## Единственный штатный trigger
+> **DO NOT DEPLOY.** Merge P4.2B2 сам по себе не разрешает host transition или production activation. До первого запуска обязательны P4.1B, migration/API compatibility review, отдельный dry-run перехода, финальный deploy-readiness audit и новое явное approval владельца.
 
-Production deployment запускается только вручную:
+## Разрешённые entrypoints
 
-1. GitHub Actions.
-2. Workflow **Deploy to production**.
-3. **Run workflow** для ветки `main`.
-4. Approval защищённого environment `production`.
+Production release и rollback запускаются только вручную из ветки `main` через защищённый GitHub Actions environment `production`:
 
-Обычный push или merge в `main` не запускает production deployment. Локальный CLI, SSH fallback и emergency deploy не поддерживаются.
+- **Deploy coordinated production release** собирает immutable artifact точного `github.sha`, передаёт его в уникальный incoming path и вызывает `deploy.sh deploy <sha> <archive> <checksum> <manifest>`;
+- **Roll back coordinated production release** требует точный SHA и явное acknowledgement, после чего вызывает `deploy.sh rollback <sha>`.
 
-## Exact-SHA flow
+Оба workflow используют concurrency group `deploy-production` с `cancel-in-progress: false`. Push/merge не запускает deployment. CLI bypass, moving `git pull`, произвольный checkout, `workflow_dispatch` из этой implementation-задачи и автоматический deploy запрещены.
 
-Workflow один раз фиксирует target как SHA выбранного запуска (`github.sha`), проверяет его принадлежность `origin/main`, извлекает `deploy.sh` непосредственно из этого commit во временный launcher и передаёт ровно этот 40-символьный SHA в entrypoint. Поэтому первый запуск после merge уже использует новый exact-target contract, даже если production checkout ещё содержит старую версию скрипта. Серверный entrypoint:
+Legacy audit name **Deploy to production** сохранён здесь только как ссылка на прежний P4.2B1 contract; оператор по-прежнему использует GitHub Actions → **Run workflow**, но новый workflow называется **Deploy coordinated production release** и всегда фиксирует exact target SHA. Он не публикует static in place. Локальный `scripts/deploy.sh` остаётся fail-closed deprecated stub; fallback и emergency deploy не поддерживаются.
 
-- получает общий host lock;
-- требует чистый checkout ветки `main` без незавершённых Git-операций;
-- проверяет принадлежность target истории `origin/main`;
-- разрешает только fast-forward к exact target;
-- проверяет `HEAD == target`;
-- выполняет metadata, manifest, migration и source gates до production-файлов;
-- активирует и проверяет cache-safe nginx policy до публикации release metadata;
-- публикует tracked manifest entries и проверяет SHA-256 источников и назначений;
-- собирает один application image только из `git archive` exact target, не включая ignored host state или `.env` в build context;
-- применяет этот image к API, bot, celery-worker, celery-beat и admin-bot, проверяя running/health state и exact image каждого контейнера;
-- принудительно отключает Alembic для API в deployment Compose override, ожидает запуска всех application services и выполняет smoke checks;
-- валидирует nginx с восстановлением предыдущего конфига при ошибке validation/reload;
-- записывает `VERSION` последней операцией, начиная строку с exact target SHA.
+## Immutable static artifact
 
-Moving `git pull` не является частью deployment contract. Запрещены прямое редактирование production checkout, stash/pop prod-only правок, `git add -A`, локальный push как стадия deploy и ручной Docker rebuild в качестве deploy.
+`scripts/build_release_artifact.py` собирает deterministic `nura-static-<sha>.tar.gz`, checksum sidecar и публичный `release-manifest.json`. Источником служит tracked allowlist точного checkout; release unit включает landing/legal/mini/success, `vk-callback.html`, admin, PWA, assets, icons, fonts, VK SDK, metadata, Tarot originals и будущие tracked файлы разрешённых public directories.
 
-## Migration delta gate
+Artifact имеет стабильный порядок, uid/gid, owner names, modes и mtime из commit timestamp. `VERSION` также выводится только из SHA и commit timestamp. Перед extraction проверяются outer checksum, каждый tar member, отсутствие traversal/links/special files, полный inventory, count, размеры, SHA-256 и aggregate manifest digest. Extraction разрешён только в уникальный staging directory.
 
-Input `allow_migrations` по умолчанию равен `false`. Entry point сравнивает `nura_app/alembic/versions` между SHA из текущего production `VERSION` и target SHA.
+Host layout после отдельно одобренного transition:
 
-Если найдена разница, deployment останавливается до любых static/nginx/API mutations, пока после отдельной readiness-проверки не передано явное boolean-значение `true`. Approval только разрешает target с проверенной migration delta: deploy script не вызывает Alembic migration или downgrade самостоятельно и не является подтверждением совместимости схемы.
+```text
+/var/www/nura-releases/
+  releases/<40-char-sha>/
+  staging/<sha>-<unique-run-id>/
+  current -> releases/<sha>
 
-Значения `false`, `0`, `no` и пустая строка не разрешают migration delta.
+/var/lib/nura-release-state/
+  releases/<sha>.json
+  current.json
+  previous.json
+  logs/
 
-## Проверка релиза
+/var/tmp/nura-release-incoming/<unique-run-id>/
+/var/backups/nura-release-transition/
+```
 
-Корневой entrypoint проверяет обязательные endpoints до записи `VERSION`, а workflow после завершения повторно проверяет публичный контракт:
+Staging и final releases обязаны находиться на одном filesystem. Staging→final выполняется directory rename. Существующий final release никогда не перезаписывается: полное совпадение manifest/hashes допускает reuse, любое расхождение блокирует операцию. `current` меняется через проверенный временный sibling symlink и atomic rename/replace.
 
-- `/VERSION`;
-- `/service-worker.js`;
-- `/pwa-release.js`;
-- `/pwa-release.json`;
-- `/manifest.json`;
-- `/offline.html`;
-- `/app/`;
-- `/app/index.html`;
-- `/app/nura-pwa.js`;
-- `/health`.
+## Coordinated activation
 
-Проверка требует exact SHA в `VERSION`, валидный release JSON, одинаковый release ID в JS/JSON, ожидаемый import в service worker, соответствие публичных metadata tracked source и три canonical redirects: HTTPS `www` на apex, HTTP `www` на HTTPS apex и HTTP apex на HTTPS apex.
+Под common `flock` root engine выполняет:
 
-## Deprecated CLI
+1. host layout, exact ref, clean checkout, current state и active Nginx gates;
+2. безусловный migration delta gate;
+3. artifact checksum/inventory и dynamic disk/inode gates;
+4. unique staging, verification и same-filesystem finalization;
+5. один local image `nura-release:<sha>` из exact tracked archive с OCI revision/source/created labels;
+6. activation API, bot, celery-worker, celery-beat и admin-bot с `RUN_MIGRATIONS=0`;
+7. проверку container uniqueness, running/health, exact tag, image ID и revision label;
+8. atomic static `current` switch;
+9. public smoke и только затем atomic release-state update;
+10. best-effort locked retention cleanup.
 
-`scripts/deploy.sh` сохранён только как fail-closed deprecated stub. Он всегда завершается ненулевым кодом, ничего не публикует и указывает на approved manual GitHub Actions workflow. Его нельзя использовать как fallback.
+Postgres и Redis проверяются, но не пересоздаются. `deploy.sh` не запускает Alembic upgrade/downgrade и не имеет `allow_migrations`: любой delta в `nura_app/alembic/versions` блокирует release до extraction, Docker build и active mutations.
 
-## Текущие ограничения
+Если application activation ломается до static switch, static остаётся прежним, а все изменённые application services возвращаются к предыдущей service→image mapping. После static switch compensation сначала возвращает static, затем application fleet, проверяет прежний `VERSION` и не помечает target successful.
 
-Порядок P4.2B1: preflight и migration gate, cache-safe nginx activation, in-place static copy, build/activation всех application services, smoke checks, затем `VERSION`. Static publication всё ещё выполняется in place и не удаляет stale destinations, исчезнувшие из следующего manifest. Atomic release-directory activation, чистый inventory и rollback относятся только к P4.2B2.
+## Rollback
 
-**DO NOT DEPLOY после merge P4.2B1.** Production deployment остаётся запрещён до завершения P4.2B2, P4.1B, API/migration readiness review, финального deploy-readiness audit и отдельного явного approval владельца.
+Автоматический rollback допустим только к current previous или одному из двух защищённых successful predecessors. Нужны verified static directory, internal state record и все service images. Arbitrary SHA, migration/schema incompatibility или отсутствующий image блокируют rollback.
 
-Если workflow отклоняет server checkout, migration delta или release contract, состояние production нельзя исправлять вручную. Требуется отдельный read-only разбор причины и согласованное изменение через repository workflow.
+Порядок rollback фиксирован: atomic static switch назад, coordinated application activation из target record, runtime/public verification, затем state pointers. Database restore и Alembic не входят в rollback.
+
+## Atomicity boundary
+
+Гарантируются filesystem-atomic staging→final rename и atomic replacement directory entry `current`. Application activation пяти сервисов и compensation координируются и проверяются, но не являются атомарными. Docker containers заменяются во времени, PostgreSQL/Redis сохраняют независимое состояние, а browser/service-worker cache может пережить release. Нельзя заявлять full-system atomic deploy или database rollback.
+
+## Nginx и one-time transition
+
+Tracked config обслуживает release-owned static из `/var/www/nura-releases/current/public`, а ACME остаётся на `/var/www/nura-ai.ru`. Обычный release не меняет и не reload Nginx. Preflight требует ровно один enabled canonical config и fail-closed сообщает о незавершённом transition.
+
+`scripts/prepare_atomic_release_host.py` по умолчанию выполняет только read-only inventory. Apply mode предназначен для отдельного owner-approved блока и требует `--apply`, exact legacy SHA `d0d39ae8717ceb0920d98f27dd9092f746755c6c`, exact reviewed `--target-sha`, `--acknowledge-production-change` и canonical roots. Он сохраняет полный forensic snapshot/inventory, три строго разрешённых legacy Nginx файла, прежний sites-available config, пять service image mappings и protected tags, атомарно устанавливает tracked Nginx config exact target, создаёт legacy release/state, нормализует enabled config, делает `nginx -t` и reload только в apply mode. При ошибке Nginx или state commit прежние canonical/include configs и active symlink восстанавливаются. `/var/www/nura-ai.ru` и legacy evidence не удаляются.
+
+Эта implementation-задача helper не запускает, host files не меняет, workflow не dispatch-ит и production activation не выполняет.
+
+## Retention
+
+Под common lock защищаются current и два предыдущих successful static/image sets. CI artifact хранится 14 дней. Internal logs/state — 30 дней, кроме protected successful и legacy evidence. Failed/incomplete staging старше 7 дней ограничивается двумя сохранёнными экземплярами. Успешный deploy удаляет только свой validated direct-child incoming directory; неуспешные incoming directories старше 7 дней также ограничиваются двумя экземплярами. Cleanup не следует symlinks, не трогает unrelated Docker images и не откатывает успешный release; failure логируется, а следующий release всё равно обязан пройти disk/inode gate.
