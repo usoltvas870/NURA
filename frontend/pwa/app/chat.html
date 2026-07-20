@@ -90,6 +90,7 @@
   </div></nav>
 
   <script src="nura-pwa.js?v=9"></script>
+  <script src="tarot-assets-v1.28fa717059d2.js"></script>
   <script>
   (function () {
     'use strict';
@@ -121,7 +122,6 @@
     var state = null;
     var user = null;
     var sending = false;
-    var CARD = {22:'00-fool.png',1:'01-magician.png',2:'02-high-priestess.png',3:'03-empress.png',4:'04-emperor.png',5:'05-hierophant.png',6:'06-lovers.png',7:'07-chariot.png',8:'08-justice.png',9:'09-hermit.png',10:'10-wheel-of-fortune.png',11:'11-strength.png',12:'12-hanged-man.png',13:'13-death.png',14:'14-temperance.png',15:'15-devil.png',16:'16-tower.png',17:'17-star.png',18:'18-moon.png',19:'19-sun.png',20:'20-judgement.png',21:'21-world.png'};
 
     function showOnly(target) { [guest, empty, conversation, limit].forEach(function (el) { el.hidden = el !== target; }); }
     function setQuotaBanner(visible) { quotaBanner.hidden = !visible; }
@@ -194,8 +194,8 @@
     }
     async function loadContext() {
       try {
-        var card = await N.fetchJSON(BASE + '/tarot/daily-card'); var file = CARD[card.arcana_number];
-        if (file) { contextImage.src = 'images/' + file; contextImage.alt = card.arcana_name; contextImage.hidden = false; }
+        var card = await N.fetchJSON(BASE + '/tarot/daily-card'); var asset = N.TarotAssets && N.TarotAssets.forArcana(card.arcana_number);
+        if (asset) { N.TarotAssets.apply(contextImage, asset, '52px', function () { contextImage.hidden = true; }); contextImage.alt = card.arcana_name; contextImage.hidden = false; }
         contextTitle.textContent = (user.has_matrix ? 'Матрица + ' : 'Карта дня · ') + card.arcana_name;
         context.hidden = false;
       } catch (_) { if (user && user.has_matrix) { contextTitle.textContent = 'Личная Матрица'; context.hidden = false; } }

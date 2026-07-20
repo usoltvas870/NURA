@@ -332,6 +332,7 @@
 </div></nav>
 
 <script src="nura-pwa.js?v=10"></script>
+<script src="tarot-assets-v1.28fa717059d2.js"></script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
 <div id="pwa-ios-modal" hidden style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
   <div aria-labelledby="pwa-ios-modal-title" aria-describedby="pwa-ios-modal-copy" style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
@@ -389,14 +390,6 @@
   var __isGuest = false;
   var __homeAuthResolved = false;
   var dailyCacheKey = 'tarot_daily_card_' + new Date().toISOString().slice(0, 10);
-  var DAILY_CARD_FILES = {
-    1: '01-magician.png', 2: '02-high-priestess.png', 3: '03-empress.png', 4: '04-emperor.png',
-    5: '05-hierophant.png', 6: '06-lovers.png', 7: '07-chariot.png', 8: '08-justice.png',
-    9: '09-hermit.png', 10: '10-wheel-of-fortune.png', 11: '11-strength.png', 12: '12-hanged-man.png',
-    13: '13-death.png', 14: '14-temperance.png', 15: '15-devil.png', 16: '16-tower.png',
-    17: '17-star.png', 18: '18-moon.png', 19: '19-sun.png', 20: '20-judgement.png',
-    21: '21-world.png', 22: '00-fool.png'
-  };
 
   function renderGreetingName(name) {
     $('greeting-name').textContent = name || '';
@@ -415,10 +408,10 @@
   }
 
   function setDailyFace(card) {
-    var file = card && DAILY_CARD_FILES[card.arcana_number];
-    if (!file) return false;
+    var asset = card && NURA.TarotAssets && NURA.TarotAssets.forArcana(card.arcana_number);
+    if (!asset) return false;
     var image = $('day-card-image');
-    image.src = 'images/' + file;
+    NURA.TarotAssets.apply(image, asset, '151px', function () { image.dataset.kind = 'face-error'; });
     image.alt = 'Карта дня — ' + (card.arcana_name || 'Аркан');
     image.dataset.kind = 'face';
     return true;
