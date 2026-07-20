@@ -1,5 +1,11 @@
 # Документация NURA
 
+## PWA
+
+- [PWA North Star Design](pwa/PWA_NORTH_STAR_DESIGN.md) — продуктовая позиция и устойчивая визуальная направленность активной PWA.
+- [PWA Implementation Rules](pwa/PWA_IMPLEMENTATION_RULES.md) — проверенные правила безопасного изменения PWA, её CSS, навигации и release metadata.
+- [PWA Page Contracts](pwa/PWA_PAGE_CONTRACTS.md) — наблюдаемые контракты Home, Tarot, Chat, Profile и общей навигации.
+
 Единый источник правды для продукта и разработки NURA — AI-проводника самопознания через Матрицу Судьбы и Таро-ритуалы.
 
 > \\\\\\\*\\\\\\\*Текущее состояние проекта\\\\\\\*\\\\\\\* — всегда в `STATE.md` (корень репозитория).
