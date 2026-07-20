@@ -77,6 +77,7 @@ readonly CURRENT_STATE="$STATE_ROOT/current.json"
 readonly PREVIOUS_STATE="$STATE_ROOT/previous.json"
 readonly ARTIFACT_HELPER="$REPO_ROOT/scripts/build_release_artifact.py"
 readonly STATIC_HELPER="$REPO_ROOT/scripts/deploy_static_release.py"
+readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
 readonly IMAGE_TAG="nura-release:$TARGET_SHA"
 readonly SOURCE_LABEL="https://github.com/usoltvas870/NURA"
 
@@ -108,12 +109,22 @@ grep -Fq 'root /var/www/nura-releases/current/public;' "$ACTIVE_NGINX_CONFIG" \
   || fail "active Nginx config does not use the immutable current release root"
 
 [[ -f "$CURRENT_STATE" && ! -L "$CURRENT_STATE" ]] || fail "current release state is missing"
-readonly CURRENT_SHA="$(python3 - "$CURRENT_STATE" <<'PY'
-import json, re, sys
+readonly CURRENT_SHA="$(python3 - "$CURRENT_STATE" "$PREVIOUS_STATE" <<'PY'
+import json, pathlib, re, sys
 state = json.load(open(sys.argv[1], encoding="utf-8"))
 sha = state.get("sha", "")
 if state.get("status") != "successful" or re.fullmatch(r"[0-9a-f]{40}", sha) is None:
     raise SystemExit("current release state is not successful and exact")
+history=state.get("activation_history",[])
+if not isinstance(history,list) or len(history)>2: raise SystemExit("current activation_history is invalid")
+if any(not isinstance(item,str) or re.fullmatch(r"[0-9a-f]{40}",item) is None for item in history):
+    raise SystemExit("current activation_history contains an invalid SHA")
+if len(history)!=len(set(history)) or sha in history: raise SystemExit("current activation_history contains duplicate or self SHA")
+previous=pathlib.Path(sys.argv[2])
+if history:
+    if not previous.is_file() or previous.is_symlink(): raise SystemExit("previous state pointer is missing for activation_history")
+    if json.load(previous.open(encoding="utf-8")).get("sha")!=history[0]:
+        raise SystemExit("previous state pointer does not match activation_history[0]")
 print(sha)
 PY
 )"
@@ -140,10 +151,11 @@ write_state() {
   PREVIOUS_SHA_VALUE="$previous_sha" IMAGE_ID_VALUE="${TARGET_IMAGE_ID:-}" \
   COMPENSATION_VERIFIED="$compensation_verified" RELEASE_PATH_VALUE="$TARGET_RELEASE" \
   OCI_CREATED_VALUE="$CREATED_LABEL" WORKFLOW_RUN_VALUE="${GITHUB_RUN_ID:-}" \
-  python3 - "$RELEASE_STATE_DIR/$TARGET_SHA.json" "$RELEASE_STATE_DIR" <<'PY'
-import json, os, pathlib, tempfile, time, sys
+  python3 - "$RELEASE_STATE_DIR/$TARGET_SHA.json" "$CURRENT_STATE" "$STATE_HELPER" <<'PY'
+import importlib.util, json, os, pathlib, re, tempfile, time, sys
 path = pathlib.Path(__import__("sys").argv[1])
-records = pathlib.Path(sys.argv[2])
+current = json.load(open(sys.argv[2], encoding="utf-8"))
+spec=importlib.util.spec_from_file_location("release_state_helper",sys.argv[3]); helper=importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
 path.parent.mkdir(parents=True, exist_ok=True)
 sha = path.stem
 image_tag = f"nura-release:{sha}"
@@ -161,6 +173,11 @@ immutable = {
 }
 value = json.load(path.open(encoding="utf-8")) if path.is_file() and not path.is_symlink() else {}
 existing = bool(value)
+old_history=value.get("activation_history",[])
+if not isinstance(old_history,list) or len(old_history)>2 or len(old_history)!=len(set(old_history)):
+    raise SystemExit("target activation_history is invalid")
+if any(not isinstance(item,str) or re.fullmatch(r"[0-9a-f]{40}",item) is None for item in old_history) or sha in old_history:
+    raise SystemExit("target activation_history contains invalid or self SHA")
 for key, expected in immutable.items():
     if existing and value.get(key) != expected:
         raise SystemExit(f"immutable release provenance mismatch: {key}")
@@ -168,15 +185,11 @@ value.update(immutable)
 previous = os.environ.get("PREVIOUS_SHA_VALUE") or None
 if previous == sha:
     raise SystemExit("refusing to create a self-referential release lineage")
-seen = {sha}; cursor = previous
-while cursor:
-    if cursor in seen: raise SystemExit("release state lineage contains a cycle")
-    seen.add(cursor); cursor_path = records / f"{cursor}.json"
-    if not cursor_path.is_file(): break
-    cursor = json.load(cursor_path.open(encoding="utf-8")).get("previous_successful_sha")
+history=helper.next_activation_history(current,sha)
 value.update({
     "schema": 2, "status": os.environ["TARGET_STATUS"],
     "previous_successful_sha": os.environ.get("PREVIOUS_SHA_VALUE") or None,
+    "activation_history": history,
     "activation_timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     "workflow_run_id": os.environ.get("WORKFLOW_RUN_VALUE") or None,
     "rollback_eligibility": os.environ["TARGET_STATUS"] in {"successful", "rolled_back"},
@@ -196,6 +209,20 @@ atomic_copy_state() {
   temporary="$(mktemp "$(dirname "$destination")/.${destination##*/}.XXXXXX")"
   install -m 0640 "$source" "$temporary"
   mv -f "$temporary" "$destination"
+}
+
+verify_state_pointers() {
+  python3 - "$CURRENT_STATE" "$PREVIOUS_STATE" <<'PY'
+import json, pathlib, re, sys
+current=json.load(open(sys.argv[1],encoding="utf-8")); history=current.get("activation_history",[])
+if not isinstance(history,list) or len(history)>2 or len(history)!=len(set(history)):
+    raise SystemExit("current activation_history is invalid after state update")
+if any(not isinstance(item,str) or re.fullmatch(r"[0-9a-f]{40}",item) is None for item in history) or current.get("sha") in history:
+    raise SystemExit("current activation_history contains invalid or self SHA after state update")
+previous=pathlib.Path(sys.argv[2])
+if history and (not previous.is_file() or previous.is_symlink() or json.load(previous.open(encoding="utf-8")).get("sha")!=history[0]):
+    raise SystemExit("previous.json does not match activation_history[0]")
+PY
 }
 
 compose_override_for_map() {
@@ -337,6 +364,7 @@ APP_MUTATED=0
 STATIC_SWITCHED=0
 SUCCESS=0
 PREVIOUS_RELEASE_PATH=""
+TARGET_STATE_SNAPSHOT=""
 cleanup() {
   local exit_code=$?
   local compensation_ok=1
@@ -363,6 +391,8 @@ cleanup() {
     if [[ $compensation_ok -eq 1 ]]; then
       if ! atomic_copy_state "$PREVIOUS_STATE_FILE" "$CURRENT_STATE"; then compensation_ok=0; fi
       if [[ -n "$PREVIOUS_POINTER_SNAPSHOT" ]] && ! atomic_copy_state "$PREVIOUS_POINTER_SNAPSHOT" "$PREVIOUS_STATE"; then compensation_ok=0; fi
+      if [[ "$COMMAND" == rollback && -n "$TARGET_STATE_SNAPSHOT" ]] && \
+        ! atomic_copy_state "$TARGET_STATE_SNAPSHOT" "$RELEASE_STATE_DIR/$TARGET_SHA.json"; then compensation_ok=0; fi
     fi
     if [[ $compensation_ok -eq 1 && "$COMMAND" == deploy && $STATE_STAGED -eq 1 ]]; then
       write_state failed "activation" "verified automatic compensation after exit $exit_code" "$CURRENT_SHA" true || compensation_ok=0
@@ -385,6 +415,7 @@ cleanup() {
     docker image rm "$CANDIDATE_TAG" >/dev/null || true
   fi
   rm -f -- "$PREVIOUS_STATE_FILE"
+  [[ -z "$TARGET_STATE_SNAPSHOT" ]] || rm -f -- "$TARGET_STATE_SNAPSHOT"
   [[ -z "$PREVIOUS_POINTER_SNAPSHOT" ]] || rm -f -- "$PREVIOUS_POINTER_SNAPSHOT"
   rm -f -- "$COMPOSE_BASE"
   exit "$exit_code"
@@ -405,23 +436,22 @@ verify_data_services
 if [[ "$COMMAND" == rollback ]]; then
   readonly TARGET_STATE="$RELEASE_STATE_DIR/$TARGET_SHA.json"
   [[ -f "$TARGET_STATE" && ! -L "$TARGET_STATE" ]] || fail "rollback target release state is missing"
-  python3 - "$CURRENT_STATE" "$TARGET_STATE" "$RELEASE_STATE_DIR" <<'PY'
-import json, pathlib, sys
+  TARGET_STATE_SNAPSHOT="$(mktemp "${TMPDIR:-/tmp}/nura-target-state.XXXXXX.json")"
+  install -m 0640 "$TARGET_STATE" "$TARGET_STATE_SNAPSHOT"
+  python3 - "$CURRENT_STATE" "$TARGET_STATE" <<'PY'
+import json, re, sys
 current = json.load(open(sys.argv[1], encoding="utf-8")); target = json.load(open(sys.argv[2], encoding="utf-8"))
 if target.get("status") not in {"successful", "rolled_back"} or not target.get("rollback_eligibility"):
     raise SystemExit("rollback target is not a protected successful release")
 if target.get("migration_delta") is not False:
     raise SystemExit("schema-incompatible release cannot be rolled back automatically")
-allowed=[]; cursor=current; seen={current.get("sha")}
-for _ in range(2):
-    sha=cursor.get("previous_successful_sha")
-    if not sha: break
-    if sha in seen: raise SystemExit("release state lineage contains a cycle")
-    seen.add(sha)
-    allowed.append(sha); path=pathlib.Path(sys.argv[3]) / f"{sha}.json"
-    if not path.is_file(): break
-    cursor=json.load(open(path, encoding="utf-8"))
-if target.get("sha") not in allowed: raise SystemExit("rollback target is not one of two protected predecessors")
+target_history=target.get("activation_history",[])
+if not isinstance(target_history,list) or len(target_history)>2 or len(target_history)!=len(set(target_history)):
+    raise SystemExit("rollback target activation_history is invalid")
+if any(not isinstance(item,str) or re.fullmatch(r"[0-9a-f]{40}",item) is None for item in target_history) or target.get("sha") in target_history:
+    raise SystemExit("rollback target activation_history contains invalid or self SHA")
+if target.get("sha") not in current.get("activation_history",[]):
+    raise SystemExit("rollback target is outside current activation_history")
 PY
   readonly TARGET_RELEASE="$RELEASES_DIR/$TARGET_SHA"
   python3 "$ARTIFACT_HELPER" validate-current --current "$CURRENT_LINK" --expected-sha "$CURRENT_SHA" >/dev/null
@@ -433,12 +463,17 @@ PY
   activate_from_state "$TARGET_STATE" "$TARGET_SHA"
   public_smoke "$TARGET_SHA" || fail "public rollback verification failed"
   atomic_copy_state "$CURRENT_STATE" "$PREVIOUS_STATE"
-  python3 - "$TARGET_STATE" <<'PY'
-import json, os, sys, tempfile
-p=sys.argv[1]; v=json.load(open(p,encoding="utf-8")); v["status"]="successful"; v["rollback_eligibility"]=True
-fd,t=tempfile.mkstemp(prefix=".rollback.",dir=os.path.dirname(p)); os.write(fd,(json.dumps(v,sort_keys=True,separators=(",",":"))+"\n").encode()); os.close(fd); os.replace(t,p)
+  python3 - "$TARGET_STATE" "$PREVIOUS_STATE_FILE" "$STATE_HELPER" <<'PY'
+import importlib.util, json, os, sys, tempfile
+p=sys.argv[1]; v=json.load(open(p,encoding="utf-8")); current=json.load(open(sys.argv[2],encoding="utf-8"))
+spec=importlib.util.spec_from_file_location("release_state_helper",sys.argv[3]); helper=importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+v.update({"schema":2,"status":"successful","rollback_eligibility":True,"activation_history":helper.next_activation_history(current,v["sha"]),"previous_successful_sha":current["sha"]})
+fd,t=tempfile.mkstemp(prefix=".rollback.",dir=os.path.dirname(p))
+with os.fdopen(fd,"w",encoding="utf-8") as stream: json.dump(v,stream,sort_keys=True,separators=(",",":")); stream.write("\n")
+os.chmod(t,0o640); os.replace(t,p)
 PY
   atomic_copy_state "$TARGET_STATE" "$CURRENT_STATE"
+  verify_state_pointers
   SUCCESS=1
   log "coordinated rollback completed at $TARGET_SHA; no database rollback was attempted"
   exit 0
@@ -487,11 +522,16 @@ if [[ -e "$TARGET_STATE_FILE" || -L "$TARGET_STATE_FILE" ]]; then
   [[ -f "$TARGET_STATE_FILE" && ! -L "$TARGET_STATE_FILE" ]] || fail "release state is not a regular file"
   mapfile -t REUSE_VALUES < <(ARTIFACT_DIGEST="$ARTIFACT_DIGEST" PUBLIC_MANIFEST_DIGEST="$PUBLIC_MANIFEST_DIGEST" \
     python3 - "$TARGET_STATE_FILE" "$TARGET_RELEASE" <<'PY'
-import json, os, sys
+import json, os, re, sys
 p, expected_path=sys.argv[1:]; value=json.load(open(p,encoding="utf-8")); sha=value.get("sha")
 status=value.get("status")
 if status not in {"successful","rolled_back","failed"}: raise SystemExit("incomplete release state requires operator recovery")
 if status=="failed" and value.get("compensation_verified") is not True: raise SystemExit("failed release is not proven compensated")
+history=value.get("activation_history",[])
+if not isinstance(history,list) or len(history)>2 or len(history)!=len(set(history)):
+    raise SystemExit("target activation_history is invalid")
+if any(not isinstance(item,str) or re.fullmatch(r"[0-9a-f]{40}",item) is None for item in history) or sha in history:
+    raise SystemExit("target activation_history contains invalid or self SHA")
 services={"api","bot","celery-worker","celery-beat","admin-bot"}; tag=f"nura-release:{sha}"
 checks={
  "static_release_path":expected_path,"artifact_sha256":os.environ["ARTIFACT_DIGEST"],
@@ -567,6 +607,7 @@ public_smoke "$TARGET_SHA" || fail "public smoke failed after static switch"
 write_state successful "" "" "$CURRENT_SHA"
 atomic_copy_state "$CURRENT_STATE" "$PREVIOUS_STATE"
 atomic_copy_state "$RELEASE_STATE_DIR/$TARGET_SHA.json" "$CURRENT_STATE"
+verify_state_pointers
 python3 "$ARTIFACT_HELPER" validate-current --current "$CURRENT_LINK" --expected-sha "$TARGET_SHA" >/dev/null
 
 SUCCESS=1
@@ -576,14 +617,10 @@ log "retention cleanup is best-effort under the common lock"
 if CLEANUP_PLAN="$(python3 - "$RELEASES_DIR" "$STAGING_DIR" "$RELEASE_STATE_DIR" "$CURRENT_STATE" <<'PY'
 import json, pathlib, shutil, sys, time
 releases, staging, records, current_path = map(pathlib.Path, sys.argv[1:])
-current=json.load(open(current_path,encoding="utf-8")); protected={current["sha"]}; cursor=current
-for _ in range(2):
-    sha=cursor.get("previous_successful_sha")
-    if not sha: break
-    if sha in protected: raise SystemExit("release state lineage contains a cycle")
-    protected.add(sha); path=records/f"{sha}.json"
-    if not path.is_file(): break
-    cursor=json.load(open(path,encoding="utf-8"))
+current=json.load(open(current_path,encoding="utf-8")); history=current.get("activation_history",[])
+if not isinstance(history,list) or len(history)>2 or len(history)!=len(set(history)) or current["sha"] in history:
+    raise SystemExit("current activation_history is invalid during retention")
+protected={current["sha"],*history}
 for path in releases.iterdir():
     if path.is_symlink() or not path.is_dir() or path.name in protected: continue
     if len(path.name)!=40 or not all(c in "0123456789abcdef" for c in path.name): continue

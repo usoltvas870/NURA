@@ -308,7 +308,7 @@ def test_state_write_is_atomic_and_private(tmp_path: Path) -> None:
     [
         "current release state is missing",
         "rollback target is not a protected successful release",
-        "rollback target is not one of two protected predecessors",
+        "rollback target is outside current activation_history",
         "schema-incompatible release cannot be rolled back automatically",
         "rollback tag no longer identifies the recorded immutable image",
         "release directory inventory mismatch",
@@ -351,7 +351,10 @@ def _transition_args(tmp_path: Path) -> argparse.Namespace:
         sites_enabled=enabled,
         sites_available=available,
         lock_file=tmp_path / "lock" / "deploy.lock",
+        base_url="https://nura-ai.ru",
         output=None,
+        drop_candidate_output=None,
+        approved_drop_manifest=None,
     )
 
 
@@ -366,7 +369,18 @@ def test_transition_dry_run_is_mutation_free(tmp_path: Path, monkeypatch: pytest
         },
     )
     before = sorted(path.relative_to(tmp_path).as_posix() for path in tmp_path.rglob("*"))
-    inventory = transition.collect_inventory(args)
+    canonical = [
+        {"path": "index.html", "size": 7, "sha256": transition._sha256(web_file)}
+        for web_file in [args.legacy_web_root / "index.html"]
+    ]
+    canonical.append(
+        {
+            "path": "VERSION",
+            "size": (args.legacy_web_root / "VERSION").stat().st_size,
+            "sha256": transition._sha256(args.legacy_web_root / "VERSION"),
+        }
+    )
+    inventory = transition.collect_inventory(args, canonical)
     after = sorted(path.relative_to(tmp_path).as_posix() for path in tmp_path.rglob("*"))
     assert before == after
     assert inventory["file_count"] == 2
@@ -405,7 +419,7 @@ def test_transition_rejects_wrong_legacy_version(tmp_path: Path) -> None:
 def test_transition_enabled_config_names_are_strict_allowlist(tmp_path: Path) -> None:
     args = _transition_args(tmp_path)
     _write(args.sites_enabled / "unexpected.conf", "server {}\n")
-    with pytest.raises(transition.TransitionError, match="strict allowlist"):
+    with pytest.raises(transition.TransitionError, match="strict"):
         transition._enabled_configs(args.sites_enabled)
 
 
@@ -433,7 +447,15 @@ def test_forensic_snapshot_records_inventory_and_three_configs(
 ) -> None:
     args = _transition_args(tmp_path)
     monkeypatch.setattr(transition, "_service_map", lambda _repo: {})
-    inventory = transition.collect_inventory(args)
+    canonical = [
+        {
+            "path": path.name,
+            "size": path.stat().st_size,
+            "sha256": transition._sha256(path),
+        }
+        for path in (args.legacy_web_root / "index.html", args.legacy_web_root / "VERSION")
+    ]
+    inventory = transition.collect_inventory(args, canonical)
     destination = tmp_path / "snapshot"
     destination.mkdir()
     transition._snapshot(args, inventory, destination)
@@ -538,18 +560,17 @@ def test_transition_public_equivalence_rejects_redirect_drift(tmp_path: Path) ->
 
 
 def test_transition_rejects_legacy_public_file_absent_from_release(tmp_path: Path) -> None:
-    release, payloads = _public_release_fixture(tmp_path)
-    inventory = {"files": [{"path": name.removeprefix("public/")} for name in payloads]}
-    inventory["files"].append({"path": "stale-public-file.txt"})
-    with pytest.raises(transition.TransitionError, match="absent from immutable release"):
-        transition.verify_legacy_inventory_coverage(inventory, release)
+    _release, payloads = _public_release_fixture(tmp_path)
+    canonical = [{"path": name.removeprefix("public/")} for name in payloads]
+    legacy = [*canonical, {"path": "stale-public-file.txt"}]
+    assert transition._legacy_extras(legacy, canonical) == [{"path": "stale-public-file.txt"}]
 
 
 def test_transition_allows_only_explicit_acme_inventory_exclusion(tmp_path: Path) -> None:
-    release, payloads = _public_release_fixture(tmp_path)
-    inventory = {"files": [{"path": name.removeprefix("public/")} for name in payloads]}
-    inventory["files"].append({"path": ".well-known/acme-challenge/token"})
-    transition.verify_legacy_inventory_coverage(inventory, release)
+    _release, payloads = _public_release_fixture(tmp_path)
+    canonical = [{"path": name.removeprefix("public/")} for name in payloads]
+    legacy = [*canonical, {"path": ".well-known/acme-challenge/token"}]
+    assert transition._legacy_extras(legacy, canonical) == []
 
 
 def test_transition_recovery_marker_is_exclusive(tmp_path: Path) -> None:
@@ -559,10 +580,294 @@ def test_transition_recovery_marker_is_exclusive(tmp_path: Path) -> None:
         transition._write_recovery_marker(tmp_path, "second failure")
 
 
+def _extra_inventory() -> dict[str, object]:
+    extra = {
+        "path": "historical.txt",
+        "size": 11,
+        "sha256": "a" * 64,
+        "mode": "0o644",
+        "uid": 1000,
+        "gid": 1000,
+    }
+    return {
+        "inventory_sha256": "b" * 64,
+        "legacy_extra_files": [extra],
+        "legacy_extra_inventory_sha256": transition._inventory_digest([extra]),
+    }
+
+
+def test_drop_candidate_is_deterministic_and_owner_review_required() -> None:
+    inventory = _extra_inventory()
+    first = transition._canonical_json(transition._drop_candidate(inventory))
+    second = transition._canonical_json(transition._drop_candidate(copy.deepcopy(inventory)))
+    assert first == second
+    assert json.loads(first)["status"] == "owner_review_required"
+
+
+def test_missing_or_unapproved_drop_manifest_blocks_extras(tmp_path: Path) -> None:
+    inventory = _extra_inventory()
+    with pytest.raises(transition.TransitionError, match="require"):
+        transition._verify_approved_drop_manifest(None, inventory)
+    candidate = tmp_path / "candidate.json"
+    candidate.write_bytes(transition._canonical_json(transition._drop_candidate(inventory)))
+    with pytest.raises(transition.TransitionError, match="exactly match"):
+        transition._verify_approved_drop_manifest(candidate, inventory)
+
+
+def test_zero_extra_inventory_requires_no_approval() -> None:
+    inventory = {
+        "inventory_sha256": "b" * 64,
+        "legacy_extra_files": [],
+        "legacy_extra_inventory_sha256": transition._inventory_digest([]),
+    }
+    assert transition._verify_approved_drop_manifest(None, inventory) is None
+
+
+def test_exact_approved_drop_manifest_passes_and_is_copied_to_evidence(tmp_path: Path) -> None:
+    inventory = _extra_inventory()
+    approved = transition._drop_candidate(inventory, status="approved")
+    path = tmp_path / "approved.json"
+    path.write_bytes(transition._canonical_json(approved) + b"\n")
+    assert transition._verify_approved_drop_manifest(path, inventory) == approved
+    args = SimpleNamespace(approved_drop_manifest=path)
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    transition._copy_approved_drop_evidence(args, inventory, evidence)
+    assert json.loads((evidence / "approved-drop-manifest.json").read_text()) == approved
+
+
+@pytest.mark.parametrize("field", ["path", "size", "sha256"])
+def test_approved_drop_manifest_exact_identity_mismatch_blocks(tmp_path: Path, field: str) -> None:
+    inventory = _extra_inventory()
+    approved = transition._drop_candidate(inventory, status="approved")
+    approved["legacy_extra_files"][0][field] = "changed" if field != "size" else 12
+    path = tmp_path / "approved.json"
+    path.write_bytes(transition._canonical_json(approved))
+    with pytest.raises(transition.TransitionError, match="exactly match"):
+        transition._verify_approved_drop_manifest(path, inventory)
+
+
+def test_newly_appeared_extra_invalidates_approved_manifest(tmp_path: Path) -> None:
+    original = _extra_inventory()
+    path = tmp_path / "approved.json"
+    path.write_bytes(
+        transition._canonical_json(transition._drop_candidate(original, status="approved"))
+    )
+    changed = copy.deepcopy(original)
+    changed["legacy_extra_files"].append(
+        {"path": "new.txt", "size": 1, "sha256": "c" * 64, "mode": "0o644", "uid": 0, "gid": 0}
+    )
+    changed["legacy_extra_inventory_sha256"] = transition._inventory_digest(
+        changed["legacy_extra_files"]
+    )
+    with pytest.raises(transition.TransitionError, match="exactly match"):
+        transition._verify_approved_drop_manifest(path, changed)
+
+
+def test_legacy_extra_change_after_approval_is_detected(tmp_path: Path) -> None:
+    root = tmp_path / "legacy"
+    _write(root / "historical.txt", "before\n")
+    approved_inventory = transition._public_inventory(root)
+    _write(root / "historical.txt", "after\n")
+    with pytest.raises(transition.TransitionError, match="changed after approval"):
+        transition._assert_legacy_inventory_unchanged(root, approved_inventory)
+
+
+def test_apply_rebuilds_authoritative_inventory_under_common_lock() -> None:
+    source = TRANSITION_PATH.read_text(encoding="utf-8")
+    apply_source = source[source.index("def apply_transition") : source.index("def datetime_utc")]
+    lock = apply_source.index("fcntl.flock")
+    locked_inventory = apply_source.index("locked_inventory = collect_inventory(args)")
+    snapshot = apply_source.index("_snapshot(args, inventory, transition_dir)")
+    approval = apply_source.index("_copy_approved_drop_evidence")
+    mutation = apply_source.index("candidate.write_bytes")
+    assert lock < locked_inventory < snapshot < approval < mutation
+    assert apply_source.count("_assert_legacy_inventory_unchanged") == 2
+
+
+def test_current_history_and_previous_pointer_are_validated_before_any_mutation() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    preflight = script.index("current activation_history is invalid")
+    pointer = script.index("previous state pointer does not match activation_history[0]")
+    fetch = script.index('git -C "$REPO_ROOT" fetch')
+    rollback = script.index('if [[ "$COMMAND" == rollback ]]')
+    build = script.index("docker build")
+    assert preflight < fetch < rollback
+    assert pointer < fetch < build
+
+
+def test_dry_run_inventory_reports_exact_extras_and_excludes_acme(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    args = _transition_args(tmp_path)
+    extra = args.legacy_web_root / "historical.txt"
+    acme = args.legacy_web_root / ".well-known/acme-challenge/token"
+    _write(extra, "historical\n")
+    _write(acme, "token\n")
+    monkeypatch.setattr(transition, "_service_map", lambda _repo: {})
+    canonical = [
+        {"path": path.name, "size": path.stat().st_size, "sha256": transition._sha256(path)}
+        for path in (args.legacy_web_root / "index.html", args.legacy_web_root / "VERSION")
+    ]
+    inventory = transition.collect_inventory(args, canonical)
+    assert inventory["legacy_extra_file_count"] == 1
+    assert inventory["legacy_extra_files"][0]["path"] == "historical.txt"
+    assert inventory["acme_excluded_file_count"] == 1
+
+
+def test_existing_legacy_release_is_verified_and_reused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    args = _transition_args(tmp_path)
+    final = args.release_root / "releases" / transition.EXPECTED_LEGACY_SHA
+    final.mkdir(parents=True)
+    artifact = tmp_path / "artifact"
+    artifact.mkdir()
+    archive, checksum, manifest = (
+        artifact / "a.tar.gz",
+        artifact / "a.sha256",
+        artifact / "release-manifest.json",
+    )
+    for path in (archive, checksum):
+        path.write_bytes(b"fixture")
+    manifest.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(transition, "_build_legacy_artifact", lambda *_args: (archive, checksum, manifest))
+    calls: list[tuple[str, ...]] = []
+    monkeypatch.setattr(transition, "_run", lambda *command, **_kwargs: calls.append(command) or "")
+    prepared = transition._prepare_legacy_release(args, tmp_path / "evidence")
+    assert prepared.final_path == final and prepared.staging_path is None
+    assert any("verify_release_directory" in " ".join(call) for call in calls)
+
+
+def test_existing_mismatched_legacy_release_requires_recovery(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    args = _transition_args(tmp_path)
+    final = args.release_root / "releases" / transition.EXPECTED_LEGACY_SHA
+    final.mkdir(parents=True)
+    artifact = tmp_path / "artifact"
+    artifact.mkdir()
+    files = tuple(artifact / name for name in ("a.tar.gz", "a.sha256", "release-manifest.json"))
+    for path in files:
+        path.write_bytes(b"fixture")
+    monkeypatch.setattr(transition, "_build_legacy_artifact", lambda *_args: files)
+    monkeypatch.setattr(transition, "_run", lambda *_args, **_kwargs: (_ for _ in ()).throw(transition.TransitionError("mismatch")))
+    with pytest.raises(transition.TransitionError, match="mismatch"):
+        transition._prepare_legacy_release(args, tmp_path / "evidence")
+
+
+def test_matching_legacy_tags_reuse_and_conflicting_tags_reject(monkeypatch: pytest.MonkeyPatch) -> None:
+    image_id = f"sha256:{'0' * 64}"
+    services = {name: {"image_id": image_id} for name in transition.APPLICATION_SERVICES}
+    monkeypatch.setattr(
+        transition.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0, stdout=f"{image_id}\n"),
+    )
+    assert len(transition._protect_legacy_images(services)) == 5
+    monkeypatch.setattr(
+        transition.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0, stdout=f"sha256:{'1' * 64}\n"),
+    )
+    with pytest.raises(transition.TransitionError, match="conflict"):
+        transition._protect_legacy_images(services)
+
+
+def test_partial_current_state_disagreement_requires_recovery(tmp_path: Path) -> None:
+    args = _transition_args(tmp_path)
+    (args.state_root / "releases").mkdir(parents=True)
+    (args.state_root / "current.json").write_text("{}", encoding="utf-8")
+    final = args.release_root / "releases" / transition.EXPECTED_LEGACY_SHA
+    final.mkdir(parents=True)
+    prepared = transition.PreparedLegacyRelease(final, final, None, tmp_path / "a", tmp_path / "m")
+    with pytest.raises(transition.TransitionError, match="partial"):
+        transition._existing_transition_status(args, prepared, {}, {"services": {}}, b"")
+
+
+def test_fully_prepared_host_returns_without_reload_or_rewrite(tmp_path: Path) -> None:
+    args = _transition_args(tmp_path)
+    final = args.release_root / "releases" / transition.EXPECTED_LEGACY_SHA
+    (final / "public").mkdir(parents=True)
+    manifest = final / "public/release-manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+    archive = tmp_path / "legacy.tar.gz"
+    archive.write_bytes(b"archive")
+    current = args.release_root / "current"
+    try:
+        current.symlink_to(Path("releases") / transition.EXPECTED_LEGACY_SHA, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"symlink creation is unavailable: {exc}")
+    reviewed = b"server { root /var/www/nura-releases/current/public; }\n"
+    canonical = args.sites_available / "nura-ai.ru.conf"
+    canonical.write_bytes(reviewed)
+    for name in transition.ENABLED_CONFIG_ALLOWLIST:
+        (args.sites_enabled / name).unlink()
+    (args.sites_enabled / "nura-ai.ru.conf").symlink_to(canonical)
+    image_id = f"sha256:{'0' * 64}"
+    tags = {service: f"nura-legacy:{service}-{transition.EXPECTED_LEGACY_SHA[:12]}" for service in transition.APPLICATION_SERVICES}
+    services = {service: {"image_id": image_id} for service in transition.APPLICATION_SERVICES}
+    state = {
+        "sha": transition.EXPECTED_LEGACY_SHA,
+        "status": "successful",
+        "legacy": True,
+        "rollback_eligibility": True,
+        "static_release_path": str(final),
+        "artifact_sha256": transition._sha256(archive),
+        "public_manifest_sha256": transition._sha256(manifest),
+        "per_service_image_mapping": tags,
+        "per_service_image_ids": {service: image_id for service in transition.APPLICATION_SERVICES},
+        "migration_delta": False,
+    }
+    record = args.state_root / "releases" / f"{transition.EXPECTED_LEGACY_SHA}.json"
+    record.parent.mkdir(parents=True)
+    args.state_root.mkdir(exist_ok=True)
+    record.write_text(json.dumps(state), encoding="utf-8")
+    (args.state_root / "current.json").write_text(json.dumps(state), encoding="utf-8")
+    prepared = transition.PreparedLegacyRelease(final, final, None, archive, manifest)
+    assert transition._existing_transition_status(args, prepared, tags, {"services": services}, reviewed) == "already_prepared"
+
+
+def test_transition_retry_contract_keeps_legacy_root_and_verified_final() -> None:
+    source = TRANSITION_PATH.read_text(encoding="utf-8")
+    apply_source = source[source.index("def apply_transition") : source.index("def datetime_utc")]
+    assert "_remove_staging(prepared, args)" in source
+    assert "_finalize_prepared_release" in source
+    assert "already_prepared" in source
+    assert "rmtree(args.legacy_web_root" not in source
+    assert "unlink(args.legacy_web_root" not in source
+    assert apply_source.index("verify_public_equivalence(prepared.verification_path") < apply_source.index("_finalize_prepared_release")
+    assert apply_source.index("_existing_transition_status") < apply_source.index("candidate.write_bytes")
+
+
+def test_activation_history_sequences_are_bounded_and_cycle_free() -> None:
+    a, b, c = "a" * 40, "b" * 40, "c" * 40
+    state_a = {"sha": a}
+    assert transition.next_activation_history(state_a, b) == [a]
+    state_b = {"sha": b, "activation_history": [a]}
+    assert transition.next_activation_history(state_b, c) == [b, a]
+    state_c = {"sha": c, "activation_history": [b, a]}
+    assert transition.next_activation_history(state_c, b) == [c, a]
+    rolled_back_b = {"sha": b, "activation_history": [c, a]}
+    assert transition.next_activation_history(rolled_back_b, c) == [b, a]
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        {"sha": "a" * 40, "activation_history": ["b" * 40, "c" * 40, "d" * 40]},
+        {"sha": "a" * 40, "activation_history": ["b" * 40, "b" * 40]},
+        {"sha": "a" * 40, "activation_history": ["invalid"]},
+        {"sha": "a" * 40, "activation_history": ["a" * 40]},
+    ],
+)
+def test_invalid_activation_history_is_rejected(state: dict[str, object]) -> None:
+    with pytest.raises(transition.TransitionError, match="activation_history"):
+        transition.validate_activation_history(state)
+
+
+def test_legacy_state_without_activation_history_is_supported() -> None:
+    assert transition.validate_activation_history({"sha": "a" * 40}) == []
+
+
 def test_retention_protects_current_two_previous_and_legacy_records() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     retention = script[script.index("retention cleanup is best-effort") :]
-    assert "for _ in range(2)" in retention
+    assert 'protected={current["sha"],*history}' in retention
     assert 'path.name in protected' in retention
     assert 'value.get("legacy")' in retention
     assert "7*86400" in retention
@@ -576,7 +881,8 @@ def test_retention_protects_current_two_previous_and_legacy_records() -> None:
 def test_same_sha_cycles_mutable_tags_and_incomplete_compensation_fail_closed() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     assert "refusing to create a self-referential release lineage" in script
-    assert script.count("release state lineage contains a cycle") >= 2
+    assert "release state lineage contains a cycle" not in script
+    assert "activation_history" in script
     assert "per_service_image_ids" in script
     assert "rollback tag no longer identifies the recorded immutable image" in script
     assert "current rollback tag does not match its recorded immutable image ID" in script

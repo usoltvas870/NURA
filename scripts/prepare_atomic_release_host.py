@@ -34,6 +34,7 @@ SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 ENABLED_CONFIG_ALLOWLIST = frozenset(
     {"nura-ai.ru", "nura-ai.ru.bak", "nura-ai.ru.conf"}
 )
+PREPARED_CONFIG_ALLOWLIST = frozenset({"nura-ai.ru.conf"})
 APPLICATION_SERVICES = ("api", "bot", "celery-worker", "celery-beat", "admin-bot")
 SENSITIVE_SUFFIXES = (".env", ".key", ".pem", ".p12", ".pfx")
 PUBLIC_TIMEOUT_SECONDS = 10.0
@@ -126,24 +127,109 @@ def verify_public_equivalence(
     return evidence
 
 
-def verify_legacy_inventory_coverage(inventory: dict[str, Any], release: Path) -> None:
-    """Reject legacy public files that the immutable release would drop."""
-    manifest = json.loads(
-        (release / "public" / "release-manifest.json").read_text(encoding="utf-8")
+def _canonical_json(value: Any) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+
+
+def _inventory_digest(entries: list[dict[str, Any]]) -> str:
+    return hashlib.sha256(_canonical_json(entries)).hexdigest()
+
+
+def _artifact_paths(artifact_dir: Path) -> tuple[Path, Path, Path]:
+    return (
+        artifact_dir / f"nura-static-{EXPECTED_LEGACY_SHA}.tar.gz",
+        artifact_dir / f"nura-static-{EXPECTED_LEGACY_SHA}.tar.gz.sha256",
+        artifact_dir / "release-manifest.json",
     )
-    release_paths = {
-        entry["destination"].removeprefix("public/") for entry in manifest.get("files", [])
-    }
-    legacy_paths = {
-        entry["path"]
-        for entry in inventory.get("files", [])
-        if not entry["path"].startswith(LEGACY_PUBLIC_EXCLUDED_PREFIXES)
-    }
-    missing = sorted(legacy_paths - release_paths)
-    if missing:
-        raise TransitionError(
-            f"legacy public inventory contains files absent from immutable release: {missing[:10]}"
+
+
+def _build_legacy_artifact(repo_root: Path, artifact_dir: Path) -> tuple[Path, Path, Path]:
+    checkout = Path(tempfile.mkdtemp(prefix="nura-legacy-checkout-"))
+    try:
+        shutil.rmtree(checkout)
+        _run("git", "clone", "--quiet", "--no-checkout", "--shared", str(repo_root), str(checkout))
+        _run("git", "-C", str(checkout), "checkout", "--quiet", "--detach", EXPECTED_LEGACY_SHA)
+        _run(
+            "python3",
+            str(repo_root / "scripts" / "build_release_artifact.py"),
+            "build",
+            "--repo-root",
+            str(checkout),
+            "--target-sha",
+            EXPECTED_LEGACY_SHA,
+            "--output-dir",
+            str(artifact_dir),
         )
+        return _artifact_paths(artifact_dir)
+    finally:
+        shutil.rmtree(checkout, ignore_errors=True)
+
+
+def _canonical_release_inventory(repo_root: Path) -> list[dict[str, Any]]:
+    with tempfile.TemporaryDirectory(prefix="nura-legacy-artifact-") as temporary:
+        _archive, _checksum, manifest_path = _build_legacy_artifact(
+            repo_root, Path(temporary) / "artifact"
+        )
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = json.loads(manifest_bytes)
+        entries = [
+            {
+                "path": entry["destination"].removeprefix("public/"),
+                "size": entry["size"],
+                "sha256": entry["sha256"],
+            }
+            for entry in manifest["files"]
+        ]
+        entries.append(
+            {
+                "path": "release-manifest.json",
+                "size": len(manifest_bytes),
+                "sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+            }
+        )
+        return sorted(entries, key=lambda entry: entry["path"])
+
+
+def _legacy_extras(
+    legacy_inventory: list[dict[str, Any]], canonical_inventory: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    canonical_paths = {entry["path"] for entry in canonical_inventory}
+    return [
+        entry
+        for entry in legacy_inventory
+        if entry["path"] not in canonical_paths
+        and not entry["path"].startswith(LEGACY_PUBLIC_EXCLUDED_PREFIXES)
+    ]
+
+
+def _drop_candidate(inventory: dict[str, Any], *, status: str = "owner_review_required") -> dict[str, Any]:
+    return {
+        "schema": 1,
+        "expected_production_sha": EXPECTED_LEGACY_SHA,
+        "legacy_inventory_sha256": inventory["inventory_sha256"],
+        "legacy_extra_files": [dict(entry) for entry in inventory["legacy_extra_files"]],
+        "legacy_extra_inventory_sha256": inventory["legacy_extra_inventory_sha256"],
+        "status": status,
+    }
+
+
+def _verify_approved_drop_manifest(
+    path: Path | None, inventory: dict[str, Any]
+) -> dict[str, Any] | None:
+    extras = inventory["legacy_extra_files"]
+    if not extras:
+        if path is not None:
+            raise TransitionError("approved drop manifest is unnecessary for zero legacy extras")
+        return None
+    if path is None:
+        raise TransitionError("legacy extras require --approved-drop-manifest")
+    if path.is_symlink() or not path.is_file():
+        raise TransitionError("approved drop manifest must be a regular file")
+    approved = json.loads(path.read_text(encoding="utf-8"))
+    expected = _drop_candidate(inventory, status="approved")
+    if approved != expected:
+        raise TransitionError("approved drop manifest does not exactly match current legacy extras")
+    return approved
 
 
 def _run(*args: str, cwd: Path | None = None) -> str:
@@ -177,9 +263,9 @@ def _enabled_configs(sites_enabled: Path) -> list[Path]:
         raise TransitionError("sites-enabled must be a real directory")
     entries = sorted(path for path in sites_enabled.iterdir() if path.is_file() or path.is_symlink())
     names = {path.name for path in entries}
-    if names != ENABLED_CONFIG_ALLOWLIST:
+    if names not in {ENABLED_CONFIG_ALLOWLIST, PREPARED_CONFIG_ALLOWLIST}:
         raise TransitionError(
-            f"enabled Nginx filenames differ from audited strict allowlist: {sorted(names)}"
+            f"enabled Nginx filenames differ from audited strict sets: {sorted(names)}"
         )
     return entries
 
@@ -211,6 +297,13 @@ def _public_inventory(web_root: Path) -> list[dict[str, Any]]:
     return entries
 
 
+def _assert_legacy_inventory_unchanged(
+    web_root: Path, expected: list[dict[str, Any]]
+) -> None:
+    if _public_inventory(web_root) != expected:
+        raise TransitionError("legacy public inventory changed after approval/preflight")
+
+
 def _service_map(repo_root: Path) -> dict[str, dict[str, str]]:
     mapping: dict[str, dict[str, str]] = {}
     for service in APPLICATION_SERVICES:
@@ -233,9 +326,23 @@ def _service_map(repo_root: Path) -> dict[str, dict[str, str]]:
     return mapping
 
 
-def collect_inventory(args: argparse.Namespace) -> dict[str, Any]:
+def collect_inventory(
+    args: argparse.Namespace,
+    canonical_inventory: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     inventory = _public_inventory(args.legacy_web_root)
-    encoded = json.dumps(inventory, sort_keys=True, separators=(",", ":")).encode()
+    encoded = _canonical_json(inventory)
+    canonical = (
+        canonical_inventory
+        if canonical_inventory is not None
+        else _canonical_release_inventory(args.repo_root)
+    )
+    extras = _legacy_extras(inventory, canonical)
+    acme = [
+        entry
+        for entry in inventory
+        if entry["path"].startswith(LEGACY_PUBLIC_EXCLUDED_PREFIXES)
+    ]
     configs = _enabled_configs(args.sites_enabled)
     return {
         "schema": 1,
@@ -246,6 +353,14 @@ def collect_inventory(args: argparse.Namespace) -> dict[str, Any]:
         "total_bytes": sum(entry["size"] for entry in inventory),
         "inventory_sha256": hashlib.sha256(encoded).hexdigest(),
         "files": inventory,
+        "canonical_release_file_count": len(canonical),
+        "canonical_release_inventory": canonical,
+        "acme_excluded_file_count": len(acme),
+        "acme_excluded_inventory": acme,
+        "legacy_extra_file_count": len(extras),
+        "legacy_extra_total_bytes": sum(entry["size"] for entry in extras),
+        "legacy_extra_inventory_sha256": _inventory_digest(extras),
+        "legacy_extra_files": extras,
         "enabled_nginx_configs": [str(path) for path in configs],
         "services": _service_map(args.repo_root),
         "proposed": {
@@ -261,6 +376,14 @@ def _write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    temporary.chmod(0o640)
+    os.replace(temporary, path)
+
+
+def _write_canonical_json(path: Path, value: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    temporary.write_bytes(_canonical_json(value) + b"\n")
     temporary.chmod(0o640)
     os.replace(temporary, path)
 
@@ -374,53 +497,75 @@ def _restore_and_verify_public(
         raise TransitionError(reason) from restore_error
 
 
-def _build_legacy_release(args: argparse.Namespace, transition_dir: Path) -> Path:
-    worktree = Path(tempfile.mkdtemp(prefix="nura-legacy-worktree-"))
+class PreparedLegacyRelease(NamedTuple):
+    verification_path: Path
+    final_path: Path
+    staging_path: Path | None
+    archive: Path
+    manifest: Path
+
+
+def _prepare_legacy_release(
+    args: argparse.Namespace, transition_dir: Path
+) -> PreparedLegacyRelease:
     artifact_dir = transition_dir / "legacy-artifact"
-    try:
-        shutil.rmtree(worktree)
-        _run("git", "-C", str(args.repo_root), "worktree", "add", "--detach", str(worktree), EXPECTED_LEGACY_SHA)
+    archive, checksum, manifest = _build_legacy_artifact(args.repo_root, artifact_dir)
+    final = args.release_root / "releases" / EXPECTED_LEGACY_SHA
+    if final.exists() or final.is_symlink():
+        if final.is_symlink() or not final.is_dir():
+            raise TransitionError("existing legacy final release is not a real directory")
         _run(
             "python3",
+            "-c",
+            "import importlib.util,json,pathlib,sys;"
+            "s=importlib.util.spec_from_file_location('artifact',sys.argv[1]);"
+            "m=importlib.util.module_from_spec(s);s.loader.exec_module(m);"
+            "m.verify_release_directory(pathlib.Path(sys.argv[2]),json.load(open(sys.argv[3],encoding='utf-8')))",
             str(args.repo_root / "scripts" / "build_release_artifact.py"),
-            "build",
-            "--repo-root",
-            str(worktree),
-            "--target-sha",
-            EXPECTED_LEGACY_SHA,
-            "--output-dir",
-            str(artifact_dir),
-        )
-        archive = artifact_dir / f"nura-static-{EXPECTED_LEGACY_SHA}.tar.gz"
-        checksum = artifact_dir / f"nura-static-{EXPECTED_LEGACY_SHA}.tar.gz.sha256"
-        manifest = artifact_dir / "release-manifest.json"
-        staging = args.release_root / "staging" / f"{EXPECTED_LEGACY_SHA}-transition-{os.getpid()}"
-        _run(
-            "python3",
-            str(args.repo_root / "scripts" / "build_release_artifact.py"),
-            "extract",
-            "--archive",
-            str(archive),
-            "--checksum",
-            str(checksum),
-            "--manifest",
+            str(final),
             str(manifest),
-            "--target-sha",
-            EXPECTED_LEGACY_SHA,
-            "--staging",
-            str(staging),
         )
-        final = args.release_root / "releases" / EXPECTED_LEGACY_SHA
-        if final.exists():
-            raise TransitionError("legacy final release already exists; refusing to overwrite")
-        os.replace(staging, final)
-        return final
-    finally:
-        subprocess.run(
-            ["git", "-C", str(args.repo_root), "worktree", "remove", "--force", str(worktree)],
-            check=False,
-            capture_output=True,
-        )
+        return PreparedLegacyRelease(final, final, None, archive, manifest)
+    staging = (
+        args.release_root
+        / "staging"
+        / f"{EXPECTED_LEGACY_SHA}-transition-{os.getpid()}-{time.time_ns()}"
+    )
+    _run(
+        "python3",
+        str(args.repo_root / "scripts" / "build_release_artifact.py"),
+        "extract",
+        "--archive",
+        str(archive),
+        "--checksum",
+        str(checksum),
+        "--manifest",
+        str(manifest),
+        "--target-sha",
+        EXPECTED_LEGACY_SHA,
+        "--staging",
+        str(staging),
+    )
+    return PreparedLegacyRelease(staging, final, staging, archive, manifest)
+
+
+def _finalize_prepared_release(args: argparse.Namespace, prepared: PreparedLegacyRelease) -> Path:
+    if prepared.staging_path is None:
+        return prepared.final_path
+    output = _run(
+        "python3",
+        str(args.repo_root / "scripts" / "build_release_artifact.py"),
+        "finalize",
+        "--staging",
+        str(prepared.staging_path),
+        "--releases-root",
+        str(args.release_root / "releases"),
+        "--target-sha",
+        EXPECTED_LEGACY_SHA,
+    ).strip()
+    if Path(output) != prepared.final_path:
+        raise TransitionError("legacy release finalization returned an unexpected path")
+    return prepared.final_path
 
 
 def _restore_enabled_configs(args: argparse.Namespace, transition_dir: Path) -> None:
@@ -445,7 +590,111 @@ def _restore_canonical_config(args: argparse.Namespace, transition_dir: Path) ->
         os.replace(temporary, canonical)
 
 
-def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> None:
+def _copy_approved_drop_evidence(
+    args: argparse.Namespace, inventory: dict[str, Any], transition_dir: Path
+) -> None:
+    approved = _verify_approved_drop_manifest(
+        getattr(args, "approved_drop_manifest", None), inventory
+    )
+    if approved is None:
+        return
+    destination = transition_dir / "approved-drop-manifest.json"
+    shutil.copy2(args.approved_drop_manifest, destination, follow_symlinks=False)
+    if json.loads(destination.read_text(encoding="utf-8")) != approved:
+        raise TransitionError("approved drop manifest evidence copy mismatch")
+
+
+def validate_activation_history(value: dict[str, Any]) -> list[str]:
+    if not isinstance(value.get("sha"), str) or SHA_PATTERN.fullmatch(value["sha"]) is None:
+        raise TransitionError("legacy state SHA is invalid")
+    history = value.get("activation_history", [])
+    if not isinstance(history, list) or len(history) > 2:
+        raise TransitionError("legacy state activation_history is invalid")
+    if any(not isinstance(item, str) or SHA_PATTERN.fullmatch(item) is None for item in history):
+        raise TransitionError("legacy state activation_history contains an invalid SHA")
+    if len(history) != len(set(history)) or value.get("sha") in history:
+        raise TransitionError("legacy state activation_history contains duplicate or self SHA")
+    return history
+
+
+def next_activation_history(current: dict[str, Any], target_sha: str) -> list[str]:
+    if SHA_PATTERN.fullmatch(target_sha) is None:
+        raise TransitionError("activation history target SHA is invalid")
+    validate_activation_history(current)
+    history: list[str] = []
+    for item in [current["sha"], *current.get("activation_history", [])]:
+        if item != target_sha and item not in history:
+            history.append(item)
+    return history[:2]
+
+
+def _existing_transition_status(
+    args: argparse.Namespace,
+    prepared: PreparedLegacyRelease,
+    protected_tags: dict[str, str],
+    inventory: dict[str, Any],
+    reviewed_nginx: bytes,
+) -> str:
+    current = args.release_root / "current"
+    record = args.state_root / "releases" / f"{EXPECTED_LEGACY_SHA}.json"
+    current_state = args.state_root / "current.json"
+    present = [current.exists() or current.is_symlink(), record.exists(), current_state.exists()]
+    if not any(present):
+        return "not_prepared"
+    if not all(present):
+        raise TransitionError("partial legacy current/state disagreement requires recovery")
+    if not current.is_symlink() or current.resolve(strict=True) != prepared.final_path.resolve(strict=True):
+        raise TransitionError("prepared legacy current pointer mismatch requires recovery")
+    if record.is_symlink() or current_state.is_symlink() or not record.is_file() or not current_state.is_file():
+        raise TransitionError("prepared legacy state paths are invalid")
+    record_value = json.loads(record.read_text(encoding="utf-8"))
+    current_value = json.loads(current_state.read_text(encoding="utf-8"))
+    if record_value != current_value:
+        raise TransitionError("prepared legacy current/state records disagree")
+    history = validate_activation_history(record_value)
+    previous = args.state_root / "previous.json"
+    if history:
+        if previous.is_symlink() or not previous.is_file():
+            raise TransitionError("prepared previous state pointer is missing")
+        if json.loads(previous.read_text(encoding="utf-8")).get("sha") != history[0]:
+            raise TransitionError("prepared previous state pointer mismatch")
+    expected = {
+        "sha": EXPECTED_LEGACY_SHA,
+        "status": "successful",
+        "legacy": True,
+        "rollback_eligibility": True,
+        "static_release_path": str(prepared.final_path),
+        "artifact_sha256": _sha256(prepared.archive),
+        "public_manifest_sha256": _sha256(prepared.final_path / "public/release-manifest.json"),
+        "per_service_image_mapping": protected_tags,
+        "per_service_image_ids": {
+            service: value["image_id"] for service, value in inventory["services"].items()
+        },
+        "migration_delta": False,
+    }
+    for key, expected_value in expected.items():
+        if record_value.get(key) != expected_value:
+            raise TransitionError(f"prepared legacy immutable state mismatch: {key}")
+    canonical = args.sites_available / "nura-ai.ru.conf"
+    enabled = args.sites_enabled / "nura-ai.ru.conf"
+    if canonical.read_bytes() != reviewed_nginx or not enabled.is_symlink():
+        raise TransitionError("prepared legacy Nginx state mismatch")
+    if set(path.name for path in _enabled_configs(args.sites_enabled)) != PREPARED_CONFIG_ALLOWLIST:
+        raise TransitionError("prepared legacy enabled config set mismatch")
+    return "already_prepared"
+
+
+def _remove_staging(prepared: PreparedLegacyRelease | None, args: argparse.Namespace) -> None:
+    if prepared is None or prepared.staging_path is None or not prepared.staging_path.exists():
+        return
+    staging_root = (args.release_root / "staging").resolve(strict=True)
+    staging = prepared.staging_path.resolve(strict=True)
+    if staging.parent != staging_root or prepared.staging_path.is_symlink():
+        raise TransitionError("unsafe legacy transition staging cleanup target")
+    shutil.rmtree(staging)
+
+
+def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> str:
     if args.expected_production_sha != EXPECTED_LEGACY_SHA:
         raise TransitionError("--expected-production-sha must equal the audited legacy SHA")
     if not args.acknowledge_production_change:
@@ -466,9 +715,16 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> Non
         if fcntl is None:
             raise TransitionError("apply mode requires POSIX flock support")
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        transition_dir = args.backup_root / f"{int(time.time())}-{inventory['inventory_sha256'][:16]}"
+        locked_inventory = collect_inventory(args)
+        if _canonical_json(locked_inventory) != _canonical_json(inventory):
+            raise TransitionError("transition inventory changed before the common lock")
+        inventory = locked_inventory
+        transition_dir = args.backup_root / (
+            f"{time.time_ns()}-{inventory['inventory_sha256'][:16]}"
+        )
         transition_dir.mkdir(parents=True, mode=0o750)
         _snapshot(args, inventory, transition_dir)
+        _assert_legacy_inventory_unchanged(args.legacy_web_root, inventory["files"])
         for directory in (
             args.release_root / "releases",
             args.release_root / "staging",
@@ -476,18 +732,29 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> Non
             args.state_root / "logs",
         ):
             directory.mkdir(parents=True, exist_ok=True)
-        legacy_release = _build_legacy_release(args, transition_dir)
-        verify_legacy_inventory_coverage(inventory, legacy_release)
-        verify_public_equivalence(legacy_release, base_url=args.base_url)
-        protected_tags = _protect_legacy_images(inventory["services"])
+        prepared: PreparedLegacyRelease | None = None
+        try:
+            prepared = _prepare_legacy_release(args, transition_dir)
+            verify_public_equivalence(prepared.verification_path, base_url=args.base_url)
+            _copy_approved_drop_evidence(args, inventory, transition_dir)
+            protected_tags = _protect_legacy_images(inventory["services"])
+            status = _existing_transition_status(
+                args, prepared, protected_tags, inventory, reviewed_nginx
+            )
+            if status == "already_prepared":
+                return status
+            legacy_release = _finalize_prepared_release(args, prepared)
+        except Exception as exc:
+            _remove_staging(prepared, args)
+            _write_recovery_marker(transition_dir, f"transition precheck failed: {exc}")
+            raise
         current = args.release_root / "current"
-        if current.exists() or current.is_symlink():
-            raise TransitionError("current already exists; refusing to overwrite transition state")
         temporary = args.release_root / f".current.transition.{os.getpid()}"
         canonical = args.sites_available / "nura-ai.ru.conf"
         if not canonical.is_file() or canonical.is_symlink():
             raise TransitionError("canonical reviewed Nginx config is missing")
         try:
+            _assert_legacy_inventory_unchanged(args.legacy_web_root, inventory["files"])
             candidate = canonical.with_name(f".{canonical.name}.candidate.{os.getpid()}")
             candidate.write_bytes(reviewed_nginx)
             candidate.chmod(0o644)
@@ -532,6 +799,7 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> Non
                 service: value["image_id"] for service, value in inventory["services"].items()
             },
             "previous_successful_sha": None,
+            "activation_history": [],
             "migration_delta": False,
             "activation_timestamp": datetime_utc(),
             "workflow_run_id": None,
@@ -549,6 +817,7 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> Non
                     state_path.unlink()
             _restore_and_verify_public(args, transition_dir, legacy_release, exc)
             raise
+        return "prepared"
 
 
 def datetime_utc() -> str:
@@ -571,12 +840,23 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--lock-file", type=Path, default=Path("/var/lock/nura-deploy.lock"))
     parser.add_argument("--base-url", default="https://nura-ai.ru")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--drop-candidate-output", type=Path)
+    parser.add_argument("--approved-drop-manifest", type=Path)
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.apply and args.drop_candidate_output:
+            raise TransitionError("--drop-candidate-output is dry-run only")
+        if not args.apply and args.approved_drop_manifest:
+            raise TransitionError("--approved-drop-manifest is apply-only")
+        if args.drop_candidate_output:
+            candidate = args.drop_candidate_output.resolve(strict=False)
+            repository = args.repo_root.resolve(strict=True)
+            if candidate == repository or repository in candidate.parents:
+                raise TransitionError("drop candidate must not be written inside repository")
         inventory = collect_inventory(args)
         if args.output:
             if args.apply:
@@ -584,8 +864,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.output.write_text(json.dumps(inventory, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         else:
             print(json.dumps(inventory, indent=2, sort_keys=True))
+        if args.drop_candidate_output:
+            _write_canonical_json(args.drop_candidate_output, _drop_candidate(inventory))
         if args.apply:
-            apply_transition(args, inventory)
+            status = apply_transition(args, inventory)
+            print(json.dumps({"transition_status": status}, sort_keys=True))
     except (OSError, TransitionError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

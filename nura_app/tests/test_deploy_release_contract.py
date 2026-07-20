@@ -329,6 +329,20 @@ def test_reactivation_path_reuses_recorded_static_and_image_without_build() -> N
     assert "extract --archive" not in reuse
 
 
+def test_activation_history_is_authoritative_for_rollback_retention_and_pointers() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    rollback = script[script.index('if [[ "$COMMAND" == rollback ]]') : script.index('[[ -f "$ARTIFACT_PATH"')]
+    retention = script[script.index("retention cleanup is best-effort") :]
+    assert 'target.get("sha") not in current.get("activation_history",[])' in rollback
+    assert "rollback target is outside current activation_history" in rollback
+    assert 'protected={current["sha"],*history}' in retention
+    assert "previous_successful_sha" not in retention
+    assert "previous.json does not match activation_history[0]" in script
+    assert "release state lineage contains a cycle" not in script
+    cleanup = script[script.index("cleanup()") : script.index("trap cleanup EXIT")]
+    assert 'atomic_copy_state "$TARGET_STATE_SNAPSHOT"' in cleanup
+
+
 def test_ci_workflow_has_no_deployment() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     assert "environment: production" not in workflow
