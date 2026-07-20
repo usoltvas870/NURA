@@ -19,6 +19,8 @@ assert.equal(manifest.deck, 'major-v1');
 assert.equal(manifest.cards.length, 22);
 assert.deepEqual(manifest.cards.map((card) => card.arcana_id).sort((a, b) => a - b), Array.from({ length: 22 }, (_, index) => index + 1));
 assert.equal(manifest.cards.find((card) => card.arcana_id === 22).filename, '00-fool.png');
+assert.deepEqual([manifest.cards.find((card) => card.arcana_id === 8).title, manifest.cards.find((card) => card.arcana_id === 8).slug], ['Strength', 'strength']);
+assert.deepEqual([manifest.cards.find((card) => card.arcana_id === 11).title, manifest.cards.find((card) => card.arcana_id === 11).slug], ['Justice', 'justice']);
 
 const urls = new Set();
 for (const card of manifest.cards) {
@@ -45,6 +47,12 @@ const context = { window: {} };
 vm.runInNewContext(moduleBytes.toString('utf8'), context, { filename: modules[0] });
 const assets = context.window.NURA.TarotAssets;
 assert.ok(Object.isFrozen(assets));
+assert.ok(Object.isFrozen(assets.forArcana(8)));
+assert.match(assets.forArcana(8).compact, /08-strength\./);
+assert.match(assets.forArcana(11).compact, /11-justice\./);
+const compact = assets.forArcana(8).compact;
+assert.throws(() => { assets.forArcana(8).compact = 'mutated'; }, TypeError);
+assert.equal(assets.forArcana(8).compact, compact);
 assert.equal(assets.forArcana(22).compact, manifest.cards.find((card) => card.arcana_id === 22).derivatives['480'].path);
 assert.equal(assets.forArcana(0), null);
 assert.equal(assets.forArcana(23), null);

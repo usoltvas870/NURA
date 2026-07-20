@@ -332,7 +332,7 @@
 </div></nav>
 
 <script src="nura-pwa.js?v=10"></script>
-<script src="tarot-assets-v1.28fa717059d2.js"></script>
+<script src="tarot-assets-v1.84cd63c207a7.js"></script>
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:var(--bg-card);border-top:1px solid var(--line);box-shadow:0 -4px 24px rgba(0,0,0,.14);gap:10px;align-items:center"></div>
 <div id="pwa-ios-modal" hidden style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.62);align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px)">
   <div aria-labelledby="pwa-ios-modal-title" aria-describedby="pwa-ios-modal-copy" style="background:var(--bg-card);border-radius:var(--r-xl);padding:28px 22px 22px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.28);position:relative">
@@ -411,7 +411,7 @@
     var asset = card && NURA.TarotAssets && NURA.TarotAssets.forArcana(card.arcana_number);
     if (!asset) return false;
     var image = $('day-card-image');
-    NURA.TarotAssets.apply(image, asset, '151px', function () { image.dataset.kind = 'face-error'; });
+    NURA.TarotAssets.apply(image, asset, '151px', function () { setDailyBack(); });
     image.alt = 'Карта дня — ' + (card.arcana_name || 'Аркан');
     image.dataset.kind = 'face';
     return true;

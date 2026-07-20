@@ -33,4 +33,8 @@ def test_manifest_keeps_the_approved_22_card_source_contract() -> None:
     assert sorted(card["arcana_id"] for card in cards) == list(range(1, 23))
     fool = next(card for card in cards if card["arcana_id"] == 22)
     assert fool["filename"] == "00-fool.png"
+    strength = next(card for card in cards if card["arcana_id"] == 8)
+    justice = next(card for card in cards if card["arcana_id"] == 11)
+    assert (strength["filename"], strength["title"], strength["slug"]) == ("08-justice.png", "Strength", "strength")
+    assert (justice["filename"], justice["title"], justice["slug"]) == ("11-strength.png", "Justice", "justice")
     assert all(set(card["derivatives"]) == {"480", "900"} for card in cards)
