@@ -167,8 +167,28 @@
       });
     }
     function isTop() { return dialogStack.length && dialogStack[dialogStack.length - 1] === instance; }
+    function isVisible(el) {
+      for (var node = el; node && node !== document.documentElement; node = node.parentElement) {
+        var style = window.getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse') return false;
+      }
+      return true;
+    }
     function canRestoreFocus(el) {
-      return el && document.contains(el) && !el.disabled && !el.hidden && !el.inert && el.getClientRects().length > 0;
+      return el && el !== document.body && document.contains(el) && !backdrop.contains(el) &&
+        !el.disabled && !el.hidden && !el.inert && !el.matches(':disabled') &&
+        !el.closest('[hidden], [inert]') && isVisible(el) && el.getClientRects().length > 0 && typeof el.focus === 'function';
+    }
+    function focusWithoutScrolling(el) {
+      try { el.focus({preventScroll: true}); } catch (_) { el.focus(); }
+      return document.activeElement === el;
+    }
+    function restoreFocus() {
+      if (canRestoreFocus(previousFocus) && focusWithoutScrolling(previousFocus)) return;
+      var bodyHadTabindex = document.body.hasAttribute('tabindex');
+      if (!bodyHadTabindex) document.body.setAttribute('tabindex', '-1');
+      focusWithoutScrolling(document.body);
+      if (!bodyHadTabindex) document.body.removeAttribute('tabindex');
     }
     function keydown(event) {
       if (!isTop()) return;
@@ -204,7 +224,7 @@
       if (!dialogStack.length) {
         document.body.style.overflow = dialogOverflow === null ? '' : dialogOverflow;
         dialogOverflow = null;
-        if (canRestoreFocus(previousFocus)) previousFocus.focus();
+        restoreFocus();
       } else {
         dialogStack[dialogStack.length - 1].focus();
       }
