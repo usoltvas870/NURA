@@ -1,7 +1,9 @@
 """FK normalization PostgreSQL smoke harness.
 
-Does NOT use Docker, create_all, stamp, or production DBs.  Connects to an
-already-running disposable PostgreSQL instance via DATABASE_URL env var only.
+Connects to an already-running disposable PostgreSQL instance through the
+``DATABASE_URL`` environment variable only. Docker lifecycle belongs to the
+external runner. Controlled ``create_all`` and ``stamp`` calls are used only
+to construct disposable predecessor fixtures; they are not production guidance.
 
 Usage:
     set DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
@@ -18,16 +20,37 @@ import re
 import subprocess
 import sys
 import traceback
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
+import psycopg2
 from sqlalchemy.ext.asyncio import create_async_engine
 
-_WORKTREE = r"C:\tmp\nura-closed-beta-hardening"
-_CONTAINER = "nura_fk_smoke"
-_PG_USER = ""
-_PG_DB = ""
+REPO_ROOT = Path(__file__).resolve().parents[2]
+NURA_APP_ROOT = REPO_ROOT / "nura_app"
+
+PREVIOUS_HEAD = "b9c0d1e2f3a4"
+EXPECTED_HEAD = "c0d1e2f3a4b5"
+
 _URL = ""
 _ALL_OK = True
 _SCENARIO_RESULTS: list[tuple[str, bool]] = []
+
+_EXECUTION_ENV_KEYS = (
+    "COMSPEC",
+    "PATH",
+    "PATHEXT",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "WINDIR",
+)
+_ALEMBIC_LAUNCHER = (
+    "from pydantic_settings.sources import DotEnvSettingsSource;"
+    "DotEnvSettingsSource.__call__=lambda self:{};"
+    "from alembic.config import CommandLine;"
+    "CommandLine(prog='alembic').main()"
+)
 
 # Semantic target names used by the migration under test.
 _TARGET_NAMES = {
@@ -48,6 +71,21 @@ def _sanitize(text: str) -> str:
     """Remove any connection credentials from diagnostic text."""
     if not text:
         return text
+    if _URL:
+        text = text.replace(_URL, "postgresql://***/***")
+        try:
+            parsed = urlsplit(_URL)
+            contextual_values = {
+                "user": parsed.username,
+                "database": parsed.path.lstrip("/"),
+            }
+            for label, value in contextual_values.items():
+                if value:
+                    decoded = unquote(value)
+                    text = text.replace(f'{label} "{decoded}"', f'{label} "***"')
+                    text = text.replace(f"{label}={decoded}", f"{label}=***")
+        except ValueError:
+            pass
     # mask user:pass@host:port
     text = re.sub(r"postgresql(?:\+[^:/]+)?://[^\s@]+@[^/\s]+", "postgresql://***@localhost:***", text)
     text = re.sub(r"postgresql(?:\+[^:/]+)?://[^\s/]+/", "postgresql://***/", text)
@@ -68,6 +106,20 @@ def _normalize_to_asyncpg_url(url: str) -> str:
     raise ValueError(f"Unsupported DATABASE_URL scheme: {url.split('://')[0]}://")
 
 
+def _child_env() -> dict[str, str]:
+    env = {key: os.environ[key] for key in _EXECUTION_ENV_KEYS if key in os.environ}
+    env.update(
+        {
+            "APP_ENV": "test",
+            "DATABASE_URL": _URL,
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONIOENCODING": "utf-8",
+            "PYTHONPATH": str(NURA_APP_ROOT),
+        }
+    )
+    return env
+
+
 def _run_subprocess(
     label: str,
     cmd: list[str],
@@ -77,7 +129,7 @@ def _run_subprocess(
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     """Run a subprocess and fail-fast on nonzero exit unless check=False."""
-    env = env or os.environ.copy()
+    env = env or _child_env()
     result = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=cwd)
     if check and result.returncode != 0:
         detail = f"{label} failed (exit={result.returncode})"
@@ -87,24 +139,31 @@ def _run_subprocess(
 
 
 def _alembic(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
-    env = os.environ.copy()
-    env.setdefault("PYTHONPATH", os.path.join(_WORKTREE, "nura_app"))
     return _run_subprocess(
         f"alembic {' '.join(args)}",
-        ["alembic"] + list(args),
-        env=env,
-        cwd=os.path.join(_WORKTREE, "nura_app"),
+        [sys.executable, "-c", _ALEMBIC_LAUNCHER, *args],
+        env=_child_env(),
+        cwd=str(NURA_APP_ROOT),
         check=check,
     )
 
 
 def _psql(sql: str, check: bool = True) -> str:
-    result = _run_subprocess(
-        "psql",
-        ["docker", "exec", _CONTAINER, "psql", "-U", _PG_USER, "-d", _PG_DB, "-c", sql],
-        check=check,
+    """Execute SQL through psycopg2 and return stable tab-separated rows."""
+    try:
+        with psycopg2.connect(_URL) as connection:
+            connection.autocommit = True
+            with connection.cursor() as cursor:
+                cursor.execute(sql)
+                rows = cursor.fetchall() if cursor.description else []
+    except Exception as exc:
+        if check:
+            raise RuntimeError(_sanitize(str(exc))) from None
+        return ""
+    return "".join(
+        "\t".join("" if value is None else str(value) for value in row) + "\n"
+        for row in rows
     )
-    return result.stdout
 
 
 def check(label: str, condition: bool, detail: str = "") -> bool:
@@ -185,12 +244,7 @@ def get_table_counts():
         "(SELECT count(*) FROM promo_codes) AS prc, "
         "(SELECT count(*) FROM users) AS uc"
     )
-    # Heuristic: take the numeric line with | separators.
-    for line in out.split("\n"):
-        line = line.strip()
-        if line and line.replace("|", "").replace(" ", "").isdigit():
-            return line
-    return ""
+    return out.strip()
 
 
 def rename_fk(old_name, new_name, table="reports"):
@@ -226,7 +280,7 @@ def setup_legacy_db():
     asyncio.run(_create_schema())
 
     # Stamp previous head so the normalization migration is the next step.
-    _alembic("stamp", "b9c0d1e2f3a4")
+    _alembic("stamp", PREVIOUS_HEAD)
 
     # Prove the fixture is usable before any scenario continues.
     _legacy_fk_preflight()
@@ -242,7 +296,7 @@ def _create_all_schema(connection) -> None:
 def setup_properly_migrated_db():
     """Create properly migrated DB up to b9c0d1e2f3a4."""
     drop_schema()
-    r = _alembic("upgrade", "b9c0d1e2f3a4", check=False)
+    r = _alembic("upgrade", PREVIOUS_HEAD, check=False)
     return r.returncode == 0
 
 
@@ -282,7 +336,7 @@ def scenario_01_properly_migrated_noop():
     # For a no-op, alembic still logs the revision; verify the DB state is unchanged.
     fks_after = get_fk_names()
     check("FK names unchanged", fks_after == fks_before, str(fks_after))
-    _assert_current("c0d1e2f3a4b5", "Current is c0d1e2f3a4b5")
+    _assert_current(EXPECTED_HEAD, f"Current is {EXPECTED_HEAD}")
 
 
 def scenario_02_legacy_normalized():
@@ -308,12 +362,12 @@ def scenario_02_legacy_normalized():
         "Legacy names absent",
         _LEGACY_NAMES.isdisjoint(fks_after),
     )
-    _assert_current("c0d1e2f3a4b5", "Current is c0d1e2f3a4b5")
+    _assert_current(EXPECTED_HEAD, f"Current is {EXPECTED_HEAD}")
 
     versions = _psql("SELECT version_num FROM alembic_version;")
     check(
         "Single alembic_version row at c0d1e2f3a4b5",
-        versions.count("c0d1e2f3a4b5") == 1 and "b9c0d1e2f3a4" not in versions,
+        versions.strip() == EXPECTED_HEAD,
         versions,
     )
 
@@ -349,7 +403,7 @@ def scenario_04_unexpected_name():
         "Error mentions unexpected name",
         "unexpected" in combined.lower() and "bogus" in combined,
     )
-    _assert_current("b9c0d1e2f3a4", "Current remains b9c0d1e2f3a4")
+    _assert_current(PREVIOUS_HEAD, f"Current remains {PREVIOUS_HEAD}")
 
 
 def scenario_05_missing_fk():
@@ -366,7 +420,7 @@ def scenario_05_missing_fk():
         "no semantic fk" in combined.lower() or "not found" in combined.lower(),
         combined,
     )
-    _assert_current("b9c0d1e2f3a4", "Current remains b9c0d1e2f3a4")
+    _assert_current(PREVIOUS_HEAD, f"Current remains {PREVIOUS_HEAD}")
 
     # Atomic rollback: prove the second FK was never touched.
     fks = get_fk_names()
@@ -386,7 +440,7 @@ def scenario_06_duplicate_fk():
     combined = _sanitize(r.stdout + r.stderr)
     check("Upgrade fails", r.returncode != 0)
     check("Error mentions multiple semantic FKs", "multiple" in combined.lower(), combined)
-    _assert_current("b9c0d1e2f3a4", "Current remains b9c0d1e2f3a4")
+    _assert_current(PREVIOUS_HEAD, f"Current remains {PREVIOUS_HEAD}")
 
 
 def scenario_07_both_names_conflict():
@@ -405,7 +459,7 @@ def scenario_07_both_names_conflict():
     combined = _sanitize(r.stdout + r.stderr)
     check("Upgrade fails (both names present)", r.returncode != 0)
     check("Error mentions multiple semantic FKs", "multiple" in combined.lower(), combined)
-    _assert_current("b9c0d1e2f3a4", "Current remains b9c0d1e2f3a4")
+    _assert_current(PREVIOUS_HEAD, f"Current remains {PREVIOUS_HEAD}")
 
 
 def scenario_08_downgrade_reupgrade():
@@ -419,7 +473,7 @@ def scenario_08_downgrade_reupgrade():
         str(fks),
     )
 
-    r = _alembic("downgrade", "b9c0d1e2f3a4", check=False)
+    r = _alembic("downgrade", PREVIOUS_HEAD, check=False)
     check("Downgrade succeeds", r.returncode == 0)
 
     fks_after_downgrade = get_fk_names()
@@ -428,11 +482,11 @@ def scenario_08_downgrade_reupgrade():
         fks_after_downgrade == fks,
         str(fks_after_downgrade),
     )
-    _assert_current("b9c0d1e2f3a4", "Current is b9c0d1e2f3a4")
+    _assert_current(PREVIOUS_HEAD, f"Current is {PREVIOUS_HEAD}")
 
     r = _alembic("upgrade", "head", check=False)
     check("Re-upgrade idempotent", r.returncode == 0)
-    _assert_current("c0d1e2f3a4b5", "Current is c0d1e2f3a4b5 after re-upgrade")
+    _assert_current(EXPECTED_HEAD, f"Current is {EXPECTED_HEAD} after re-upgrade")
 
 
 def scenario_09_data_integrity():
@@ -481,9 +535,9 @@ def scenario_10_blank_upgrade():
     drop_schema()
     r = _alembic("upgrade", "head", check=False)
     check("Blank DB to head succeeds", r.returncode == 0)
-    _assert_current("c0d1e2f3a4b5", "Current is c0d1e2f3a4b5")
+    _assert_current(EXPECTED_HEAD, f"Current is {EXPECTED_HEAD}")
     r = _alembic("heads")
-    check("Single head", "c0d1e2f3a4b5" in r.stdout and r.stdout.count("\n") <= 2)
+    check("Single head", EXPECTED_HEAD in r.stdout and r.stdout.count("\n") <= 2)
     r = _alembic("branches")
     check("No branches", r.stdout.strip() == "")
     fks = get_fk_names()
@@ -491,17 +545,12 @@ def scenario_10_blank_upgrade():
 
 
 def main():
-    global _URL, _PG_USER, _PG_DB
+    global _URL
     _URL = os.environ.get("DATABASE_URL", "").strip()
     if not _URL:
         print("FATAL: DATABASE_URL not set")
         sys.exit(1)
     print(f"Database: {_mask_url(_URL)}")
-
-    url_part = _URL.split("://", 1)[1]
-    creds, rest = url_part.split("@", 1)
-    _PG_USER = creds.split(":")[0]
-    _PG_DB = rest.rsplit("/", 1)[1].split("?")[0]
 
     # Validate that we can build an async URL before any scenario runs.
     try:

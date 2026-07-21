@@ -1,8 +1,9 @@
 """Alembic PostgreSQL bootstrap smoke harness.
 
-Does NOT use Docker, create_all, stamp, IF NOT EXISTS, or alembic_version
-INSERTs.  Connects to an already-running disposable PostgreSQL instance
-via DATABASE_URL environment variable only.
+Connects to an already-running disposable PostgreSQL instance through the
+``DATABASE_URL`` environment variable only. Docker lifecycle belongs to the
+external runner. Controlled ``create_all`` and ``stamp`` calls are used only
+to construct disposable test fixtures; they are not production guidance.
 
 Usage:
   set DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
@@ -11,15 +12,61 @@ Usage:
 Exit code 0 = all scenarios passed.
 """
 
+import asyncio
 import os
+import re
 import subprocess
 import sys
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+
+import psycopg2
+from sqlalchemy.ext.asyncio import create_async_engine
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+NURA_APP_ROOT = REPO_ROOT / "nura_app"
+
+EXPECTED_BASE = "0001a2b3c4d5e6"
+PREVIOUS_HEAD = "b9c0d1e2f3a4"
+EXPECTED_HEAD = "c0d1e2f3a4b5"
+
+_URL = ""
+
+_EXECUTION_ENV_KEYS = (
+    "COMSPEC",
+    "PATH",
+    "PATHEXT",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "WINDIR",
+)
+_ALEMBIC_LAUNCHER = (
+    "from pydantic_settings.sources import DotEnvSettingsSource;"
+    "DotEnvSettingsSource.__call__=lambda self:{};"
+    "from alembic.config import CommandLine;"
+    "CommandLine(prog='alembic').main()"
+)
+
+
+def _child_env() -> dict[str, str]:
+    env = {key: os.environ[key] for key in _EXECUTION_ENV_KEYS if key in os.environ}
+    env.update(
+        {
+            "APP_ENV": "test",
+            "DATABASE_URL": _URL,
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONIOENCODING": "utf-8",
+            "PYTHONPATH": str(NURA_APP_ROOT),
+        }
+    )
+    return env
 
 
 def run(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
-    env = os.environ.copy()
-    env.setdefault("PYTHONPATH", os.path.join(_WORKTREE, "nura_app"))
-    return subprocess.run(cmd, capture_output=True, text=True, env=env, **kwargs)
+    return subprocess.run(
+        cmd, capture_output=True, text=True, env=_child_env(), **kwargs
+    )
 
 
 def check(label: str, condition: bool, detail: str = "") -> bool:
@@ -32,22 +79,102 @@ def check(label: str, condition: bool, detail: str = "") -> bool:
 
 
 def _alembic(*args: str) -> subprocess.CompletedProcess:
-    return run(["alembic"] + list(args), cwd=os.path.join(_WORKTREE, "nura_app"))
-
-
-def _psql(sql: str) -> str:
-    result = subprocess.run(
-        ["docker", "exec", _CONTAINER, "psql", "-U", _PG_USER, "-d", _PG_DB, "-c", sql],
-        capture_output=True, text=True,
+    return run(
+        [sys.executable, "-c", _ALEMBIC_LAUNCHER, *args], cwd=NURA_APP_ROOT
     )
-    return result.stdout
 
 
-_WORKTREE = r"C:\tmp\nura-closed-beta-hardening"
-_CONTAINER = "nura_smoke_bootstrap"
-_PG_USER = ""
-_PG_DB = ""
-_URL = ""
+def _sanitize(text: str) -> str:
+    """Remove connection credentials from diagnostics."""
+    if not text:
+        return text
+    if _URL:
+        text = text.replace(_URL, "postgresql://***/***")
+        try:
+            parsed = urlsplit(_URL)
+            contextual_values = {
+                "user": parsed.username,
+                "database": parsed.path.lstrip("/"),
+            }
+            for label, value in contextual_values.items():
+                if value:
+                    decoded = unquote(value)
+                    text = text.replace(f'{label} "{decoded}"', f'{label} "***"')
+                    text = text.replace(f"{label}={decoded}", f"{label}=***")
+        except ValueError:
+            pass
+    text = re.sub(
+        r"postgresql(?:\+[^:/]+)?://[^\s@]+@[^/\s]+",
+        "postgresql://***@localhost:***",
+        text,
+    )
+    return re.sub(
+        r"password=[^\s&\"']+", "password=***", text, flags=re.IGNORECASE
+    )
+
+
+def _query(sql: str) -> list[tuple]:
+    """Execute SQL using DATABASE_URL and return typed result rows."""
+    try:
+        with psycopg2.connect(_URL) as connection:
+            connection.autocommit = True
+            with connection.cursor() as cursor:
+                cursor.execute(sql)
+                return cursor.fetchall() if cursor.description else []
+    except Exception as exc:
+        raise RuntimeError(_sanitize(str(exc))) from None
+
+
+def _sql(sql: str) -> str:
+    """Execute SQL and format rows for human-readable diagnostics."""
+    rows = _query(sql)
+    return "".join(
+        "\t".join("" if value is None else str(value) for value in row) + "\n"
+        for row in rows
+    )
+
+
+def _normalize_to_asyncpg_url(url: str) -> str:
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgresql+psycopg2://"):
+        return url.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
+    if url.startswith("postgresql+asyncpg://"):
+        return url
+    raise ValueError("DATABASE_URL must use PostgreSQL")
+
+
+def _create_all_schema(connection) -> None:
+    from core.models import Base
+
+    Base.metadata.create_all(connection)
+
+
+def _create_current_model_schema() -> None:
+    async def create_schema() -> None:
+        engine = create_async_engine(_normalize_to_asyncpg_url(_URL))
+        try:
+            async with engine.begin() as connection:
+                await connection.run_sync(_create_all_schema)
+        finally:
+            await engine.dispose()
+
+    asyncio.run(create_schema())
+
+
+def _column_contract(rows: list[tuple]) -> dict[str, tuple[str, str]]:
+    return {name: (data_type, nullable) for name, data_type, nullable in rows}
+
+
+def _legacy_backfill_matches(rows: list[tuple]) -> bool:
+    return (
+        len(rows) == 1
+        and rows[0][0] == "legacy_unlinked"
+        and rows[0][1] == "completed"
+        and rows[0][2] is not None
+        and rows[0][3] is None
+        and rows[0][4] == 0
+    )
 
 
 def _mask_url(url: str) -> str:
@@ -56,7 +183,7 @@ def _mask_url(url: str) -> str:
 
 
 def main():
-    global _URL, _PG_USER, _PG_DB, _CONTAINER
+    global _URL
     _URL = os.environ.get("DATABASE_URL", "")
     if not _URL:
         print("FATAL: DATABASE_URL environment variable not set")
@@ -65,34 +192,22 @@ def main():
     print(f"Database: {_mask_url(_URL)}")
     print()
 
-    # Determine container/user/db from existing container
-    container_name = "nura_smoke_bootstrap"
-    _CONTAINER = container_name
-
-    # Extract user/db from URL
-    # URL format: postgresql://user:pass@host:port/dbname
-    url_part = _URL.split("://", 1)[1]
-    creds, rest = url_part.split("@", 1)
-    _PG_USER = creds.split(":")[0]
-    host_port, _PG_DB = rest.rsplit("/", 1)
-    _PG_DB = _PG_DB.split("?")[0]
-
     all_ok = True
 
     # ── ALEMBIC-BOOT-01: graph ──
     print("--- ALEMBIC-BOOT-01: graph ---")
     result = _alembic("heads")
-    ok = check("Single head b9c0d1e2f3a4", "b9c0d1e2f3a4" in result.stdout and result.stdout.count("\n") <= 2,
+    ok = check(f"Single head {EXPECTED_HEAD}", EXPECTED_HEAD in result.stdout and result.stdout.count("\n") <= 2,
                result.stdout.strip())
     all_ok &= ok
 
     result = _alembic("history")
     ok = check("History starts with base -> 0001a2b3c4d5e6",
-               "base" in result.stdout and "0001a2b3c4d5e6" in result.stdout)
+               "base" in result.stdout and EXPECTED_BASE in result.stdout)
     all_ok &= ok
 
     ok = check("e475 parent is 0001a2b3c4d5e6",
-               "0001a2b3c4d5e6 -> e47590a5c5c1" in result.stdout)
+               f"{EXPECTED_BASE} -> e47590a5c5c1" in result.stdout)
     all_ok &= ok
 
     result = _alembic("branches")
@@ -101,7 +216,7 @@ def main():
 
     # ── ALEMBIC-BOOT-02: blank upgrade ──
     print("\n--- ALEMBIC-BOOT-02: blank upgrade ---")
-    _psql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    _sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
 
     result = _alembic("upgrade", "head")
     ok = check("Upgrade head succeeds", result.returncode == 0,
@@ -109,13 +224,13 @@ def main():
     all_ok &= ok
 
     result = _alembic("current")
-    ok = check("Current is b9c0d1e2f3a4", "b9c0d1e2f3a4" in result.stdout,
+    ok = check(f"Current is {EXPECTED_HEAD}", EXPECTED_HEAD in result.stdout,
                result.stdout.strip().split("\n")[-1])
     all_ok &= ok
 
-    versions = _psql("SELECT version_num FROM alembic_version;")
+    versions = _query("SELECT version_num FROM alembic_version;")
     ok = check("alembic_version single row",
-               "b9c0d1e2f3a4" in versions and versions.count("0001a2b3c4d5e6") == 0)
+               versions == [(EXPECTED_HEAD,)])
     all_ok &= ok
 
     # Second upgrade = no-op
@@ -126,7 +241,13 @@ def main():
 
     # ── ALEMBIC-BOOT-03: schema catalog ──
     print("\n--- ALEMBIC-BOOT-03: schema catalog ---")
-    tables = _psql("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;")
+    tables = {
+        row[0]
+        for row in _query(
+            "SELECT tablename FROM pg_tables "
+            "WHERE schemaname='public' ORDER BY tablename;"
+        )
+    }
     expected = ["alembic_version", "guest_profiles", "payments", "promo_codes",
                 "promo_reservations", "referral_rewards", "report_generation_jobs",
                 "reports", "users"]
@@ -134,7 +255,13 @@ def main():
         ok = check(f"Table {t} exists", t in tables)
         all_ok &= ok
 
-    cols = _psql("SELECT column_name FROM information_schema.columns WHERE table_name='reports' ORDER BY ordinal_position;")
+    cols = {
+        row[0]
+        for row in _query(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name='reports' ORDER BY ordinal_position;"
+        )
+    }
     lifecycle_cols = ["payment_id", "payment_state", "payment_confirmed_at",
                       "generation_state", "generation_enqueued_at", "generation_started_at",
                       "generated_at", "generation_failed_at", "generation_attempts",
@@ -144,23 +271,40 @@ def main():
         all_ok &= ok
 
     # Constraints
-    cons = _psql("SELECT conname FROM pg_constraint WHERE conrelid='reports'::regclass AND contype='u';")
+    cons = {
+        row[0]
+        for row in _query(
+            "SELECT conname FROM pg_constraint "
+            "WHERE conrelid='reports'::regclass AND contype='u';"
+        )
+    }
     ok = check("uq_reports_payment_id", "uq_reports_payment_id" in cons)
     all_ok &= ok
 
-    cons = _psql("SELECT conname FROM pg_constraint WHERE conrelid='report_generation_jobs'::regclass AND contype='u';")
+    cons = {
+        row[0]
+        for row in _query(
+            "SELECT conname FROM pg_constraint "
+            "WHERE conrelid='report_generation_jobs'::regclass AND contype='u';"
+        )
+    }
     ok = check("uq_report_generation_jobs_report_job_type",
                "uq_report_generation_jobs_report_job_type" in cons)
     all_ok &= ok
 
     # ── ALEMBIC-BOOT-04: baseline fidelity ──
     print("\n--- ALEMBIC-BOOT-04: baseline fidelity ---")
-    _psql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
-    result = _alembic("upgrade", "0001a2b3c4d5e6")
+    _sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    result = _alembic("upgrade", EXPECTED_BASE)
     ok = check("Upgrade to baseline", result.returncode == 0)
     all_ok &= ok
 
-    cols = _psql("SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name='users' ORDER BY ordinal_position;")
+    user_rows = _query(
+        "SELECT column_name, data_type, is_nullable "
+        "FROM information_schema.columns WHERE table_name='users' "
+        "ORDER BY ordinal_position;"
+    )
+    actual_users = _column_contract(user_rows)
     expected_users = {
         "id": ("uuid", "NO"),
         "telegram_id": ("bigint", "NO"),
@@ -175,34 +319,36 @@ def main():
         "has_tarot": ("boolean", "NO"),
         "created_at": ("timestamp with time zone", "NO"),
     }
-    for cname, (ctype, null) in expected_users.items():
-        ok = check(f"users.{cname} {ctype} nullable={null}",
-                   cname in cols and ctype in cols and null in cols)
-        all_ok &= ok
-    # Check no extra columns
-    ok = check("users has exactly 12 columns",
-               cols.count("\n") >= 12 and cols.count("\n") <= 18)
+    ok = check(
+        "users baseline columns/types/nullability exact",
+        actual_users == expected_users,
+        f"actual={actual_users}",
+    )
     all_ok &= ok
 
-    cols = _psql("SELECT column_name, data_type FROM information_schema.columns WHERE table_name='reports' ORDER BY ordinal_position;")
-    expected_reports = ["id", "user_id", "report_type", "token", "matrix_data",
-                        "ai_analysis", "created_at"]
-    for c in expected_reports:
-        ok = check(f"reports.{c}", c in cols)
-        all_ok &= ok
-    # Must NOT have kitchen_analysis or lifecycle columns
-    for forbidden in ["kitchen_analysis", "expires_at", "payment_id", "generation_state"]:
-        ok = check(f"reports.{forbidden} ABSENT", forbidden not in cols)
-        all_ok &= ok
+    report_columns = {
+        row[0]
+        for row in _query(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name='reports' ORDER BY ordinal_position;"
+        )
+    }
+    expected_reports = {
+        "id", "user_id", "report_type", "token", "matrix_data", "ai_analysis", "created_at"
+    }
+    ok = check("reports baseline columns exact", report_columns == expected_reports)
+    all_ok &= ok
 
-    cols = _psql("SELECT column_name FROM information_schema.columns WHERE table_name='payments' ORDER BY ordinal_position;")
-    expected_payments = ["id", "user_id", "amount", "status", "yookassa_id", "created_at"]
-    for c in expected_payments:
-        ok = check(f"payments.{c}", c in cols)
-        all_ok &= ok
-    for forbidden in ["payment_type", "amount_kopecks", "promo_code_id"]:
-        ok = check(f"payments.{forbidden} ABSENT", forbidden not in cols)
-        all_ok &= ok
+    payment_columns = {
+        row[0]
+        for row in _query(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name='payments' ORDER BY ordinal_position;"
+        )
+    }
+    expected_payments = {"id", "user_id", "amount", "status", "yookassa_id", "created_at"}
+    ok = check("payments baseline columns exact", payment_columns == expected_payments)
+    all_ok &= ok
 
     # ── ALEMBIC-BOOT-05: baseline downgrade ──
     print("\n--- ALEMBIC-BOOT-05: baseline downgrade ---")
@@ -210,7 +356,13 @@ def main():
     ok = check("Downgrade base succeeds", result.returncode == 0)
     all_ok &= ok
 
-    tables = _psql("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;")
+    tables = {
+        row[0]
+        for row in _query(
+            "SELECT tablename FROM pg_tables "
+            "WHERE schemaname='public' ORDER BY tablename;"
+        )
+    }
     for t in ["users", "reports", "payments"]:
         ok = check(f"Table {t} removed", t not in tables)
         all_ok &= ok
@@ -224,8 +376,8 @@ def main():
 
     # ── ALEMBIC-BOOT-06: intermediate upgrades ──
     print("\n--- ALEMBIC-BOOT-06: intermediate upgrades ---")
-    for target in ["e47590a5c5c1", "f7a8b9c0d1e2", "a8b9c0d1e2f3"]:
-        _psql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    for target in ["e47590a5c5c1", "f7a8b9c0d1e2", "a8b9c0d1e2f3", PREVIOUS_HEAD]:
+        _sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
         result = _alembic("upgrade", target)
         ok = check(f"Upgrade to {target}", result.returncode == 0)
         all_ok &= ok
@@ -236,47 +388,53 @@ def main():
 
         result = _alembic("current")
         ok = check(f"Current is head after {target} upgrade",
-                   "b9c0d1e2f3a4" in result.stdout)
+                   EXPECTED_HEAD in result.stdout)
         all_ok &= ok
 
     # ── ALEMBIC-BOOT-07: existing head no-op ──
     print("\n--- ALEMBIC-BOOT-07: existing head no-op ---")
-    _psql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
-    # Simulate create_all+stamp head DB
-    subprocess.run([
-        sys.executable, "-c",
-        "import asyncio; "
-        "from sqlalchemy.ext.asyncio import create_async_engine; "
-        f"from core.models import Base; "
-        "async def f(): "
-        f"  engine = create_async_engine('{_URL.replace('postgresql://', 'postgresql+asyncpg://', 1)}'); "
-        "  async with engine.begin() as c: await c.run_sync(Base.metadata.create_all); "
-        "  await engine.dispose(); "
-        "asyncio.run(f())"
-    ], capture_output=True, text=True,
-       env={**os.environ, "PYTHONPATH": os.path.join(_WORKTREE, "nura_app")})
-    _alembic("stamp", "head")
+    _sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    try:
+        _create_current_model_schema()
+        fixture_created = True
+    except Exception as exc:
+        fixture_created = False
+        print(f"  [FAIL] Current-model fixture creation -- {_sanitize(str(exc))}")
+    all_ok &= check("Current-model fixture creation succeeds", fixture_created)
+    fixture_tables = {
+        row[0]
+        for row in _query(
+            "SELECT tablename FROM pg_tables WHERE schemaname='public'"
+        )
+    }
+    required_fixture_tables = {"users", "reports", "payments", "report_generation_jobs"}
+    ok = check(
+        "Current-model fixture tables exist",
+        required_fixture_tables.issubset(fixture_tables),
+        str(fixture_tables),
+    )
+    all_ok &= ok
+    if fixture_created and ok:
+        stamp_result = _alembic("stamp", EXPECTED_HEAD)
+        stamp_succeeded = stamp_result.returncode == 0
+    else:
+        stamp_succeeded = False
+    ok = check("Controlled disposable stamp succeeds", stamp_succeeded)
+    all_ok &= ok
     result = _alembic("upgrade", "head")
     ok = check("Upgrade head no-op (baseline not executed)",
                result.returncode == 0 and "0001a2b3c4d5e6" not in result.stdout)
     all_ok &= ok
 
-    versions = _psql("SELECT version_num FROM alembic_version;")
-    version_lines = [ln.strip() for ln in versions.split("\n")
-                     if ln.strip() and "---" not in ln and "version" not in ln.lower()
-                     and "(" not in ln and "row" not in ln.lower()]
-    ok = check("Single alembic_version row",
-               len(version_lines) == 1 and "b9c0d1e2f3a4" in version_lines[0])
-
-    ok = check("Baseline NOT in alembic_version",
-               "0001a2b3c4d5e6" not in versions)
+    versions = _query("SELECT version_num FROM alembic_version;")
+    ok = check("Single alembic_version row", versions == [(EXPECTED_HEAD,)])
     all_ok &= ok
 
     # ── ALEMBIC-BOOT-08: partial schema fail closed ──
     print("\n--- ALEMBIC-BOOT-08: partial schema fail closed ---")
-    _psql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    _sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
     # Create users with wrong schema
-    _psql("""
+    _sql("""
         CREATE TABLE users (
             id UUID PRIMARY KEY,
             name VARCHAR(128)
@@ -292,21 +450,22 @@ def main():
                "already exists" in combined.lower() or "duplicate" in combined.lower())
     all_ok &= ok
 
-    versions = _psql("SELECT version_num FROM alembic_version;")
+    version_table = _sql("SELECT to_regclass('public.alembic_version');").strip()
+    versions = _sql("SELECT version_num FROM alembic_version;") if version_table else ""
     ok = check("alembic_version NOT populated with head",
-               "b9c0d1e2f3a4" not in versions)
+               EXPECTED_HEAD not in versions)
     all_ok &= ok
 
     # ── ALEMBIC-BOOT-09: legacy backfill ──
     print("\n--- ALEMBIC-BOOT-09: legacy backfill ---")
-    _psql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+    _sql("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
     _alembic("upgrade", "f7a8b9c0d1e2")
     # Create a user and legacy report
-    _psql("""
+    _sql("""
         INSERT INTO users (id, telegram_id, username, first_name, birth_date)
         VALUES (gen_random_uuid(), 99999, 'legacy', 'Legacy', '01.01.1990')
     """)
-    _psql("""
+    _sql("""
         INSERT INTO reports (id, user_id, report_type, token, created_at)
         VALUES (gen_random_uuid(),
                 (SELECT id FROM users WHERE username='legacy'),
@@ -315,21 +474,19 @@ def main():
     """)
     _alembic("upgrade", "head")
 
-    row = _psql("""
+    rows = _query("""
         SELECT payment_state, generation_state, generated_at, payment_id, generation_attempts
         FROM reports WHERE token = 'legacy-backfill-token'
     """)
-    for expected in ["legacy_unlinked", "completed", "0"]:
-        ok = check(f"Backfill contains {expected}", expected in row)
-        all_ok &= ok
-    ok = check("payment_id IS NULL", "legacy_unlinked" in row)  # payment_id column would show empty
+    backfill_exact = _legacy_backfill_matches(rows)
+    ok = check("Legacy report backfill values exact", backfill_exact, str(rows))
     all_ok &= ok
 
-    jobs = _psql("""
+    jobs = _query("""
         SELECT count(*) FROM report_generation_jobs
         WHERE report_id = (SELECT id FROM reports WHERE token = 'legacy-backfill-token')
     """)
-    ok = check("No generation job created", "0" in jobs)
+    ok = check("No generation job created", jobs == [(0,)])
     all_ok &= ok
 
     # ── ALEMBIC-BOOT-10: downgrade/re-upgrade head ──
@@ -347,7 +504,7 @@ def main():
     all_ok &= ok
 
     result = _alembic("current")
-    ok = check("Current is b9c0d1e2f3a4", "b9c0d1e2f3a4" in result.stdout)
+    ok = check(f"Current is {EXPECTED_HEAD}", EXPECTED_HEAD in result.stdout)
     all_ok &= ok
 
     # Summary
