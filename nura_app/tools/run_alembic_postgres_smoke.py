@@ -1,4 +1,4 @@
-"""Run both Alembic smoke harnesses against disposable PostgreSQL 16.
+"""Run all Alembic smoke harnesses against disposable PostgreSQL 16.
 
 This is the only smoke component that manages Docker. It creates one uniquely
 named container bound to an ephemeral loopback port, passes ``DATABASE_URL``
@@ -26,6 +26,7 @@ IMAGE = "postgres:16-alpine"
 HARNESS_PATHS = (
     NURA_APP_ROOT / "tools" / "alembic_postgres_bootstrap_smoke.py",
     NURA_APP_ROOT / "tools" / "alembic_fk_normalization_smoke.py",
+    NURA_APP_ROOT / "tools" / "alembic_production_reconciliation_smoke.py",
 )
 READY_TIMEOUT_SECONDS = 45
 _EXECUTION_ENV_KEYS = (
@@ -45,7 +46,9 @@ _ALEMBIC_LAUNCHER = (
 )
 
 
-def _child_env(database_url: str) -> dict[str, str]:
+def _child_env(
+    database_url: str, evidence_dir: Path | None = None
+) -> dict[str, str]:
     env = {key: os.environ[key] for key in _EXECUTION_ENV_KEYS if key in os.environ}
     env.update(
         {
@@ -56,6 +59,8 @@ def _child_env(database_url: str) -> dict[str, str]:
             "PYTHONPATH": str(NURA_APP_ROOT),
         }
     )
+    if evidence_dir is not None:
+        env["RECONCILIATION_EVIDENCE_DIR"] = str(evidence_dir)
     return env
 
 
@@ -224,7 +229,8 @@ def main() -> int:
         )
         secrets_to_mask = (*secrets_to_mask, database_url)
 
-        child_env = _child_env(database_url)
+        evidence_dir = args.evidence_dir.resolve() if args.evidence_dir else None
+        child_env = _child_env(database_url, evidence_dir)
 
         for harness_path in HARNESS_PATHS:
             result = _run(
@@ -239,7 +245,7 @@ def main() -> int:
             print(output, end="" if output.endswith("\n") else "\n")
 
         if args.evidence_dir:
-            evidence_dir = args.evidence_dir.resolve()
+            assert evidence_dir is not None
             evidence_dir.mkdir(parents=True, exist_ok=True)
             docker_version = _run(["docker", "version"], secrets_to_mask=secrets_to_mask)
             _write(evidence_dir / "docker-version.txt", docker_version.stdout + docker_version.stderr)
@@ -255,6 +261,13 @@ def main() -> int:
                 evidence_dir / "fk-normalization-smoke.txt",
                 _sanitize(
                     outputs[HARNESS_PATHS[1].name].stdout + outputs[HARNESS_PATHS[1].name].stderr,
+                    secrets_to_mask,
+                ),
+            )
+            _write(
+                evidence_dir / "production-reconciliation-smoke.txt",
+                _sanitize(
+                    outputs[HARNESS_PATHS[2].name].stdout + outputs[HARNESS_PATHS[2].name].stderr,
                     secrets_to_mask,
                 ),
             )
@@ -290,6 +303,7 @@ def main() -> int:
                         "docker run <unique-name> -p 127.0.0.1::<postgres-port> <disposable-credentials>",
                         "python tools/alembic_postgres_bootstrap_smoke.py",
                         "python tools/alembic_fk_normalization_smoke.py",
+                        "python tools/alembic_production_reconciliation_smoke.py",
                         "alembic heads",
                         "alembic history",
                         f"docker rm -f -v {container_name}",

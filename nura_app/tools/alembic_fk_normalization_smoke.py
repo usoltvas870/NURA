@@ -30,7 +30,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 NURA_APP_ROOT = REPO_ROOT / "nura_app"
 
 PREVIOUS_HEAD = "b9c0d1e2f3a4"
-EXPECTED_HEAD = "c0d1e2f3a4b5"
+NORMALIZATION_REVISION = "c0d1e2f3a4b5"
+EXPECTED_HEAD = "d1e2f3a4b5c6"
 
 _URL = ""
 _ALL_OK = True
@@ -331,11 +332,14 @@ def scenario_01_properly_migrated_noop():
         str(fks_before),
     )
 
-    r = _alembic("upgrade", "head", check=False)
-    check("Upgrade to head succeeds", r.returncode == 0)
+    r = _alembic("upgrade", NORMALIZATION_REVISION, check=False)
+    check("Upgrade b9 to c0 normalization succeeds", r.returncode == 0)
     # For a no-op, alembic still logs the revision; verify the DB state is unchanged.
     fks_after = get_fk_names()
     check("FK names unchanged", fks_after == fks_before, str(fks_after))
+    _assert_current(NORMALIZATION_REVISION, f"Current is {NORMALIZATION_REVISION}")
+    r = _alembic("upgrade", "head", check=False)
+    check("Upgrade c0 to d1 reconciliation succeeds", r.returncode == 0)
     _assert_current(EXPECTED_HEAD, f"Current is {EXPECTED_HEAD}")
 
 
@@ -349,8 +353,8 @@ def scenario_02_legacy_normalized():
         str(fks_before),
     )
 
-    r = _alembic("upgrade", "head", check=False)
-    check("Upgrade to head succeeds", r.returncode == 0)
+    r = _alembic("upgrade", NORMALIZATION_REVISION, check=False)
+    check("Upgrade to c0 normalization succeeds", r.returncode == 0)
 
     fks_after = get_fk_names()
     check(
@@ -362,11 +366,14 @@ def scenario_02_legacy_normalized():
         "Legacy names absent",
         _LEGACY_NAMES.isdisjoint(fks_after),
     )
+    _assert_current(NORMALIZATION_REVISION, f"Current is {NORMALIZATION_REVISION}")
+    r = _alembic("upgrade", "head", check=False)
+    check("Upgrade c0 to d1 reconciliation succeeds", r.returncode == 0)
     _assert_current(EXPECTED_HEAD, f"Current is {EXPECTED_HEAD}")
 
     versions = _psql("SELECT version_num FROM alembic_version;")
     check(
-        "Single alembic_version row at c0d1e2f3a4b5",
+        "Single alembic_version row at d1e2f3a4b5c6",
         versions.strip() == EXPECTED_HEAD,
         versions,
     )
@@ -473,8 +480,19 @@ def scenario_08_downgrade_reupgrade():
         str(fks),
     )
 
+    r = _alembic("downgrade", NORMALIZATION_REVISION, check=False)
+    check("Downgrade d1 to c0 succeeds", r.returncode == 0)
+
+    fks_after_d1_downgrade = get_fk_names()
+    check(
+        "FK names remain target after d1 downgrade",
+        fks_after_d1_downgrade == fks,
+        str(fks_after_d1_downgrade),
+    )
+    _assert_current(NORMALIZATION_REVISION, f"Current is {NORMALIZATION_REVISION}")
+
     r = _alembic("downgrade", PREVIOUS_HEAD, check=False)
-    check("Downgrade succeeds", r.returncode == 0)
+    check("Downgrade c0 to b9 succeeds", r.returncode == 0)
 
     fks_after_downgrade = get_fk_names()
     check(
