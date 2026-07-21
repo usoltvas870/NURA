@@ -75,6 +75,12 @@
 |`agent-prompts.md`|Готовые промпты для запуска AI-агентов по шагам|✅ Актуален|
 |`dev-prompts.md`|Промпты для разработки конкретных модулей|✅ Актуален|
 
+### Эксплуатация
+
+|Файл|Что описывает|Статус|
+|-|-|-|
+|`operations/backup-restore.md`|Synthetic-only disposable PostgreSQL backup/restore proof и его safety gates|✅ Актуален|
+
 \---
 
 ## Источник истины
