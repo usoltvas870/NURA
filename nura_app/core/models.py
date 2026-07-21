@@ -76,7 +76,7 @@ class User(Base):
     main_archetype: Mapped[str | None] = mapped_column(String(64), nullable=True)
     main_archetype_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     subscription_status: Mapped[str] = mapped_column(
-        String(20), default="free", nullable=False
+        String(20), default="free", nullable=False, server_default="free"
     )
     subscription_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -174,7 +174,10 @@ class Report(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
     report_type: Mapped[str] = mapped_column(
-        String(20), default=ReportType.MINI.value, nullable=False
+        String(20),
+        default=ReportType.MINI.value,
+        nullable=False,
+        server_default=ReportType.MINI.value,
     )
     token: Mapped[str] = mapped_column(
         String(64), unique=True, nullable=False, index=True
@@ -302,7 +305,7 @@ class Payment(Base):
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
     amount_kopecks: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(
-        String(20), default="pending", nullable=False
+        String(20), default="pending", nullable=False, server_default="pending"
     )
     yookassa_id: Mapped[str | None] = mapped_column(
         String(100), unique=True, nullable=True

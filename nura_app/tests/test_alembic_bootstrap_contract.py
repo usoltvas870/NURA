@@ -35,7 +35,7 @@ class TestGraphContract:
         heads = script.get_revisions("heads")
         assert len(heads) == 1, f"Expected 1 head, got {len(heads)}: {[h.revision for h in heads]}"
         head = heads[0]
-        assert head.revision == "c0d1e2f3a4b5", f"Head is {head.revision}"
+        assert head.revision == "d1e2f3a4b5c6", f"Head is {head.revision}"
 
     def test_e475_parent_is_baseline(self, script):
         rev = script.get_revision("e47590a5c5c1")
@@ -73,6 +73,7 @@ class TestGraphContract:
             "a8b9c0d1e2f3",
             "b9c0d1e2f3a4",
             "c0d1e2f3a4b5",
+            "d1e2f3a4b5c6",
         ]
         # iterate_revisions goes head→base, reverse for base→head
         revisions = list(script.iterate_revisions("head", "base"))

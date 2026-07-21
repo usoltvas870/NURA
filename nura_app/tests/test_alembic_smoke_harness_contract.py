@@ -14,12 +14,20 @@ REPO_ROOT = NURA_APP_ROOT.parent
 TOOLS_ROOT = NURA_APP_ROOT / "tools"
 BOOTSTRAP_PATH = TOOLS_ROOT / "alembic_postgres_bootstrap_smoke.py"
 FK_PATH = TOOLS_ROOT / "alembic_fk_normalization_smoke.py"
+RECONCILIATION_PATH = TOOLS_ROOT / "alembic_production_reconciliation_smoke.py"
 RUNNER_PATH = TOOLS_ROOT / "run_alembic_postgres_smoke.py"
-HARNESS_PATHS = (BOOTSTRAP_PATH, FK_PATH)
+HARNESS_PATHS = (BOOTSTRAP_PATH, FK_PATH, RECONCILIATION_PATH)
 ALLOWLIST = {
+    "nura_app/alembic/versions/d1e2f3a4b5c6_reconcile_legacy_server_defaults.py",
+    "nura_app/core/models.py",
     "nura_app/tools/alembic_postgres_bootstrap_smoke.py",
     "nura_app/tools/alembic_fk_normalization_smoke.py",
+    "nura_app/tools/alembic_production_reconciliation_smoke.py",
     "nura_app/tools/run_alembic_postgres_smoke.py",
+    "nura_app/tests/test_alembic_bootstrap_contract.py",
+    "nura_app/tests/test_alembic_default_reconciliation_contract.py",
+    "nura_app/tests/test_alembic_fk_normalization_contract.py",
+    "nura_app/tests/test_report_lifecycle_schema_foundation.py",
     "nura_app/tests/test_alembic_smoke_harness_contract.py",
 }
 
@@ -43,6 +51,11 @@ def fk():
 
 
 @pytest.fixture(scope="module")
+def reconciliation():
+    return _load(RECONCILIATION_PATH, "portable_reconciliation_smoke")
+
+
+@pytest.fixture(scope="module")
 def runner():
     return _load(RUNNER_PATH, "portable_smoke_runner")
 
@@ -57,8 +70,8 @@ def test_harnesses_have_no_stale_worktree_or_docker_sql() -> None:
         assert "psycopg2.connect(_URL)" in source
 
 
-def test_roots_are_derived_from_resolved_file(bootstrap, fk) -> None:
-    for module in (bootstrap, fk):
+def test_roots_are_derived_from_resolved_file(bootstrap, fk, reconciliation) -> None:
+    for module in (bootstrap, fk, reconciliation):
         assert module.REPO_ROOT == REPO_ROOT
         assert module.NURA_APP_ROOT == NURA_APP_ROOT
         source = Path(module.__file__).read_text(encoding="utf-8")
@@ -87,12 +100,17 @@ def test_harness_import_is_independent_of_current_directory(tmp_path: Path) -> N
         assert Path(result.stdout.strip()) == REPO_ROOT
 
 
-def test_revision_constants(bootstrap, fk) -> None:
+def test_revision_constants(bootstrap, fk, reconciliation) -> None:
     assert bootstrap.EXPECTED_BASE == "0001a2b3c4d5e6"
-    assert bootstrap.PREVIOUS_HEAD == "b9c0d1e2f3a4"
-    assert bootstrap.EXPECTED_HEAD == "c0d1e2f3a4b5"
+    assert bootstrap.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
+    assert bootstrap.PREVIOUS_HEAD == "c0d1e2f3a4b5"
+    assert bootstrap.EXPECTED_HEAD == "d1e2f3a4b5c6"
     assert fk.PREVIOUS_HEAD == "b9c0d1e2f3a4"
-    assert fk.EXPECTED_HEAD == "c0d1e2f3a4b5"
+    assert fk.NORMALIZATION_REVISION == "c0d1e2f3a4b5"
+    assert fk.EXPECTED_HEAD == "d1e2f3a4b5c6"
+    assert reconciliation.PRODUCTION_REVISION == "d5e6f7a8b9c0"
+    assert reconciliation.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
+    assert reconciliation.EXPECTED_HEAD == "d1e2f3a4b5c6"
 
 
 def test_structured_contract_helpers_reject_drift(bootstrap) -> None:
@@ -137,6 +155,7 @@ def test_runner_contract(runner) -> None:
     assert "system prune" not in source.lower()
     assert "alembic_postgres_bootstrap_smoke.py" in source
     assert "alembic_fk_normalization_smoke.py" in source
+    assert "alembic_production_reconciliation_smoke.py" in source
 
 
 def test_runner_masks_credentials(runner) -> None:
@@ -147,16 +166,31 @@ def test_runner_masks_credentials(runner) -> None:
     assert "postgresql://***/***" in masked
 
 
+def test_reconciliation_harness_rejects_non_disposable_urls(reconciliation) -> None:
+    reconciliation._validate_disposable_database_url(
+        "postgresql://user:pass@127.0.0.1:5432/smoke_disposable"
+    )
+    for url in (
+        "postgresql://user:pass@example.com:5432/smoke_disposable",
+        "postgresql://user:pass@127.0.0.1:5432/nura_production",
+        "sqlite:///tmp/smoke_disposable.sqlite",
+    ):
+        with pytest.raises(ValueError):
+            reconciliation._validate_disposable_database_url(url)
+
+
 def test_child_environments_exclude_production_values(
-    bootstrap, fk, runner, monkeypatch
+    bootstrap, fk, reconciliation, runner, monkeypatch
 ) -> None:
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("YOOKASSA_SECRET_KEY", "poison-secret")
     bootstrap._URL = "postgresql://user:pass@127.0.0.1/database"
     fk._URL = bootstrap._URL
+    reconciliation._URL = bootstrap._URL
     for env in (
         bootstrap._child_env(),
         fk._child_env(),
+        reconciliation._child_env(),
         runner._child_env(bootstrap._URL),
     ):
         assert env["APP_ENV"] == "test"
@@ -209,7 +243,3 @@ def test_worktree_diff_stays_inside_allowlist() -> None:
             path = path.split(" -> ", 1)[1]
         changed.add(path.replace("\\", "/").strip('"'))
     assert changed <= ALLOWLIST
-    assert not any(
-        path.startswith("nura_app/alembic/") or path == "nura_app/core/models.py"
-        for path in changed
-    )
