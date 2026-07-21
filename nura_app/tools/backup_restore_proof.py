@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -25,7 +26,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from uuid import UUID
 
 import psycopg2
@@ -50,8 +51,6 @@ IMAGE = "postgres:16.13"
 EXPECTED_IMAGE_DIGEST = (
     "postgres@sha256:5d143123fdf80462d1778cd4f24b9f7ca13c87174bca19141fb194c5a1ebca59"
 )
-EXPECTED_BASE_SHA = "63b75c39faedd57f7882edf7e8e54bb678abb17e"
-EXPECTED_BRANCH = "codex/p5b-backup-restore-proof"
 PURPOSE_LABEL = "p5b-backup-restore-proof"
 READY_TIMEOUT_SECONDS = 60
 COMMAND_TIMEOUT_SECONDS = 180
@@ -70,20 +69,9 @@ EXPECTED_PUBLIC_TABLES = {
     "users",
 }
 APPLICATION_TABLES = EXPECTED_PUBLIC_TABLES - {"alembic_version"}
-REPOSITORY_ALLOWLIST = {
-    ".github/workflows/ci-cd.yml",
-    "docs/README.md",
-    "docs/operations/backup-restore.md",
-    "nura_app/tests/test_backup_restore_proof_contract.py",
-    "nura_app/tests/test_backup_restore_proof_postgres.py",
-    "nura_app/tools/backup_restore_fixtures.py",
-    "nura_app/tools/backup_restore_proof.py",
-}
 _SAFE_ENV_KEYS = (
     "APPDATA",
     "COMSPEC",
-    "DOCKER_CONTEXT",
-    "DOCKER_HOST",
     "HOMEDRIVE",
     "HOMEPATH",
     "LOCALAPPDATA",
@@ -114,8 +102,8 @@ _MANIFEST_KEYS = {
     "archive_filename",
     "archive_sha256",
     "archive_size_bytes",
-    "base_git_sha",
-    "branch",
+    "current_branch",
+    "current_git_sha",
     "catalog_counts",
     "encryption_status",
     "fixture_manifest_sha256",
@@ -125,6 +113,8 @@ _MANIFEST_KEYS = {
     "pg_restore_version",
     "postgresql_server_version",
     "proof_status",
+    "remote_main_sha",
+    "repository_clean",
     "row_counts",
     "run_id",
     "source_database",
@@ -146,6 +136,22 @@ class CommandResult:
     stdout: str
     stderr: str
     duration_seconds: float
+
+
+@dataclass(frozen=True)
+class RepositoryState:
+    current_git_sha: str
+    current_branch: str
+    remote_main_sha: str
+    repository_clean: bool
+
+
+@dataclass(frozen=True)
+class DockerEndpoint:
+    context_name: str
+    endpoint: str
+    redacted_endpoint: str
+    scheme: str
 
 
 @dataclass(frozen=True)
@@ -245,6 +251,106 @@ def _command_env(values: dict[str, str] | None = None) -> dict[str, str]:
     if values:
         env.update(values)
     return env
+
+
+def _docker_bootstrap_env() -> dict[str, str]:
+    env = _command_env()
+    for key in ("DOCKER_CONTEXT", "DOCKER_HOST"):
+        if key in os.environ:
+            env[key] = os.environ[key]
+    return env
+
+
+def _validate_local_docker_endpoint(context_name: str, endpoint: str) -> DockerEndpoint:
+    candidate = endpoint.strip()
+    parsed = urlsplit(candidate)
+    scheme = parsed.scheme.lower()
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ProofError("Docker endpoint contains forbidden credentials or parameters")
+    if scheme == "unix":
+        if parsed.netloc or not parsed.path.startswith("/"):
+            raise ProofError("Unix Docker endpoint is not a local absolute socket")
+    elif scheme == "npipe":
+        if parsed.netloc or not parsed.path.lower().startswith("//./pipe/"):
+            raise ProofError("Docker named-pipe endpoint is not local")
+    elif scheme == "tcp":
+        try:
+            host = parsed.hostname
+            if host is None or (
+                host.lower() != "localhost"
+                and not ipaddress.ip_address(host).is_loopback
+            ):
+                raise ProofError("Docker TCP endpoint is not loopback-local")
+        except ValueError as exc:
+            raise ProofError("Docker TCP endpoint host is not a loopback IP") from exc
+        if parsed.port is None:
+            raise ProofError("Docker TCP endpoint has no explicit port")
+    else:
+        raise ProofError("Docker endpoint scheme is not an approved local transport")
+    redacted = f"{scheme}://{parsed.netloc}{parsed.path}"
+    return DockerEndpoint(context_name, candidate, redacted, scheme)
+
+
+def _docker_endpoint_preflight(evidence_dir: Path) -> DockerEndpoint:
+    bootstrap_env = _docker_bootstrap_env()
+    context_name = _run(
+        ["docker", "context", "show"], env=bootstrap_env, timeout=30
+    ).stdout.strip()
+    if not context_name:
+        raise ProofError("Docker active context could not be determined")
+    configured_context = os.environ.get("DOCKER_CONTEXT", "").strip()
+    configured_host = os.environ.get("DOCKER_HOST", "").strip()
+    if configured_context and configured_host:
+        raise ProofError("Conflicting DOCKER_CONTEXT and DOCKER_HOST are not allowed")
+    inspected = _run(
+        [
+            "docker",
+            "context",
+            "inspect",
+            context_name,
+            "--format",
+            "{{json .Endpoints.docker.Host}}",
+        ],
+        env=bootstrap_env,
+        timeout=30,
+    ).stdout.strip()
+    try:
+        context_endpoint = json.loads(inspected)
+    except json.JSONDecodeError as exc:
+        raise ProofError("Docker context endpoint inspection returned invalid JSON") from exc
+    if not isinstance(context_endpoint, str) or not context_endpoint.strip():
+        raise ProofError("Docker context has no inspectable endpoint")
+    effective_endpoint = configured_host or context_endpoint
+    verified = _validate_local_docker_endpoint(context_name, effective_endpoint)
+    _write_json(
+        evidence_dir / "04_docker_endpoint_gate.json",
+        {
+            "status": "PASS",
+            "context_name": verified.context_name,
+            "endpoint_scheme": verified.scheme,
+            "redacted_endpoint": verified.redacted_endpoint,
+            "local_endpoint_verified": True,
+        },
+    )
+    return verified
+
+
+def _docker(
+    endpoint: DockerEndpoint,
+    arguments: list[str],
+    *,
+    check: bool = True,
+    timeout: int = COMMAND_TIMEOUT_SECONDS,
+    secrets_to_mask: tuple[str, ...] = (),
+    env_values: dict[str, str] | None = None,
+) -> CommandResult:
+    return _run(
+        ["docker", "--host", endpoint.endpoint, *arguments],
+        check=check,
+        env=_command_env(env_values),
+        timeout=timeout,
+        secrets_to_mask=secrets_to_mask,
+    )
 
 
 def _secure_path(path: Path, *, directory: bool) -> None:
@@ -626,48 +732,158 @@ def _sequence_states(database_url: str) -> dict[str, dict[str, object]]:
     return states
 
 
+def _walk_named_values(name: str, value: object) -> list[tuple[str, object]]:
+    if isinstance(value, dict):
+        return [
+            nested
+            for key, item in value.items()
+            for nested in _walk_named_values(str(key), item)
+        ]
+    if isinstance(value, (list, tuple)):
+        return [
+            nested for item in value for nested in _walk_named_values(name, item)
+        ]
+    return [(name, value)]
+
+
+def _walk_values(value: object) -> list[object]:
+    return [scalar for _name, scalar in _walk_named_values("", value)]
+
+
+def _actual_value_hits(column: str, value: object) -> dict[str, int]:
+    hits = {
+        "unexpected_email_domain": 0,
+        "phone_like_value": 0,
+        "credential_or_private_key": 0,
+        "production_marker_or_domain": 0,
+        "non_synthetic_identifier": 0,
+    }
+    identifier_columns = {
+        "celery_task_id",
+        "guest_token",
+        "idempotency_key",
+        "payment_method_id",
+        "provider_payment_id",
+        "report_token",
+        "token",
+        "vk_id",
+        "yookassa_id",
+    }
+    prohibited_credential_columns = {
+        "access_token",
+        "api_key",
+        "client_secret",
+        "password",
+        "private_key",
+        "secret",
+        "secret_key",
+        "session_token",
+        "web_session_id",
+    }
+    for scalar_column, scalar in _walk_named_values(column, value):
+        if scalar is None:
+            continue
+        if scalar_column in {"telegram_id", "referred_by"} and isinstance(scalar, int):
+            hits["non_synthetic_identifier"] += int(scalar < 900000000000000000)
+        if scalar_column in identifier_columns and isinstance(scalar, str):
+            hits["non_synthetic_identifier"] += int(
+                not scalar.lower().startswith("synthetic_")
+            )
+        normalized_column = scalar_column.lower()
+        is_credential_name = (
+            normalized_column in prohibited_credential_columns
+            or normalized_column == "authorization"
+            or normalized_column.endswith(("_secret", "_secret_key", "_api_key"))
+            or normalized_column.endswith("_password")
+        )
+        if is_credential_name and scalar != "":
+            hits["credential_or_private_key"] += 1
+        if normalized_column.endswith("_token") and isinstance(scalar, str):
+            hits["credential_or_private_key"] += int(
+                not scalar.lower().startswith("synthetic_")
+            )
+        if not isinstance(scalar, str):
+            continue
+        for email in re.findall(
+            r"(?i)\b[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@([a-z0-9.-]+\.[a-z]{2,})\b",
+            scalar,
+        ):
+            hits["unexpected_email_domain"] += int(email.lower() != "example.invalid")
+        if scalar_column == "phone" or (
+            not re.fullmatch(r"\d{4}-\d{2}-\d{2}(?:[T ][0-9:.+Z-]+)?", scalar)
+            and not re.fullmatch(
+                r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+                r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+                scalar,
+            )
+            and re.fullmatch(r"(?:\+\d[\d ()-]{8,}\d|\d[\d]*[ ()-][\d ()-]{7,}\d)", scalar)
+        ):
+            hits["phone_like_value"] += 1
+        if re.search(
+            r"(?i)(?:bearer\s+[a-z0-9._~-]{8,}|"
+            r"(?:access|session)[_-]?token\s*[:=]\s*['\"]?[a-z0-9._~-]{8,}|"
+            r"api[_-]?key\s*[:=]\s*['\"]?[a-z0-9_-]{8,}|"
+            r"-----BEGIN [A-Z ]*PRIVATE KEY-----)",
+            scalar,
+        ):
+            hits["credential_or_private_key"] += 1
+        if re.search(
+            r"(?i)(?:production[_-](?:dump|database|host)|"
+            r"protected[_-]production[_-](?:dump|database|host)|nura[_-]?prod)",
+            scalar,
+        ):
+            hits["production_marker_or_domain"] += 1
+        if re.search(
+            r"(?i)\b(?:[a-z0-9-]+\.)*nura(?:-[a-z0-9-]+)?\.[a-z]{2,}\b",
+            scalar,
+        ):
+            hits["production_marker_or_domain"] += 1
+        for host in re.findall(r"(?i)https?://([^/:\s]+)", scalar):
+            if "nura" in host.lower() and not host.lower().endswith("example.invalid"):
+                hits["production_marker_or_domain"] += 1
+    return hits
+
+
 def _pii_guard(database_url: str) -> dict[str, object]:
-    checks = {
-        "unexpected_email_domain": (
-            "SELECT count(*) FROM users WHERE email IS NOT NULL "
-            "AND email NOT LIKE '%@example.invalid'"
-        ),
-        "phone_values": "SELECT count(*) FROM users WHERE phone IS NOT NULL",
-        "unexpected_payment_identifiers": (
-            "SELECT count(*) FROM payments WHERE yookassa_id IS NOT NULL "
-            "AND yookassa_id NOT LIKE 'synthetic\\_%' ESCAPE '\\'"
-        ),
-        "unexpected_report_tokens": (
-            "SELECT count(*) FROM reports WHERE token NOT LIKE 'synthetic\\_%' ESCAPE '\\'"
-        ),
-        "unexpected_guest_tokens": (
-            "SELECT count(*) FROM guest_profiles "
-            "WHERE guest_token NOT LIKE 'synthetic\\_%' ESCAPE '\\'"
-        ),
-        "unexpected_external_ids": (
-            "SELECT count(*) FROM users WHERE telegram_id IS NOT NULL "
-            "AND telegram_id < 900000000000000000"
-        ),
+    totals = {name: 0 for name in _actual_value_hits("", None)}
+    hit_columns: set[str] = set()
+    scanned_rows = 0
+    scanned_scalar_values = 0
+    with closing(_connect(database_url)) as connection:
+        with connection.cursor() as cursor:
+            for table_name in sorted(APPLICATION_TABLES):
+                cursor.execute(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_schema='public' AND table_name=%s ORDER BY ordinal_position",
+                    (table_name,),
+                )
+                columns = [str(row[0]) for row in cursor.fetchall()]
+                cursor.execute(
+                    sql.SQL("SELECT {} FROM {}").format(
+                        sql.SQL(", ").join(map(sql.Identifier, columns)),
+                        sql.Identifier("public", table_name),
+                    )
+                )
+                for row in cursor.fetchall():
+                    scanned_rows += 1
+                    for column, value in zip(columns, row, strict=True):
+                        scanned_scalar_values += len(_walk_values(value))
+                        for category, count in _actual_value_hits(column, value).items():
+                            totals[category] += count
+                            if count:
+                                hit_columns.add(f"{table_name}.{column}:{category}")
+    if any(totals.values()):
+        failed = ", ".join(name for name, count in totals.items() if count)
+        raise ProofError(
+            f"Synthetic actual-value guard failed: {failed}; columns={','.join(sorted(hit_columns))}"
+        )
+    return {
+        "status": "PASS",
+        "scanned_tables": len(APPLICATION_TABLES),
+        "scanned_rows": scanned_rows,
+        "scanned_scalar_values": scanned_scalar_values,
+        "category_hit_counts": totals,
     }
-    results: dict[str, int] = {}
-    for name, statement in checks.items():
-        _, rows = _query(database_url, statement)
-        results[name] = int(rows[0][0])
-    fixture_text = _canonical_json(fixture_manifest())
-    forbidden_patterns = {
-        "bearer_token": r"(?i)bearer\s+[a-z0-9._-]+",
-        "api_key": r"(?i)(?:api[_-]?key|sk-)[=: ]+[a-z0-9_-]{12,}",
-        "private_key": r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
-        "production_marker": r"(?i)(?:production[_-](?:dump|database)|nura[_-]?prod)",
-    }
-    pattern_hits = {
-        name: bool(re.search(pattern, fixture_text))
-        for name, pattern in forbidden_patterns.items()
-    }
-    passed = all(value == 0 for value in results.values()) and not any(pattern_hits.values())
-    if not passed:
-        raise ProofError("Synthetic PII/production-data guard failed")
-    return {"status": "PASS", "database_checks": results, "pattern_hits": pattern_hits}
 
 
 def _database_snapshot(database_url: str) -> DatabaseSnapshot:
@@ -794,6 +1010,7 @@ def _validate_quiescence_interval(
 
 
 def _wait_for_postgres(
+    endpoint: DockerEndpoint,
     container: str,
     username: str,
     database: str,
@@ -801,8 +1018,9 @@ def _wait_for_postgres(
 ) -> None:
     deadline = time.monotonic() + READY_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
-        result = _run(
-            ["docker", "exec", container, "pg_isready", "-U", username, "-d", database],
+        result = _docker(
+            endpoint,
+            ["exec", container, "pg_isready", "-U", username, "-d", database],
             check=False,
             timeout=10,
             secrets_to_mask=secrets_to_mask,
@@ -813,8 +1031,8 @@ def _wait_for_postgres(
     raise ProofError("Disposable PostgreSQL readiness timed out")
 
 
-def _mapped_port(container: str) -> int:
-    output = _run(["docker", "port", container, "5432/tcp"]).stdout.strip()
+def _mapped_port(endpoint: DockerEndpoint, container: str) -> int:
+    output = _docker(endpoint, ["port", container, "5432/tcp"]).stdout.strip()
     match = re.search(r"127\.0\.0\.1:(\d+)", output)
     if match is None:
         raise ProofError("Disposable PostgreSQL loopback port is unavailable")
@@ -822,31 +1040,36 @@ def _mapped_port(container: str) -> int:
 
 
 def _docker_exec_pg(
+    endpoint: DockerEndpoint,
     container: str,
     password: str,
     arguments: list[str],
     *,
     check: bool = True,
 ) -> CommandResult:
-    return _run(
-        ["docker", "exec", "-e", "PGPASSWORD", container, *arguments],
+    return _docker(
+        endpoint,
+        ["exec", "-e", "PGPASSWORD", container, *arguments],
         check=check,
-        env=_command_env({"PGPASSWORD": password}),
+        env_values={"PGPASSWORD": password},
         secrets_to_mask=(password,),
     )
 
 
-def _docker_image_metadata(*, pull_if_missing: bool) -> tuple[str, str]:
-    inspected = _run(
-        ["docker", "image", "inspect", IMAGE, "--format", "{{json .RepoDigests}}"],
+def _docker_image_metadata(
+    endpoint: DockerEndpoint, *, pull_if_missing: bool
+) -> tuple[str, str]:
+    inspected = _docker(
+        endpoint,
+        ["image", "inspect", IMAGE, "--format", "{{json .RepoDigests}}"],
         check=False,
     )
     if inspected.returncode != 0:
         if not pull_if_missing:
             raise ProofError(f"Required exact image is not available locally: {IMAGE}")
-        _run(["docker", "pull", IMAGE], timeout=600)
-        inspected = _run(
-            ["docker", "image", "inspect", IMAGE, "--format", "{{json .RepoDigests}}"]
+        _docker(endpoint, ["pull", IMAGE], timeout=600)
+        inspected = _docker(
+            endpoint, ["image", "inspect", IMAGE, "--format", "{{json .RepoDigests}}"]
         )
     repo_digests = json.loads(inspected.stdout)
     if not repo_digests:
@@ -855,14 +1078,14 @@ def _docker_image_metadata(*, pull_if_missing: bool) -> tuple[str, str]:
     if digest != EXPECTED_IMAGE_DIGEST:
         raise ProofError("PostgreSQL image digest is not the approved official digest")
     tags = json.loads(
-        _run(
-            ["docker", "image", "inspect", IMAGE, "--format", "{{json .RepoTags}}"]
+        _docker(
+            endpoint, ["image", "inspect", IMAGE, "--format", "{{json .RepoTags}}"]
         ).stdout
     )
     if IMAGE not in tags:
         raise ProofError("PostgreSQL image does not carry the exact approved tag")
-    image_id = _run(
-        ["docker", "image", "inspect", IMAGE, "--format", "{{.Id}}"]
+    image_id = _docker(
+        endpoint, ["image", "inspect", IMAGE, "--format", "{{.Id}}"]
     ).stdout.strip()
     return digest, image_id
 
@@ -1048,6 +1271,7 @@ def _compare_snapshots(
 
 def _run_fail_closed_matrix(
     *,
+    docker_endpoint: DockerEndpoint,
     source_url: str,
     target_url: str,
     source_container: str,
@@ -1064,8 +1288,12 @@ def _run_fail_closed_matrix(
     corrupted[: min(16, len(corrupted))] = b"\x00" * min(16, len(corrupted))
     corrupted_path.write_bytes(corrupted)
     try:
-        _run(["docker", "cp", str(corrupted_path), f"{target_container}:/tmp/corrupted.dump"])
+        _docker(
+            docker_endpoint,
+            ["cp", str(corrupted_path), f"{target_container}:/tmp/corrupted.dump"],
+        )
         result = _docker_exec_pg(
+            docker_endpoint,
             target_container,
             target_password,
             ["pg_restore", "--list", "/tmp/corrupted.dump"],
@@ -1076,8 +1304,9 @@ def _run_fail_closed_matrix(
         matrix["corrupted_archive"] = "PASS (rejected)"
     finally:
         corrupted_path.unlink(missing_ok=True)
-        _run(
-            ["docker", "exec", target_container, "rm", "-f", "/tmp/corrupted.dump"],
+        _docker(
+            docker_endpoint,
+            ["exec", target_container, "rm", "-f", "/tmp/corrupted.dump"],
             check=False,
         )
 
@@ -1087,6 +1316,110 @@ def _run_fail_closed_matrix(
         matrix["non_empty_target"] = "PASS (rejected)"
     else:
         raise ProofError("Non-empty target gate did not reject source database")
+
+    for label, database_url in (
+        ("source_actual_value_guard", source_url),
+        ("restored_actual_value_guard", target_url),
+    ):
+        with closing(_connect(database_url)) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id, ai_analysis FROM reports ORDER BY id LIMIT 1")
+                report_id, original_analysis = cursor.fetchone()
+                cursor.execute(
+                    "UPDATE reports SET ai_analysis=%s WHERE id=%s",
+                    (
+                        json.dumps(
+                            {
+                                "nested": [
+                                    {"marker": "protected_production_database_marker"}
+                                ]
+                            }
+                        ),
+                        report_id,
+                    ),
+                )
+            connection.commit()
+        try:
+            _pii_guard(database_url)
+        except ProofError:
+            matrix[label] = "PASS (rejected nested marker)"
+        else:
+            raise ProofError(f"{label} did not reject a nested production marker")
+        finally:
+            with closing(_connect(database_url)) as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE reports SET ai_analysis=%s WHERE id=%s",
+                        (json.dumps(original_analysis), report_id),
+                    )
+                connection.commit()
+
+    for label, database_url in (
+        ("source_credential_guard", source_url),
+        ("restored_credential_guard", target_url),
+    ):
+        with closing(_connect(database_url)) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id FROM users ORDER BY id LIMIT 1")
+                user_id = cursor.fetchone()[0]
+                cursor.execute(
+                    "UPDATE users SET web_session_id=%s WHERE id=%s",
+                    ("protected_session_value_0123456789", user_id),
+                )
+            connection.commit()
+        try:
+            _pii_guard(database_url)
+        except ProofError:
+            matrix[label] = "PASS (rejected credential field)"
+        else:
+            raise ProofError(f"{label} did not reject a session credential")
+        finally:
+            with closing(_connect(database_url)) as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE users SET web_session_id=NULL WHERE id=%s", (user_id,)
+                    )
+                connection.commit()
+
+    for label, database_url in (
+        ("source_nested_credential_guard", source_url),
+        ("restored_nested_credential_guard", target_url),
+    ):
+        with closing(_connect(database_url)) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id, ai_analysis FROM reports ORDER BY id LIMIT 1")
+                report_id, original_analysis = cursor.fetchone()
+                cursor.execute(
+                    "UPDATE reports SET ai_analysis=%s WHERE id=%s",
+                    (
+                        json.dumps(
+                            {
+                                "nested": [
+                                    {
+                                        "refresh_token": "protected_refresh_value",
+                                        "secret_key": "protected_secret_key_value",
+                                    }
+                                ]
+                            }
+                        ),
+                        report_id,
+                    ),
+                )
+            connection.commit()
+        try:
+            _pii_guard(database_url)
+        except ProofError:
+            matrix[label] = "PASS (rejected nested credential)"
+        else:
+            raise ProofError(f"{label} did not reject nested credentials")
+        finally:
+            with closing(_connect(database_url)) as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE reports SET ai_analysis=%s WHERE id=%s",
+                        (json.dumps(original_analysis), report_id),
+                    )
+                connection.commit()
 
     unexpected_url = re.sub(
         r"application_name=[^&]+", "application_name=unexpected_synthetic_client", source_url
@@ -1263,6 +1596,7 @@ def _run_fail_closed_matrix(
 
 def _create_container(
     *,
+    endpoint: DockerEndpoint,
     name: str,
     network: str,
     run_id: str,
@@ -1270,9 +1604,9 @@ def _create_container(
     password: str,
     database: str,
 ) -> None:
-    _run(
+    _docker(
+        endpoint,
         [
-            "docker",
             "run",
             "-d",
             "--name",
@@ -1295,14 +1629,12 @@ def _create_container(
             "127.0.0.1::5432",
             IMAGE,
         ],
-        env=_command_env(
-            {
-                "POSTGRES_USER": username,
-                "POSTGRES_PASSWORD": password,
-                "POSTGRES_DB": database,
-                "POSTGRES_INITDB_ARGS": "--encoding=UTF8 --locale=C.UTF-8",
-            }
-        ),
+        env_values={
+            "POSTGRES_USER": username,
+            "POSTGRES_PASSWORD": password,
+            "POSTGRES_DB": database,
+            "POSTGRES_INITDB_ARGS": "--encoding=UTF8 --locale=C.UTF-8",
+        },
         secrets_to_mask=(username, password, database),
     )
 
@@ -1316,9 +1648,54 @@ def _write_sha256s(evidence_dir: Path) -> None:
     _write(evidence_dir / "SHA256SUMS.txt", "\n".join(lines) + "\n")
 
 
-def _cleanup_resources(
-    run_id: str, containers: tuple[str, ...], network: str
+def _scan_generated_evidence(
+    evidence_dir: Path, *, ephemeral_secrets: tuple[str, ...]
 ) -> dict[str, object]:
+    counts = {
+        "known_ephemeral_secret": 0,
+        "private_key_material": 0,
+        "unredacted_database_dsn": 0,
+    }
+    files_scanned = 0
+    for path in sorted(evidence_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        content = path.read_bytes()
+        files_scanned += 1
+        counts["known_ephemeral_secret"] += sum(
+            content.count(secret.encode("utf-8")) for secret in ephemeral_secrets if secret
+        )
+        counts["private_key_material"] += len(
+            re.findall(rb"-----BEGIN [A-Z ]*PRIVATE KEY-----", content)
+        )
+        counts["unredacted_database_dsn"] += len(
+            re.findall(rb"postgresql(?:\+[^:/]+)?://[^\s/@:]+:[^\s/@]+@", content)
+        )
+    if any(counts.values()):
+        failed = ", ".join(name for name, count in counts.items() if count)
+        raise ProofError(f"Generated evidence secret scan failed: {failed}")
+    return {
+        "status": "PASS",
+        "files_scanned": files_scanned,
+        "category_hit_counts": counts,
+    }
+
+
+def _cleanup_resources(
+    endpoint: DockerEndpoint | None,
+    run_id: str,
+    containers: tuple[str, ...],
+    network: str,
+) -> dict[str, object]:
+    if endpoint is None:
+        return {
+            "status": "PASS",
+            "removed": [],
+            "errors": [],
+            "remaining_containers": [],
+            "remaining_networks": [],
+            "docker_endpoint_verified": False,
+        }
     errors: list[str] = []
     removed: list[str] = []
     expected_labels = {
@@ -1328,8 +1705,9 @@ def _cleanup_resources(
 
     def inspect_labels(kind: str, name: str, template: str) -> dict[str, str] | None:
         try:
-            result = _run(
-                ["docker", kind, "inspect", name, "--format", template],
+            result = _docker(
+                endpoint,
+                [kind, "inspect", name, "--format", template],
                 check=False,
                 timeout=30,
             )
@@ -1359,8 +1737,8 @@ def _cleanup_resources(
         if labels is None:
             continue
         try:
-            result = _run(
-                ["docker", "rm", "-f", "-v", container], check=False, timeout=60
+            result = _docker(
+                endpoint, ["rm", "-f", "-v", container], check=False, timeout=60
             )
             if result.returncode == 0:
                 removed.append(container)
@@ -1372,8 +1750,8 @@ def _cleanup_resources(
     labels = inspect_labels("network", network, "{{json .Labels}}")
     if labels is not None:
         try:
-            result = _run(
-                ["docker", "network", "rm", network], check=False, timeout=60
+            result = _docker(
+                endpoint, ["network", "rm", network], check=False, timeout=60
             )
             if result.returncode == 0:
                 removed.append(network)
@@ -1385,9 +1763,9 @@ def _cleanup_resources(
     remaining_containers: list[str] = []
     remaining_networks: list[str] = []
     try:
-        result = _run(
+        result = _docker(
+            endpoint,
             [
-                "docker",
                 "ps",
                 "-a",
                 "--filter",
@@ -1407,9 +1785,9 @@ def _cleanup_resources(
     except Exception as exc:
         errors.append(f"inspect:remaining-containers:{_sanitize(str(exc))}")
     try:
-        result = _run(
+        result = _docker(
+            endpoint,
             [
-                "docker",
                 "network",
                 "ls",
                 "--filter",
@@ -1436,6 +1814,7 @@ def _cleanup_resources(
         "errors": errors,
         "remaining_containers": remaining_containers,
         "remaining_networks": remaining_networks,
+        "docker_endpoint_verified": True,
     }
 
 
@@ -1458,36 +1837,81 @@ def _initialize_evidence(evidence_dir: Path) -> None:
         _write(evidence_dir / name, "PENDING\n")
 
 
-def _porcelain_changed_paths(status: str) -> set[str]:
-    return {
-        record[3:].replace("\\", "/")
-        for record in status.split("\0")
-        if len(record) >= 4
-    }
+def _validate_repository_state(
+    *,
+    status: str,
+    head: str,
+    branch: str,
+    remote: str,
+    remote_is_ancestor: bool,
+) -> RepositoryState:
+    if status:
+        raise ProofError("Repository worktree must be completely clean")
+    if not re.fullmatch(r"[0-9a-f]{40}", head):
+        raise ProofError("Current Git HEAD is not a valid commit SHA")
+    if not branch:
+        raise ProofError("Detached HEAD is not allowed for the proof runner")
+    if not re.fullmatch(r"[0-9a-f]{40}", remote):
+        raise ProofError("origin/main could not be resolved to a commit SHA")
+    if branch == "main":
+        if head != remote:
+            raise ProofError("Local main must exactly match origin/main")
+    elif not remote_is_ancestor:
+        raise ProofError("Feature branch must contain the current origin/main commit")
+    return RepositoryState(head, branch, remote, True)
 
 
-def _repository_preflight(evidence_dir: Path) -> tuple[str, str]:
+def _read_repository_state() -> RepositoryState:
     status = _run(
         ["git", "status", "--short", "--untracked-files=all", "-z"], cwd=REPO_ROOT
     ).stdout
-    changed_paths = _porcelain_changed_paths(status)
     head = _run(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT).stdout.strip()
     branch = _run(["git", "branch", "--show-current"], cwd=REPO_ROOT).stdout.strip()
-    remote = _run(
+    remote_result = _run(
         ["git", "ls-remote", "origin", "refs/heads/main"], cwd=REPO_ROOT
-    ).stdout.split()[0]
-    if not changed_paths <= REPOSITORY_ALLOWLIST:
-        raise ProofError("Repository changes exceed the P5B allowlist")
-    if head != EXPECTED_BASE_SHA or remote != EXPECTED_BASE_SHA:
-        raise ProofError("Repository preflight no longer matches the canonical base")
-    if branch != EXPECTED_BRANCH:
-        raise ProofError("Proof runner is on an unexpected branch")
+    ).stdout.split()
+    remote = remote_result[0] if remote_result else ""
+    remote_is_ancestor = branch == "main"
+    if branch and branch != "main" and re.fullmatch(r"[0-9a-f]{40}", remote):
+        remote_is_ancestor = (
+            _run(
+                ["git", "merge-base", "--is-ancestor", remote, head],
+                check=False,
+                cwd=REPO_ROOT,
+            ).returncode
+            == 0
+        )
+    return _validate_repository_state(
+        status=status,
+        head=head,
+        branch=branch,
+        remote=remote,
+        remote_is_ancestor=remote_is_ancestor,
+    )
+
+
+def _assert_repository_binding(
+    expected: RepositoryState, actual: RepositoryState
+) -> None:
+    if actual != expected:
+        raise ProofError("Repository state drifted after the committed preflight")
+
+
+def _assert_repository_unchanged(expected: RepositoryState) -> None:
+    _assert_repository_binding(expected, _read_repository_state())
+
+
+def _repository_preflight(evidence_dir: Path) -> RepositoryState:
+    state = _read_repository_state()
     _write(
         evidence_dir / "00_preflight.txt",
-        f"status=scoped\nchanged_paths={','.join(sorted(changed_paths))}\n"
-        f"head={head}\nbranch={branch}\nremote_main={remote}\nresult=PASS\n",
+        "result=PASS\n"
+        f"current_git_sha={state.current_git_sha}\n"
+        f"current_branch={state.current_branch}\n"
+        f"remote_main_sha={state.remote_main_sha}\n"
+        f"repository_clean={str(state.repository_clean).lower()}\n",
     )
-    return head, branch
+    return state
 
 
 def run_disposable_proof(
@@ -1534,21 +1958,22 @@ def run_disposable_proof(
         source_container, target_container, source_database, target_database
     )
 
-    base_sha = EXPECTED_BASE_SHA
-    branch = EXPECTED_BRANCH
+    repository = RepositoryState("TEST_BYPASS", "TEST_BYPASS", "TEST_BYPASS", False)
+    docker_endpoint: DockerEndpoint | None = None
     cleanup: dict[str, object] = {"status": "PENDING", "removed": [], "errors": []}
     proof_result: ProofResult | None = None
     failure: Exception | None = None
     manifest_for_finalization: dict[str, object] | None = None
+    pii_guard_for_finalization: dict[str, object] | None = None
     archive_path = evidence_dir / "artifacts" / f"{run_id}.dump"
 
     try:
         if verify_repository:
-            base_sha, branch = _repository_preflight(evidence_dir)
+            repository = _repository_preflight(evidence_dir)
         else:
             _write(
                 evidence_dir / "00_preflight.txt",
-                "repository_remote_check=SKIPPED_FOR_LOCAL_INTEGRATION_TEST\nresult=PASS\n",
+                "internal_test_only_bypass=true\nrepository_clean=false\nresult=PASS\n",
             )
         _write(
             evidence_dir / "01_owner_decisions.md",
@@ -1560,29 +1985,43 @@ def run_disposable_proof(
         )
         _write(
             evidence_dir / "02_worktree_and_branch.txt",
-            f"worktree={REPO_ROOT}\nbranch={branch}\nrun_id={run_id}\n",
+            f"worktree={REPO_ROOT}\ncurrent_branch={repository.current_branch}\n"
+            f"run_id={run_id}\n",
         )
         _write(
             evidence_dir / "03_repository_baseline.txt",
-            f"base_sha={base_sha}\nexpected_remote_main={EXPECTED_BASE_SHA}\n",
+            f"current_git_sha={repository.current_git_sha}\n"
+            f"remote_main_sha={repository.remote_main_sha}\n"
+            f"repository_clean={str(repository.repository_clean).lower()}\n",
         )
+        docker_endpoint = _docker_endpoint_preflight(evidence_dir)
         environment = {
             "python": sys.version.split()[0],
             "platform": sys.platform,
-            "docker_client": _run(["docker", "--version"]).stdout.strip(),
-            "docker_server": _run(["docker", "info", "--format", "{{.ServerVersion}}"]).stdout.strip(),
+            "docker_client": _docker(docker_endpoint, ["--version"]).stdout.strip(),
+            "docker_server": _docker(
+                docker_endpoint, ["info", "--format", "{{.ServerVersion}}"]
+            ).stdout.strip(),
+            "docker_context": docker_endpoint.context_name,
+            "docker_endpoint_scheme": docker_endpoint.scheme,
+            "docker_endpoint_redacted": docker_endpoint.redacted_endpoint,
+            "docker_local_endpoint_verified": True,
         }
         _write_json(evidence_dir / "04_environment_versions.txt", environment)
-        image_digest, image_id = _docker_image_metadata(pull_if_missing=pull_image_if_missing)
+        if verify_repository:
+            _assert_repository_unchanged(repository)
+        image_digest, image_id = _docker_image_metadata(
+            docker_endpoint, pull_if_missing=pull_image_if_missing
+        )
         _write_json(
             evidence_dir / "05_postgres_images_and_digests.txt",
             {"image": IMAGE, "repo_digest": image_digest, "image_id": image_id},
         )
 
         docker_started = time.monotonic()
-        _run(
+        _docker(
+            docker_endpoint,
             [
-                "docker",
                 "network",
                 "create",
                 "--label",
@@ -1593,6 +2032,7 @@ def run_disposable_proof(
             ]
         )
         _create_container(
+            endpoint=docker_endpoint,
             name=source_container,
             network=network,
             run_id=run_id,
@@ -1601,6 +2041,7 @@ def run_disposable_proof(
             database=source_database,
         )
         _create_container(
+            endpoint=docker_endpoint,
             name=target_container,
             network=network,
             run_id=run_id,
@@ -1609,13 +2050,21 @@ def run_disposable_proof(
             database=target_database,
         )
         _wait_for_postgres(
-            source_container, source_username, source_database, secrets_to_mask
+            docker_endpoint,
+            source_container,
+            source_username,
+            source_database,
+            secrets_to_mask,
         )
         _wait_for_postgres(
-            target_container, target_username, target_database, secrets_to_mask
+            docker_endpoint,
+            target_container,
+            target_username,
+            target_database,
+            secrets_to_mask,
         )
-        source_port = _mapped_port(source_container)
-        target_port = _mapped_port(target_container)
+        source_port = _mapped_port(docker_endpoint, source_container)
+        target_port = _mapped_port(docker_endpoint, target_container)
         source_url = _database_url(
             source_username,
             source_password,
@@ -1650,7 +2099,9 @@ def run_disposable_proof(
         )
 
         client_versions = {
-            tool: _run(["docker", "exec", source_container, tool, "--version"]).stdout.strip()
+            tool: _docker(
+                docker_endpoint, ["exec", source_container, tool, "--version"]
+            ).stdout.strip()
             for tool in ("pg_dump", "pg_restore", "psql")
         }
         validate_client_versions(client_versions)
@@ -1662,6 +2113,8 @@ def run_disposable_proof(
         server_version_num, exact_server_version, version_text_early = early_version_rows[0]
         if str(server_version_num) != "160013" or "PostgreSQL 16.13" not in str(version_text_early):
             raise ProofError("PostgreSQL server exact version must be 16.13")
+        if verify_repository:
+            _assert_repository_unchanged(repository)
         repository_heads = _repository_heads()
         migration = _alembic(source_url, "upgrade", "head")
         if migration.returncode != 0:
@@ -1704,11 +2157,15 @@ def run_disposable_proof(
             source_username,
             source_database,
         ]
-        _docker_exec_pg(source_container, source_password, backup_command)
-        _run(["docker", "cp", f"{source_container}:{container_archive}", str(archive_path)])
+        _docker_exec_pg(docker_endpoint, source_container, source_password, backup_command)
+        _docker(
+            docker_endpoint,
+            ["cp", f"{source_container}:{container_archive}", str(archive_path)],
+        )
         _secure_path(archive_path, directory=False)
-        _run(
-            ["docker", "exec", source_container, "rm", "-f", container_archive],
+        _docker(
+            docker_endpoint,
+            ["exec", source_container, "rm", "-f", container_archive],
             check=False,
         )
         backup_seconds = time.monotonic() - backup_started
@@ -1733,8 +2190,12 @@ def run_disposable_proof(
         archive_sha = validate_artifact(archive_path)
         archive_size = archive_path.stat().st_size
         _verify_secure_path(archive_path, directory=False)
-        _run(["docker", "cp", str(archive_path), f"{target_container}:/tmp/{run_id}.dump"])
+        _docker(
+            docker_endpoint,
+            ["cp", str(archive_path), f"{target_container}:/tmp/{run_id}.dump"],
+        )
         catalog_result = _docker_exec_pg(
+            docker_endpoint,
             target_container,
             target_password,
             ["pg_restore", "--list", f"/tmp/{run_id}.dump"],
@@ -1769,7 +2230,7 @@ def run_disposable_proof(
         )
         restore_started = time.monotonic()
         restore_result = _docker_exec_pg(
-            target_container, target_password, restore_command
+            docker_endpoint, target_container, target_password, restore_command
         )
         restore_seconds = time.monotonic() - restore_started
         if restore_result.returncode != 0:
@@ -1788,6 +2249,7 @@ def run_disposable_proof(
         comparisons = _compare_snapshots(source_snapshot, target_snapshot, repository_head)
         fail_closed_matrix = (
             _run_fail_closed_matrix(
+                docker_endpoint=docker_endpoint,
                 source_url=source_url,
                 target_url=target_url,
                 source_container=source_container,
@@ -1854,8 +2316,10 @@ def run_disposable_proof(
             "timestamps_utc": {
                 "completed": datetime.now(UTC).isoformat().replace("+00:00", "Z")
             },
-            "base_git_sha": base_sha,
-            "branch": branch,
+            "current_git_sha": repository.current_git_sha,
+            "current_branch": repository.current_branch,
+            "remote_main_sha": repository.remote_main_sha,
+            "repository_clean": repository.repository_clean,
             "postgresql_server_version": str(server_version),
             "postgresql_version_text": str(version_text),
             "encoding": str(encoding),
@@ -1939,7 +2403,6 @@ def run_disposable_proof(
                 "object_counts": final_target_snapshot.catalog_counts,
             },
         )
-        _write_json(evidence_dir / "24_pii_guard.json", final_target_snapshot.pii_guard)
         _write_json(
             evidence_dir / "25_timings_and_throughput.json",
             {
@@ -1962,6 +2425,18 @@ def run_disposable_proof(
             f"Encryption capability: {encryption['status']}.\n\n"
             "Synthetic P5B timing does not establish production RTO.\n",
         )
+        if verify_repository:
+            _assert_repository_unchanged(repository)
+        evidence_secret_scan = _scan_generated_evidence(
+            evidence_dir, ephemeral_secrets=(source_password, target_password)
+        )
+        pii_guard_for_finalization = {
+            "status": "PASS",
+            "source_actual_values": source_snapshot.pii_guard,
+            "restored_actual_values": final_target_snapshot.pii_guard,
+            "generated_evidence": evidence_secret_scan,
+        }
+        _write_json(evidence_dir / "24_pii_guard.json", pii_guard_for_finalization)
         proof_result = ProofResult(
             run_id=run_id,
             evidence_dir=str(evidence_dir),
@@ -1988,9 +2463,24 @@ def run_disposable_proof(
         )
     finally:
         cleanup = _cleanup_resources(
-            run_id, (source_container, target_container), network
+            docker_endpoint, run_id, (source_container, target_container), network
         )
         _write_json(evidence_dir / "28_cleanup.txt", cleanup)
+        if failure is None and pii_guard_for_finalization is not None:
+            try:
+                if verify_repository:
+                    _assert_repository_unchanged(repository)
+                pii_guard_for_finalization["generated_evidence"] = (
+                    _scan_generated_evidence(
+                        evidence_dir,
+                        ephemeral_secrets=(source_password, target_password),
+                    )
+                )
+                _write_json(
+                    evidence_dir / "24_pii_guard.json", pii_guard_for_finalization
+                )
+            except Exception as exc:
+                failure = exc
         final_pass = cleanup["status"] == "PASS" and failure is None
         if manifest_for_finalization is not None:
             manifest_for_finalization["proof_status"] = "PASS" if final_pass else "FAILED"

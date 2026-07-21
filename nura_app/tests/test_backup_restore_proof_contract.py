@@ -144,12 +144,183 @@ def test_acknowledgement_flag_is_required(tmp_path: Path) -> None:
     assert proof.main(["--evidence-dir", str(tmp_path / "evidence")]) == 2
 
 
-def test_porcelain_paths_expand_untracked_files_without_git_quoting() -> None:
-    status = " M docs/README.md\0?? docs/operations/backup-restore.md\0"
-    assert proof._porcelain_changed_paths(status) == {
-        "docs/README.md",
-        "docs/operations/backup-restore.md",
-    }
+@pytest.mark.parametrize("status", [" M tracked.py\0", "?? untracked.txt\0"])
+def test_repository_preflight_rejects_any_dirty_state(status: str) -> None:
+    with pytest.raises(proof.ProofError, match="completely clean"):
+        proof._validate_repository_state(
+            status=status,
+            head="a" * 40,
+            branch="feature",
+            remote="b" * 40,
+            remote_is_ancestor=True,
+        )
+
+
+def test_repository_preflight_accepts_main_only_at_remote_head() -> None:
+    state = proof._validate_repository_state(
+        status="",
+        head="a" * 40,
+        branch="main",
+        remote="a" * 40,
+        remote_is_ancestor=True,
+    )
+    assert state.repository_clean is True
+    with pytest.raises(proof.ProofError, match="exactly match"):
+        proof._validate_repository_state(
+            status="",
+            head="a" * 40,
+            branch="main",
+            remote="b" * 40,
+            remote_is_ancestor=True,
+        )
+
+
+def test_repository_preflight_accepts_clean_feature_descendant() -> None:
+    state = proof._validate_repository_state(
+        status="",
+        head="a" * 40,
+        branch="any-feature-name",
+        remote="b" * 40,
+        remote_is_ancestor=True,
+    )
+    assert state.current_branch == "any-feature-name"
+
+
+def test_repository_preflight_rejects_detached_and_stale_feature() -> None:
+    with pytest.raises(proof.ProofError, match="Detached"):
+        proof._validate_repository_state(
+            status="",
+            head="a" * 40,
+            branch="",
+            remote="b" * 40,
+            remote_is_ancestor=False,
+        )
+
+
+def test_repository_binding_rejects_post_preflight_drift() -> None:
+    expected = proof.RepositoryState("a" * 40, "feature", "b" * 40, True)
+    actual = proof.RepositoryState("c" * 40, "feature", "b" * 40, True)
+    with pytest.raises(proof.ProofError, match="drifted"):
+        proof._assert_repository_binding(expected, actual)
+    with pytest.raises(proof.ProofError, match="contain"):
+        proof._validate_repository_state(
+            status="",
+            head="a" * 40,
+            branch="feature",
+            remote="b" * 40,
+            remote_is_ancestor=False,
+        )
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "unix:///var/run/docker.sock",
+        "npipe:////./pipe/docker_engine",
+        "tcp://127.0.0.1:2375",
+        "tcp://localhost:2375",
+        "tcp://[::1]:2375",
+    ],
+)
+def test_local_docker_endpoints_are_accepted(endpoint: str) -> None:
+    assert proof._validate_local_docker_endpoint("default", endpoint).endpoint == endpoint
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "ssh://host/docker",
+        "tcp://remote-host:2375",
+        "tcp://10.0.0.1:2375",
+        "http://127.0.0.1:2375",
+        "https://host:2376",
+        "npipe:////remote-host/pipe/docker_engine",
+        "npipe://remote-host/pipe/docker_engine",
+        "not-an-endpoint",
+    ],
+)
+def test_remote_or_unapproved_docker_endpoints_are_rejected(endpoint: str) -> None:
+    with pytest.raises(proof.ProofError):
+        proof._validate_local_docker_endpoint("default", endpoint)
+
+
+def test_rejected_docker_endpoint_runs_no_mutating_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(command: list[str], **_kwargs) -> proof.CommandResult:
+        commands.append(tuple(command))
+        output = "default\n" if command[-2:] == ["context", "show"] else '"ssh://remote/docker"\n'
+        return proof.CommandResult(tuple(command), 0, output, "", 0.0)
+
+    monkeypatch.delenv("DOCKER_CONTEXT", raising=False)
+    monkeypatch.delenv("DOCKER_HOST", raising=False)
+    monkeypatch.setattr(proof, "_run", fake_run)
+    with pytest.raises(proof.ProofError):
+        proof._docker_endpoint_preflight(tmp_path)
+    assert all("create" not in command and "run" not in command for command in commands)
+
+
+def test_docker_context_inspection_failure_is_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fake_run(command: list[str], **_kwargs) -> proof.CommandResult:
+        if command[-2:] == ["context", "show"]:
+            return proof.CommandResult(tuple(command), 0, "default\n", "", 0.0)
+        raise proof.ProofError("inspection failed")
+
+    monkeypatch.delenv("DOCKER_CONTEXT", raising=False)
+    monkeypatch.delenv("DOCKER_HOST", raising=False)
+    monkeypatch.setattr(proof, "_run", fake_run)
+    with pytest.raises(proof.ProofError, match="inspection failed"):
+        proof._docker_endpoint_preflight(tmp_path)
+
+
+def test_nested_actual_value_marker_is_rejected() -> None:
+    hits = proof._actual_value_hits(
+        "ai_analysis",
+        {"safe": [{"nested": "protected_production_database_marker"}]},
+    )
+    assert hits["production_marker_or_domain"] == 1
+
+
+@pytest.mark.parametrize(
+    ("column", "value"),
+    [
+        ("web_session_id", "protected_session_value_0123456789"),
+        ("ai_analysis", {"password": "protected_password_value"}),
+        ("ai_analysis", {"nested": [{"client_secret": "protected_secret_value"}]}),
+        ("ai_analysis", {"refresh_token": "protected_refresh_value"}),
+        ("ai_analysis", {"secret_key": "protected_secret_key_value"}),
+        ("ai_analysis", {"authorization": "Basic protected-value"}),
+    ],
+)
+def test_actual_value_guard_rejects_credential_fields(
+    column: str, value: object
+) -> None:
+    hits = proof._actual_value_hits(column, value)
+    assert hits["credential_or_private_key"] > 0
+
+
+def test_normal_nested_synthetic_value_passes() -> None:
+    assert not any(
+        proof._actual_value_hits(
+            "ai_analysis", {"safe": ["synthetic_result", "user@example.invalid"]}
+        ).values()
+    )
+
+
+def test_generated_evidence_scan_includes_artifacts_and_rejects_secret(
+    tmp_path: Path,
+) -> None:
+    artifacts = tmp_path / "artifacts"
+    artifacts.mkdir()
+    (artifacts / "synthetic.bin").write_bytes(b"prefix ephemeral-test-password suffix")
+    with pytest.raises(proof.ProofError, match="known_ephemeral_secret"):
+        proof._scan_generated_evidence(
+            tmp_path, ephemeral_secrets=("ephemeral-test-password",)
+        )
 
 
 def test_command_result_never_retains_a_secret_in_argv() -> None:
@@ -259,10 +430,11 @@ def test_cleanup_continues_after_independent_inspection_failure(
         return proof.CommandResult(tuple(command), 1, "", "", 0.0)
 
     monkeypatch.setattr(proof, "_run", fake_run)
-    result = proof._cleanup_resources("p5b_000000000000", ("source", "target"), "network")
+    endpoint = proof.DockerEndpoint("default", "npipe:////./pipe/docker_engine", "npipe:////./pipe/docker_engine", "npipe")
+    result = proof._cleanup_resources(endpoint, "p5b_000000000000", ("source", "target"), "network")
     assert result["status"] == "FAIL"
-    assert any(command[:3] == ("docker", "network", "inspect") for command in commands)
-    assert any(command[:3] == ("docker", "network", "ls") for command in commands)
+    assert any("inspect" in command and "network" in command for command in commands)
+    assert any("ls" in command and "network" in command for command in commands)
 
 
 def test_cleanup_never_passes_when_docker_returns_nonzero(
@@ -272,7 +444,8 @@ def test_cleanup_never_passes_when_docker_returns_nonzero(
         return proof.CommandResult(tuple(command), 1, "", "daemon unavailable", 0.0)
 
     monkeypatch.setattr(proof, "_run", fake_run)
-    result = proof._cleanup_resources("p5b_000000000000", ("source", "target"), "network")
+    endpoint = proof.DockerEndpoint("default", "npipe:////./pipe/docker_engine", "npipe:////./pipe/docker_engine", "npipe")
+    result = proof._cleanup_resources(endpoint, "p5b_000000000000", ("source", "target"), "network")
     assert result["status"] == "FAIL"
     assert result["errors"]
 
@@ -303,3 +476,5 @@ def test_runner_has_no_unsafe_production_or_cleanup_paths() -> None:
     assert "docker-compose" not in lowered
     assert "core.config" not in lowered
     assert "env_file" not in lowered
+    assert "codex/p5b-backup-restore-proof" not in source
+    assert "63b75c39faedd57f7882edf7e8e54bb678abb17e" not in source

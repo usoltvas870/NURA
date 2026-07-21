@@ -21,6 +21,22 @@ cookies, and other PII are prohibited. The runner does not read `.env` or
 application runtime settings and does not start API, bot, worker, beat, or
 admin services.
 
+Before Docker inspection, pull, or mutation, the runner requires a completely
+clean committed worktree and resolves the actual HEAD, branch, and
+`origin/main`. Local `main` must equal remote main; a named feature branch must
+contain the remote-main commit; detached HEAD is rejected. There is no
+PR-specific branch or SHA constant. The integration-only repository bypass is
+not exposed by the CLI. The captured repository binding is rechecked before
+Docker mutation, before repository migrations/fixtures are read, and before
+finalization; any HEAD, branch, remote-main, or cleanliness drift fails closed.
+
+The active Docker context and its endpoint are inspected before any daemon
+operation. Only Unix sockets, Windows named pipes, and loopback-IP TCP
+endpoints are accepted. SSH, HTTP(S), non-loopback TCP, credentials, and
+ambiguous `DOCKER_CONTEXT`/`DOCKER_HOST` overrides fail closed. Every subsequent
+Docker command is pinned to the verified endpoint with inherited Docker
+endpoint variables removed.
+
 ## Backup contract
 
 The source schema is created only by a normal `alembic upgrade head` against a
@@ -76,7 +92,12 @@ downgrade are not used. A PASS requires all of the following:
 - sequence-state equality;
 - validated constraints and valid/ready indexes;
 - no unexpected public application objects;
-- synthetic PII and production-marker guards;
+- recursive actual-value scans of every application table, column, row, JSON
+  object, and array in both source and restored target;
+- example.invalid-only emails, no phone-like values, no credential/private-key
+  patterns, no production markers/domains, and synthetic external identifiers;
+- a final generated-evidence scan for ephemeral passwords, private key
+  material, and unredacted database DSNs before PASS;
 - measured backup, restore, verification, total, startup, and throughput data;
 - successful cleanup of the exact labeled containers and network.
 
@@ -96,14 +117,20 @@ row order is never used.
 Unit contracts reject production-like identifiers, source/target collisions,
 remote hosts, missing or empty archives, checksum drift, invalid manifests,
 wrong client major versions, non-empty targets, revision/fingerprint drift, and
-fixture-checksum drift.
+fixture-checksum drift. Repository contracts cover dirty tracked and untracked
+files, stale main, detached HEAD, and feature ancestry. Docker contracts accept
+only local socket/named-pipe/loopback TCP endpoints and prove that a rejected or
+uninspectable endpoint triggers no mutating command.
 
 The PostgreSQL integration proof additionally demonstrates rejection or
 detection of a corrupted archive, a non-empty target, an unexpected synthetic
 application transaction, row-count drift, deterministic data-checksum drift,
 sequence drift, and source/target identity collision. The synthetic session
 used by the quiescence negative test closes itself; the runner never terminates
-database sessions.
+database sessions. It also injects a prohibited marker into a previously
+unchecked nested JSON value independently in the source and restored target,
+proves rejection, restores the clean synthetic fixture value, and verifies the
+normal fixture still passes.
 
 ## Local invocation
 
