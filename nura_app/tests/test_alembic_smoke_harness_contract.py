@@ -1,0 +1,215 @@
+"""Static contracts for portable disposable PostgreSQL smoke tooling."""
+
+from __future__ import annotations
+
+import importlib.util
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+NURA_APP_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = NURA_APP_ROOT.parent
+TOOLS_ROOT = NURA_APP_ROOT / "tools"
+BOOTSTRAP_PATH = TOOLS_ROOT / "alembic_postgres_bootstrap_smoke.py"
+FK_PATH = TOOLS_ROOT / "alembic_fk_normalization_smoke.py"
+RUNNER_PATH = TOOLS_ROOT / "run_alembic_postgres_smoke.py"
+HARNESS_PATHS = (BOOTSTRAP_PATH, FK_PATH)
+ALLOWLIST = {
+    "nura_app/tools/alembic_postgres_bootstrap_smoke.py",
+    "nura_app/tools/alembic_fk_normalization_smoke.py",
+    "nura_app/tools/run_alembic_postgres_smoke.py",
+    "nura_app/tests/test_alembic_smoke_harness_contract.py",
+}
+
+
+def _load(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="module")
+def bootstrap():
+    return _load(BOOTSTRAP_PATH, "portable_bootstrap_smoke")
+
+
+@pytest.fixture(scope="module")
+def fk():
+    return _load(FK_PATH, "portable_fk_smoke")
+
+
+@pytest.fixture(scope="module")
+def runner():
+    return _load(RUNNER_PATH, "portable_smoke_runner")
+
+
+def test_harnesses_have_no_stale_worktree_or_docker_sql() -> None:
+    for path in HARNESS_PATHS:
+        source = path.read_text(encoding="utf-8")
+        assert r"C:\tmp\nura-closed-beta-hardening" not in source
+        assert "docker exec" not in source.lower()
+        assert "nura_smoke_bootstrap" not in source
+        assert "nura_fk_smoke" not in source
+        assert "psycopg2.connect(_URL)" in source
+
+
+def test_roots_are_derived_from_resolved_file(bootstrap, fk) -> None:
+    for module in (bootstrap, fk):
+        assert module.REPO_ROOT == REPO_ROOT
+        assert module.NURA_APP_ROOT == NURA_APP_ROOT
+        source = Path(module.__file__).read_text(encoding="utf-8")
+        assert "Path(__file__).resolve()" in source
+
+
+def test_harness_import_is_independent_of_current_directory(tmp_path: Path) -> None:
+    for path in HARNESS_PATHS:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "import importlib.util;"
+                    f"p=r'{path}';"
+                    "s=importlib.util.spec_from_file_location('portable',p);"
+                    "m=importlib.util.module_from_spec(s);s.loader.exec_module(m);"
+                    "print(m.REPO_ROOT)"
+                ),
+            ],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert Path(result.stdout.strip()) == REPO_ROOT
+
+
+def test_revision_constants(bootstrap, fk) -> None:
+    assert bootstrap.EXPECTED_BASE == "0001a2b3c4d5e6"
+    assert bootstrap.PREVIOUS_HEAD == "b9c0d1e2f3a4"
+    assert bootstrap.EXPECTED_HEAD == "c0d1e2f3a4b5"
+    assert fk.PREVIOUS_HEAD == "b9c0d1e2f3a4"
+    assert fk.EXPECTED_HEAD == "c0d1e2f3a4b5"
+
+
+def test_structured_contract_helpers_reject_drift(bootstrap) -> None:
+    rows = [("id", "uuid", "NO"), ("name", "character varying", "YES")]
+    assert bootstrap._column_contract(rows) == {
+        "id": ("uuid", "NO"),
+        "name": ("character varying", "YES"),
+    }
+    assert bootstrap._column_contract(rows) != {
+        "id": ("character varying", "NO"),
+        "name": ("uuid", "YES"),
+    }
+    valid_backfill = [("legacy_unlinked", "completed", object(), None, 0)]
+    assert bootstrap._legacy_backfill_matches(valid_backfill)
+    assert not bootstrap._legacy_backfill_matches(
+        [("legacy_unlinked", "completed", object(), "payment-id", 0)]
+    )
+    assert not bootstrap._legacy_backfill_matches(
+        [("legacy_unlinked", "completed", object(), None, 10)]
+    )
+
+
+def test_bootstrap_does_not_describe_previous_revision_as_current_head() -> None:
+    source = BOOTSTRAP_PATH.read_text(encoding="utf-8")
+    forbidden = (
+        "Current is b9c0d1e2f3a4",
+        "Single head b9c0d1e2f3a4",
+        'stamp", "b9c0d1e2f3a4',
+    )
+    assert all(value not in source for value in forbidden)
+
+
+def test_runner_contract(runner) -> None:
+    source = RUNNER_PATH.read_text(encoding="utf-8")
+    assert runner.IMAGE == "postgres:16-alpine"
+    assert "127.0.0.1::5432" in source
+    assert 'container_name = f"nura-alembic-smoke-{suffix}"' in source
+    assert "secrets.token_hex" in source
+    assert "secrets.token_urlsafe" in source
+    assert '["docker", "rm", "-f", "-v", container_name]' in source
+    assert "docker prune" not in source.lower()
+    assert "system prune" not in source.lower()
+    assert "alembic_postgres_bootstrap_smoke.py" in source
+    assert "alembic_fk_normalization_smoke.py" in source
+
+
+def test_runner_masks_credentials(runner) -> None:
+    url = "postgresql://user:secret@127.0.0.1:12345/database"
+    masked = runner._sanitize(url, ("user", "secret", "database", url))
+    assert url not in masked
+    assert "secret" not in masked
+    assert "postgresql://***/***" in masked
+
+
+def test_child_environments_exclude_production_values(
+    bootstrap, fk, runner, monkeypatch
+) -> None:
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("YOOKASSA_SECRET_KEY", "poison-secret")
+    bootstrap._URL = "postgresql://user:pass@127.0.0.1/database"
+    fk._URL = bootstrap._URL
+    for env in (
+        bootstrap._child_env(),
+        fk._child_env(),
+        runner._child_env(bootstrap._URL),
+    ):
+        assert env["APP_ENV"] == "test"
+        assert env["DATABASE_URL"] == bootstrap._URL
+        assert "YOOKASSA_SECRET_KEY" not in env
+
+
+def test_dotenv_source_is_disabled(tmp_path: Path, bootstrap) -> None:
+    poison = tmp_path / ".env"
+    poison.write_text("SMOKE_SENTINEL=poison\n", encoding="utf-8")
+    script = """
+from pydantic_settings import BaseSettings
+from pydantic_settings.sources import DotEnvSettingsSource
+DotEnvSettingsSource.__call__ = lambda self: {}
+class SmokeSettings(BaseSettings):
+    smoke_sentinel: str = "safe"
+    model_config = {"env_file": ".env"}
+print(SmokeSettings().smoke_sentinel)
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=tmp_path,
+        env=bootstrap._child_env(),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert result.stdout.strip() == "safe"
+
+
+def test_no_production_stamp_guidance() -> None:
+    for path in (*HARNESS_PATHS, RUNNER_PATH):
+        source = path.read_text(encoding="utf-8").lower()
+        assert "stamp production" not in source
+        assert "production stamp" not in source
+
+
+def test_worktree_diff_stays_inside_allowlist() -> None:
+    result = subprocess.run(
+        ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    changed = set()
+    for line in result.stdout.splitlines():
+        path = line[3:]
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        changed.add(path.replace("\\", "/").strip('"'))
+    assert changed <= ALLOWLIST
+    assert not any(
+        path.startswith("nura_app/alembic/") or path == "nura_app/core/models.py"
+        for path in changed
+    )
