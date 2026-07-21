@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import load_only
 
 from core.config import settings
+from core.celery_async import run_celery_async as _run_async
 from core.database import get_async_sessionmaker, get_redis
 from core.models import ReportType, User
 from core.repositories import ReportRepository, UserRepository
@@ -112,16 +113,6 @@ celery_app.conf.beat_schedule = {
         },
     },
 }
-
-
-def _run_async(coro) -> dict:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(coro)
-    finally:
-        loop.close()
-
 
 async def _send_message(
     telegram_id: int,
