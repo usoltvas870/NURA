@@ -101,6 +101,7 @@ def upgrade() -> None:
         op.alter_column(
             table_name,
             column_name,
+            schema="public",
             server_default=sa.text(f"'{expected}'"),
         )
 

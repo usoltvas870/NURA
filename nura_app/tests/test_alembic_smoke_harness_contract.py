@@ -198,6 +198,13 @@ def test_child_environments_exclude_production_values(
         assert "YOOKASSA_SECRET_KEY" not in env
 
 
+def test_shadow_search_path_is_scoped_to_reconciliation_upgrade(reconciliation) -> None:
+    base_env = reconciliation._child_env()
+    shadow_env = reconciliation._shadow_search_path_env()
+    assert "PGOPTIONS" not in base_env
+    assert shadow_env["PGOPTIONS"] == "-c search_path=p43d_shadow,public"
+
+
 def test_dotenv_source_is_disabled(tmp_path: Path, bootstrap) -> None:
     poison = tmp_path / ".env"
     poison.write_text("SMOKE_SENTINEL=poison\n", encoding="utf-8")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 from pathlib import Path
 
@@ -64,6 +65,28 @@ def test_migration_contains_no_dml_or_destructive_column_operations() -> None:
     assert "set local lock_timeout = '2s'" in source
     assert "set local statement_timeout = '20s'" in source
     assert source.count("op.alter_column") == 1
+
+
+def test_default_alter_is_explicitly_qualified_to_public_schema() -> None:
+    tree = ast.parse(MIGRATION_PATH.read_text(encoding="utf-8"))
+    alter_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "op"
+        and node.func.attr == "alter_column"
+    ]
+    assert len(alter_calls) == 1
+    schema_keywords = [
+        keyword.value
+        for keyword in alter_calls[0].keywords
+        if keyword.arg == "schema"
+    ]
+    assert len(schema_keywords) == 1
+    assert isinstance(schema_keywords[0], ast.Constant)
+    assert schema_keywords[0].value == "public"
 
 
 def test_model_metadata_has_canonical_server_defaults() -> None:

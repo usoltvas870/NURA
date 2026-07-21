@@ -23,6 +23,7 @@ NURA_APP_ROOT = REPO_ROOT / "nura_app"
 PRODUCTION_REVISION = "d5e6f7a8b9c0"
 FK_NORMALIZATION_HEAD = "c0d1e2f3a4b5"
 EXPECTED_HEAD = "d1e2f3a4b5c6"
+SHADOW_SCHEMA = "p43d_shadow"
 PRODUCTION_SCHEMA_FINGERPRINT = (
     "6b4d42974f1b0d4538e22d90f310c42fb2ffaa417ccbe7dd2e1d16802c41ab87"
 )
@@ -112,11 +113,13 @@ def _sanitize(text: str) -> str:
     return re.sub(r"password=[^\s&\"']+", "password=***", text, flags=re.I)
 
 
-def _alembic(*args: str) -> subprocess.CompletedProcess[str]:
+def _alembic(
+    *args: str, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-c", _ALEMBIC_LAUNCHER, *args],
         cwd=NURA_APP_ROOT,
-        env=_child_env(),
+        env=env or _child_env(),
         capture_output=True,
         text=True,
     )
@@ -182,6 +185,48 @@ def _defaults_are_canonical(defaults: dict[str, str | None]) -> bool:
         }:
             return False
     return True
+
+
+def _shadow_defaults() -> dict[str, str | None]:
+    _, rows = _query(
+        "SELECT c.relname, a.attname, pg_get_expr(d.adbin, d.adrelid) "
+        "FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace "
+        "JOIN pg_attribute a ON a.attrelid=c.oid "
+        "LEFT JOIN pg_attrdef d ON d.adrelid=c.oid AND d.adnum=a.attnum "
+        "WHERE n.nspname=%s AND (c.relname, a.attname) IN "
+        "(('users','subscription_status'),('reports','report_type'),('payments','status')) "
+        "AND a.attnum > 0 AND NOT a.attisdropped ORDER BY c.relname, a.attname",
+        (SHADOW_SCHEMA,),
+    )
+    return {f"{table}.{column}": expression for table, column, expression in rows}
+
+
+def _shadow_column_contract() -> list[tuple[str, str, str, str]]:
+    _, rows = _query(
+        "SELECT table_name, column_name, data_type, is_nullable "
+        "FROM information_schema.columns WHERE table_schema=%s "
+        "AND (table_name, column_name) IN "
+        "(('users','subscription_status'),('reports','report_type'),('payments','status')) "
+        "ORDER BY table_name, column_name",
+        (SHADOW_SCHEMA,),
+    )
+    return rows
+
+
+def _shadow_objects() -> list[tuple[str, str]]:
+    _, rows = _query(
+        "SELECT relkind, relname FROM pg_class c "
+        "JOIN pg_namespace n ON n.oid=c.relnamespace "
+        "WHERE n.nspname=%s ORDER BY relkind, relname",
+        (SHADOW_SCHEMA,),
+    )
+    return rows
+
+
+def _shadow_search_path_env() -> dict[str, str]:
+    env = _child_env()
+    env["PGOPTIONS"] = f"-c search_path={SHADOW_SCHEMA},public"
+    return env
 
 
 def _csv_value(value: object) -> str:
@@ -354,6 +399,69 @@ def _scenario_canonical_and_downgrade() -> None:
     _check("Re-upgrade preserves defaults", _default_expressions() == before)
 
 
+def _scenario_shadow_search_path() -> dict[str, object]:
+    print("\n--- RECONCILE-SHADOW-SEARCH-PATH: schema-qualified ALTER ---")
+    _reset_schema()
+    _check(
+        "Shadow scenario canonical c0 setup succeeds",
+        _alembic("upgrade", FK_NORMALIZATION_HEAD).returncode == 0,
+    )
+    _execute("ALTER TABLE public.users ALTER COLUMN subscription_status DROP DEFAULT")
+    _execute("ALTER TABLE public.reports ALTER COLUMN report_type DROP DEFAULT")
+    _execute("ALTER TABLE public.payments ALTER COLUMN status DROP DEFAULT")
+    _execute(f"CREATE SCHEMA {SHADOW_SCHEMA}")
+    for table_name, column_name, sentinel in (
+        ("users", "subscription_status", "shadow_free"),
+        ("reports", "report_type", "shadow_mini"),
+        ("payments", "status", "shadow_pending"),
+    ):
+        _execute(
+            f"CREATE TABLE {SHADOW_SCHEMA}.{table_name} "
+            f"({column_name} VARCHAR(20) NOT NULL DEFAULT '{sentinel}')"
+        )
+
+    public_before = _default_expressions()
+    shadow_before = _shadow_defaults()
+    shadow_contract_before = _shadow_column_contract()
+    shadow_objects_before = _shadow_objects()
+    result = _alembic("upgrade", EXPECTED_HEAD, env=_shadow_search_path_env())
+    public_after = _default_expressions()
+    shadow_after = _shadow_defaults()
+    shadow_contract_after = _shadow_column_contract()
+    shadow_objects_after = _shadow_objects()
+
+    expected_shadow = {
+        "users.subscription_status": "'shadow_free'::character varying",
+        "reports.report_type": "'shadow_mini'::character varying",
+        "payments.status": "'shadow_pending'::character varying",
+    }
+    expected_contract = [
+        ("payments", "status", "character varying", "NO"),
+        ("reports", "report_type", "character varying", "NO"),
+        ("users", "subscription_status", "character varying", "NO"),
+    ]
+    expected_objects = [("r", "payments"), ("r", "reports"), ("r", "users")]
+    _check("Shadow search_path c0 to d1 succeeds", result.returncode == 0)
+    _check("Shadow search_path records d1", _current_revision() == EXPECTED_HEAD)
+    _check("Shadow search_path restores public defaults", _defaults_are_canonical(public_after), str(public_after))
+    _check("Shadow sentinel defaults unchanged", shadow_before == expected_shadow and shadow_after == expected_shadow, str(shadow_after))
+    _check("Shadow column contracts unchanged", shadow_contract_before == expected_contract and shadow_contract_after == expected_contract, str(shadow_contract_after))
+    _check("No additional shadow objects created", shadow_objects_before == expected_objects and shadow_objects_after == expected_objects, str(shadow_objects_after))
+    return {
+        "scenario": "RECONCILE-SHADOW-SEARCH-PATH",
+        "search_path": f"{SHADOW_SCHEMA},public",
+        "revision": _current_revision(),
+        "public_defaults_before": public_before,
+        "public_defaults_after": public_after,
+        "shadow_defaults_before": shadow_before,
+        "shadow_defaults_after": shadow_after,
+        "shadow_column_contract_before": shadow_contract_before,
+        "shadow_column_contract_after": shadow_contract_after,
+        "shadow_objects_before": shadow_objects_before,
+        "shadow_objects_after": shadow_objects_after,
+    }
+
+
 def _negative(name: str, mutation_sql: str) -> None:
     print(f"\n--- {name} ---")
     _reset_schema()
@@ -375,7 +483,9 @@ def _negative(name: str, mutation_sql: str) -> None:
     _check(f"{name}: no partial default changes", outcome["defaults_unchanged"] is True)
 
 
-def _write_evidence(before: dict[str, object], after: dict[str, object]) -> None:
+def _write_evidence(
+    before: dict[str, object], after: dict[str, object], shadow: dict[str, object]
+) -> None:
     raw_dir = os.environ.get("RECONCILIATION_EVIDENCE_DIR", "").strip()
     if not raw_dir:
         return
@@ -385,6 +495,7 @@ def _write_evidence(before: dict[str, object], after: dict[str, object]) -> None
         ("schema-before.json", before),
         ("schema-after.json", after),
         ("negative-scenarios.json", _NEGATIVE_RESULTS),
+        ("shadow-schema-scenario.json", shadow),
     ):
         (evidence_dir / name).write_text(
             json.dumps(value, indent=2, sort_keys=True, default=str) + "\n",
@@ -408,6 +519,7 @@ def main() -> int:
     try:
         before, after = _scenario_production_d5()
         _scenario_canonical_and_downgrade()
+        shadow = _scenario_shadow_search_path()
         negative_scenarios = (
             ("RECONCILE-NEG-01 unexpected users default", "ALTER TABLE users ALTER COLUMN subscription_status SET DEFAULT 'paid'"),
             ("RECONCILE-NEG-02 unexpected reports default", "ALTER TABLE reports ALTER COLUMN report_type SET DEFAULT 'full'"),
@@ -423,7 +535,7 @@ def main() -> int:
         )
         for name, mutation in negative_scenarios:
             _negative(name, mutation)
-        _write_evidence(before, after)
+        _write_evidence(before, after, shadow)
     except Exception as exc:
         print(f"FATAL: {_sanitize(str(exc))}", file=sys.stderr)
         return 1
