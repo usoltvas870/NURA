@@ -189,6 +189,8 @@ def test_root_engine_has_one_audited_preapplied_migration_transition() -> None:
     assert "AUDITED_MIGRATION_REVISION='d1e2f3a4b5c6'" in script
     assert "NURA_PREAPPLIED_MIGRATION_REVISION" in script
     assert "NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA" in script
+    assert "NURA_AUDITED_ENGINE_HELPER_ROOT" in script
+    assert 'ARTIFACT_HELPER="$AUDITED_HELPER_ROOT/build_release_artifact.py"' in script
     assert "target_alembic_head" in script
     assert "SELECT version_num FROM alembic_version" in script
     assert 'RUN_MIGRATIONS: "0"' in script

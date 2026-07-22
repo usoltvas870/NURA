@@ -132,8 +132,22 @@ readonly CURRENT_LINK="$RELEASE_ROOT/current"
 readonly RELEASE_STATE_DIR="$STATE_ROOT/releases"
 readonly CURRENT_STATE="$STATE_ROOT/current.json"
 readonly PREVIOUS_STATE="$STATE_ROOT/previous.json"
-readonly ARTIFACT_HELPER="$REPO_ROOT/scripts/build_release_artifact.py"
-readonly STATIC_HELPER="$REPO_ROOT/scripts/deploy_static_release.py"
+if [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
+  [[ "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]] \
+    || fail "pinned helper root is only valid for the audited migration target"
+  [[ "${NURA_PREAPPLIED_MIGRATION_REVISION:-}" == "$AUDITED_MIGRATION_REVISION" ]] \
+    || fail "pinned helper root requires the audited migration revision"
+  [[ "${NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA:-0}" == 1 ]] \
+    || fail "pinned helper root requires backward-compatible schema acknowledgement"
+  readonly AUDITED_HELPER_ROOT="$(readlink -f "$NURA_AUDITED_ENGINE_HELPER_ROOT")"
+  [[ -d "$AUDITED_HELPER_ROOT" && ! -L "$NURA_AUDITED_ENGINE_HELPER_ROOT" ]] \
+    || fail "pinned helper root must be a real directory"
+  readonly ARTIFACT_HELPER="$AUDITED_HELPER_ROOT/build_release_artifact.py"
+  readonly STATIC_HELPER="$AUDITED_HELPER_ROOT/deploy_static_release.py"
+else
+  readonly ARTIFACT_HELPER="$REPO_ROOT/scripts/build_release_artifact.py"
+  readonly STATIC_HELPER="$REPO_ROOT/scripts/deploy_static_release.py"
+fi
 readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
 readonly IMAGE_TAG="nura-release:$TARGET_SHA"
 readonly SOURCE_LABEL="https://github.com/usoltvas870/NURA"
@@ -142,6 +156,8 @@ for command_name in git flock python3 node docker curl awk mktemp readlink find 
   require_command "$command_name"
 done
 [[ -d "$REPO_ROOT" && ! -L "$REPO_ROOT" ]] || fail "repository root must be a real directory"
+[[ -f "$ARTIFACT_HELPER" && ! -L "$ARTIFACT_HELPER" ]] || fail "artifact helper is missing or unsafe"
+[[ -f "$STATIC_HELPER" && ! -L "$STATIC_HELPER" ]] || fail "static helper is missing or unsafe"
 [[ -d "$RELEASE_ROOT" && ! -L "$RELEASE_ROOT" ]] || fail "release root is not prepared; run the separately approved host transition"
 [[ -d "$STATE_ROOT" && ! -L "$STATE_ROOT" ]] || fail "state root is not prepared; run the separately approved host transition"
 [[ -d "$ENABLED_NGINX_DIR" && ! -L "$ENABLED_NGINX_DIR" ]] || fail "Nginx enabled directory is invalid"
