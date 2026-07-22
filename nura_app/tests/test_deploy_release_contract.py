@@ -218,6 +218,7 @@ def test_audited_p6b_wrapper_reaches_exact_immutable_target() -> None:
     assert 'extract_blob scripts/deploy_static_release.py "$STATIC_HELPER_BLOB"' in source
     assert 'export NURA_AUDITED_ENGINE_HELPER_ROOT="$ENGINE_DIR"' in source
     assert "export PYTHONDONTWRITEBYTECODE=1" in source
+    assert 'export PYTHONPATH="$ENGINE_DIR${PYTHONPATH:+:$PYTHONPATH}"' in source
     assert "umask 077" in source
     assert "umask 022" in source
     assert source.index("umask 077") < source.index("extract_blob deploy.sh")
@@ -236,6 +237,37 @@ def test_audited_p6b_wrapper_reaches_exact_immutable_target() -> None:
     )
     assert result.returncode != 0
     assert "usage:" in result.stderr
+
+
+def test_audited_p6b_bundle_supports_inline_helper_import(tmp_path: Path) -> None:
+    engine_commit = "f8716a7ca08190255a58b42fa420ce6aacc793e7"
+    for source_path in (
+        "scripts/build_release_artifact.py",
+        "scripts/deploy_static_release.py",
+    ):
+        content = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "show", f"{engine_commit}:{source_path}"],
+            check=True,
+            capture_output=True,
+        ).stdout
+        (tmp_path / Path(source_path).name).write_bytes(content)
+
+    environment = {**os.environ, "PYTHONPATH": str(tmp_path), "PYTHONDONTWRITEBYTECODE": "1"}
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import importlib.util,sys;"
+            "s=importlib.util.spec_from_file_location('artifact',sys.argv[1]);"
+            "m=importlib.util.module_from_spec(s);s.loader.exec_module(m)",
+            str(tmp_path / "build_release_artifact.py"),
+        ],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_root_engine_uses_one_exact_image_and_verifies_all_five_services() -> None:
