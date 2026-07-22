@@ -83,6 +83,7 @@ def test_environment_editor_changes_only_permitted_keys_and_rolls_back(tmp_path:
     env = tmp_path / ".env"
     original = b"# preserve\nSECRET_KEY=not-printed\nAPP_ENV=development\nTEST_MODE=true\n"
     env.write_bytes(original)
+    original_mode = env.stat().st_mode & 0o777
     backup = tmp_path / "backup"
     p7b.edit_environment(env, backup, {"APP_ENV": "production", "TEST_MODE": "false"})
     assert env.read_bytes() == b"# preserve\nSECRET_KEY=not-printed\nAPP_ENV=production\nTEST_MODE=false\n"
@@ -94,7 +95,7 @@ def test_environment_editor_changes_only_permitted_keys_and_rolls_back(tmp_path:
             p7b.atomic_write(tmp_path / "mode-check", b"x")
         chmod.assert_not_called()
     else:
-        assert backup.stat().st_mode & 0o777 == 0o600
+        assert backup.stat().st_mode & 0o777 == original_mode
 
 
 @pytest.mark.parametrize("key", ["APP_ENV", "TEST_MODE"])
