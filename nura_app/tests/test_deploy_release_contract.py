@@ -217,6 +217,9 @@ def test_audited_p6b_wrapper_reaches_exact_immutable_target() -> None:
     assert 'extract_blob scripts/build_release_artifact.py "$ARTIFACT_HELPER_BLOB"' in source
     assert 'extract_blob scripts/deploy_static_release.py "$STATIC_HELPER_BLOB"' in source
     assert 'export NURA_AUDITED_ENGINE_HELPER_ROOT="$ENGINE_DIR"' in source
+    assert "export PYTHONDONTWRITEBYTECODE=1" in source
+    assert "local status=$?" in source
+    assert 'exit "$status"' in source
     assert '"$LAUNCHER_ROOT/deploy.sh"' not in source
     assert "alembic upgrade" not in source
     assert "alembic downgrade" not in source

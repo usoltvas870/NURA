@@ -21,8 +21,12 @@ umask 077
 readonly ENGINE_DIR="$(mktemp -d "${TMPDIR:-/var/tmp}/nura-p6b-engine.XXXXXX")"
 readonly ENGINE_FILE="$ENGINE_DIR/deploy.sh"
 cleanup() {
-  rm -f -- "$ENGINE_FILE" "$ENGINE_DIR/build_release_artifact.py" "$ENGINE_DIR/deploy_static_release.py"
-  rmdir -- "$ENGINE_DIR"
+  local status=$?
+  trap - EXIT
+  rm -f -- "$ENGINE_FILE" "$ENGINE_DIR/build_release_artifact.py" "$ENGINE_DIR/deploy_static_release.py" || true
+  rmdir -- "$ENGINE_DIR/__pycache__" 2>/dev/null || true
+  rmdir -- "$ENGINE_DIR" 2>/dev/null || true
+  exit "$status"
 }
 trap cleanup EXIT
 
@@ -42,5 +46,6 @@ extract_blob scripts/deploy_static_release.py "$STATIC_HELPER_BLOB" "$ENGINE_DIR
 export NURA_PREAPPLIED_MIGRATION_REVISION="$EXPECTED_REVISION"
 export NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA=1
 export NURA_AUDITED_ENGINE_HELPER_ROOT="$ENGINE_DIR"
+export PYTHONDONTWRITEBYTECODE=1
 
 bash "$ENGINE_FILE" deploy "$TARGET_SHA" "$1" "$2" "$3"

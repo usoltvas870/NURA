@@ -31,6 +31,7 @@ except ImportError:  # pragma: no cover - apply mode is Linux-host only
     fcntl = None  # type: ignore[assignment]
 
 EXPECTED_LEGACY_SHA = "d0d39ae8717ceb0920d98f27dd9092f746755c6c"
+SCRIPT_DIR = Path(__file__).resolve().parent
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 LEGACY_VERSION_PATTERN = re.compile(
     rf"^(?P<sha>{EXPECTED_LEGACY_SHA}) - "
@@ -236,7 +237,7 @@ def _build_legacy_artifact(repo_root: Path, artifact_dir: Path) -> tuple[Path, P
         _run("git", "-C", str(checkout), "checkout", "--quiet", "--detach", EXPECTED_LEGACY_SHA)
         _run(
             sys.executable,
-            str(repo_root / "scripts" / "build_release_artifact.py"),
+            str(SCRIPT_DIR / "build_release_artifact.py"),
             "build",
             "--repo-root",
             str(checkout),
@@ -671,7 +672,7 @@ def _prepare_legacy_release(
             "s=importlib.util.spec_from_file_location('artifact',sys.argv[1]);"
             "m=importlib.util.module_from_spec(s);s.loader.exec_module(m);"
             "m.verify_release_directory(pathlib.Path(sys.argv[2]),json.load(open(sys.argv[3],encoding='utf-8')))",
-            str(args.repo_root / "scripts" / "build_release_artifact.py"),
+            str(SCRIPT_DIR / "build_release_artifact.py"),
             str(final),
             str(manifest),
         )
@@ -683,7 +684,7 @@ def _prepare_legacy_release(
     )
     _run(
         "python3",
-        str(args.repo_root / "scripts" / "build_release_artifact.py"),
+        str(SCRIPT_DIR / "build_release_artifact.py"),
         "extract",
         "--archive",
         str(archive),
@@ -704,7 +705,7 @@ def _finalize_prepared_release(args: argparse.Namespace, prepared: PreparedLegac
         return prepared.final_path
     output = _run(
         "python3",
-        str(args.repo_root / "scripts" / "build_release_artifact.py"),
+        str(SCRIPT_DIR / "build_release_artifact.py"),
         "finalize",
         "--staging",
         str(prepared.staging_path),
