@@ -42,6 +42,16 @@ REQUIRED_PUBLIC_FILES = frozenset(
         VERSION_MEMBER,
     }
 )
+LEGACY_D0_REQUIRED_PUBLIC_FILES = frozenset(
+    {
+        "public/index.html",
+        "public/service-worker.js",
+        "public/manifest.json",
+        "public/offline.html",
+        "public/app/index.html",
+        VERSION_MEMBER,
+    }
+)
 
 
 class ArtifactContractError(RuntimeError):
@@ -104,7 +114,12 @@ def _commit_timestamp(repo_root: Path, target_sha: str) -> tuple[int, str]:
     return epoch, stamp
 
 
-def _payload(repo_root: Path, target_sha: str) -> tuple[dict[str, bytes], dict[str, Any], int]:
+def _payload(
+    repo_root: Path,
+    target_sha: str,
+    *,
+    source_profile: str = "current",
+) -> tuple[dict[str, bytes], dict[str, Any], int]:
     repo_root = repo_root.resolve(strict=True)
     validate_sha(target_sha, "target SHA")
     _git(repo_root, "cat-file", "-e", f"{target_sha}^{{commit}}")
@@ -113,7 +128,11 @@ def _payload(repo_root: Path, target_sha: str) -> tuple[dict[str, bytes], dict[s
         raise ArtifactContractError(f"HEAD/target mismatch: HEAD={head}, target={target_sha}")
 
     epoch, commit_timestamp = _commit_timestamp(repo_root, target_sha)
-    source_manifest = static_contract.build_manifest(repo_root, target_sha)
+    source_manifest = static_contract.build_manifest(
+        repo_root,
+        target_sha,
+        source_profile=source_profile,
+    )
     files: dict[str, bytes] = {}
     source_by_destination: dict[str, str] = {}
     for entry in source_manifest["entries"]:
@@ -136,7 +155,12 @@ def _payload(repo_root: Path, target_sha: str) -> tuple[dict[str, bytes], dict[s
     files[VERSION_MEMBER] = version
     source_by_destination[VERSION_MEMBER] = "generated:commit-metadata"
 
-    missing = REQUIRED_PUBLIC_FILES - files.keys()
+    required_files = (
+        LEGACY_D0_REQUIRED_PUBLIC_FILES
+        if source_profile == "legacy-d0"
+        else REQUIRED_PUBLIC_FILES
+    )
+    missing = required_files - files.keys()
     if missing:
         raise ArtifactContractError(f"required release files are missing: {', '.join(sorted(missing))}")
 
@@ -154,6 +178,7 @@ def _payload(repo_root: Path, target_sha: str) -> tuple[dict[str, bytes], dict[s
         "schema": SCHEMA_VERSION,
         "target_sha": target_sha,
         "release_id": target_sha,
+        "source_profile": source_profile,
         "commit_timestamp": commit_timestamp,
         "artifact": {"format": ARTIFACT_FORMAT, "version": ARTIFACT_FORMAT_VERSION},
         "file_count": len(inventory),
@@ -202,8 +227,18 @@ def _tar_bytes(files: dict[str, bytes], epoch: int) -> bytes:
     return compressed.getvalue()
 
 
-def build_artifact(repo_root: Path, target_sha: str, output_dir: Path) -> tuple[Path, Path, Path]:
-    files, manifest, epoch = _payload(repo_root, target_sha)
+def build_artifact(
+    repo_root: Path,
+    target_sha: str,
+    output_dir: Path,
+    *,
+    source_profile: str = "current",
+) -> tuple[Path, Path, Path]:
+    files, manifest, epoch = _payload(
+        repo_root,
+        target_sha,
+        source_profile=source_profile,
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     archive_path = output_dir / f"nura-static-{target_sha}.tar.gz"
     checksum_path = output_dir / f"nura-static-{target_sha}.tar.gz.sha256"
@@ -234,6 +269,13 @@ def validate_manifest(manifest: dict[str, Any], target_sha: str | None = None) -
         raise ArtifactContractError("manifest target SHA mismatch")
     if manifest.get("release_id") != actual_sha:
         raise ArtifactContractError("release ID mismatch")
+    source_profile = str(manifest.get("source_profile", "current"))
+    if source_profile not in {"current", "legacy-d0"}:
+        raise ArtifactContractError("unsupported release source profile")
+    if source_profile == "legacy-d0" and actual_sha != static_contract.LEGACY_D0_SHA:
+        raise ArtifactContractError(
+            "legacy-d0 release source profile requires the exact audited legacy SHA"
+        )
     artifact = manifest.get("artifact")
     if artifact != {"format": ARTIFACT_FORMAT, "version": ARTIFACT_FORMAT_VERSION}:
         raise ArtifactContractError("artifact format/version mismatch")
@@ -259,7 +301,12 @@ def validate_manifest(manifest: dict[str, Any], target_sha: str | None = None) -
             raise ArtifactContractError(f"invalid SHA-256 for {destination}")
         indexed[destination] = entry
         folded.add(destination.casefold())
-    missing = REQUIRED_PUBLIC_FILES - indexed.keys()
+    required_files = (
+        LEGACY_D0_REQUIRED_PUBLIC_FILES
+        if source_profile == "legacy-d0"
+        else REQUIRED_PUBLIC_FILES
+    )
+    missing = required_files - indexed.keys()
     if missing:
         raise ArtifactContractError(f"required release files are missing: {', '.join(sorted(missing))}")
     expected_aggregate = sha256_bytes(_canonical_json(entries))
@@ -469,6 +516,11 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--repo-root", type=Path, required=True)
     build.add_argument("--target-sha", required=True)
     build.add_argument("--output-dir", type=Path, required=True)
+    build.add_argument(
+        "--source-profile",
+        choices=("current", "legacy-d0"),
+        default="current",
+    )
     verify = subparsers.add_parser("verify")
     for command in (verify,):
         command.add_argument("--archive", type=Path, required=True)
@@ -505,7 +557,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         if args.command == "build":
-            paths = build_artifact(args.repo_root, args.target_sha, args.output_dir)
+            paths = build_artifact(
+                args.repo_root,
+                args.target_sha,
+                args.output_dir,
+                source_profile=args.source_profile,
+            )
             print("\n".join(str(path) for path in paths))
         elif args.command == "verify":
             manifest, _ = inspect_artifact(

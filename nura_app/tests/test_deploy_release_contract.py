@@ -14,6 +14,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEPLOY_SCRIPT = REPO_ROOT / "deploy.sh"
+AUDITED_P6B_SCRIPT = REPO_ROOT / "scripts" / "deploy_audited_p6b_transition.sh"
 STATIC_HELPER_PATH = REPO_ROOT / "scripts" / "deploy_static_release.py"
 ARTIFACT_HELPER_PATH = REPO_ROOT / "scripts" / "build_release_artifact.py"
 DEPLOY_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
@@ -176,18 +177,46 @@ def test_root_engine_rejects_ambiguous_or_malformed_cli(arguments: list[str]) ->
     assert "usage" in result.stderr or "SHA" in result.stderr or "ambiguous" in result.stderr
 
 
-def test_root_engine_has_migration_hard_block_and_no_alembic_escape() -> None:
+def test_root_engine_has_one_audited_preapplied_migration_transition() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
-    assert "migration delta blocks deployment; P4.2B2 has no override" in script
+    assert "migration delta blocks deployment outside the audited transition" in script
     assert "ALLOW_MIGRATIONS" not in script
     assert "allow_migrations" not in script
     assert "alembic upgrade" not in script
     assert "alembic downgrade" not in script
+    assert "AUDITED_MIGRATION_FROM_SHA='d0d39ae8717ceb0920d98f27dd9092f746755c6c'" in script
+    assert "AUDITED_MIGRATION_TARGET_SHA='9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532'" in script
+    assert "AUDITED_MIGRATION_REVISION='d1e2f3a4b5c6'" in script
+    assert "NURA_PREAPPLIED_MIGRATION_REVISION" in script
+    assert "NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA" in script
+    assert "target_alembic_head" in script
+    assert "SELECT version_num FROM alembic_version" in script
     assert 'RUN_MIGRATIONS: "0"' in script
     assert script.index("MIGRATION_OUTPUT") < script.index("extract --archive")
     assert script.index("MIGRATION_OUTPUT") < script.index("docker build")
     assert 'build_pwa_release.py" --check' in script
     assert 'frontend/test_pwa_release.mjs"' in script
+
+
+def test_audited_p6b_wrapper_reaches_exact_immutable_target() -> None:
+    source = AUDITED_P6B_SCRIPT.read_text(encoding="utf-8")
+    assert "TARGET_SHA='9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532'" in source
+    assert "EXPECTED_REVISION='d1e2f3a4b5c6'" in source
+    assert 'export NURA_PREAPPLIED_MIGRATION_REVISION="$EXPECTED_REVISION"' in source
+    assert "export NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA=1" in source
+    assert 'exec bash "$LAUNCHER_ROOT/deploy.sh" deploy "$TARGET_SHA"' in source
+    assert 'merge-base --is-ancestor "$TARGET_SHA" "$LAUNCHER_HEAD"' in source
+    assert "alembic upgrade" not in source
+    assert "alembic downgrade" not in source
+
+    result = subprocess.run(
+        [_bash_executable(), str(AUDITED_P6B_SCRIPT)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "usage:" in result.stderr
 
 
 def test_root_engine_uses_one_exact_image_and_verifies_all_five_services() -> None:

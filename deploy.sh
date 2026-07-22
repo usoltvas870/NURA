@@ -4,6 +4,9 @@ set -Eeuo pipefail
 readonly SHA_PATTERN='^[0-9a-f]{40}$'
 readonly -a APPLICATION_SERVICES=(api bot celery-worker celery-beat admin-bot)
 readonly -a DATA_SERVICES=(postgres redis)
+readonly AUDITED_MIGRATION_FROM_SHA='d0d39ae8717ceb0920d98f27dd9092f746755c6c'
+readonly AUDITED_MIGRATION_TARGET_SHA='9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532'
+readonly AUDITED_MIGRATION_REVISION='d1e2f3a4b5c6'
 
 fail() { echo "ERROR: $*" >&2; exit 1; }
 log() { echo "[release] $*"; }
@@ -24,6 +27,60 @@ assert_no_git_operation() {
 }
 
 validate_sha() { [[ "$1" =~ $SHA_PATTERN ]] || fail "$2 must be an exact lowercase 40-character SHA"; }
+
+target_alembic_head() {
+  python3 - "$REPO_ROOT" "$TARGET_SHA" <<'PY'
+import ast
+import subprocess
+import sys
+
+repo, target = sys.argv[1:]
+paths = subprocess.run(
+    ["git", "-C", repo, "ls-tree", "-r", "--name-only", target, "--", "nura_app/alembic/versions"],
+    check=True,
+    capture_output=True,
+    text=True,
+).stdout.splitlines()
+revisions: set[str] = set()
+parents: set[str] = set()
+for path in paths:
+    if not path.endswith(".py"):
+        continue
+    source = subprocess.run(
+        ["git", "-C", repo, "show", f"{target}:{path}"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    values: dict[str, object] = {}
+    for node in ast.parse(source, filename=path).body:
+        name = None
+        value = None
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            name, value = node.targets[0].id, node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            name, value = node.target.id, node.value
+        if name in {"revision", "down_revision"} and value is not None:
+            values[name] = ast.literal_eval(value)
+    revision = values.get("revision")
+    down_revision = values.get("down_revision")
+    if not isinstance(revision, str) or not revision:
+        raise SystemExit(f"invalid revision metadata: {path}")
+    revisions.add(revision)
+    if isinstance(down_revision, str):
+        parents.add(down_revision)
+    elif isinstance(down_revision, (tuple, list)):
+        if not all(isinstance(item, str) for item in down_revision):
+            raise SystemExit(f"invalid down_revision metadata: {path}")
+        parents.update(down_revision)
+    elif down_revision is not None:
+        raise SystemExit(f"invalid down_revision metadata: {path}")
+heads = revisions - parents
+if len(heads) != 1:
+    raise SystemExit(f"target must have exactly one Alembic head, found {sorted(heads)}")
+print(heads.pop())
+PY
+}
 
 if [[ $# -lt 2 ]]; then
   fail "usage: deploy.sh deploy <sha> <archive> <checksum> <manifest> | deploy.sh rollback <sha>"
@@ -492,7 +549,29 @@ readonly RESOLVED_INCOMING_ROOT="$(readlink -f "$INCOMING_ROOT")"
   || fail "manifest is outside the validated incoming directory"
 
 readonly MIGRATION_OUTPUT="$(git -C "$REPO_ROOT" diff --name-only "$CURRENT_SHA" "$TARGET_SHA" -- nura_app/alembic/versions)"
-[[ -z "$MIGRATION_OUTPUT" ]] || { echo "$MIGRATION_OUTPUT" >&2; fail "migration delta blocks deployment; P4.2B2 has no override"; }
+if [[ -n "$MIGRATION_OUTPUT" ]]; then
+  [[ "$CURRENT_SHA" == "$AUDITED_MIGRATION_FROM_SHA" && "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]] \
+    || { echo "$MIGRATION_OUTPUT" >&2; fail "migration delta blocks deployment outside the audited transition"; }
+  [[ "${NURA_PREAPPLIED_MIGRATION_REVISION:-}" == "$AUDITED_MIGRATION_REVISION" ]] \
+    || fail "audited transition requires the exact pre-applied migration revision acknowledgement"
+  [[ "${NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA:-0}" == 1 ]] \
+    || fail "audited transition requires backward-compatible schema acknowledgement"
+  readonly TARGET_ALEMBIC_HEAD="$(target_alembic_head)"
+  [[ "$TARGET_ALEMBIC_HEAD" == "$AUDITED_MIGRATION_REVISION" ]] \
+    || fail "audited migration revision does not equal the target Alembic head"
+  readonly DATABASE_ALEMBIC_REVISION="$(
+    docker compose --project-directory "$REPO_ROOT/nura_app" -f "$COMPOSE_BASE" exec -T postgres \
+      sh -lc 'PGPASSWORD="$POSTGRES_PASSWORD" exec psql -X -At -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version_num FROM alembic_version"'
+  )"
+  [[ "$DATABASE_ALEMBIC_REVISION" == "$AUDITED_MIGRATION_REVISION" ]] \
+    || fail "production database is not at the audited target revision"
+  log "verified the audited pre-applied backward-compatible migration"
+else
+  [[ -z "${NURA_PREAPPLIED_MIGRATION_REVISION:-}" ]] \
+    || fail "pre-applied migration acknowledgement is invalid without a migration delta"
+  [[ "${NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA:-0}" == 0 ]] \
+    || fail "backward-compatible schema acknowledgement is invalid without a migration delta"
+fi
 
 readonly CHECKOUT_HEAD="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 git -C "$REPO_ROOT" merge-base --is-ancestor "$CHECKOUT_HEAD" "$TARGET_SHA" \

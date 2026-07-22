@@ -232,9 +232,10 @@ def _build_legacy_artifact(repo_root: Path, artifact_dir: Path) -> tuple[Path, P
     try:
         shutil.rmtree(checkout)
         _run("git", "clone", "--quiet", "--no-checkout", "--shared", str(repo_root), str(checkout))
+        _run("git", "-C", str(checkout), "config", "core.autocrlf", "false")
         _run("git", "-C", str(checkout), "checkout", "--quiet", "--detach", EXPECTED_LEGACY_SHA)
         _run(
-            "python3",
+            sys.executable,
             str(repo_root / "scripts" / "build_release_artifact.py"),
             "build",
             "--repo-root",
@@ -243,6 +244,8 @@ def _build_legacy_artifact(repo_root: Path, artifact_dir: Path) -> tuple[Path, P
             EXPECTED_LEGACY_SHA,
             "--output-dir",
             str(artifact_dir),
+            "--source-profile",
+            "legacy-d0",
         )
         return _artifact_paths(artifact_dir)
     finally:

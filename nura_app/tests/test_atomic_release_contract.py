@@ -83,6 +83,39 @@ def test_deterministic_build_twice_is_byte_identical(tmp_path: Path) -> None:
     assert [path.read_bytes() for path in first] == [path.read_bytes() for path in second]
 
 
+def test_transition_builds_real_audited_legacy_artifact(tmp_path: Path) -> None:
+    archive, checksum, manifest_path = transition._build_legacy_artifact(
+        REPO_ROOT,
+        tmp_path / "legacy-artifact",
+    )
+
+    manifest, payload = builder.inspect_artifact(
+        archive,
+        checksum,
+        manifest_path,
+        transition.EXPECTED_LEGACY_SHA,
+    )
+
+    assert manifest["target_sha"] == transition.EXPECTED_LEGACY_SHA
+    assert "public/index.html" in payload
+    assert "public/app/index.html" in payload
+    assert "public/app/AGENTS.md" in payload
+    assert "public/pwa-release.json" not in payload
+    assert all(not name.startswith("public/assets/") for name in payload)
+
+
+def test_legacy_source_profile_rejects_every_other_sha(
+    artifact_fixture: tuple[Path, str, Path, Path, Path],
+) -> None:
+    repo, target, _archive, _checksum, _manifest = artifact_fixture
+
+    with pytest.raises(
+        static_contract.DeploymentContractError,
+        match="exact audited legacy SHA",
+    ):
+        static_contract.build_manifest(repo, target, source_profile="legacy-d0")
+
+
 def test_artifact_includes_vk_version_and_ordered_manifest(
     artifact_fixture: tuple[Path, str, Path, Path, Path],
 ) -> None:
