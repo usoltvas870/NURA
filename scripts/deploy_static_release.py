@@ -64,6 +64,7 @@ LEGACY_D0_EXPLICIT_MAPPINGS: tuple[tuple[str, str], ...] = (
     ("offer.html", "offer.html"),
     ("contacts.html", "contacts.html"),
     ("mini.html", "mini.html"),
+    ("success.html", "success.html"),
     ("personal-data-consent.html", "personal-data-consent.html"),
     ("marketing-consent.html", "marketing-consent.html"),
     ("acceptable-use.html", "acceptable-use.html"),
