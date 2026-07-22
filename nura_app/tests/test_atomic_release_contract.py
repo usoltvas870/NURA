@@ -255,6 +255,24 @@ def test_finalize_renames_staging_and_reuses_only_exact_release(
     assert not second.exists()
 
 
+def test_extract_makes_release_directories_web_readable_under_restrictive_umask(
+    artifact_fixture: tuple[Path, str, Path, Path, Path], tmp_path: Path
+) -> None:
+    if os.name == "nt":
+        pytest.skip("POSIX directory modes are not represented on Windows")
+    _repo, target, archive, checksum, manifest_path = artifact_fixture
+    staging = tmp_path / "staging"
+    previous_umask = os.umask(0o077)
+    try:
+        builder.extract_artifact(archive, checksum, manifest_path, staging, target)
+    finally:
+        os.umask(previous_umask)
+
+    directories = [staging, *(path for path in staging.rglob("*") if path.is_dir())]
+    assert directories
+    assert all(path.stat().st_mode & 0o777 == 0o755 for path in directories)
+
+
 def test_existing_mismatched_release_fails(
     artifact_fixture: tuple[Path, str, Path, Path, Path], tmp_path: Path
 ) -> None:

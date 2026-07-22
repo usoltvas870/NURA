@@ -218,8 +218,10 @@ def test_audited_p6b_wrapper_reaches_exact_immutable_target() -> None:
     assert 'extract_blob scripts/deploy_static_release.py "$STATIC_HELPER_BLOB"' in source
     assert 'export NURA_AUDITED_ENGINE_HELPER_ROOT="$ENGINE_DIR"' in source
     assert "export PYTHONDONTWRITEBYTECODE=1" in source
-    assert 'readonly ORIGINAL_UMASK="$(umask)"' in source
-    assert 'umask "$ORIGINAL_UMASK"' in source
+    assert "umask 077" in source
+    assert "umask 022" in source
+    assert source.index("umask 077") < source.index("extract_blob deploy.sh")
+    assert source.index("umask 022") > source.index("extract_blob scripts/deploy_static_release.py")
     assert "local status=$?" in source
     assert 'exit "$status"' in source
     assert '"$LAUNCHER_ROOT/deploy.sh"' not in source

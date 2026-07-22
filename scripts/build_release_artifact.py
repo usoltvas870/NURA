@@ -389,12 +389,16 @@ def extract_artifact(
     if staging_path.exists() or staging_path.is_symlink():
         raise ArtifactContractError(f"staging path already exists: {staging_path}")
     staging_path.mkdir(parents=True, mode=0o755)
+    staging_path.chmod(0o755)
     try:
         for name in sorted(payload):
             destination = staging_path.joinpath(*PurePosixPath(name).parts)
             destination.parent.mkdir(parents=True, exist_ok=True, mode=0o755)
+            destination.parent.chmod(0o755)
             destination.write_bytes(payload[name])
             destination.chmod(0o644)
+        for directory in (staging_path, *(path for path in staging_path.rglob("*") if path.is_dir())):
+            directory.chmod(0o755)
         verify_release_directory(staging_path, manifest)
     except Exception:
         shutil.rmtree(staging_path, ignore_errors=True)

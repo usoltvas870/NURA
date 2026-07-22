@@ -17,7 +17,6 @@ readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly LAUNCHER_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 git -C "$LAUNCHER_ROOT" cat-file -e "$ENGINE_COMMIT^{commit}"
 git -C "$LAUNCHER_ROOT" merge-base --is-ancestor "$TARGET_SHA" "$ENGINE_COMMIT"
-readonly ORIGINAL_UMASK="$(umask)"
 umask 077
 readonly ENGINE_DIR="$(mktemp -d "${TMPDIR:-/var/tmp}/nura-p6b-engine.XXXXXX")"
 readonly ENGINE_FILE="$ENGINE_DIR/deploy.sh"
@@ -49,5 +48,5 @@ export NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA=1
 export NURA_AUDITED_ENGINE_HELPER_ROOT="$ENGINE_DIR"
 export PYTHONDONTWRITEBYTECODE=1
 
-umask "$ORIGINAL_UMASK"
+umask 022
 bash "$ENGINE_FILE" deploy "$TARGET_SHA" "$1" "$2" "$3"
