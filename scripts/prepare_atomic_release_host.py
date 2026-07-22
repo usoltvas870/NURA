@@ -59,6 +59,11 @@ REDIRECT_CONTRACTS = {
     "http://www.nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
     "http://nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
 }
+LEGACY_WWW_APP_URL = "https://www.nura-ai.ru/app/?release-check=1"
+LEGACY_REDIRECT_CONTRACTS = {
+    "http://www.nura-ai.ru/app/?release-check=1": "https://www.nura-ai.ru/app/?release-check=1",
+    "http://nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
+}
 LEGACY_PUBLIC_EXCLUDED_PREFIXES = (".well-known/acme-challenge/",)
 
 
@@ -207,10 +212,15 @@ def verify_legacy_public_baseline(
     health = fetcher(f"{base_url.rstrip('/')}/health")
     if health.status != 200:
         raise TransitionError("public health verification failed")
-    for source, destination in REDIRECT_CONTRACTS.items():
+    legacy_www = fetcher(LEGACY_WWW_APP_URL)
+    expected_app = (release / "public/app/index.html").read_bytes()
+    if legacy_www.status != 200 or legacy_www.body != expected_app:
+        raise TransitionError("legacy www application route verification failed")
+    evidence[LEGACY_WWW_APP_URL] = hashlib.sha256(expected_app).hexdigest()
+    for source, destination in LEGACY_REDIRECT_CONTRACTS.items():
         result = fetcher(source)
         if result.status not in {301, 302, 307, 308} or result.location != destination:
-            raise TransitionError(f"canonical redirect verification failed: {source}")
+            raise TransitionError(f"legacy redirect verification failed: {source}")
         evidence[source] = destination
     return evidence
 
@@ -507,7 +517,8 @@ def _write_legacy_public_baseline(
         "canonical_manifest_sha256": _sha256(release / "public" / "release-manifest.json"),
         "aliases_checked": sorted(PUBLIC_ALIASES),
         "health_checked": True,
-        "redirects_checked": sorted(REDIRECT_CONTRACTS),
+        "redirects_checked": sorted(LEGACY_REDIRECT_CONTRACTS),
+        "legacy_www_route_checked": LEGACY_WWW_APP_URL,
         "public_evidence": public_evidence,
         "recorded_at": datetime_utc(),
     }

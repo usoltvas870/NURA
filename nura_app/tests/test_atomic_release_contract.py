@@ -551,14 +551,27 @@ def _public_release_fixture(tmp_path: Path) -> tuple[Path, dict[str, bytes]]:
     return release, payloads
 
 
-def _public_fetcher(payloads: dict[str, bytes], *, corrupt: str | None = None, redirect_ok: bool = True):
+def _public_fetcher(
+    payloads: dict[str, bytes],
+    *,
+    corrupt: str | None = None,
+    redirect_ok: bool = True,
+    legacy_redirects: bool = False,
+):
     aliases = {endpoint: payloads[destination] for endpoint, destination in transition.PUBLIC_ALIASES.items()}
     direct = {f"/{name.removeprefix('public/')}": body for name, body in payloads.items()}
     direct.pop("/success.html")
 
     def fetch(url: str) -> transition.FetchResult:
-        if url in transition.REDIRECT_CONTRACTS:
-            location = transition.REDIRECT_CONTRACTS[url] if redirect_ok else "https://wrong.invalid/"
+        redirect_contracts = (
+            transition.LEGACY_REDIRECT_CONTRACTS
+            if legacy_redirects
+            else transition.REDIRECT_CONTRACTS
+        )
+        if legacy_redirects and url == transition.LEGACY_WWW_APP_URL:
+            return transition.FetchResult(200, payloads["public/app/index.html"])
+        if url in redirect_contracts:
+            location = redirect_contracts[url] if redirect_ok else "https://wrong.invalid/"
             return transition.FetchResult(301, b"", location)
         endpoint = url.removeprefix("https://nura-ai.ru")
         if endpoint == "/health":
@@ -636,7 +649,7 @@ def test_legacy_public_baseline_accepts_old_version_but_post_switch_requires_det
         release,
         legacy_version,
         legacy_evidence,
-        fetcher=_public_fetcher(live_payloads),
+        fetcher=_public_fetcher(live_payloads, legacy_redirects=True),
     )
     assert baseline["/VERSION"] == legacy_evidence["sha256"]
     with pytest.raises(transition.TransitionError, match="equivalence"):
@@ -654,14 +667,20 @@ def test_legacy_public_baseline_rejects_changed_old_version_or_non_version_file(
             release,
             legacy_version,
             evidence,
-            fetcher=_public_fetcher({**live_payloads, "public/index.html": b"changed\n"}),
+            fetcher=_public_fetcher(
+                {**live_payloads, "public/index.html": b"changed\n"},
+                legacy_redirects=True,
+            ),
         )
     with pytest.raises(transition.TransitionError, match="equivalence"):
         transition.verify_legacy_public_baseline(
             release,
             legacy_version,
             evidence,
-            fetcher=_public_fetcher({**live_payloads, "public/VERSION": b"different\n"}),
+            fetcher=_public_fetcher(
+                {**live_payloads, "public/VERSION": b"different\n"},
+                legacy_redirects=True,
+            ),
         )
 
 
@@ -678,7 +697,9 @@ def test_legacy_public_baseline_records_raw_version_and_forensic_metadata(
         legacy_version,
         evidence,
         base_url="https://nura-ai.ru",
-        fetcher=_public_fetcher({**payloads, "public/VERSION": legacy_version}),
+        fetcher=_public_fetcher(
+            {**payloads, "public/VERSION": legacy_version}, legacy_redirects=True
+        ),
     )
     saved = json.loads((tmp_path / "forensics/legacy-public-baseline.json").read_text(encoding="utf-8"))
     assert saved == baseline
