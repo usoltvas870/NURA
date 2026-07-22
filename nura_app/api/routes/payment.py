@@ -1,4 +1,5 @@
 import ipaddress
+import json
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -54,7 +55,14 @@ async def payment_webhook(request: Request):
         if not allowed:
             raise HTTPException(status_code=403, detail="Forbidden")
 
-    data = await request.json()
+    try:
+        data = await request.json()
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        raise HTTPException(
+            status_code=400, detail="invalid_webhook_payload"
+        ) from None
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="invalid_webhook_payload")
     try:
         result = await PaymentService.process_webhook(
             get_async_sessionmaker(), data

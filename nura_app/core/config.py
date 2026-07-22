@@ -1,11 +1,43 @@
-from urllib.parse import quote_plus
+from pathlib import Path
+from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
+SUPPORTED_APP_ENVIRONMENTS = frozenset(
+    {"development", "test", "staging", "production"}
+)
+INSECURE_SECRET_KEYS = frozenset(
+    {"change-me", "change-me-to-a-random-string-64-chars-min"}
+)
+
+
 def is_production_environment(app_env: str) -> bool:
-    return app_env.strip().lower() == "production"
+    return app_env == "production"
+
+
+def redis_url_has_credentials(url: str) -> bool:
+    try:
+        parsed = urlsplit(url)
+    except ValueError:
+        return False
+    return parsed.scheme in {"redis", "rediss"} and bool(parsed.password)
+
+
+def redis_url_with_password(url: str, password: str) -> str:
+    parsed = urlsplit(url)
+    if parsed.scheme not in {"redis", "rediss"} or not parsed.hostname:
+        raise ValueError("invalid_redis_url")
+    username = quote(parsed.username or "", safe="")
+    credential = f"{username}:{quote(password, safe='')}"
+    host = parsed.hostname
+    if ":" in host:
+        host = f"[{host}]"
+    port = f":{parsed.port}" if parsed.port is not None else ""
+    return urlunsplit(
+        (parsed.scheme, f"{credential}@{host}{port}", parsed.path, parsed.query, "")
+    )
 
 
 class Settings(BaseSettings):
@@ -38,6 +70,7 @@ class Settings(BaseSettings):
         )
 
     # Redis
+    redis_password_file: str | None = None
     redis_url: str = "redis://localhost:6379/0"
 
     # Celery
@@ -92,11 +125,61 @@ class Settings(BaseSettings):
             return "production_payment_webhook_credentials_required"
         return None
 
+    @property
+    def production_readiness_errors(self) -> tuple[str, ...]:
+        """Return non-sensitive blockers for a controlled production switch."""
+        errors: list[str] = []
+        if self.secret_key in INSECURE_SECRET_KEYS or len(self.secret_key) < 32:
+            errors.append("production_secret_key_required")
+        if not self.session_cookie_secure:
+            errors.append("production_secure_session_cookie_required")
+        if self.test_mode:
+            errors.append("production_test_mode_forbidden")
+        if not self.yookassa_verify_on_webhook:
+            errors.append("production_payment_webhook_verification_required")
+        if not self.yookassa_shop_id or not self.yookassa_secret_key:
+            errors.append("production_payment_webhook_credentials_required")
+        if not redis_url_has_credentials(self.redis_url):
+            errors.append("production_redis_auth_required")
+        if not redis_url_has_credentials(self.celery_broker_url):
+            errors.append("production_celery_broker_auth_required")
+        if not redis_url_has_credentials(self.celery_result_backend):
+            errors.append("production_celery_backend_auth_required")
+        return tuple(errors)
+
     @model_validator(mode="after")
-    def _require_production_webhook_verification(self) -> "Settings":
-        if self.is_production and not self.yookassa_verify_on_webhook:
-            raise ValueError("production_payment_webhook_verification_required")
+    def _load_redis_password_file(self) -> "Settings":
+        if not self.redis_password_file:
+            return self
+        try:
+            password = Path(self.redis_password_file).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise ValueError("redis_password_file_unreadable") from exc
+        if not password or "\n" in password or "\r" in password or "\x00" in password:
+            raise ValueError("redis_password_file_invalid")
+        for field_name in (
+            "redis_url",
+            "celery_broker_url",
+            "celery_result_backend",
+        ):
+            url = getattr(self, field_name)
+            if not redis_url_has_credentials(url):
+                setattr(self, field_name, redis_url_with_password(url, password))
         return self
+
+    @model_validator(mode="after")
+    def _require_safe_production_configuration(self) -> "Settings":
+        if self.is_production and self.production_readiness_errors:
+            raise ValueError(";".join(self.production_readiness_errors))
+        return self
+
+    @field_validator("app_env", mode="before")
+    @classmethod
+    def _validate_app_env(cls, value: object) -> str:
+        if not isinstance(value, str) or value not in SUPPORTED_APP_ENVIRONMENTS:
+            supported = ",".join(sorted(SUPPORTED_APP_ENVIRONMENTS))
+            raise ValueError(f"app_env_must_be_one_of:{supported}")
+        return value
 
     @property
     def yookassa_ip_whitelist_list(self) -> list[str]:
@@ -148,14 +231,6 @@ class Settings(BaseSettings):
     # Test mode bypass (WARNING: only for dev)
     test_mode: bool = False
 
-    @field_validator("test_mode", mode="before")
-    @classmethod
-    def _protect_test_mode(cls, v: bool, info) -> bool:
-        """Принудительно False в production, что бы ни было в .env."""
-        if is_production_environment(str(info.data.get("app_env", ""))):
-            return False
-        return v
-
     @field_validator("vapid_private_key", "vapid_public_key", mode="before")
     @classmethod
     def _empty_str_to_none(cls, v):
@@ -168,6 +243,7 @@ class Settings(BaseSettings):
         "env_file": ".env",
         "env_file_encoding": "utf-8",
         "extra": "ignore",
+        "hide_input_in_errors": True,
     }
 
 

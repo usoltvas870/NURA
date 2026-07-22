@@ -80,20 +80,31 @@ def test_production_rejects_disabled_provider_verification_at_settings_load() ->
 
     assert Settings(
         app_env="production",
+        secret_key="test-only-non-default-secret-at-least-32-chars",
+        redis_url="redis://:test-password@redis:6379/0",
+        celery_broker_url="redis://:test-password@redis:6379/1",
+        celery_result_backend="redis://:test-password@redis:6379/2",
         yookassa_verify_on_webhook=True,
         yookassa_shop_id="test-shop",
         yookassa_secret_key="test-secret",
     ).payment_webhook_configuration_error is None
 
 
-def test_production_missing_credentials_is_not_ready_but_development_is() -> None:
-    production = Settings(app_env="production", yookassa_verify_on_webhook=True)
+def test_production_missing_credentials_fails_startup_but_development_is_compatible() -> None:
+    with pytest.raises(
+        ValidationError, match="production_payment_webhook_credentials_required"
+    ):
+        Settings(
+            app_env="production",
+            secret_key="test-only-non-default-secret-at-least-32-chars",
+            redis_url="redis://:test-password@redis:6379/0",
+            celery_broker_url="redis://:test-password@redis:6379/1",
+            celery_result_backend="redis://:test-password@redis:6379/2",
+            yookassa_verify_on_webhook=True,
+        )
     development = Settings(app_env="development", yookassa_verify_on_webhook=False)
 
-    assert production.payment_webhook_configuration_error == "production_payment_webhook_credentials_required"
     assert development.payment_webhook_configuration_error is None
-    with patch.object(api_main, "settings", production):
-        assert api_main.payment_webhook_readiness_status() == "missing_configuration"
     with patch.object(api_main, "settings", development):
         assert api_main.payment_webhook_readiness_status() == "ok"
 
@@ -205,6 +216,35 @@ async def test_provider_timeout_returns_retryable_error_without_exposing_details
     assert response.status_code == 503
     assert response.json() == {"detail": "payment_verification_unavailable"}
     await assert_pending_without_entitlement(session_factory, user.id)
+
+
+@pytest.mark.parametrize(
+    ("body", "content_type"),
+    [(b"not-json", "application/json"), (b"[]", "application/json")],
+)
+def test_malformed_webhook_payload_is_rejected_without_processing(
+    body: bytes, content_type: str
+) -> None:
+    app = FastAPI()
+    app.include_router(payment_route.router)
+    app.state.limiter = None
+
+    deps_mod.limiter.enabled = False
+    try:
+        with patch.object(
+            PaymentService, "process_webhook"
+        ) as process_webhook:
+            response = TestClient(app).post(
+                "/api/v1/payment/webhook",
+                content=body,
+                headers={"Content-Type": content_type},
+            )
+    finally:
+        deps_mod.limiter.enabled = True
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "invalid_webhook_payload"}
+    process_webhook.assert_not_called()
 
 
 @pytest.mark.asyncio
