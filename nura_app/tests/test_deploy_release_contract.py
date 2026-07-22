@@ -204,14 +204,19 @@ def test_audited_p6b_wrapper_reaches_exact_immutable_target() -> None:
     source = AUDITED_P6B_SCRIPT.read_text(encoding="utf-8")
     assert "TARGET_SHA='9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532'" in source
     assert "EXPECTED_REVISION='d1e2f3a4b5c6'" in source
-    assert "ENGINE_COMMIT='a8f9140795255804afe1bc46924d996a57b81d45'" in source
-    assert "ENGINE_BLOB='71a1e91374483876a1059ddec6d6c6b32c41df67'" in source
+    assert "ENGINE_COMMIT='f8716a7ca08190255a58b42fa420ce6aacc793e7'" in source
+    assert "ENGINE_BLOB='832d773a24d9fcbaaec22ec64138a71705874684'" in source
+    assert "ARTIFACT_HELPER_BLOB='b2ef31a30252a476faf21e3b41409b633aa33d58'" in source
+    assert "STATIC_HELPER_BLOB='e42eb64abed196aaf1d529518269936ad5ed990d'" in source
     assert 'export NURA_PREAPPLIED_MIGRATION_REVISION="$EXPECTED_REVISION"' in source
     assert "export NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA=1" in source
     assert 'bash "$ENGINE_FILE" deploy "$TARGET_SHA"' in source
     assert 'merge-base --is-ancestor "$TARGET_SHA" "$ENGINE_COMMIT"' in source
-    assert 'git -C "$LAUNCHER_ROOT" show "$ENGINE_COMMIT:deploy.sh" > "$ENGINE_FILE"' in source
-    assert 'git hash-object "$ENGINE_FILE"' in source
+    assert 'git -C "$LAUNCHER_ROOT" show "$ENGINE_COMMIT:$source_path" > "$destination"' in source
+    assert 'extract_blob deploy.sh "$ENGINE_BLOB" "$ENGINE_FILE"' in source
+    assert 'extract_blob scripts/build_release_artifact.py "$ARTIFACT_HELPER_BLOB"' in source
+    assert 'extract_blob scripts/deploy_static_release.py "$STATIC_HELPER_BLOB"' in source
+    assert 'export NURA_AUDITED_ENGINE_HELPER_ROOT="$ENGINE_DIR"' in source
     assert '"$LAUNCHER_ROOT/deploy.sh"' not in source
     assert "alembic upgrade" not in source
     assert "alembic downgrade" not in source
