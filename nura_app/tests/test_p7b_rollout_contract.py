@@ -15,16 +15,21 @@ spec.loader.exec_module(p7b)
 SHA = "a" * 40
 
 
-def settings(tmp_path: Path) -> p7b.Settings:
+def settings(tmp_path: Path, *, baseline: bool = True) -> p7b.Settings:
     workdir = tmp_path / "work dir"
     environment = tmp_path / ".env"
     environment.write_text("APP_ENV=development\nTEST_MODE=true\n")
-    return p7b.Settings(SHA, "nura_app", workdir, workdir / "docker-compose.yml", tmp_path / "state", environment)
+    config = p7b.Settings(SHA, "nura_app", workdir, workdir / "docker-compose.yml", tmp_path / "state", environment)
+    if baseline:
+        p7b.RolloutState(current=config.context("b" * 40)).save(config.state_file)
+    return config
 
 
 def succeeding_runner(calls: list[list[str]]):
     def run(command: list[str]) -> int:
         calls.append(command)
+        if "rev-parse" in command:
+            return p7b.CommandResult(0, SHA + "\n")
         if "ps" in command:
             return p7b.CommandResult(0, "\n".join('{"Service": "%s", "State": "running", "Health": "healthy"}' % service for service in ("redis", "postgres", *p7b.APP_SERVICES)))
         return 0
@@ -40,6 +45,12 @@ def test_all_cli_operations_and_exact_sha_contract() -> None:
         p7b.parser().parse_args(["unsupported", "--sha", SHA])
 
 
+def test_stage1_requires_persisted_rollback_baseline(tmp_path: Path) -> None:
+    config = settings(tmp_path, baseline=False)
+    with pytest.raises(SystemExit, match="baseline_release_context_required"):
+        p7b.stage1(config, succeeding_runner([]))
+
+
 def test_compose_context_is_explicit_ordered_and_space_safe(tmp_path: Path) -> None:
     config = settings(tmp_path)
     context = config.context()
@@ -50,6 +61,22 @@ def test_compose_context_is_explicit_ordered_and_space_safe(tmp_path: Path) -> N
     assert command[5] == str(config.working_directory)
     assert command[7] == str(config.base_compose)
     assert command[9] == context.generated_file
+
+
+def test_generated_compose_pins_every_application_image_to_exact_sha(tmp_path: Path) -> None:
+    context = settings(tmp_path).context()
+    generated = p7b.generated_compose(context).decode()
+    for service in p7b.APP_SERVICES:
+        assert f"{service}:\n    image: nura-p7b-{service}:{SHA}" in generated
+        assert f"nura.release.sha: {SHA}" in generated
+
+
+def test_stage2_verification_has_production_readiness_probes(tmp_path: Path) -> None:
+    commands = p7b.verification_commands(settings(tmp_path).context(), 2)
+    joined = " ".join(" ".join(command) for command in commands)
+    assert "/ready" in joined
+    assert "settings.is_production" in joined
+    assert "settings.production_readiness_errors" in joined
 
 
 def test_environment_editor_changes_only_permitted_keys_and_rolls_back(tmp_path: Path) -> None:
@@ -143,6 +170,8 @@ def test_failed_verification_does_not_create_success_state(tmp_path: Path) -> No
 def test_unhealthy_compose_service_blocks_stage_completion(tmp_path: Path) -> None:
     config = settings(tmp_path)
     def unhealthy(command: list[str]) -> int | p7b.CommandResult:
+        if "rev-parse" in command:
+            return p7b.CommandResult(0, SHA + "\n")
         if "ps" in command:
             return p7b.CommandResult(0, '{"Service": "redis", "State": "running", "Health": "unhealthy"}')
         return 0
@@ -150,14 +179,42 @@ def test_unhealthy_compose_service_blocks_stage_completion(tmp_path: Path) -> No
         p7b.stage1(config, unhealthy)
 
 
+def test_services_without_declared_healthchecks_need_running_state_only(tmp_path: Path) -> None:
+    records = []
+    for service in ("redis", "postgres", "api"):
+        records.append({"Service": service, "State": "running", "Health": "healthy"})
+    records.extend({"Service": service, "State": "running"} for service in ("bot", "celery-worker", "celery-beat", "admin-bot"))
+    p7b.parse_compose_status("\n".join(__import__("json").dumps(record) for record in records),
+                             ("redis", "postgres", *p7b.APP_SERVICES), ("redis", "postgres", "api"))
+
+
+def test_duplicate_compose_records_fail_closed() -> None:
+    with pytest.raises(SystemExit, match="compose_status_unparseable"):
+        p7b.parse_compose_status('{"Service":"redis","State":"running","Health":"healthy"}\n'
+                                 '{"Service":"redis","State":"running","Health":"healthy"}',
+                                 ("redis",), ("redis",))
+
+
 def test_dirty_or_untracked_release_is_rejected(tmp_path: Path) -> None:
     config = settings(tmp_path)
     def dirty(command: list[str]) -> int | p7b.CommandResult:
+        if "rev-parse" in command:
+            return p7b.CommandResult(0, SHA + "\n")
         if "ls-files" in command:
             return p7b.CommandResult(0, "new-file.py\n")
         return 0
     with pytest.raises(SystemExit, match="untracked_worktree"):
         p7b.verify_release(config, dirty)
+
+
+def test_release_rejects_head_that_is_not_the_approved_object(tmp_path: Path) -> None:
+    config = settings(tmp_path)
+    def wrong_head(command: list[str]) -> int | p7b.CommandResult:
+        if "rev-parse" in command:
+            return p7b.CommandResult(0, "b" * 40 + "\n")
+        return 0
+    with pytest.raises(SystemExit, match="exact_release_sha"):
+        p7b.verify_release(config, wrong_head)
 
 
 def test_rollback_uses_persistent_previous_context(tmp_path: Path) -> None:
@@ -169,6 +226,17 @@ def test_rollback_uses_persistent_previous_context(tmp_path: Path) -> None:
     state.save(config.state_file)
     p7b.rollback_stage1(config, succeeding_runner(calls))
     assert p7b.RolloutState.load(config.state_file).current.sha == "b" * 40
+
+
+def test_failed_rollback_keeps_current_context(tmp_path: Path) -> None:
+    config, calls = settings(tmp_path), []
+    p7b.stage1(config, succeeding_runner(calls))
+    state = p7b.RolloutState.load(config.state_file)
+    state.previous = config.context("b" * 40)
+    state.save(config.state_file)
+    with pytest.raises(SystemExit, match="compose_up"):
+        p7b.rollback_stage1(config, lambda _: 1)
+    assert p7b.RolloutState.load(config.state_file).current.sha == SHA
 
 
 def test_cleanup_is_idempotent_and_only_removes_owned_stale_files(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -186,10 +254,9 @@ def test_cleanup_is_idempotent_and_only_removes_owned_stale_files(tmp_path: Path
 
 
 def test_rollout_lock_and_plan_do_not_mutate_state(tmp_path: Path) -> None:
-    config = settings(tmp_path)
+    config = settings(tmp_path, baseline=False)
     p7b.plan(config, 1)
     assert not config.state_file.exists()
-    config.lock_file.parent.mkdir(parents=True)
-    config.lock_file.write_text("another process")
-    with pytest.raises(SystemExit, match="rollout_locked"):
-        p7b.stage1(config, succeeding_runner([]))
+    with p7b.rollout_lock(config.lock_file):
+        with pytest.raises(SystemExit, match="rollout_locked"):
+            p7b.stage1(config, succeeding_runner([]))

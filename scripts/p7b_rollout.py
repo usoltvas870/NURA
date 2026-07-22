@@ -17,6 +17,15 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterator, Sequence
 
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - production hosts are Linux
+    fcntl = None  # type: ignore[assignment]
+try:
+    import msvcrt
+except ImportError:  # pragma: no cover - Windows-only fallback for local tests
+    msvcrt = None  # type: ignore[assignment]
+
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 OWNERSHIP_MARKER = "# Managed by NURA P7B rollout tooling; do not edit."
 APP_SERVICES = ("api", "bot", "celery-worker", "celery-beat", "admin-bot")
@@ -26,6 +35,8 @@ OPERATIONS = (
     "plan-stage2", "stage2", "verify-stage2", "rollback-stage1",
     "rollback-stage2", "cleanup",
 )
+
+
 @dataclass(frozen=True)
 class CommandResult:
     returncode: int
@@ -45,12 +56,17 @@ def require_sha(value: str) -> str:
     return value
 
 
-def atomic_write(path: Path, content: bytes, mode: int = 0o600) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+def atomic_write(path: Path, content: bytes, mode: int = 0o600, owner_from: Path | None = None) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name != "nt":
+        os.chmod(path.parent, 0o700)
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
         if hasattr(os, "fchmod"):
             os.fchmod(fd, mode)
+        if owner_from is not None and os.name != "nt":
+            source_stat = owner_from.stat()
+            os.fchown(fd, source_stat.st_uid, source_stat.st_gid)
         with os.fdopen(fd, "wb") as stream:
             stream.write(content)
             stream.flush()
@@ -58,6 +74,11 @@ def atomic_write(path: Path, content: bytes, mode: int = 0o600) -> None:
         os.replace(temporary, path)
         if os.name != "nt":
             os.chmod(path, mode)
+            directory = os.open(path.parent, os.O_DIRECTORY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
         temporary = ""
     finally:
         if temporary and os.path.exists(temporary):
@@ -68,6 +89,8 @@ def edit_environment(path: Path, backup: Path, updates: dict[str, str]) -> None:
     """Back up and atomically change only whitelisted environment keys."""
     if set(updates) - {"APP_ENV", "TEST_MODE"}:
         fail("environment_update_not_permitted")
+    if path.is_symlink() or backup.is_symlink():
+        fail("unsafe_environment_path")
     source = path.read_bytes()
     seen: set[str] = set()
     output: list[bytes] = []
@@ -78,15 +101,17 @@ def edit_environment(path: Path, backup: Path, updates: dict[str, str]) -> None:
             if key in seen:
                 fail(f"duplicate_environment_key:{key}")
             seen.add(key)
-            output.append(f"{key}={updates[key]}\n".encode())
+            newline = b"\r\n" if line.endswith(b"\r\n") else b"\n"
+            output.append(f"{key}={updates[key]}".encode() + newline)
         else:
             output.append(line)
     # Duplicate keys are rejected above before creating a backup or replacing the source.
-    atomic_write(backup, source)
+    source_mode = stat.S_IMODE(path.stat().st_mode)
+    atomic_write(backup, source, source_mode, owner_from=path)
     for key, value in updates.items():
         if key not in seen:
             output.append(f"{key}={value}\n".encode())
-    atomic_write(path, b"".join(output), stat.S_IMODE(path.stat().st_mode))
+    atomic_write(path, b"".join(output), source_mode, owner_from=path)
 
 
 def environment_values(path: Path) -> dict[str, str]:
@@ -127,10 +152,26 @@ class RolloutState:
     def load(cls, path: Path) -> "RolloutState":
         if not path.exists():
             return cls()
-        data = json.loads(path.read_text(encoding="utf-8"))
+        if path.is_symlink():
+            fail("unsafe_state_path")
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            fail("rollout_state_unreadable")
+        if not isinstance(data, dict):
+            fail("rollout_state_invalid")
         def context(key: str) -> ReleaseContext | None:
             value = data.get(key)
-            return ReleaseContext(**{**value, "compose_files": tuple(value["compose_files"])}) if value else None
+            if value is None:
+                return None
+            if not isinstance(value, dict):
+                fail("rollout_state_invalid")
+            try:
+                result = ReleaseContext(**{**value, "compose_files": tuple(value["compose_files"])})
+            except (KeyError, TypeError):
+                fail("rollout_state_invalid")
+            require_sha(result.sha)
+            return result
         return cls(context("current"), context("previous"), bool(data.get("stage1_verified")), bool(data.get("stage2_verified")))
 
     def save(self, path: Path) -> None:
@@ -173,35 +214,62 @@ class Settings:
 
 @contextmanager
 def rollout_lock(path: Path) -> Iterator[None]:
-    """Use an exclusive lock file; the operation is refused rather than waiting."""
-    path.parent.mkdir(parents=True, exist_ok=True)
+    """Hold a non-blocking advisory lock for the operation lifetime.
+
+    The lock file is intentionally retained: unlike O_EXCL files, an advisory
+    lock is released automatically if the owning process dies, so stale files
+    cannot permanently block a later rollout.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name != "nt":
+        os.chmod(path.parent, 0o700)
+    descriptor = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
+    acquired = False
     try:
-        descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    except FileExistsError:
-        fail("rollout_locked")
-    try:
-        os.write(descriptor, str(os.getpid()).encode())
+        if fcntl is not None:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                fail("rollout_locked")
+            acquired = True
+        elif msvcrt is not None:  # pragma: no cover - Windows-only fallback
+            if os.fstat(descriptor).st_size == 0:
+                os.write(descriptor, b"0")
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            try:
+                msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+            except OSError:
+                fail("rollout_locked")
+            acquired = True
+        else:
+            fail("advisory_lock_unavailable")
         yield
     finally:
+        if acquired and fcntl is not None:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        elif acquired and msvcrt is not None:  # pragma: no cover - Windows-only fallback
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
         os.close(descriptor)
-        try:
-            path.unlink()
-        except FileNotFoundError:
-            pass
 
 
 def generated_compose(context: ReleaseContext) -> bytes:
-    return (f"{OWNERSHIP_MARKER}\n# exact-release-sha: {context.sha}\n"
-            "services:\n  api:\n    labels:\n      nura.release.sha: "
-            f"{context.sha}\n").encode()
+    services = "\n".join(
+        f"  {service}:\n    image: nura-p7b-{service}:{context.sha}\n"
+        f"    labels:\n      nura.release.sha: {context.sha}"
+        for service in APP_SERVICES
+    )
+    return f"{OWNERSHIP_MARKER}\n# exact-release-sha: {context.sha}\nservices:\n{services}\n".encode()
 
 
 def ensure_generated(context: ReleaseContext) -> None:
     path = Path(context.generated_file)
+    if path.is_symlink():
+        fail("unsafe_generated_path")
     if not path.exists():
         atomic_write(path, generated_compose(context))
         return
-    if OWNERSHIP_MARKER not in path.read_text(encoding="utf-8", errors="replace"):
+    if path.read_bytes() != generated_compose(context):
         fail("generated_file_not_owned")
 
 
@@ -214,7 +282,10 @@ def compose_command(context: ReleaseContext, *arguments: str) -> list[str]:
 
 
 def default_runner(command: Sequence[str]) -> CommandResult:
-    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+    try:
+        completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=300)
+    except (OSError, subprocess.TimeoutExpired):
+        return CommandResult(1)
     return CommandResult(completed.returncode, completed.stdout)
 
 
@@ -230,7 +301,9 @@ def run_or_fail(runner: Runner, command: Sequence[str], check: str) -> None:
 
 def verify_release(settings: Settings, runner: Runner) -> None:
     """Fail closed unless the supplied checkout is exactly the approved commit."""
-    run_or_fail(runner, ("git", "-C", str(settings.working_directory), "diff", "--quiet", settings.sha, "HEAD"), "exact_release_sha")
+    revision = command_result(runner, ("git", "-C", str(settings.working_directory), "rev-parse", "--verify", "HEAD"))
+    if revision.returncode != 0 or revision.stdout.strip() != settings.sha:
+        fail("verification_failed:exact_release_sha")
     run_or_fail(runner, ("git", "-C", str(settings.working_directory), "diff", "--quiet"), "dirty_worktree")
     run_or_fail(runner, ("git", "-C", str(settings.working_directory), "diff", "--cached", "--quiet"), "dirty_index")
     untracked = command_result(runner, ("git", "-C", str(settings.working_directory), "ls-files", "--others", "--exclude-standard"))
@@ -238,7 +311,9 @@ def verify_release(settings: Settings, runner: Runner) -> None:
         fail("untracked_worktree")
 
 
-def lifecycle(context: ReleaseContext, services: Sequence[str], runner: Runner) -> None:
+def lifecycle(context: ReleaseContext, services: Sequence[str], runner: Runner, *, build: bool = False) -> None:
+    if build:
+        run_or_fail(runner, compose_command(context, "build", *[service for service in services if service in APP_SERVICES]), "compose_build")
     run_or_fail(runner, compose_command(context, "up", "--detach", "--force-recreate", *services), "compose_up")
 
 
@@ -252,20 +327,33 @@ def verification_commands(context: ReleaseContext, stage: int) -> list[list[str]
         compose_command(context, "exec", "-T", "celery-worker", "celery", "inspect", "ping"),
     ]
     if stage == 2:
-        commands.append(compose_command(context, "exec", "-T", "api", "python", "-c", "import sys; sys.exit(0)"))
+        commands.extend((
+            compose_command(context, "exec", "-T", "api", "python", "-c", "import json,urllib.request; response=urllib.request.urlopen('http://127.0.0.1:8000/health'); assert response.status == 200 and json.load(response)['status'] == 'ok'"),
+            compose_command(context, "exec", "-T", "api", "python", "-c", "import json,urllib.request; response=urllib.request.urlopen('http://127.0.0.1:8000/ready'); assert response.status == 200 and json.load(response)['status'] == 'ready'"),
+            compose_command(context, "exec", "-T", "api", "python", "-c", "from core.config import settings; assert settings.is_production and not settings.test_mode and settings.session_cookie_secure and settings.yookassa_verify_on_webhook and not settings.production_readiness_errors"),
+        ))
     return commands
 
 
-def parse_compose_status(output: str, services: Sequence[str]) -> None:
-    """Require every expected service to be explicitly running and healthy."""
+def parse_compose_status(output: str, services: Sequence[str], health_services: Sequence[str]) -> None:
+    """Require every expected service to run and declared healthchecks to pass."""
     try:
         records = json.loads(output) if output.lstrip().startswith("[") else [json.loads(line) for line in output.splitlines() if line]
     except json.JSONDecodeError:
         fail("compose_status_unparseable")
-    status = {str(item.get("Service", item.get("Name", ""))): item for item in records}
+    status: dict[str, dict[str, object]] = {}
+    for item in records:
+        if not isinstance(item, dict):
+            fail("compose_status_unparseable")
+        service = str(item.get("Service", item.get("Name", "")))
+        if not service or service in status:
+            fail("compose_status_unparseable")
+        status[service] = item
     for service in services:
         item = status.get(service)
-        if item is None or item.get("State") != "running" or item.get("Health") != "healthy":
+        if item is None or item.get("State") != "running":
+            fail(f"service_unhealthy:{service}")
+        if service in health_services and item.get("Health") != "healthy":
             fail(f"service_unhealthy:{service}")
 
 
@@ -285,7 +373,7 @@ def verify(settings: Settings, stage: int, runner: Runner, acquire_lock: bool = 
     status = command_result(runner, commands[0])
     if status.returncode != 0:
         fail(f"verification_failed:stage{stage}_compose_status")
-    parse_compose_status(status.stdout, ("redis", "postgres", *APP_SERVICES))
+    parse_compose_status(status.stdout, ("redis", "postgres", *APP_SERVICES), ("redis", "postgres", "api"))
     for command in commands[1:]:
         run_or_fail(runner, command, f"stage{stage}")
     if stage == 1:
@@ -309,6 +397,8 @@ def stage1(settings: Settings, runner: Runner) -> None:
     with rollout_lock(settings.lock_file):
         verify_release(settings, runner)
         state = RolloutState.load(settings.state_file)
+        if state.current is None:
+            fail("baseline_release_context_required")
         context = settings.context()
         ensure_generated(context)
         state.previous = state.current
@@ -316,7 +406,7 @@ def stage1(settings: Settings, runner: Runner) -> None:
         state.stage1_verified = False
         state.stage2_verified = False
         state.save(settings.state_file)
-        lifecycle(context, STAGE1_SERVICES, runner)
+        lifecycle(context, STAGE1_SERVICES, runner, build=True)
         verify(settings, 1, runner, acquire_lock=False)
 
 
@@ -342,11 +432,12 @@ def rollback_stage1(settings: Settings, runner: Runner) -> None:
         if state.previous is None:
             fail("previous_release_context_missing")
         ensure_generated(state.previous)
-        state.current, state.previous = state.previous, state.current
+        previous = state.previous
+        lifecycle(previous, STAGE1_SERVICES, runner)
+        state.current, state.previous = previous, state.current
         state.stage1_verified = False
         state.stage2_verified = False
         state.save(settings.state_file)
-        lifecycle(state.current, STAGE1_SERVICES, runner)
 
 
 def rollback_stage2(settings: Settings, runner: Runner) -> None:
@@ -357,7 +448,7 @@ def rollback_stage2(settings: Settings, runner: Runner) -> None:
         backup = settings.state_directory / f"environment-{state.current.sha}.backup"
         if not backup.is_file():
             fail("environment_backup_missing")
-        atomic_write(settings.environment_file, backup.read_bytes(), stat.S_IMODE(backup.stat().st_mode))
+        atomic_write(settings.environment_file, backup.read_bytes(), stat.S_IMODE(backup.stat().st_mode), owner_from=backup)
         lifecycle(state.current, APP_SERVICES, runner)
 
 
