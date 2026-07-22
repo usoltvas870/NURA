@@ -57,6 +57,39 @@ DIRECTORY_MAPPINGS: tuple[tuple[str, str], ...] = (
 
 EXCLUDED_TRACKED_SOURCES = frozenset({"frontend/pwa/app/AGENTS.md"})
 
+LEGACY_D0_SHA = "d0d39ae8717ceb0920d98f27dd9092f746755c6c"
+LEGACY_D0_EXPLICIT_MAPPINGS: tuple[tuple[str, str], ...] = (
+    ("index.html", "index.html"),
+    ("privacy.html", "privacy.html"),
+    ("offer.html", "offer.html"),
+    ("contacts.html", "contacts.html"),
+    ("mini.html", "mini.html"),
+    ("success.html", "success.html"),
+    ("personal-data-consent.html", "personal-data-consent.html"),
+    ("marketing-consent.html", "marketing-consent.html"),
+    ("acceptable-use.html", "acceptable-use.html"),
+    ("vk-callback.html", "vk-callback.html"),
+    ("theme.css", "theme.css"),
+    ("landing-v2.css", "landing-v2.css"),
+    ("landing-v2.js", "landing-v2.js"),
+    ("favicon.ico", "favicon.ico"),
+    ("hero.png", "hero.png"),
+    ("frontend/nura-hero-final.webp", "nura-hero-final.webp"),
+    ("frontend/nura-hero-final-mobile.webp", "nura-hero-final-mobile.webp"),
+    ("frontend/admin/index.html", "admin/index.html"),
+    ("frontend/manifest.json", "manifest.json"),
+    ("frontend/service-worker.js", "service-worker.js"),
+    ("frontend/pwa-install.js", "pwa-install.js"),
+    ("frontend/offline.html", "offline.html"),
+    ("frontend/pwa/metrika.js", "metrika.js"),
+)
+LEGACY_D0_DIRECTORY_MAPPINGS: tuple[tuple[str, str], ...] = (
+    ("frontend/pwa/app", "app"),
+    ("frontend/icons", "icons"),
+    ("frontend/fonts", "fonts"),
+    ("frontend/landing-v2", "landing-v2"),
+)
+
 
 class DeploymentContractError(RuntimeError):
     """Raised when release inputs do not satisfy the deployment contract."""
@@ -134,14 +167,20 @@ def _assert_regular_source(repo_root: Path, source: str, tracked: set[str]) -> P
     return source_path
 
 
-def _expected_mappings(tracked: set[str]) -> list[tuple[str, str]]:
-    mappings = list(EXPLICIT_MAPPINGS)
-    for source_prefix, destination_prefix in DIRECTORY_MAPPINGS:
+def _expected_mappings(
+    tracked: set[str],
+    *,
+    explicit_mappings: Sequence[tuple[str, str]] = EXPLICIT_MAPPINGS,
+    directory_mappings: Sequence[tuple[str, str]] = DIRECTORY_MAPPINGS,
+    excluded_sources: frozenset[str] = EXCLUDED_TRACKED_SOURCES,
+) -> list[tuple[str, str]]:
+    mappings = list(explicit_mappings)
+    for source_prefix, destination_prefix in directory_mappings:
         prefix = f"{source_prefix}/"
         directory_sources = sorted(
             source
             for source in tracked
-            if source.startswith(prefix) and source not in EXCLUDED_TRACKED_SOURCES
+            if source.startswith(prefix) and source not in excluded_sources
         )
         if not directory_sources:
             raise DeploymentContractError(f"Tracked source directory is empty: {source_prefix}")
@@ -151,7 +190,12 @@ def _expected_mappings(tracked: set[str]) -> list[tuple[str, str]]:
     return mappings
 
 
-def build_manifest(repo_root: Path, target_sha: str) -> dict[str, Any]:
+def build_manifest(
+    repo_root: Path,
+    target_sha: str,
+    *,
+    source_profile: str = "current",
+) -> dict[str, Any]:
     repo_root = repo_root.resolve(strict=True)
     validate_sha(target_sha, "target SHA")
     head = _run_git(repo_root, "rev-parse", "HEAD").strip()
@@ -159,9 +203,24 @@ def build_manifest(repo_root: Path, target_sha: str) -> dict[str, Any]:
         raise DeploymentContractError(f"HEAD/target mismatch: HEAD={head}, target={target_sha}")
 
     tracked = _tracked_files(repo_root)
+    if source_profile == "current":
+        mappings = _expected_mappings(tracked)
+    elif source_profile == "legacy-d0":
+        if target_sha != LEGACY_D0_SHA:
+            raise DeploymentContractError(
+                "legacy-d0 source profile requires the exact audited legacy SHA"
+            )
+        mappings = _expected_mappings(
+            tracked,
+            explicit_mappings=LEGACY_D0_EXPLICIT_MAPPINGS,
+            directory_mappings=LEGACY_D0_DIRECTORY_MAPPINGS,
+            excluded_sources=frozenset(),
+        )
+    else:
+        raise DeploymentContractError(f"Unsupported source profile: {source_profile}")
     destinations: set[str] = set()
     entries: list[dict[str, Any]] = []
-    for source, destination in _expected_mappings(tracked):
+    for source, destination in mappings:
         source_path = _assert_regular_source(repo_root, source, tracked)
         target_content = _target_blob(repo_root, target_sha, source)
         target_digest = hashlib.sha256(target_content).hexdigest()

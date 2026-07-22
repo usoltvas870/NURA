@@ -14,6 +14,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEPLOY_SCRIPT = REPO_ROOT / "deploy.sh"
+AUDITED_P6B_SCRIPT = REPO_ROOT / "scripts" / "deploy_audited_p6b_transition.sh"
 STATIC_HELPER_PATH = REPO_ROOT / "scripts" / "deploy_static_release.py"
 ARTIFACT_HELPER_PATH = REPO_ROOT / "scripts" / "build_release_artifact.py"
 DEPLOY_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
@@ -176,18 +177,97 @@ def test_root_engine_rejects_ambiguous_or_malformed_cli(arguments: list[str]) ->
     assert "usage" in result.stderr or "SHA" in result.stderr or "ambiguous" in result.stderr
 
 
-def test_root_engine_has_migration_hard_block_and_no_alembic_escape() -> None:
+def test_root_engine_has_one_audited_preapplied_migration_transition() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
-    assert "migration delta blocks deployment; P4.2B2 has no override" in script
+    assert "migration delta blocks deployment outside the audited transition" in script
     assert "ALLOW_MIGRATIONS" not in script
     assert "allow_migrations" not in script
     assert "alembic upgrade" not in script
     assert "alembic downgrade" not in script
+    assert "AUDITED_MIGRATION_FROM_SHA='d0d39ae8717ceb0920d98f27dd9092f746755c6c'" in script
+    assert "AUDITED_MIGRATION_TARGET_SHA='9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532'" in script
+    assert "AUDITED_MIGRATION_REVISION='d1e2f3a4b5c6'" in script
+    assert "NURA_PREAPPLIED_MIGRATION_REVISION" in script
+    assert "NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA" in script
+    assert "NURA_AUDITED_ENGINE_HELPER_ROOT" in script
+    assert 'ARTIFACT_HELPER="$AUDITED_HELPER_ROOT/build_release_artifact.py"' in script
+    assert "target_alembic_head" in script
+    assert "SELECT version_num FROM alembic_version" in script
     assert 'RUN_MIGRATIONS: "0"' in script
     assert script.index("MIGRATION_OUTPUT") < script.index("extract --archive")
     assert script.index("MIGRATION_OUTPUT") < script.index("docker build")
     assert 'build_pwa_release.py" --check' in script
     assert 'frontend/test_pwa_release.mjs"' in script
+
+
+def test_audited_p6b_wrapper_reaches_exact_immutable_target() -> None:
+    source = AUDITED_P6B_SCRIPT.read_text(encoding="utf-8")
+    assert "TARGET_SHA='9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532'" in source
+    assert "EXPECTED_REVISION='d1e2f3a4b5c6'" in source
+    assert "ENGINE_COMMIT='f8716a7ca08190255a58b42fa420ce6aacc793e7'" in source
+    assert "ENGINE_BLOB='832d773a24d9fcbaaec22ec64138a71705874684'" in source
+    assert "ARTIFACT_HELPER_BLOB='b2ef31a30252a476faf21e3b41409b633aa33d58'" in source
+    assert "STATIC_HELPER_BLOB='e42eb64abed196aaf1d529518269936ad5ed990d'" in source
+    assert 'export NURA_PREAPPLIED_MIGRATION_REVISION="$EXPECTED_REVISION"' in source
+    assert "export NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA=1" in source
+    assert 'bash "$ENGINE_FILE" deploy "$TARGET_SHA"' in source
+    assert 'merge-base --is-ancestor "$TARGET_SHA" "$ENGINE_COMMIT"' in source
+    assert 'git -C "$LAUNCHER_ROOT" show "$ENGINE_COMMIT:$source_path" > "$destination"' in source
+    assert 'extract_blob deploy.sh "$ENGINE_BLOB" "$ENGINE_FILE"' in source
+    assert 'extract_blob scripts/build_release_artifact.py "$ARTIFACT_HELPER_BLOB"' in source
+    assert 'extract_blob scripts/deploy_static_release.py "$STATIC_HELPER_BLOB"' in source
+    assert 'export NURA_AUDITED_ENGINE_HELPER_ROOT="$ENGINE_DIR"' in source
+    assert "export PYTHONDONTWRITEBYTECODE=1" in source
+    assert 'export PYTHONPATH="$ENGINE_DIR${PYTHONPATH:+:$PYTHONPATH}"' in source
+    assert "umask 077" in source
+    assert "umask 022" in source
+    assert source.index("umask 077") < source.index("extract_blob deploy.sh")
+    assert source.index("umask 022") > source.index("extract_blob scripts/deploy_static_release.py")
+    assert "local status=$?" in source
+    assert 'exit "$status"' in source
+    assert '"$LAUNCHER_ROOT/deploy.sh"' not in source
+    assert "alembic upgrade" not in source
+    assert "alembic downgrade" not in source
+
+    result = subprocess.run(
+        [_bash_executable(), str(AUDITED_P6B_SCRIPT)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "usage:" in result.stderr
+
+
+def test_audited_p6b_bundle_supports_inline_helper_import(tmp_path: Path) -> None:
+    engine_commit = "f8716a7ca08190255a58b42fa420ce6aacc793e7"
+    for source_path in (
+        "scripts/build_release_artifact.py",
+        "scripts/deploy_static_release.py",
+    ):
+        content = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "show", f"{engine_commit}:{source_path}"],
+            check=True,
+            capture_output=True,
+        ).stdout
+        (tmp_path / Path(source_path).name).write_bytes(content)
+
+    environment = {**os.environ, "PYTHONPATH": str(tmp_path), "PYTHONDONTWRITEBYTECODE": "1"}
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import importlib.util,sys;"
+            "s=importlib.util.spec_from_file_location('artifact',sys.argv[1]);"
+            "m=importlib.util.module_from_spec(s);s.loader.exec_module(m)",
+            str(tmp_path / "build_release_artifact.py"),
+        ],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_root_engine_uses_one_exact_image_and_verifies_all_five_services() -> None:
@@ -349,6 +429,19 @@ def test_ci_workflow_has_no_deployment() -> None:
     assert "ssh-action" not in workflow
     assert "scp-action" not in workflow
     assert "deploy.sh deploy" not in workflow
+
+
+def test_ci_workflow_fetches_exact_audited_release_history() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    assert "git fetch --no-tags --depth=1 origin" in workflow
+    assert "d0d39ae8717ceb0920d98f27dd9092f746755c6c" in workflow
+    assert "f8716a7ca08190255a58b42fa420ce6aacc793e7" in workflow
+    assert 'git cat-file -e "${LEGACY_RELEASE_SHA}^{tree}"' in workflow
+    assert (
+        'git cat-file -e "${AUDITED_ENGINE_SHA}:scripts/build_release_artifact.py"'
+        in workflow
+    )
+    assert "fetch-depth: 0" not in workflow
 
 
 def test_nginx_uses_release_root_except_stable_acme() -> None:

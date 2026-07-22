@@ -83,6 +83,42 @@ def test_deterministic_build_twice_is_byte_identical(tmp_path: Path) -> None:
     assert [path.read_bytes() for path in first] == [path.read_bytes() for path in second]
 
 
+def test_transition_builds_real_audited_legacy_artifact(tmp_path: Path) -> None:
+    archive, checksum, manifest_path = transition._build_legacy_artifact(
+        REPO_ROOT,
+        tmp_path / "legacy-artifact",
+    )
+
+    manifest, payload = builder.inspect_artifact(
+        archive,
+        checksum,
+        manifest_path,
+        transition.EXPECTED_LEGACY_SHA,
+    )
+
+    assert manifest["target_sha"] == transition.EXPECTED_LEGACY_SHA
+    assert "public/index.html" in payload
+    assert "public/vk-callback.html" in payload
+    assert "public/success.html" in payload
+    assert "public/app/index.html" in payload
+    assert "public/app/AGENTS.md" in payload
+    assert "public/pwa-release.json" not in payload
+    assert set(transition.PUBLIC_ALIASES.values()) <= set(payload)
+    assert all(not name.startswith("public/assets/") for name in payload)
+
+
+def test_legacy_source_profile_rejects_every_other_sha(
+    artifact_fixture: tuple[Path, str, Path, Path, Path],
+) -> None:
+    repo, target, _archive, _checksum, _manifest = artifact_fixture
+
+    with pytest.raises(
+        static_contract.DeploymentContractError,
+        match="exact audited legacy SHA",
+    ):
+        static_contract.build_manifest(repo, target, source_profile="legacy-d0")
+
+
 def test_artifact_includes_vk_version_and_ordered_manifest(
     artifact_fixture: tuple[Path, str, Path, Path, Path],
 ) -> None:
@@ -217,6 +253,24 @@ def test_finalize_renames_staging_and_reuses_only_exact_release(
     builder.extract_artifact(archive, checksum, manifest_path, second, target)
     assert builder.finalize_release(second, releases, target) == final
     assert not second.exists()
+
+
+def test_extract_makes_release_directories_web_readable_under_restrictive_umask(
+    artifact_fixture: tuple[Path, str, Path, Path, Path], tmp_path: Path
+) -> None:
+    if os.name == "nt":
+        pytest.skip("POSIX directory modes are not represented on Windows")
+    _repo, target, archive, checksum, manifest_path = artifact_fixture
+    staging = tmp_path / "staging"
+    previous_umask = os.umask(0o077)
+    try:
+        builder.extract_artifact(archive, checksum, manifest_path, staging, target)
+    finally:
+        os.umask(previous_umask)
+
+    directories = [staging, *(path for path in staging.rglob("*") if path.is_dir())]
+    assert directories
+    assert all(path.stat().st_mode & 0o777 == 0o755 for path in directories)
 
 
 def test_existing_mismatched_release_fails(
@@ -515,13 +569,27 @@ def _public_release_fixture(tmp_path: Path) -> tuple[Path, dict[str, bytes]]:
     return release, payloads
 
 
-def _public_fetcher(payloads: dict[str, bytes], *, corrupt: str | None = None, redirect_ok: bool = True):
+def _public_fetcher(
+    payloads: dict[str, bytes],
+    *,
+    corrupt: str | None = None,
+    redirect_ok: bool = True,
+    legacy_redirects: bool = False,
+):
     aliases = {endpoint: payloads[destination] for endpoint, destination in transition.PUBLIC_ALIASES.items()}
     direct = {f"/{name.removeprefix('public/')}": body for name, body in payloads.items()}
+    direct.pop("/success.html")
 
     def fetch(url: str) -> transition.FetchResult:
-        if url in transition.REDIRECT_CONTRACTS:
-            location = transition.REDIRECT_CONTRACTS[url] if redirect_ok else "https://wrong.invalid/"
+        redirect_contracts = (
+            transition.LEGACY_REDIRECT_CONTRACTS
+            if legacy_redirects
+            else transition.REDIRECT_CONTRACTS
+        )
+        if legacy_redirects and url == transition.LEGACY_WWW_APP_URL:
+            return transition.FetchResult(200, payloads["public/app/index.html"])
+        if url in redirect_contracts:
+            location = redirect_contracts[url] if redirect_ok else "https://wrong.invalid/"
             return transition.FetchResult(301, b"", location)
         endpoint = url.removeprefix("https://nura-ai.ru")
         if endpoint == "/health":
@@ -599,7 +667,7 @@ def test_legacy_public_baseline_accepts_old_version_but_post_switch_requires_det
         release,
         legacy_version,
         legacy_evidence,
-        fetcher=_public_fetcher(live_payloads),
+        fetcher=_public_fetcher(live_payloads, legacy_redirects=True),
     )
     assert baseline["/VERSION"] == legacy_evidence["sha256"]
     with pytest.raises(transition.TransitionError, match="equivalence"):
@@ -617,14 +685,20 @@ def test_legacy_public_baseline_rejects_changed_old_version_or_non_version_file(
             release,
             legacy_version,
             evidence,
-            fetcher=_public_fetcher({**live_payloads, "public/index.html": b"changed\n"}),
+            fetcher=_public_fetcher(
+                {**live_payloads, "public/index.html": b"changed\n"},
+                legacy_redirects=True,
+            ),
         )
     with pytest.raises(transition.TransitionError, match="equivalence"):
         transition.verify_legacy_public_baseline(
             release,
             legacy_version,
             evidence,
-            fetcher=_public_fetcher({**live_payloads, "public/VERSION": b"different\n"}),
+            fetcher=_public_fetcher(
+                {**live_payloads, "public/VERSION": b"different\n"},
+                legacy_redirects=True,
+            ),
         )
 
 
@@ -641,7 +715,9 @@ def test_legacy_public_baseline_records_raw_version_and_forensic_metadata(
         legacy_version,
         evidence,
         base_url="https://nura-ai.ru",
-        fetcher=_public_fetcher({**payloads, "public/VERSION": legacy_version}),
+        fetcher=_public_fetcher(
+            {**payloads, "public/VERSION": legacy_version}, legacy_redirects=True
+        ),
     )
     saved = json.loads((tmp_path / "forensics/legacy-public-baseline.json").read_text(encoding="utf-8"))
     assert saved == baseline

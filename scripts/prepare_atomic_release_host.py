@@ -31,6 +31,7 @@ except ImportError:  # pragma: no cover - apply mode is Linux-host only
     fcntl = None  # type: ignore[assignment]
 
 EXPECTED_LEGACY_SHA = "d0d39ae8717ceb0920d98f27dd9092f746755c6c"
+SCRIPT_DIR = Path(__file__).resolve().parent
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 LEGACY_VERSION_PATTERN = re.compile(
     rf"^(?P<sha>{EXPECTED_LEGACY_SHA}) - "
@@ -52,9 +53,15 @@ PUBLIC_ALIASES = {
     "/admin/": "public/admin/index.html",
     "/app/": "public/app/index.html",
 }
+ALIAS_ONLY_DESTINATIONS = frozenset({"public/success.html"})
 REDIRECT_CONTRACTS = {
     "https://www.nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
     "http://www.nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
+    "http://nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
+}
+LEGACY_WWW_APP_URL = "https://www.nura-ai.ru/app/?release-check=1"
+LEGACY_REDIRECT_CONTRACTS = {
+    "http://www.nura-ai.ru/app/?release-check=1": "https://www.nura-ai.ru/app/?release-check=1",
     "http://nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
 }
 LEGACY_PUBLIC_EXCLUDED_PREFIXES = (".well-known/acme-challenge/",)
@@ -111,10 +118,11 @@ def verify_public_equivalence(
         expected = source.read_bytes()
         if len(expected) != entry.get("size") or hashlib.sha256(expected).hexdigest() != entry.get("sha256"):
             raise TransitionError(f"manifest hash/size mismatch: {destination}")
-        result = fetcher(f"{base_url.rstrip('/')}/{relative}")
-        if result.status != 200 or result.body != expected:
-            raise TransitionError(f"public byte equivalence failed: /{relative}")
-        evidence[f"/{relative}"] = entry["sha256"]
+        if destination not in ALIAS_ONLY_DESTINATIONS:
+            result = fetcher(f"{base_url.rstrip('/')}/{relative}")
+            if result.status != 200 or result.body != expected:
+                raise TransitionError(f"public byte equivalence failed: /{relative}")
+            evidence[f"/{relative}"] = entry["sha256"]
     for endpoint, destination in PUBLIC_ALIASES.items():
         result = fetcher(f"{base_url.rstrip('/')}{endpoint}")
         expected = (release / destination).read_bytes()
@@ -190,10 +198,11 @@ def verify_legacy_public_baseline(
             raise TransitionError(f"manifest hash/size mismatch: {destination}")
         if destination == "public/VERSION":
             expected = legacy_version_bytes
-        result = fetcher(f"{base_url.rstrip('/')}/{relative}")
-        if result.status != 200 or result.body != expected:
-            raise TransitionError(f"public byte equivalence failed: /{relative}")
-        evidence[f"/{relative}"] = hashlib.sha256(expected).hexdigest()
+        if destination not in ALIAS_ONLY_DESTINATIONS:
+            result = fetcher(f"{base_url.rstrip('/')}/{relative}")
+            if result.status != 200 or result.body != expected:
+                raise TransitionError(f"public byte equivalence failed: /{relative}")
+            evidence[f"/{relative}"] = hashlib.sha256(expected).hexdigest()
     for endpoint, destination in PUBLIC_ALIASES.items():
         expected = legacy_version_bytes if destination == "public/VERSION" else (release / destination).read_bytes()
         result = fetcher(f"{base_url.rstrip('/')}{endpoint}")
@@ -203,10 +212,15 @@ def verify_legacy_public_baseline(
     health = fetcher(f"{base_url.rstrip('/')}/health")
     if health.status != 200:
         raise TransitionError("public health verification failed")
-    for source, destination in REDIRECT_CONTRACTS.items():
+    legacy_www = fetcher(LEGACY_WWW_APP_URL)
+    expected_app = (release / "public/app/index.html").read_bytes()
+    if legacy_www.status != 200 or legacy_www.body != expected_app:
+        raise TransitionError("legacy www application route verification failed")
+    evidence[LEGACY_WWW_APP_URL] = hashlib.sha256(expected_app).hexdigest()
+    for source, destination in LEGACY_REDIRECT_CONTRACTS.items():
         result = fetcher(source)
         if result.status not in {301, 302, 307, 308} or result.location != destination:
-            raise TransitionError(f"canonical redirect verification failed: {source}")
+            raise TransitionError(f"legacy redirect verification failed: {source}")
         evidence[source] = destination
     return evidence
 
@@ -232,10 +246,22 @@ def _build_legacy_artifact(repo_root: Path, artifact_dir: Path) -> tuple[Path, P
     try:
         shutil.rmtree(checkout)
         _run("git", "clone", "--quiet", "--no-checkout", "--shared", str(repo_root), str(checkout))
+        _run("git", "-C", str(checkout), "config", "core.autocrlf", "false")
+        _run(
+            "git",
+            "-C",
+            str(checkout),
+            "fetch",
+            "--quiet",
+            "--no-tags",
+            "--depth=1",
+            str(repo_root),
+            EXPECTED_LEGACY_SHA,
+        )
         _run("git", "-C", str(checkout), "checkout", "--quiet", "--detach", EXPECTED_LEGACY_SHA)
         _run(
-            "python3",
-            str(repo_root / "scripts" / "build_release_artifact.py"),
+            sys.executable,
+            str(SCRIPT_DIR / "build_release_artifact.py"),
             "build",
             "--repo-root",
             str(checkout),
@@ -243,6 +269,8 @@ def _build_legacy_artifact(repo_root: Path, artifact_dir: Path) -> tuple[Path, P
             EXPECTED_LEGACY_SHA,
             "--output-dir",
             str(artifact_dir),
+            "--source-profile",
+            "legacy-d0",
         )
         return _artifact_paths(artifact_dir)
     finally:
@@ -500,7 +528,8 @@ def _write_legacy_public_baseline(
         "canonical_manifest_sha256": _sha256(release / "public" / "release-manifest.json"),
         "aliases_checked": sorted(PUBLIC_ALIASES),
         "health_checked": True,
-        "redirects_checked": sorted(REDIRECT_CONTRACTS),
+        "redirects_checked": sorted(LEGACY_REDIRECT_CONTRACTS),
+        "legacy_www_route_checked": LEGACY_WWW_APP_URL,
         "public_evidence": public_evidence,
         "recorded_at": datetime_utc(),
     }
@@ -668,7 +697,7 @@ def _prepare_legacy_release(
             "s=importlib.util.spec_from_file_location('artifact',sys.argv[1]);"
             "m=importlib.util.module_from_spec(s);s.loader.exec_module(m);"
             "m.verify_release_directory(pathlib.Path(sys.argv[2]),json.load(open(sys.argv[3],encoding='utf-8')))",
-            str(args.repo_root / "scripts" / "build_release_artifact.py"),
+            str(SCRIPT_DIR / "build_release_artifact.py"),
             str(final),
             str(manifest),
         )
@@ -680,7 +709,7 @@ def _prepare_legacy_release(
     )
     _run(
         "python3",
-        str(args.repo_root / "scripts" / "build_release_artifact.py"),
+        str(SCRIPT_DIR / "build_release_artifact.py"),
         "extract",
         "--archive",
         str(archive),
@@ -701,7 +730,7 @@ def _finalize_prepared_release(args: argparse.Namespace, prepared: PreparedLegac
         return prepared.final_path
     output = _run(
         "python3",
-        str(args.repo_root / "scripts" / "build_release_artifact.py"),
+        str(SCRIPT_DIR / "build_release_artifact.py"),
         "finalize",
         "--staging",
         str(prepared.staging_path),

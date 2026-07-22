@@ -4,12 +4,12 @@
 
 ## Разрешённые entrypoints
 
-Production release и rollback запускаются только вручную из ветки `main` через защищённый GitHub Actions environment `production`:
+Production release и rollback обычно запускаются только вручную из ветки `main` через защищённый GitHub Actions environment `production`:
 
 - **Deploy coordinated production release** собирает immutable artifact точного `github.sha`, передаёт его в уникальный incoming path и вызывает `deploy.sh deploy <sha> <archive> <checksum> <manifest>`;
 - **Roll back coordinated production release** требует точный SHA и явное acknowledgement, после чего вызывает `deploy.sh rollback <sha>`.
 
-Оба workflow используют concurrency group `deploy-production` с `cancel-in-progress: false`. Push/merge не запускает deployment. CLI bypass, moving `git pull`, произвольный checkout, `workflow_dispatch` из этой implementation-задачи и автоматический deploy запрещены.
+Оба workflow используют concurrency group `deploy-production` с `cancel-in-progress: false`. Push/merge не запускает deployment. CLI bypass, moving `git pull`, произвольный checkout, `workflow_dispatch` из implementation-задач и автоматический deploy запрещены. Единственное исключение — одноразовый audited P6B wrapper `scripts/deploy_audited_p6b_transition.sh`: он существует потому, что immutable target `9da6ad8…` предшествует migration-gate fix, разрешает только этот exact target/revision и извлекает engine и его pre-fast-forward helpers из закреплённого commit `f8716a7…` с проверкой exact Git blob, а не из mutable working tree. Engine управляет отдельным production checkout `/opt/nura`, который остаётся на `d0d39ae…` до fast-forward к exact target; helper-файлы живут только в private temporary directory и не загрязняют production checkout. После P6B этот wrapper не является общим deploy entrypoint.
 
 Legacy audit name **Deploy to production** сохранён здесь только как ссылка на прежний P4.2B1 contract; оператор по-прежнему использует GitHub Actions → **Run workflow**, но новый workflow называется **Deploy coordinated production release** и всегда фиксирует exact target SHA. Он не публикует static in place. Локальный `scripts/deploy.sh` остаётся fail-closed deprecated stub; fallback и emergency deploy не поддерживаются.
 
@@ -44,7 +44,7 @@ Staging и final releases обязаны находиться на одном fi
 Под common `flock` root engine выполняет:
 
 1. host layout, exact ref, clean checkout, current state и active Nginx gates;
-2. безусловный migration delta gate;
+2. migration delta gate с единственным exact исключением для отдельно отрепетированного и уже применённого перехода `d0d39ae… → 9da6ad8…`: оператор обязан передать exact revision acknowledgement и подтверждение обратной совместимости, а engine независимо сверяет target Alembic head и production `alembic_version`;
 3. artifact checksum/inventory и dynamic disk/inode gates;
 4. unique staging, verification и same-filesystem finalization;
 5. уникальный candidate image `nura-release-candidate:<sha>-<run-id>` из exact tracked archive с OCI revision/source/created labels, проверка его image ID/labels и однократная публикация отсутствующего final tag `nura-release:<sha>`;
@@ -56,7 +56,7 @@ Staging и final releases обязаны находиться на одном fi
 Один SHA имеет одну immutable release identity: archive checksum, manifest checksum, static path, final image tag/ID, OCI labels и пять service image mappings/IDs записываются до первой application mutation и далее не меняются. Существующий final static или final tag без полного state-record считается recovery-ситуацией и не перезаписывается. Повторная активация ранее successful/rolled-back release (либо failed release только после доказанной полной compensation) переиспользует точные static/image provenance без rebuild и без повторной записи static. Отсутствующий final tag можно восстановить только из записанного локального image ID после полной сверки labels; конфликтующий tag блокирует операцию.
 10. best-effort locked retention cleanup.
 
-Postgres и Redis проверяются, но не пересоздаются. `deploy.sh` не запускает Alembic upgrade/downgrade и не имеет `allow_migrations`: любой delta в `nura_app/alembic/versions` блокирует release до extraction, Docker build и active mutations.
+Postgres и Redis проверяются, но не пересоздаются. `deploy.sh` не запускает Alembic upgrade/downgrade и не имеет общего `allow_migrations`: любой delta в `nura_app/alembic/versions` блокирует release до extraction, Docker build и active mutations, кроме единственного зафиксированного перехода `d0d39ae… → 9da6ad8…`. Для него обязательны `NURA_PREAPPLIED_MIGRATION_REVISION=d1e2f3a4b5c6` и `NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA=1`; engine вычисляет head из target Git blobs и read-only проверяет production revision. Любая другая пара SHA или revision остаётся заблокированной.
 
 Если application activation ломается до static switch, static остаётся прежним, а все изменённые application services возвращаются к предыдущей service→image mapping. После static switch compensation сначала возвращает static, затем application fleet, проверяет прежний `VERSION` и не помечает target successful.
 
