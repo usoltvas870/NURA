@@ -247,6 +247,17 @@ def _build_legacy_artifact(repo_root: Path, artifact_dir: Path) -> tuple[Path, P
         shutil.rmtree(checkout)
         _run("git", "clone", "--quiet", "--no-checkout", "--shared", str(repo_root), str(checkout))
         _run("git", "-C", str(checkout), "config", "core.autocrlf", "false")
+        _run(
+            "git",
+            "-C",
+            str(checkout),
+            "fetch",
+            "--quiet",
+            "--no-tags",
+            "--depth=1",
+            str(repo_root),
+            EXPECTED_LEGACY_SHA,
+        )
         _run("git", "-C", str(checkout), "checkout", "--quiet", "--detach", EXPECTED_LEGACY_SHA)
         _run(
             sys.executable,
