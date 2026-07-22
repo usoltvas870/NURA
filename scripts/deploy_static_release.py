@@ -67,6 +67,7 @@ LEGACY_D0_EXPLICIT_MAPPINGS: tuple[tuple[str, str], ...] = (
     ("personal-data-consent.html", "personal-data-consent.html"),
     ("marketing-consent.html", "marketing-consent.html"),
     ("acceptable-use.html", "acceptable-use.html"),
+    ("vk-callback.html", "vk-callback.html"),
     ("theme.css", "theme.css"),
     ("landing-v2.css", "landing-v2.css"),
     ("landing-v2.js", "landing-v2.js"),

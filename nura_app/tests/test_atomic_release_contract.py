@@ -98,6 +98,7 @@ def test_transition_builds_real_audited_legacy_artifact(tmp_path: Path) -> None:
 
     assert manifest["target_sha"] == transition.EXPECTED_LEGACY_SHA
     assert "public/index.html" in payload
+    assert "public/vk-callback.html" in payload
     assert "public/app/index.html" in payload
     assert "public/app/AGENTS.md" in payload
     assert "public/pwa-release.json" not in payload
