@@ -7,7 +7,7 @@ if [ ! -r "$secret_file" ]; then
 fi
 
 raw_bytes=$(wc -c < "$secret_file")
-single_line_bytes=$(tr -d '\r\n' < "$secret_file" | wc -c)
+single_line_bytes=$(tr -d '\000\r\n' < "$secret_file" | wc -c)
 if [ "$raw_bytes" -ne "$single_line_bytes" ]; then
     exit 1
 fi

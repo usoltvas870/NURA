@@ -296,6 +296,12 @@ def test_root_engine_orders_activation_and_compensation() -> None:
         "write_state successful",
     ]
     assert [script.index(item) for item in activation] == sorted(script.index(item) for item in activation)
+
+
+def test_root_engine_keeps_compose_base_beside_application_compose_file() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+
+    assert 'mktemp "$REPO_ROOT/nura_app/.nura-compose-base.XXXXXX.yml"' in script
     cleanup = script[script.index("cleanup()") : script.index("trap cleanup EXIT")]
     assert cleanup.index("switch-current") < cleanup.index("activate_from_state")
     rollback = script[script.index('if [[ "$COMMAND" == rollback ]]') : script.index('[[ -f "$ARTIFACT_PATH"')]

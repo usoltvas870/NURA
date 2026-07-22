@@ -195,12 +195,23 @@ def test_redis_helpers_read_only_the_secret_file_at_runtime() -> None:
     assert "REDISCLI_AUTH" in healthcheck
 
 
+def test_redis_helpers_use_linux_line_endings() -> None:
+    for helper_name in ("redis-entrypoint.sh", "redis-healthcheck.sh"):
+        assert b"\r\n" not in (APP_ROOT / "scripts" / helper_name).read_bytes()
+
+
 @pytest.mark.skipif(shutil.which("sh") is None, reason="POSIX shell is unavailable")
 @pytest.mark.parametrize(
     "helper_name", ["redis-entrypoint.sh", "redis-healthcheck.sh"]
 )
 @pytest.mark.parametrize(
-    "secret_bytes", [b"test-password\n", b"test-password\r", b"test-password\r\n"]
+    "secret_bytes",
+    [
+        b"test-password\n",
+        b"test-password\r",
+        b"test-password\r\n",
+        b"test-password\x00suffix",
+    ],
 )
 def test_redis_helpers_reject_newline_terminated_secret_before_execution(
     helper_name: str, secret_bytes: bytes, tmp_path: Path
