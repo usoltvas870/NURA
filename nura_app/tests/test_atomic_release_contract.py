@@ -103,6 +103,7 @@ def test_transition_builds_real_audited_legacy_artifact(tmp_path: Path) -> None:
     assert "public/app/index.html" in payload
     assert "public/app/AGENTS.md" in payload
     assert "public/pwa-release.json" not in payload
+    assert set(transition.PUBLIC_ALIASES.values()) <= set(payload)
     assert all(not name.startswith("public/assets/") for name in payload)
 
 
