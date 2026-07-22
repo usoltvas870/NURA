@@ -431,6 +431,19 @@ def test_ci_workflow_has_no_deployment() -> None:
     assert "deploy.sh deploy" not in workflow
 
 
+def test_ci_workflow_fetches_exact_audited_release_history() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    assert "git fetch --no-tags --depth=1 origin" in workflow
+    assert "d0d39ae8717ceb0920d98f27dd9092f746755c6c" in workflow
+    assert "f8716a7ca08190255a58b42fa420ce6aacc793e7" in workflow
+    assert 'git cat-file -e "${LEGACY_RELEASE_SHA}^{tree}"' in workflow
+    assert (
+        'git cat-file -e "${AUDITED_ENGINE_SHA}:scripts/build_release_artifact.py"'
+        in workflow
+    )
+    assert "fetch-depth: 0" not in workflow
+
+
 def test_nginx_uses_release_root_except_stable_acme() -> None:
     config = NGINX_PATH.read_text(encoding="utf-8")
     assert "root /var/www/nura-releases/current/public;" in config

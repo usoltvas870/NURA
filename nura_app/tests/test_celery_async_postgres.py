@@ -69,6 +69,7 @@ def disposable_postgres() -> Iterator[DisposablePostgres]:
         )
         assert result.stdout.strip()
         deadline = time.monotonic() + 30
+        last_readiness_error = "PostgreSQL readiness probe did not run"
         while time.monotonic() < deadline:
             ready = _docker(
                 "exec",
@@ -80,11 +81,37 @@ def disposable_postgres() -> Iterator[DisposablePostgres]:
                 database_name,
                 check=False,
             )
-            if ready.returncode == 0:
+            query = _docker(
+                "exec",
+                "--env",
+                "PGCONNECT_TIMEOUT=1",
+                container,
+                "psql",
+                "--tuples-only",
+                "--no-align",
+                "--username",
+                username,
+                "--dbname",
+                database_name,
+                "--command",
+                "SELECT 1",
+                check=False,
+            )
+            if (
+                ready.returncode == 0
+                and query.returncode == 0
+                and query.stdout.strip() == "1"
+            ):
                 break
+            last_readiness_error = (
+                query.stderr or ready.stderr or query.stdout or ready.stdout
+            ).strip()
             time.sleep(0.25)
         else:
-            pytest.fail("Disposable PostgreSQL did not become ready")
+            pytest.fail(
+                "Disposable PostgreSQL did not accept a readiness SELECT within 30s: "
+                f"{last_readiness_error}"
+            )
 
         mapping = _docker("port", container, "5432/tcp").stdout.strip()
         host, port = mapping.rsplit(":", 1)

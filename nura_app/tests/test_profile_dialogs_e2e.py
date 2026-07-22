@@ -10,7 +10,7 @@ import urllib.request
 from collections.abc import Iterator
 
 import pytest
-from playwright.sync_api import BrowserContext, Page, Route, sync_playwright
+from playwright.sync_api import BrowserContext, Page, Route, expect, sync_playwright
 
 
 BASE_URL = "http://127.0.0.1:4174"
@@ -114,8 +114,7 @@ def test_logout_error_keeps_dialog_retryable(page: Page) -> None:
     page.route("**/api/v1/web/logout", lambda route: (calls.append(route.request.url), route.fulfill(status=500)))
     page.locator("#logout-btn").click()
     page.locator("#logout-dialog-confirm").click()
-    page.locator("#logout-dialog-confirm").wait_for(state="visible")
-    assert page.locator("#logout-dialog-confirm").is_enabled()
+    expect(page.locator("#logout-dialog-confirm")).to_be_enabled()
     assert len(calls) == 1
 
 

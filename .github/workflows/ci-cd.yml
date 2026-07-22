@@ -81,6 +81,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Fetch audited release history
+        working-directory: .
+        env:
+          LEGACY_RELEASE_SHA: d0d39ae8717ceb0920d98f27dd9092f746755c6c
+          AUDITED_ENGINE_SHA: f8716a7ca08190255a58b42fa420ce6aacc793e7
+        run: |
+          git fetch --no-tags --depth=1 origin \
+            "$LEGACY_RELEASE_SHA" \
+            "$AUDITED_ENGINE_SHA"
+          git cat-file -e "${LEGACY_RELEASE_SHA}^{tree}"
+          git cat-file -e "${AUDITED_ENGINE_SHA}:scripts/build_release_artifact.py"
+
       - name: Set up Python 3.11.9
         uses: actions/setup-python@v6
         with:
