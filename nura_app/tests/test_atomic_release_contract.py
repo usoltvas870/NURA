@@ -554,6 +554,7 @@ def _public_release_fixture(tmp_path: Path) -> tuple[Path, dict[str, bytes]]:
 def _public_fetcher(payloads: dict[str, bytes], *, corrupt: str | None = None, redirect_ok: bool = True):
     aliases = {endpoint: payloads[destination] for endpoint, destination in transition.PUBLIC_ALIASES.items()}
     direct = {f"/{name.removeprefix('public/')}": body for name, body in payloads.items()}
+    direct.pop("/success.html")
 
     def fetch(url: str) -> transition.FetchResult:
         if url in transition.REDIRECT_CONTRACTS:

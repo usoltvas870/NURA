@@ -53,6 +53,7 @@ PUBLIC_ALIASES = {
     "/admin/": "public/admin/index.html",
     "/app/": "public/app/index.html",
 }
+ALIAS_ONLY_DESTINATIONS = frozenset({"public/success.html"})
 REDIRECT_CONTRACTS = {
     "https://www.nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
     "http://www.nura-ai.ru/app/?release-check=1": "https://nura-ai.ru/app/?release-check=1",
@@ -112,10 +113,11 @@ def verify_public_equivalence(
         expected = source.read_bytes()
         if len(expected) != entry.get("size") or hashlib.sha256(expected).hexdigest() != entry.get("sha256"):
             raise TransitionError(f"manifest hash/size mismatch: {destination}")
-        result = fetcher(f"{base_url.rstrip('/')}/{relative}")
-        if result.status != 200 or result.body != expected:
-            raise TransitionError(f"public byte equivalence failed: /{relative}")
-        evidence[f"/{relative}"] = entry["sha256"]
+        if destination not in ALIAS_ONLY_DESTINATIONS:
+            result = fetcher(f"{base_url.rstrip('/')}/{relative}")
+            if result.status != 200 or result.body != expected:
+                raise TransitionError(f"public byte equivalence failed: /{relative}")
+            evidence[f"/{relative}"] = entry["sha256"]
     for endpoint, destination in PUBLIC_ALIASES.items():
         result = fetcher(f"{base_url.rstrip('/')}{endpoint}")
         expected = (release / destination).read_bytes()
@@ -191,10 +193,11 @@ def verify_legacy_public_baseline(
             raise TransitionError(f"manifest hash/size mismatch: {destination}")
         if destination == "public/VERSION":
             expected = legacy_version_bytes
-        result = fetcher(f"{base_url.rstrip('/')}/{relative}")
-        if result.status != 200 or result.body != expected:
-            raise TransitionError(f"public byte equivalence failed: /{relative}")
-        evidence[f"/{relative}"] = hashlib.sha256(expected).hexdigest()
+        if destination not in ALIAS_ONLY_DESTINATIONS:
+            result = fetcher(f"{base_url.rstrip('/')}/{relative}")
+            if result.status != 200 or result.body != expected:
+                raise TransitionError(f"public byte equivalence failed: /{relative}")
+            evidence[f"/{relative}"] = hashlib.sha256(expected).hexdigest()
     for endpoint, destination in PUBLIC_ALIASES.items():
         expected = legacy_version_bytes if destination == "public/VERSION" else (release / destination).read_bytes()
         result = fetcher(f"{base_url.rstrip('/')}{endpoint}")
