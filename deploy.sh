@@ -424,7 +424,9 @@ for path in failed[2:]: shutil.rmtree(path)
 PY
 }
 
-COMPOSE_BASE="$(mktemp "${TMPDIR:-/tmp}/nura-compose-base.XXXXXX.yml")"
+# Compose resolves relative bind mounts from its first file, so keep this
+# generated base beside the tracked application compose file.
+COMPOSE_BASE="$(mktemp "$REPO_ROOT/nura_app/.nura-compose-base.XXXXXX.yml")"
 COMPOSE_OVERRIDE=""
 STAGING_PATH=""
 INCOMING_DIR=""

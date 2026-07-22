@@ -80,6 +80,7 @@
 |Файл|Что описывает|Статус|
 |-|-|-|
 |`operations/backup-restore.md`|Synthetic-only disposable PostgreSQL backup/restore proof и его safety gates|✅ Актуален|
+|`operations/p7a-security-configuration.md`|Redis secret-file hardening, APP_ENV contract, YooKassa verification facts и controlled P7B rollout|✅ Актуален|
 
 \---
 
