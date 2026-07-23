@@ -1330,3 +1330,24 @@ docker compose restart bot celery-worker
 - Что сделано: дана инструкция по запуску `codex` в терминале VS Code; локально проверено, что команда `codex` доступна и отвечает на `codex --help`
 - Блокеры: нет
 - Следующие шаги: при необходимости помочь с `codex login`, профилями и запуском в конкретном проекте
+
+## P7B-T2A1 — 23.07.2026
+
+- Реализовано разделение ownership release chain: common `prepare-p7b`, managed
+  P7B activation и receipt-gated canonical finalization.
+- Добавлены persistent integrity-checked handoff, materialized State B baseline,
+  transaction state machine, Stage 1/2 compensation и recovery после
+  interruption.
+- В P7B mode общий deploy engine останавливается до Redis/application mutation;
+  единственным владельцем application mutation и compensation является P7B.
+- Workflow и common prepare извлекают P7B controller из exact target SHA, поэтому
+  activation не может исполнить controller от предыдущей host checkout revision.
+- Официальный manual production workflow переведён на prepare → bootstrap →
+  preflight → Stage 1 → readiness → Stage 2 → malformed webhook smoke →
+  finalization. Workflow в рамках разработки не запускался.
+- Production mutation, SSH, deploy, migration, удаление volumes и ротация secrets
+  не выполнялись.
+- Архитектурный контракт: `docs/operations/p7b-state-b-handoff.md`.
+- Graphify update deferred: штатный `graphify update <path>` выполняет
+  repository-wide re-extraction; после известного unsafe full-rebuild debt
+  точечный update без unrelated generated churn не подтверждён.

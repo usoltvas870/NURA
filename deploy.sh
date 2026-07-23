@@ -83,13 +83,18 @@ PY
 }
 
 if [[ $# -lt 2 ]]; then
-  fail "usage: deploy.sh deploy <sha> <archive> <checksum> <manifest> | deploy.sh rollback <sha>"
+  fail "usage: deploy.sh deploy|prepare-p7b <sha> <archive> <checksum> <manifest> | deploy.sh rollback <sha>"
 fi
 readonly COMMAND="$1"
 readonly TARGET_SHA="$2"
 validate_sha "$TARGET_SHA" "target SHA"
 case "$COMMAND:$#" in
   deploy:5)
+    readonly ARTIFACT_PATH="$3"
+    readonly CHECKSUM_PATH="$4"
+    readonly MANIFEST_PATH="$5"
+    ;;
+  prepare-p7b:5)
     readonly ARTIFACT_PATH="$3"
     readonly CHECKSUM_PATH="$4"
     readonly MANIFEST_PATH="$5"
@@ -413,7 +418,7 @@ PY
 
 cleanup_incoming() {
   local completed="$1"
-  [[ "$COMMAND" == deploy && -n "$INCOMING_DIR" ]] || return 0
+  [[ "$COMMAND" != rollback && -n "$INCOMING_DIR" ]] || return 0
   python3 - "$INCOMING_ROOT" "$INCOMING_DIR" "$completed" <<'PY'
 import pathlib, shutil, sys, time
 root=pathlib.Path(sys.argv[1]).resolve(strict=True); incoming=pathlib.Path(sys.argv[2])
@@ -469,14 +474,14 @@ cleanup() {
       if [[ "$COMMAND" == rollback && -n "$TARGET_STATE_SNAPSHOT" ]] && \
         ! atomic_copy_state "$TARGET_STATE_SNAPSHOT" "$RELEASE_STATE_DIR/$TARGET_SHA.json"; then compensation_ok=0; fi
     fi
-    if [[ $compensation_ok -eq 1 && "$COMMAND" == deploy && $STATE_STAGED -eq 1 ]]; then
+    if [[ $compensation_ok -eq 1 && "$COMMAND" != rollback && $STATE_STAGED -eq 1 ]]; then
       write_state failed "activation" "verified automatic compensation after exit $exit_code" "$CURRENT_SHA" true || compensation_ok=0
     fi
     if [[ $compensation_ok -ne 1 ]]; then
       write_recovery_required "$exit_code" || true
       log "ERROR: automatic compensation could not prove a coherent release; operator recovery is required"
       exit_code=2
-    elif [[ "$COMMAND" == deploy && $STATE_STAGED -eq 0 ]] && \
+    elif [[ "$COMMAND" != rollback && $STATE_STAGED -eq 0 ]] && \
       { [[ -e "$TARGET_RELEASE" || -L "$TARGET_RELEASE" ]] || docker image inspect "$IMAGE_TAG" >/dev/null 2>&1; }; then
       write_recovery_required "$exit_code" || true
       log "ERROR: immutable release material exists without staged provenance; operator recovery is required"
@@ -622,11 +627,16 @@ REUSE_RELEASE=0
 if [[ -e "$TARGET_STATE_FILE" || -L "$TARGET_STATE_FILE" ]]; then
   [[ -f "$TARGET_STATE_FILE" && ! -L "$TARGET_STATE_FILE" ]] || fail "release state is not a regular file"
   mapfile -t REUSE_VALUES < <(ARTIFACT_DIGEST="$ARTIFACT_DIGEST" PUBLIC_MANIFEST_DIGEST="$PUBLIC_MANIFEST_DIGEST" \
-    python3 - "$TARGET_STATE_FILE" "$TARGET_RELEASE" <<'PY'
-import json, os, re, sys
-p, expected_path=sys.argv[1:]; value=json.load(open(p,encoding="utf-8")); sha=value.get("sha")
+    python3 - "$TARGET_STATE_FILE" "$TARGET_RELEASE" "$STATE_ROOT/p7b/handoffs/$TARGET_SHA.json" <<'PY'
+import json, os, pathlib, re, sys
+p, expected_path, handoff_path=sys.argv[1:]; value=json.load(open(p,encoding="utf-8")); sha=value.get("sha")
 status=value.get("status")
-if status not in {"successful","rolled_back","failed"}: raise SystemExit("incomplete release state requires operator recovery")
+if status=="staged":
+    handoff=pathlib.Path(handoff_path)
+    if not handoff.is_file() or handoff.is_symlink():
+        raise SystemExit("staged P7B release is missing its persistent handoff")
+elif status not in {"successful","rolled_back","failed"}:
+    raise SystemExit("incomplete release state requires operator recovery")
 if status=="failed" and value.get("compensation_verified") is not True: raise SystemExit("failed release is not proven compensated")
 history=value.get("activation_history",[])
 if not isinstance(history,list) or len(history)>2 or len(history)!=len(set(history)):
@@ -694,6 +704,27 @@ export TARGET_IMAGE_ID
 PREVIOUS_RELEASE_PATH="$RELEASES_DIR/$CURRENT_SHA"
 write_state staged "" "" "$CURRENT_SHA"
 STATE_STAGED=1
+if [[ "$COMMAND" == prepare-p7b ]]; then
+  git -C "$REPO_ROOT" show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 - prepare-handoff \
+    --sha "$TARGET_SHA" \
+    --project nura_app \
+    --working-directory "$REPO_ROOT/nura_app" \
+    --base-compose "$COMPOSE_BASE" \
+    --env-file "$REPO_ROOT/nura_app/.env" \
+    --state-dir "$STATE_ROOT/p7b" \
+    --canonical-state "$CURRENT_STATE" \
+    --previous-state "$PREVIOUS_STATE" \
+    --current-link "$CURRENT_LINK" \
+    --releases-directory "$RELEASES_DIR" \
+    --release-path "$TARGET_RELEASE" \
+    --image-id "$TARGET_IMAGE_ID" \
+    --artifact-sha256 "$ARTIFACT_DIGEST" \
+    --manifest-sha256 "$PUBLIC_MANIFEST_DIGEST" \
+    --expected-baseline-sha "$CURRENT_SHA"
+  SUCCESS=1
+  log "P7B prepare handoff persisted at exact target $TARGET_SHA; application and data services were not mutated"
+  exit 0
+fi
 COMPOSE_OVERRIDE="$(mktemp "${TMPDIR:-/tmp}/nura-target-compose.XXXXXX.yml")"
 compose_override_for_map "$COMPOSE_OVERRIDE" "$RELEASE_STATE_DIR/$TARGET_SHA.json"
 write_state activating "" "" "$CURRENT_SHA"
