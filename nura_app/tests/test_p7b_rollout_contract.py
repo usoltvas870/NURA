@@ -65,6 +65,9 @@ class FakeRunner:
         stale_redis_container: bool = False,
         celery_ping_failures: int = 0,
         celery_ping_without_pong: bool = False,
+        celery_ping_stderr: str = "",
+        celery_ping_exit_code: int = 1,
+        celery_rebind_after_ps_calls: int | None = None,
         wrong_target_service: str | None = None,
     ) -> None:
         self.calls: list[tuple[str, ...]] = []
@@ -78,9 +81,13 @@ class FakeRunner:
         self.stale_redis_container = stale_redis_container
         self.celery_ping_failures = celery_ping_failures
         self.celery_ping_without_pong = celery_ping_without_pong
+        self.celery_ping_stderr = celery_ping_stderr
+        self.celery_ping_exit_code = celery_ping_exit_code
+        self.celery_rebind_after_ps_calls = celery_rebind_after_ps_calls
         self.wrong_target_service = wrong_target_service
         self.redis_health_calls = 0
         self.target_redis_ps_calls = 0
+        self.target_worker_ps_calls = 0
         self.target_up_completed = False
         self.celery_ping_calls = 0
 
@@ -106,6 +113,10 @@ class FakeRunner:
                     [{"Type": "volume", "Name": name, "Destination": destination}]
                 ),
             )
+        if call[:2] == ("docker", "inspect") and any(
+            "RestartCount" in item for item in call
+        ):
+            return p7b.CommandResult(0, f"{call[-1]}|true|0\n")
         if call[:2] == ("docker", "inspect"):
             baseline = call[-1].startswith("baseline-container-")
             sha = BASELINE if baseline else TARGET
@@ -128,6 +139,17 @@ class FakeRunner:
                 self.target_redis_ps_calls += 1
                 if self.stale_redis_container and self.target_redis_ps_calls > 1:
                     return p7b.CommandResult(0, "stale-container-redis\n")
+            if call[-1] == "celery-worker" and not prefix:
+                self.target_worker_ps_calls += 1
+                if (
+                    self.celery_rebind_after_ps_calls is not None
+                    and self.target_worker_ps_calls
+                    > self.celery_rebind_after_ps_calls
+                ):
+                    return p7b.CommandResult(
+                        0,
+                        "replacement-container-celery-worker\n",
+                    )
             return p7b.CommandResult(0, f"{prefix}container-{call[-1]}\n")
         if " compose " in f" {joined} " and " ps --format json" in f" {joined} ":
             records = [
@@ -190,13 +212,22 @@ class FakeRunner:
                 return p7b.CommandResult(0, "not-pong\n")
             return p7b.CommandResult(0, "PONG\n")
         if (
-            " compose " in f" {joined} "
-            and " exec -T celery-worker celery " in f" {joined} "
+            call[:5]
+            == (
+                "timeout",
+                str(p7b.CELERY_PING_OUTER_TIMEOUT_SECONDS),
+                "docker",
+                "exec",
+                "container-celery-worker",
+            )
             and " inspect ping " in f" {joined} "
         ):
             self.celery_ping_calls += 1
             if self.celery_ping_calls <= self.celery_ping_failures:
-                return p7b.CommandResult(1)
+                return p7b.CommandResult(
+                    self.celery_ping_exit_code,
+                    stderr=self.celery_ping_stderr,
+                )
             if self.celery_ping_without_pong:
                 return p7b.CommandResult(0, "no workers replied\n")
             return p7b.CommandResult(0, "celery@worker: OK\n    pong\n")
@@ -832,13 +863,27 @@ def test_stage1_bounds_celery_registration_race_before_success(
     ping = [
         call
         for call in runner.calls
-        if " exec -T celery-worker celery " in f" {' '.join(call)} "
+        if call[:5]
+        == (
+            "timeout",
+            str(p7b.CELERY_PING_OUTER_TIMEOUT_SECONDS),
+            "docker",
+            "exec",
+            "container-celery-worker",
+        )
     ][0]
     assert ("-A", "core.tasks") == ping[ping.index("-A") : ping.index("-A") + 2]
     assert ping[-2:] == ("--timeout", str(p7b.CELERY_PING_TIMEOUT_SECONDS))
-    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
-        "stage1_verified"
-    )
+    assert ping[:2] == ("timeout", str(p7b.CELERY_PING_OUTER_TIMEOUT_SECONDS))
+    state = p7b.read_record(settings.transaction_file, "transaction")
+    assert state["phase"] == "stage1_verified"
+    assert state["stage1_worker_container"] == "container-celery-worker"
+    attempts = state["stage1_celery_ping_attempts"]
+    assert isinstance(attempts, list)
+    assert [item["attempt"] for item in attempts] == [1, 2, 3]
+    assert all(item["container_identity"] == "exact_target" for item in attempts)
+    assert attempts[-1]["stdout_category"] == "standalone_pong"
+    assert attempts[-1]["worker_node_visible"] is True
     assert "SECRET" not in capsys.readouterr().out
 
 
@@ -962,6 +1007,14 @@ def test_stage1_rejects_stale_redis_container_before_auth_probe(
             FakeRunner(wrong_target_service="celery-worker"),
             "target_identity_mismatch:celery-worker",
         ),
+        (
+            FakeRunner(celery_rebind_after_ps_calls=1),
+            "target_identity_mismatch:celery-worker",
+        ),
+        (
+            FakeRunner(celery_rebind_after_ps_calls=2),
+            "verification_failed:stage1:celery_worker_ping",
+        ),
     ],
 )
 def test_stage1_real_failure_stays_fail_closed_and_compensates_once(
@@ -996,7 +1049,10 @@ def test_stage1_real_failure_stays_fail_closed_and_compensates_once(
         BASELINE
     )
     assert settings.current_link.resolve().name == BASELINE
-    if runner.wrong_target_service is None:
+    if (
+        runner.wrong_target_service is None
+        and runner.celery_rebind_after_ps_calls != 1
+    ):
         assert runner.celery_ping_calls == p7b.CELERY_PING_ATTEMPTS
         assert len(waits) == p7b.CELERY_PING_ATTEMPTS - 1
     else:
@@ -1007,13 +1063,112 @@ def test_stage1_real_failure_stays_fail_closed_and_compensates_once(
     assert "SECRET" not in captured.err
 
 
+@pytest.mark.parametrize(
+    ("output", "stderr", "category"),
+    [
+        ("", True, "empty"),
+        ("Authentication required.", True, "authentication_required"),
+        ("WRONGPASS invalid username-password pair", True, "wrong_password"),
+        ("Connection refused", True, "connection_refused"),
+        ("Temporary failure in name resolution", True, "dns_failure"),
+        ("No nodes replied within time constraint", True, "no_worker_reply"),
+        ("Unable to load celery application", True, "invalid_app_module"),
+        ("command_timeout", True, "timeout"),
+        ("celery@worker: OK\n    pong\n", False, "standalone_pong"),
+    ],
+)
+def test_celery_diagnostic_categories_are_stable_and_secret_free(
+    output: str,
+    stderr: bool,
+    category: str,
+) -> None:
+    assert p7b.celery_output_category(output, stderr=stderr) == category
+
+
+def test_persistent_celery_auth_failure_persists_six_redacted_attempts(
+    settings: p7b.Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    seed(settings)
+    runner = FakeRunner(
+        celery_ping_failures=p7b.CELERY_PING_ATTEMPTS,
+        celery_ping_stderr="Authentication required.",
+    )
+    monkeypatch.setattr(p7b.time, "sleep", lambda _seconds: None)
+
+    with pytest.raises(
+        SystemExit,
+        match="verification_failed:stage1:celery_worker_ping",
+    ):
+        p7b.stage1(settings, runner)
+
+    state = p7b.read_record(settings.transaction_file, "transaction")
+    attempts = state["stage1_celery_ping_attempts"]
+    assert isinstance(attempts, list)
+    assert len(attempts) == p7b.CELERY_PING_ATTEMPTS
+    assert state["phase"] == "stage1_compensated"
+    assert all(item["stderr_category"] == "authentication_required" for item in attempts)
+    assert all(
+        item["broker_connection_error_class"] == "authentication_required"
+        for item in attempts
+    )
+    assert all(item["pong_found"] is False for item in attempts)
+    assert all(item["worker_node_visible"] is False for item in attempts)
+    serialized = json.dumps(attempts, sort_keys=True)
+    assert "redis://" not in serialized
+    assert "Authentication required." not in serialized
+    captured = capsys.readouterr()
+    assert "Authentication required." not in captured.out
+    assert "Authentication required." not in captured.err
+
+
+def test_celery_outer_timeout_retries_and_remains_bounded(
+    settings: p7b.Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seed(settings)
+    runner = FakeRunner(
+        celery_ping_failures=1,
+        celery_ping_exit_code=124,
+        celery_ping_stderr="command_timeout",
+    )
+    waits: list[float] = []
+    monkeypatch.setattr(p7b.time, "sleep", waits.append)
+
+    p7b.stage1(settings, runner)
+
+    attempts = p7b.read_record(
+        settings.transaction_file,
+        "transaction",
+    )["stage1_celery_ping_attempts"]
+    assert isinstance(attempts, list)
+    assert attempts[0]["exit_code"] == 124
+    assert attempts[0]["stderr_category"] == "timeout"
+    assert attempts[0]["pong_found"] is False
+    assert attempts[1]["pong_found"] is True
+    assert waits == [p7b.CELERY_PING_DELAY_SECONDS]
+
+
 def test_stage2_changes_only_app_services_and_writes_completion_receipt(
     settings: p7b.Settings,
 ) -> None:
     seed(settings, "stage1_verified")
+    stage1_attempts = [{"attempt": 1, "pong_found": True}]
+    p7b.transaction(
+        settings,
+        "stage1_verified",
+        stage1_worker_container="stage1-container-celery-worker",
+        stage1_celery_ping_attempts=stage1_attempts,
+    )
     runner = FakeRunner()
     p7b.stage2(settings, runner)
-    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == "stage2_verified"
+    state = p7b.read_record(settings.transaction_file, "transaction")
+    assert state["phase"] == "stage2_verified"
+    assert state["stage1_worker_container"] == "stage1-container-celery-worker"
+    assert state["stage1_celery_ping_attempts"] == stage1_attempts
+    assert state["stage2_worker_container"] == "container-celery-worker"
+    assert len(state["stage2_celery_ping_attempts"]) == 1
     receipt = p7b.read_record(settings.receipt_file, "receipt")
     assert receipt["target_sha"] == TARGET
     assert settings.environment_backup.read_text(encoding="utf-8").startswith(
@@ -1121,6 +1276,11 @@ def test_readiness_failure_compensates_verified_stage1(
 
 def verified_stage2(settings: p7b.Settings, runner: FakeRunner) -> None:
     seed(settings, "stage2_intent")
+    p7b.transaction(
+        settings,
+        "stage2_intent",
+        stage2_worker_container="container-celery-worker",
+    )
     settings.environment_file.write_text(
         "SECRET=untouched\nAPP_ENV=production\nTEST_MODE=false\n",
         encoding="utf-8",

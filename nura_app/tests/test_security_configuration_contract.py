@@ -176,11 +176,41 @@ def test_redis_compose_uses_secret_files_and_non_sensitive_commands() -> None:
             "/run/secrets/redis_password"
         )
         assert service["environment"]["REDIS_URL"] == "redis://redis:6379/0"
+        assert service["environment"]["CELERY_BROKER_URL"] == ""
+        assert service["environment"]["CELERY_RESULT_BACKEND"] == ""
+        assert service["environment"]["NURA_CELERY_BROKER_URL"] == (
+            "redis://redis:6379/1"
+        )
+        assert service["environment"]["NURA_CELERY_RESULT_BACKEND"] == (
+            "redis://redis:6379/2"
+        )
 
     inspectable = repr({"command": redis["command"], "healthcheck": redis["healthcheck"]})
     assert "REDIS_PASSWORD" not in inspectable
     assert "--requirepass" not in inspectable
     assert "'-a'" not in inspectable
+
+
+def test_neutral_celery_transport_inputs_avoid_cli_environment_override(
+    tmp_path: Path,
+) -> None:
+    secret_file = tmp_path / "redis_password"
+    secret_file.write_text("integration-password", encoding="utf-8")
+
+    settings = Settings(
+        _env_file=None,
+        redis_password_file=str(secret_file),
+        redis_url="redis://redis:6379/0",
+        NURA_CELERY_BROKER_URL="redis://redis:6379/1",
+        NURA_CELERY_RESULT_BACKEND="redis://redis:6379/2",
+    )
+
+    assert unquote(urlsplit(settings.celery_broker_url).password or "") == (
+        "integration-password"
+    )
+    assert unquote(urlsplit(settings.celery_result_backend).password or "") == (
+        "integration-password"
+    )
 
 
 def test_redis_helpers_read_only_the_secret_file_at_runtime() -> None:
