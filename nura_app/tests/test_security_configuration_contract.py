@@ -193,11 +193,179 @@ def test_redis_helpers_read_only_the_secret_file_at_runtime() -> None:
     assert "${REDIS_PASSWORD}" not in healthcheck
     assert "redis-cli -a" not in healthcheck
     assert "REDISCLI_AUTH" in healthcheck
+    assert "requirepass" in entrypoint
+    assert ">/dev/null" not in healthcheck
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX mode bits are unavailable")
+def test_redis_healthcheck_bind_mount_does_not_require_executable_mode() -> None:
+    helper = APP_ROOT / "scripts" / "redis-healthcheck.sh"
+    compose = yaml.safe_load((APP_ROOT / "docker-compose.yml").read_text("utf-8"))
+
+    assert helper.stat().st_mode & 0o111 == 0
+    assert compose["services"]["redis"]["healthcheck"]["test"] == [
+        "CMD",
+        "/bin/sh",
+        "/usr/local/bin/nura-redis-healthcheck",
+    ]
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or shutil.which("sh") is None,
+    reason="POSIX direct-exec semantics are unavailable",
+)
+def test_nonexecutable_redis_healthcheck_reproduces_direct_exec_126() -> None:
+    helper = APP_ROOT / "scripts" / "redis-healthcheck.sh"
+
+    result = subprocess.run(
+        ["sh", "-c", '"$1"', "sh", str(helper)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 126
+    assert "permission denied" in result.stderr.lower()
 
 
 def test_redis_helpers_use_linux_line_endings() -> None:
     for helper_name in ("redis-entrypoint.sh", "redis-healthcheck.sh"):
         assert b"\r\n" not in (APP_ROOT / "scripts" / helper_name).read_bytes()
+
+
+def fake_redis_cli(tmp_path: Path) -> tuple[Path, Path]:
+    binary_directory = tmp_path / "bin"
+    binary_directory.mkdir()
+    argument_capture = tmp_path / "redis-cli-arguments"
+    executable = binary_directory / "redis-cli"
+    executable.write_text(
+        "#!/bin/sh\n"
+        'printf "%s\\n" "$@" > "$ARG_CAPTURE"\n'
+        'if [ "${REDISCLI_AUTH+x}" != x ]; then\n'
+        '    echo "NOAUTH Authentication required." >&2\n'
+        "    exit 1\n"
+        "fi\n"
+        'if [ "$REDISCLI_AUTH" != "$EXPECTED_REDIS_AUTH" ]; then\n'
+        '    echo "WRONGPASS invalid username-password pair" >&2\n'
+        "    exit 1\n"
+        "fi\n"
+        'printf "PONG\\n"\n',
+        encoding="utf-8",
+    )
+    executable.chmod(0o700)
+    return binary_directory, argument_capture
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or shutil.which("sh") is None,
+    reason="POSIX executable and PATH semantics are unavailable",
+)
+def test_redis_healthcheck_returns_authenticated_pong_without_argv_secret(
+    tmp_path: Path,
+) -> None:
+    marker = "redis-password-marker"
+    secret_file = tmp_path / "redis_password"
+    secret_file.write_text(marker, encoding="utf-8")
+    binary_directory, argument_capture = fake_redis_cli(tmp_path)
+    environment = os.environ | {
+        "ARG_CAPTURE": str(argument_capture),
+        "EXPECTED_REDIS_AUTH": marker,
+        "PATH": f"{binary_directory}{os.pathsep}{os.environ.get('PATH', '')}",
+        "REDIS_PASSWORD_FILE": str(secret_file),
+    }
+
+    result = subprocess.run(
+        ["sh", str(APP_ROOT / "scripts" / "redis-healthcheck.sh")],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    assert result.stdout == "PONG\n"
+    assert result.stderr == ""
+    arguments = argument_capture.read_text(encoding="utf-8")
+    assert arguments.splitlines() == ["--no-auth-warning", "ping"]
+    assert marker not in arguments
+    assert marker not in result.stdout
+    assert marker not in result.stderr
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or shutil.which("sh") is None,
+    reason="POSIX executable and PATH semantics are unavailable",
+)
+def test_redis_healthcheck_rejects_wrongpass_without_leaking_secret(
+    tmp_path: Path,
+) -> None:
+    marker = "redis-password-marker"
+    secret_file = tmp_path / "redis_password"
+    secret_file.write_text(marker, encoding="utf-8")
+    binary_directory, argument_capture = fake_redis_cli(tmp_path)
+    environment = os.environ | {
+        "ARG_CAPTURE": str(argument_capture),
+        "EXPECTED_REDIS_AUTH": "different-test-password",
+        "PATH": f"{binary_directory}{os.pathsep}{os.environ.get('PATH', '')}",
+        "REDIS_PASSWORD_FILE": str(secret_file),
+    }
+
+    result = subprocess.run(
+        ["sh", str(APP_ROOT / "scripts" / "redis-healthcheck.sh")],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "WRONGPASS" in result.stderr
+    assert marker not in argument_capture.read_text(encoding="utf-8")
+    assert marker not in result.stdout
+    assert marker not in result.stderr
+
+
+@pytest.mark.skipif(shutil.which("sh") is None, reason="POSIX shell is unavailable")
+@pytest.mark.parametrize("relative_path", ["missing-secret", "wrong-mount/redis_password"])
+def test_redis_healthcheck_rejects_missing_or_wrong_secret_mount(
+    tmp_path: Path,
+    relative_path: str,
+) -> None:
+    secret_file = tmp_path / relative_path
+    environment = os.environ | {"REDIS_PASSWORD_FILE": str(secret_file)}
+
+    result = subprocess.run(
+        ["sh", str(APP_ROOT / "scripts" / "redis-healthcheck.sh")],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or shutil.which("sh") is None,
+    reason="POSIX unreadable-file semantics are unavailable",
+)
+def test_redis_healthcheck_rejects_unreadable_secret_file(tmp_path: Path) -> None:
+    secret_file = tmp_path / "redis_password"
+    secret_file.write_text("redis-password-marker", encoding="utf-8")
+    secret_file.chmod(0)
+    environment = os.environ | {"REDIS_PASSWORD_FILE": str(secret_file)}
+    try:
+        result = subprocess.run(
+            ["sh", str(APP_ROOT / "scripts" / "redis-healthcheck.sh")],
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    finally:
+        secret_file.chmod(0o600)
+
+    assert result.returncode != 0
 
 
 @pytest.mark.skipif(shutil.which("sh") is None, reason="POSIX shell is unavailable")

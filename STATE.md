@@ -1391,3 +1391,28 @@ docker compose restart bot celery-worker
 - No deployment is launched by this change block.
 - Graphify update is not required: the change is scoped inside the existing P7B
   verification module and does not alter package or dependency architecture.
+
+## P7B-T2A5G — 23.07.2026
+
+- Production run `29999267318` reached Stage 1 and failed closed at
+  `stage1:redis_authenticated_healthcheck`; P7B restored baseline
+  `9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532` and durably recorded
+  `stage1_compensated`.
+- The exact cause was a verifier/healthcheck command mismatch: Compose invoked
+  the mode `0644` bind-mounted helper through `/bin/sh`, while P7B tried to
+  execute it directly and received exit `126` (`permission_denied`) before the
+  secret file or Redis authentication path could be evaluated.
+- P7B now invokes the same helper through `/bin/sh` under a bounded
+  container-local timeout, requires an exact authenticated `PONG`, retries
+  within fixed bounds, and verifies that Compose still resolves Redis to the
+  exact container captured after the Stage 1 forced recreation.
+- Missing, wrong or unreadable secret material, NOAUTH, WRONGPASS, stale Redis,
+  timeout and non-PONG output remain fail-closed. The credential remains
+  secret-file-only and absent from argv, logs and Docker command metadata.
+- Stage 2 and canonical/public finalization remain gated behind successful
+  Stage 1 verification; compensation ownership and volume identity contracts
+  are unchanged.
+- No deployment is launched by this change block.
+- Graphify update is not required: the implementation stays inside the existing
+  P7B module and helper without package, dependency-direction or cross-layer
+  architecture changes.

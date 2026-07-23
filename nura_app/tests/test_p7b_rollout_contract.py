@@ -58,6 +58,11 @@ class FakeRunner:
         fail_target_up: bool = False,
         fail_smoke: bool = False,
         wrong_live_volume: bool = False,
+        redis_health_failures: int = 0,
+        redis_health_timeout_failures: int = 0,
+        redis_health_lowercase_pong: bool = False,
+        redis_health_without_pong: bool = False,
+        stale_redis_container: bool = False,
         celery_ping_failures: int = 0,
         celery_ping_without_pong: bool = False,
         wrong_target_service: str | None = None,
@@ -66,9 +71,17 @@ class FakeRunner:
         self.fail_target_up = fail_target_up
         self.fail_smoke = fail_smoke
         self.wrong_live_volume = wrong_live_volume
+        self.redis_health_failures = redis_health_failures
+        self.redis_health_timeout_failures = redis_health_timeout_failures
+        self.redis_health_lowercase_pong = redis_health_lowercase_pong
+        self.redis_health_without_pong = redis_health_without_pong
+        self.stale_redis_container = stale_redis_container
         self.celery_ping_failures = celery_ping_failures
         self.celery_ping_without_pong = celery_ping_without_pong
         self.wrong_target_service = wrong_target_service
+        self.redis_health_calls = 0
+        self.target_redis_ps_calls = 0
+        self.target_up_completed = False
         self.celery_ping_calls = 0
 
     def __call__(self, command: p7b.Sequence[str]) -> p7b.CommandResult:
@@ -107,6 +120,14 @@ class FakeRunner:
             )
         if " compose " in f" {joined} " and " ps -q --all " in f" {joined} ":
             prefix = "baseline-" if "baseline-" in joined else ""
+            if (
+                call[-1] == "redis"
+                and not prefix
+                and self.target_up_completed
+            ):
+                self.target_redis_ps_calls += 1
+                if self.stale_redis_container and self.target_redis_ps_calls > 1:
+                    return p7b.CommandResult(0, "stale-container-redis\n")
             return p7b.CommandResult(0, f"{prefix}container-{call[-1]}\n")
         if " compose " in f" {joined} " and " ps --format json" in f" {joined} ":
             records = [
@@ -155,6 +176,20 @@ class FakeRunner:
                 ),
             )
         if (
+            call[:4] == ("docker", "exec", "container-redis", "timeout")
+            and call[-2:] == ("/bin/sh", "/usr/local/bin/nura-redis-healthcheck")
+        ):
+            self.redis_health_calls += 1
+            if self.redis_health_calls <= self.redis_health_timeout_failures:
+                return p7b.CommandResult(124)
+            if self.redis_health_calls <= self.redis_health_failures:
+                return p7b.CommandResult(1, "NOAUTH Authentication required.\n")
+            if self.redis_health_lowercase_pong:
+                return p7b.CommandResult(0, "pong\n")
+            if self.redis_health_without_pong:
+                return p7b.CommandResult(0, "not-pong\n")
+            return p7b.CommandResult(0, "PONG\n")
+        if (
             " compose " in f" {joined} "
             and " exec -T celery-worker celery " in f" {joined} "
             and " inspect ping " in f" {joined} "
@@ -168,6 +203,8 @@ class FakeRunner:
         if " compose " in f" {joined} " and " up " in f" {joined} ":
             if self.fail_target_up and "target-" in joined:
                 return p7b.CommandResult(1)
+            if "target-" in joined:
+                self.target_up_completed = True
             return p7b.CommandResult(0)
         if call[:3] == ("git", "-C", str(call[2])) and "rev-parse" in call:
             return p7b.CommandResult(0, TARGET + "\n")
@@ -335,7 +372,12 @@ def baseline(settings: p7b.Settings) -> dict[str, object]:
 def seed(settings: p7b.Settings, phase: str = "baseline_ready") -> None:
     p7b.write_record(settings.handoff_file, "handoff", handoff(settings))
     p7b.write_record(settings.baseline_file, "baseline", baseline(settings))
-    p7b.transaction(settings, phase)
+    updates = (
+        {}
+        if phase in {"prepared", "baseline_ready"}
+        else {"stage1_redis_container": "container-redis"}
+    )
+    p7b.transaction(settings, phase, **updates)
 
 
 def test_integrity_envelope_rejects_corruption_and_unknown_fields(tmp_path: Path) -> None:
@@ -744,6 +786,7 @@ def test_stage1_orders_intent_before_single_mutation_and_verification(
     p7b.stage1(settings, runner)
     state = p7b.read_record(settings.transaction_file, "transaction")
     assert state["phase"] == "stage1_verified"
+    assert state["stage1_redis_container"] == "container-redis"
     up = [call for call in runner.calls if "up" in call]
     assert len(up) == 1
     assert "postgres" not in up[0]
@@ -797,6 +840,111 @@ def test_stage1_bounds_celery_registration_race_before_success(
         "stage1_verified"
     )
     assert "SECRET" not in capsys.readouterr().out
+
+
+def test_stage1_bounds_redis_auth_readiness_and_requires_exact_pong(
+    settings: p7b.Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    seed(settings)
+    runner = FakeRunner(redis_health_failures=2)
+    waits: list[float] = []
+    monkeypatch.setattr(p7b.time, "sleep", waits.append)
+
+    p7b.stage1(settings, runner)
+
+    assert runner.redis_health_calls == 3
+    assert waits == [
+        p7b.REDIS_HEALTHCHECK_DELAY_SECONDS,
+        p7b.REDIS_HEALTHCHECK_DELAY_SECONDS,
+    ]
+    healthcheck = [
+        call
+        for call in runner.calls
+        if call[:4] == ("docker", "exec", "container-redis", "timeout")
+    ][0]
+    assert healthcheck[-4:] == (
+        "timeout",
+        str(p7b.REDIS_HEALTHCHECK_TIMEOUT_SECONDS),
+        "/bin/sh",
+        "/usr/local/bin/nura-redis-healthcheck",
+    )
+    assert "redis-password-marker" not in " ".join(healthcheck)
+    captured = capsys.readouterr()
+    assert "redis-password-marker" not in captured.out
+    assert "redis-password-marker" not in captured.err
+
+
+@pytest.mark.parametrize(
+    "runner",
+    [
+        FakeRunner(redis_health_failures=p7b.REDIS_HEALTHCHECK_ATTEMPTS),
+        FakeRunner(redis_health_timeout_failures=p7b.REDIS_HEALTHCHECK_ATTEMPTS),
+        FakeRunner(redis_health_lowercase_pong=True),
+        FakeRunner(redis_health_without_pong=True),
+    ],
+)
+def test_stage1_redis_auth_failure_is_bounded_fail_closed_and_compensated_once(
+    settings: p7b.Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    runner: FakeRunner,
+) -> None:
+    seed(settings)
+    waits: list[float] = []
+    monkeypatch.setattr(p7b.time, "sleep", waits.append)
+
+    with pytest.raises(
+        SystemExit,
+        match="verification_failed:stage1:redis_authenticated_healthcheck",
+    ):
+        p7b.activate(
+            settings,
+            runner,
+            "http://127.0.0.1:8000/api/v1/payment/webhook",
+        )
+
+    state = p7b.read_record(settings.transaction_file, "transaction")
+    assert state["phase"] == "stage1_compensated"
+    assert state["compensation_owner"] == "p7b"
+    assert state["compensated_to"] == BASELINE
+    assert runner.redis_health_calls == p7b.REDIS_HEALTHCHECK_ATTEMPTS
+    assert waits == [p7b.REDIS_HEALTHCHECK_DELAY_SECONDS] * (
+        p7b.REDIS_HEALTHCHECK_ATTEMPTS - 1
+    )
+    up = [call for call in runner.calls if "up" in call]
+    assert len(up) == 2
+    assert "target-" in " ".join(up[0])
+    assert "baseline-" in " ".join(up[1])
+    assert not settings.environment_backup.exists()
+    assert "APP_ENV=development" in settings.environment_file.read_text(
+        encoding="utf-8"
+    )
+    assert json.loads(settings.canonical_state.read_text(encoding="utf-8"))["sha"] == (
+        BASELINE
+    )
+
+
+def test_stage1_rejects_stale_redis_container_before_auth_probe(
+    settings: p7b.Settings,
+) -> None:
+    seed(settings)
+    runner = FakeRunner(stale_redis_container=True)
+
+    with pytest.raises(SystemExit, match="target_redis_identity_mismatch"):
+        p7b.activate(
+            settings,
+            runner,
+            "http://127.0.0.1:8000/api/v1/payment/webhook",
+        )
+
+    assert runner.redis_health_calls == 0
+    state = p7b.read_record(settings.transaction_file, "transaction")
+    assert state["phase"] == "stage1_compensated"
+    up = [call for call in runner.calls if "up" in call]
+    assert len(up) == 2
+    assert "target-" in " ".join(up[0])
+    assert "baseline-" in " ".join(up[1])
 
 
 @pytest.mark.parametrize(

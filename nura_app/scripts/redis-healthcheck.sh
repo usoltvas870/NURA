@@ -17,4 +17,4 @@ if [ -z "$REDISCLI_AUTH" ]; then
     exit 1
 fi
 export REDISCLI_AUTH
-exec redis-cli --no-auth-warning ping >/dev/null
+exec redis-cli --no-auth-warning ping
