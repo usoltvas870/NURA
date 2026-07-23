@@ -33,6 +33,16 @@ def _load_module(name: str, path: Path) -> ModuleType:
         sys.path.pop(0)
 
 
+def test_transition_importlib_load_uses_trusted_sibling_lock_not_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "release_lock.py").write_text("raise RuntimeError('hostile cwd import')\n")
+    monkeypatch.chdir(tmp_path)
+    sys.modules.pop("release_lock", None)
+    module = _load_module("isolated_transition", TRANSITION_PATH)
+    assert module.release_lock.__module__ == "nura_release_lock"
+
+
 builder = _load_module("build_release_artifact", BUILDER_PATH)
 transition = _load_module("prepare_atomic_release_host", TRANSITION_PATH)
 static_contract = sys.modules["deploy_static_release"]
