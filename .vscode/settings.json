@@ -8,7 +8,6 @@
     "**/.pytest_cache": true,
     "**/.ruff_cache": true,
     ".opencode/node_modules": true,
-    "nura-trend-radar/data": true,
     "videos": true
   },
   "python.analysis.extraPaths": [
@@ -26,7 +25,6 @@
     "**/.pytest_cache": true,
     "**/.ruff_cache": true,
     ".opencode/node_modules": true,
-    "nura-trend-radar/data": true,
     "videos": true
   }
 }
