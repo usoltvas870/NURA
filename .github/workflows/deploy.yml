@@ -119,7 +119,7 @@ jobs:
           strip_components: 1
           overwrite: false
 
-      - name: Activate exact release through the common engine
+      - name: Prepare exact release and execute managed State B activation
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           TARGET_SHA: ${{ env.TARGET_SHA }}
@@ -144,10 +144,27 @@ jobs:
             git show "$TARGET_SHA:deploy.sh" > "$launcher"
             chmod 0700 "$launcher"
             incoming="/var/tmp/nura-release-incoming/$INCOMING_ID"
-            bash "$launcher" deploy "$TARGET_SHA" \
+            p7b_status="$(python3 /opt/nura/scripts/p7b_rollout.py status --sha "$TARGET_SHA" 2>/dev/null || true)"
+            p7b_phase="$(python3 -c \
+              'import json,sys; raw=sys.stdin.read(); print(json.loads(raw.split(" ",1)[1]).get("phase","absent") if raw.startswith("p7b_status ") else "absent")' \
+              <<< "$p7b_status")"
+            if [[ "$p7b_phase" == finalizing || "$p7b_phase" == smoke_verified || "$p7b_phase" == complete ]]; then
+              python3 /opt/nura/scripts/p7b_rollout.py activate --sha "$TARGET_SHA"
+              python3 - "$incoming" /var/tmp/nura-release-incoming <<'PY'
+            import pathlib, shutil, sys
+            incoming = pathlib.Path(sys.argv[1])
+            root = pathlib.Path(sys.argv[2]).resolve(strict=True)
+            if incoming.is_symlink() or incoming.resolve(strict=True).parent != root:
+                raise SystemExit("unsafe resumed incoming cleanup target")
+            shutil.rmtree(incoming)
+            PY
+              exit 0
+            fi
+            bash "$launcher" prepare-p7b "$TARGET_SHA" \
               "$incoming/nura-static-$TARGET_SHA.tar.gz" \
               "$incoming/nura-static-$TARGET_SHA.tar.gz.sha256" \
               "$incoming/release-manifest.json"
+            python3 /opt/nura/scripts/p7b_rollout.py activate --sha "$TARGET_SHA"
             NURA_DEPLOY_BOOTSTRAP
 
       - name: Verify public release contracts

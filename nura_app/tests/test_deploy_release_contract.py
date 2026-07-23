@@ -298,6 +298,43 @@ def test_root_engine_orders_activation_and_compensation() -> None:
     assert [script.index(item) for item in activation] == sorted(script.index(item) for item in activation)
 
 
+def test_p7b_prepare_handoff_exits_before_common_application_mutation() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    prepare = script.index('if [[ "$COMMAND" == prepare-p7b ]]')
+    handoff = script.index('"$REPO_ROOT/scripts/p7b_rollout.py" prepare-handoff', prepare)
+    stop = script.index("exit 0", handoff)
+    mutation = script.index("APP_MUTATED=1", stop)
+    assert prepare < handoff < stop < mutation
+    block = script[prepare:stop]
+    assert "run_compose up" not in block
+    assert "switch-current" not in block
+    assert "APP_ENV" not in block
+    assert "TEST_MODE" not in block
+
+
+def test_p7b_workflow_smoke_is_malformed_only_and_precedes_finalization() -> None:
+    workflow = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
+    rollout = (REPO_ROOT / "scripts" / "p7b_rollout.py").read_text(encoding="utf-8")
+    assert "payment.succeeded" not in workflow
+    assert "payment.waiting_for_capture" not in workflow
+    assert 'for payload in ("{", "[]", \'"invalid"\', "null")' in rollout
+    assert rollout.index("smoke_webhook(settings, runner, webhook_url)") < rollout.index(
+        "finalize(settings, runner)"
+    )
+
+
+def test_workflow_resumes_partial_finalization_before_common_prepare() -> None:
+    workflow = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
+    status = workflow.index("p7b_rollout.py status --sha")
+    phases = workflow.index(
+        '[[ "$p7b_phase" == finalizing || "$p7b_phase" == smoke_verified'
+    )
+    recover = workflow.index("p7b_rollout.py activate --sha", phases)
+    cleanup = workflow.index("unsafe resumed incoming cleanup target", recover)
+    prepare = workflow.index('bash "$launcher" prepare-p7b "$TARGET_SHA"')
+    assert status < phases < recover < cleanup < prepare
+
+
 def test_root_engine_keeps_compose_base_beside_application_compose_file() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
 
@@ -354,7 +391,8 @@ def test_deploy_workflow_builds_exact_deterministic_artifact_for_14_days() -> No
     assert "retention-days: 14" in workflow
     assert "compression-level: 0" in workflow
     assert "overwrite: false" in workflow
-    assert 'bash "$launcher" deploy "$TARGET_SHA"' in workflow
+    assert 'bash "$launcher" prepare-p7b "$TARGET_SHA"' in workflow
+    assert "p7b_rollout.py activate --sha" in workflow
     assert "allow_migrations" not in workflow
     assert "MIGRATIONS_APPROVED" not in workflow
     assert 'node-version: "24.15.0"' in workflow

@@ -1,21 +1,25 @@
-"""Managed, secret-safe P7B rollout tooling for the production host.
+"""Persistent State B handoff and managed P7B activation.
 
-The command is deliberately dependency-free.  Its mutating operations are intended
-for the approved production host only; tests inject a runner and never contact it.
+The module is dependency-free so the reviewed target revision can run it on the
+production host.  Manifests never contain environment contents or command-line
+credentials.  Every mutating command is serialized by the same persistent lock.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
+import shutil
 import stat
 import subprocess
 import tempfile
+import time
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterator, Sequence
+from typing import Callable, Iterator, Mapping, Sequence
 
 try:
     import fcntl
@@ -23,17 +27,46 @@ except ImportError:  # pragma: no cover - production hosts are Linux
     fcntl = None  # type: ignore[assignment]
 try:
     import msvcrt
-except ImportError:  # pragma: no cover - Windows-only fallback for local tests
+except ImportError:  # pragma: no cover - Windows-only test fallback
     msvcrt = None  # type: ignore[assignment]
 
 SHA = re.compile(r"[0-9a-f]{40}\Z")
-OWNERSHIP_MARKER = "# Managed by NURA P7B rollout tooling; do not edit."
+IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}\Z")
+DIGEST = re.compile(r"[0-9a-f]{64}\Z")
 APP_SERVICES = ("api", "bot", "celery-worker", "celery-beat", "admin-bot")
 STAGE1_SERVICES = ("redis", *APP_SERVICES)
+DATA_SERVICES = ("postgres", "redis")
+HEALTH_SERVICES = ("postgres", "redis", "api")
+SCHEMA = 1
+KINDS = {"handoff", "baseline", "transaction", "receipt"}
+PHASES = {
+    "prepared",
+    "baseline_ready",
+    "stage1_intent",
+    "stage1_verified",
+    "stage1_compensated",
+    "stage2_intent",
+    "stage2_verified",
+    "stage2_compensated",
+    "smoke_verified",
+    "finalizing",
+    "complete",
+}
 OPERATIONS = (
-    "status", "preflight", "plan-stage1", "stage1", "verify-stage1",
-    "plan-stage2", "stage2", "verify-stage2", "rollback-stage1",
-    "rollback-stage2", "cleanup",
+    "status",
+    "prepare-handoff",
+    "bootstrap",
+    "preflight",
+    "plan-stage1",
+    "stage1",
+    "verify-stage1",
+    "plan-stage2",
+    "stage2",
+    "verify-stage2",
+    "readiness",
+    "activate",
+    "finalize",
+    "recover",
 )
 
 
@@ -56,18 +89,47 @@ def require_sha(value: str) -> str:
     return value
 
 
-def atomic_write(path: Path, content: bytes, mode: int = 0o600, owner_from: Path | None = None) -> None:
+def require_digest(value: str, label: str = "digest") -> str:
+    if not DIGEST.fullmatch(value):
+        fail(f"invalid_{label}")
+    return value
+
+
+def require_image_id(value: str) -> str:
+    if not IMAGE_ID.fullmatch(value):
+        fail("immutable_image_id_required")
+    return value
+
+
+def canonical_json(value: object) -> bytes:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+
+
+def payload_digest(payload: Mapping[str, object]) -> str:
+    return hashlib.sha256(canonical_json(payload)).hexdigest()
+
+
+def atomic_write(
+    path: Path,
+    content: bytes,
+    mode: int = 0o600,
+    owner_from: Path | None = None,
+) -> None:
+    if path.exists() and path.is_symlink():
+        fail("unsafe_output_path")
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if path.parent.is_symlink():
+        fail("unsafe_output_directory")
     if os.name != "nt":
         os.chmod(path.parent, 0o700)
-    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
         if hasattr(os, "fchmod"):
-            os.fchmod(fd, mode)
+            os.fchmod(descriptor, mode)
         if owner_from is not None and os.name != "nt":
             source_stat = owner_from.stat()
-            os.fchown(fd, source_stat.st_uid, source_stat.st_gid)
-        with os.fdopen(fd, "wb") as stream:
+            os.fchown(descriptor, source_stat.st_uid, source_stat.st_gid)
+        with os.fdopen(descriptor, "wb") as stream:
             stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
@@ -85,103 +147,62 @@ def atomic_write(path: Path, content: bytes, mode: int = 0o600, owner_from: Path
             os.unlink(temporary)
 
 
-def edit_environment(path: Path, backup: Path, updates: dict[str, str]) -> None:
-    """Back up and atomically change only whitelisted environment keys."""
-    if set(updates) - {"APP_ENV", "TEST_MODE"}:
-        fail("environment_update_not_permitted")
-    if path.is_symlink() or backup.is_symlink():
-        fail("unsafe_environment_path")
-    source = path.read_bytes()
-    seen: set[str] = set()
-    output: list[bytes] = []
-    for line in source.splitlines(keepends=True):
-        raw_key = line.split(b"=", 1)[0]
-        key = raw_key.decode("ascii", "ignore")
-        if key in updates:
-            if key in seen:
-                fail(f"duplicate_environment_key:{key}")
-            seen.add(key)
-            newline = b"\r\n" if line.endswith(b"\r\n") else b"\n"
-            output.append(f"{key}={updates[key]}".encode() + newline)
-        else:
-            output.append(line)
-    # Duplicate keys are rejected above before creating a backup or replacing the source.
-    source_mode = stat.S_IMODE(path.stat().st_mode)
-    atomic_write(backup, source, source_mode, owner_from=path)
-    for key, value in updates.items():
-        if key not in seen:
-            output.append(f"{key}={value}\n".encode())
-    atomic_write(path, b"".join(output), source_mode, owner_from=path)
+def write_record(path: Path, kind: str, payload: Mapping[str, object]) -> str:
+    if kind not in KINDS:
+        fail("unknown_record_kind")
+    digest = payload_digest(payload)
+    envelope = {"schema": SCHEMA, "kind": kind, "digest": digest, "payload": payload}
+    atomic_write(path, canonical_json(envelope) + b"\n")
+    return digest
 
 
-def environment_values(path: Path) -> dict[str, str]:
-    """Read only the two permitted values; never expose the full environment."""
-    values: dict[str, str] = {}
-    for line in path.read_bytes().splitlines():
-        key, separator, value = line.partition(b"=")
-        decoded = key.decode("ascii", "ignore")
-        if separator and decoded in {"APP_ENV", "TEST_MODE"}:
-            if decoded in values:
-                fail(f"duplicate_environment_key:{decoded}")
-            values[decoded] = value.decode("ascii", "strict")
-    return values
+def read_record(path: Path, kind: str) -> dict[str, object]:
+    if not path.is_file() or path.is_symlink():
+        fail(f"{kind}_missing_or_unsafe")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        fail(f"{kind}_unreadable")
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"schema", "kind", "digest", "payload"}
+        or value.get("schema") != SCHEMA
+        or value.get("kind") != kind
+        or not isinstance(value.get("payload"), dict)
+        or not isinstance(value.get("digest"), str)
+    ):
+        fail(f"{kind}_schema_invalid")
+    payload = value["payload"]
+    assert isinstance(payload, dict)
+    if payload_digest(payload) != value["digest"]:
+        fail(f"{kind}_integrity_failed")
+    return payload
 
 
-def require_environment(path: Path, expected: dict[str, str]) -> None:
-    if environment_values(path) != expected:
-        fail("environment_contract_failed")
+def safe_existing_file(path: Path, root: Path, label: str) -> Path:
+    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+        fail(f"unsafe_{label}_path")
+    try:
+        resolved = path.resolve(strict=True)
+        resolved.relative_to(root.resolve(strict=True))
+    except (OSError, ValueError):
+        fail(f"unsafe_{label}_path")
+    return resolved
 
 
-@dataclass(frozen=True)
-class ReleaseContext:
-    sha: str
-    project: str
-    working_directory: str
-    compose_files: tuple[str, ...]
-    generated_file: str
+def safe_existing_directory(path: Path, label: str) -> Path:
+    if not path.is_absolute() or path.is_symlink() or not path.is_dir():
+        fail(f"unsafe_{label}_path")
+    return path.resolve(strict=True)
 
 
-@dataclass
-class RolloutState:
-    current: ReleaseContext | None = None
-    previous: ReleaseContext | None = None
-    stage1_verified: bool = False
-    stage2_verified: bool = False
-
-    @classmethod
-    def load(cls, path: Path) -> "RolloutState":
-        if not path.exists():
-            return cls()
-        if path.is_symlink():
-            fail("unsafe_state_path")
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            fail("rollout_state_unreadable")
-        if not isinstance(data, dict):
-            fail("rollout_state_invalid")
-        def context(key: str) -> ReleaseContext | None:
-            value = data.get(key)
-            if value is None:
-                return None
-            if not isinstance(value, dict):
-                fail("rollout_state_invalid")
-            try:
-                result = ReleaseContext(**{**value, "compose_files": tuple(value["compose_files"])})
-            except (KeyError, TypeError):
-                fail("rollout_state_invalid")
-            require_sha(result.sha)
-            return result
-        return cls(context("current"), context("previous"), bool(data.get("stage1_verified")), bool(data.get("stage2_verified")))
-
-    def save(self, path: Path) -> None:
-        payload = {
-            "current": asdict(self.current) if self.current else None,
-            "previous": asdict(self.previous) if self.previous else None,
-            "stage1_verified": self.stage1_verified,
-            "stage2_verified": self.stage2_verified,
-        }
-        atomic_write(path, json.dumps(payload, sort_keys=True, indent=2).encode() + b"\n")
+def exact_release_path(settings: "Settings", path: Path, sha: str) -> Path:
+    root = safe_existing_directory(settings.releases_directory, "releases_root")
+    expected = root / require_sha(sha)
+    resolved = safe_existing_directory(path, "release")
+    if path.parent.is_symlink() or resolved != expected.resolve(strict=True):
+        fail("release_path_outside_root")
+    return resolved
 
 
 @dataclass(frozen=True)
@@ -192,35 +213,60 @@ class Settings:
     base_compose: Path
     state_directory: Path
     environment_file: Path
-
-    @property
-    def state_file(self) -> Path:
-        return self.state_directory / "rollout-state.json"
+    canonical_state: Path = Path("/var/lib/nura-release-state/current.json")
+    previous_state: Path = Path("/var/lib/nura-release-state/previous.json")
+    current_link: Path = Path("/var/www/nura-releases/current")
+    releases_directory: Path = Path("/var/www/nura-releases/releases")
+    common_lock_file: Path = Path("/var/lock/nura-deploy.lock")
 
     @property
     def lock_file(self) -> Path:
         return self.state_directory / "rollout.lock"
 
     @property
-    def generated_directory(self) -> Path:
-        return self.working_directory / ".p7b"
+    def handoff_file(self) -> Path:
+        return self.state_directory / "handoffs" / f"{self.sha}.json"
 
-    def context(self, sha: str | None = None) -> ReleaseContext:
-        release = require_sha(sha or self.sha)
-        generated = self.generated_directory / f"compose.p7b.{release}.yml"
-        return ReleaseContext(release, self.project, str(self.working_directory),
-                              (str(self.base_compose), str(generated)), str(generated))
+    @property
+    def baseline_file(self) -> Path:
+        return self.state_directory / "baselines" / f"{self.sha}.json"
+
+    @property
+    def transaction_file(self) -> Path:
+        return self.state_directory / "transactions" / f"{self.sha}.json"
+
+    @property
+    def receipt_file(self) -> Path:
+        return self.state_directory / "receipts" / f"{self.sha}.json"
+
+    @property
+    def target_compose(self) -> Path:
+        return self.state_directory / "compose" / f"target-{self.sha}.yml"
+
+    @property
+    def target_override(self) -> Path:
+        return self.state_directory / "compose" / f"target-images-{self.sha}.yml"
+
+    def baseline_compose(self, sha: str) -> Path:
+        return self.state_directory / "compose" / f"baseline-{require_sha(sha)}.yml"
+
+    def baseline_override(self, sha: str) -> Path:
+        return self.state_directory / "compose" / f"baseline-images-{require_sha(sha)}.yml"
+
+    @property
+    def environment_backup(self) -> Path:
+        return self.state_directory / "environment" / f"{self.sha}.backup"
+
+    @property
+    def release_state_file(self) -> Path:
+        return self.canonical_state.parent / "releases" / f"{self.sha}.json"
 
 
 @contextmanager
 def rollout_lock(path: Path) -> Iterator[None]:
-    """Hold a non-blocking advisory lock for the operation lifetime.
-
-    The lock file is intentionally retained: unlike O_EXCL files, an advisory
-    lock is released automatically if the owning process dies, so stale files
-    cannot permanently block a later rollout.
-    """
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if path.parent.is_symlink():
+        fail("unsafe_lock_directory")
     if os.name != "nt":
         os.chmod(path.parent, 0o700)
     descriptor = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
@@ -232,7 +278,7 @@ def rollout_lock(path: Path) -> Iterator[None]:
             except BlockingIOError:
                 fail("rollout_locked")
             acquired = True
-        elif msvcrt is not None:  # pragma: no cover - Windows-only fallback
+        elif msvcrt is not None:  # pragma: no cover
             if os.fstat(descriptor).st_size == 0:
                 os.write(descriptor, b"0")
             os.lseek(descriptor, 0, os.SEEK_SET)
@@ -241,49 +287,27 @@ def rollout_lock(path: Path) -> Iterator[None]:
             except OSError:
                 fail("rollout_locked")
             acquired = True
-        else:
+        else:  # pragma: no cover
             fail("advisory_lock_unavailable")
         yield
     finally:
         if acquired and fcntl is not None:
             fcntl.flock(descriptor, fcntl.LOCK_UN)
-        elif acquired and msvcrt is not None:  # pragma: no cover - Windows-only fallback
+        elif acquired and msvcrt is not None:  # pragma: no cover
             os.lseek(descriptor, 0, os.SEEK_SET)
             msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
         os.close(descriptor)
 
 
-def generated_compose(context: ReleaseContext) -> bytes:
-    services = "\n".join(
-        f"  {service}:\n    image: nura-p7b-{service}:{context.sha}\n"
-        f"    labels:\n      nura.release.sha: {context.sha}"
-        for service in APP_SERVICES
-    )
-    return f"{OWNERSHIP_MARKER}\n# exact-release-sha: {context.sha}\nservices:\n{services}\n".encode()
-
-
-def ensure_generated(context: ReleaseContext) -> None:
-    path = Path(context.generated_file)
-    if path.is_symlink():
-        fail("unsafe_generated_path")
-    if not path.exists():
-        atomic_write(path, generated_compose(context))
-        return
-    if path.read_bytes() != generated_compose(context):
-        fail("generated_file_not_owned")
-
-
-def compose_command(context: ReleaseContext, *arguments: str) -> list[str]:
-    command = ["docker", "compose", "--project-name", context.project,
-               "--project-directory", context.working_directory]
-    for compose_file in context.compose_files:
-        command.extend(("--file", compose_file))
-    return [*command, *arguments]
-
-
 def default_runner(command: Sequence[str]) -> CommandResult:
     try:
-        completed = subprocess.run(command, check=False, capture_output=True, text=True, timeout=300)
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
     except (OSError, subprocess.TimeoutExpired):
         return CommandResult(1)
     return CommandResult(completed.returncode, completed.stdout)
@@ -294,52 +318,103 @@ def command_result(runner: Runner, command: Sequence[str]) -> CommandResult:
     return result if isinstance(result, CommandResult) else CommandResult(result)
 
 
-def run_or_fail(runner: Runner, command: Sequence[str], check: str) -> None:
-    if command_result(runner, command).returncode != 0:
+def run_or_fail(runner: Runner, command: Sequence[str], check: str) -> str:
+    result = command_result(runner, command)
+    if result.returncode != 0:
         fail(f"verification_failed:{check}")
+    return result.stdout
 
 
-def verify_release(settings: Settings, runner: Runner) -> None:
-    """Fail closed unless the supplied checkout is exactly the approved commit."""
-    revision = command_result(runner, ("git", "-C", str(settings.working_directory), "rev-parse", "--verify", "HEAD"))
-    if revision.returncode != 0 or revision.stdout.strip() != settings.sha:
-        fail("verification_failed:exact_release_sha")
-    run_or_fail(runner, ("git", "-C", str(settings.working_directory), "diff", "--quiet"), "dirty_worktree")
-    run_or_fail(runner, ("git", "-C", str(settings.working_directory), "diff", "--cached", "--quiet"), "dirty_index")
-    untracked = command_result(runner, ("git", "-C", str(settings.working_directory), "ls-files", "--others", "--exclude-standard"))
-    if untracked.returncode != 0 or untracked.stdout.strip():
-        fail("untracked_worktree")
+def require_environment(path: Path, expected: Mapping[str, str]) -> None:
+    if path.is_symlink() or not path.is_file():
+        fail("unsafe_environment_path")
+    values: dict[str, str] = {}
+    for line in path.read_bytes().splitlines():
+        key, separator, value = line.partition(b"=")
+        decoded = key.decode("ascii", "ignore")
+        if separator and decoded in expected:
+            if decoded in values:
+                fail(f"duplicate_environment_key:{decoded}")
+            values[decoded] = value.decode("ascii", "strict")
+    if values != dict(expected):
+        fail("environment_contract_failed")
 
 
-def lifecycle(context: ReleaseContext, services: Sequence[str], runner: Runner, *, build: bool = False) -> None:
-    if build:
-        run_or_fail(runner, compose_command(context, "build", *[service for service in services if service in APP_SERVICES]), "compose_build")
-    run_or_fail(runner, compose_command(context, "up", "--detach", "--force-recreate", *services), "compose_up")
+def edit_environment(path: Path, backup: Path, updates: Mapping[str, str]) -> None:
+    if set(updates) != {"APP_ENV", "TEST_MODE"}:
+        fail("environment_update_not_permitted")
+    if path.is_symlink() or not path.is_file() or backup.is_symlink():
+        fail("unsafe_environment_path")
+    source = path.read_bytes()
+    source_mode = stat.S_IMODE(path.stat().st_mode)
+    lines = source.splitlines(keepends=True)
+    seen: set[str] = set()
+    output: list[bytes] = []
+    for line in lines:
+        key = line.partition(b"=")[0].decode("ascii", "ignore")
+        if key in updates:
+            if key in seen:
+                fail(f"duplicate_environment_key:{key}")
+            seen.add(key)
+            newline = b"\r\n" if line.endswith(b"\r\n") else b"\n"
+            output.append(f"{key}={updates[key]}".encode() + newline)
+        else:
+            output.append(line)
+    if not backup.exists():
+        atomic_write(backup, source, source_mode, owner_from=path)
+    elif backup.read_bytes() != source:
+        fail("environment_backup_conflict")
+    for key, value in updates.items():
+        if key not in seen:
+            output.append(f"{key}={value}\n".encode())
+    atomic_write(path, b"".join(output), source_mode, owner_from=path)
 
 
-def verification_commands(context: ReleaseContext, stage: int) -> list[list[str]]:
-    # Commands carry no credential values; authentication is validated inside containers.
-    commands = [
-        compose_command(context, "ps", "--format", "json"),
-        compose_command(context, "exec", "-T", "redis", "/usr/local/bin/nura-redis-healthcheck"),
-        compose_command(context, "exec", "-T", "postgres", "pg_isready"),
-        compose_command(context, "exec", "-T", "api", "python", "-c", "import urllib.request; assert urllib.request.urlopen('http://127.0.0.1:8000/health').status == 200"),
-        compose_command(context, "exec", "-T", "celery-worker", "celery", "inspect", "ping"),
+def restore_environment(settings: Settings) -> None:
+    backup = settings.environment_backup
+    if not backup.is_file() or backup.is_symlink():
+        fail("environment_backup_missing")
+    atomic_write(
+        settings.environment_file,
+        backup.read_bytes(),
+        stat.S_IMODE(backup.stat().st_mode),
+        owner_from=backup,
+    )
+
+
+def compose_command(
+    project: str,
+    working_directory: str,
+    compose_files: Sequence[str],
+    *arguments: str,
+) -> list[str]:
+    command = [
+        "docker",
+        "compose",
+        "--project-name",
+        project,
+        "--project-directory",
+        working_directory,
     ]
-    if stage == 2:
-        commands.extend((
-            compose_command(context, "exec", "-T", "api", "python", "-c", "import json,urllib.request; response=urllib.request.urlopen('http://127.0.0.1:8000/health'); assert response.status == 200 and json.load(response)['status'] == 'ok'"),
-            compose_command(context, "exec", "-T", "api", "python", "-c", "import json,urllib.request; response=urllib.request.urlopen('http://127.0.0.1:8000/ready'); assert response.status == 200 and json.load(response)['status'] == 'ready'"),
-            compose_command(context, "exec", "-T", "api", "python", "-c", "from core.config import settings; assert settings.is_production and not settings.test_mode and settings.session_cookie_secure and settings.yookassa_verify_on_webhook and not settings.production_readiness_errors"),
-        ))
-    return commands
+    for compose_file in compose_files:
+        command.extend(("--file", compose_file))
+    return [*command, *arguments]
 
 
-def parse_compose_status(output: str, services: Sequence[str], health_services: Sequence[str]) -> None:
-    """Require every expected service to run and declared healthchecks to pass."""
+def parse_compose_status(
+    output: str,
+    services: Sequence[str],
+    health_services: Sequence[str],
+) -> None:
     try:
-        records = json.loads(output) if output.lstrip().startswith("[") else [json.loads(line) for line in output.splitlines() if line]
+        records = (
+            json.loads(output)
+            if output.lstrip().startswith("[")
+            else [json.loads(line) for line in output.splitlines() if line]
+        )
     except json.JSONDecodeError:
+        fail("compose_status_unparseable")
+    if not isinstance(records, list):
         fail("compose_status_unparseable")
     status: dict[str, dict[str, object]] = {}
     for item in records:
@@ -357,115 +432,1040 @@ def parse_compose_status(output: str, services: Sequence[str], health_services: 
             fail(f"service_unhealthy:{service}")
 
 
-def verify(settings: Settings, stage: int, runner: Runner, acquire_lock: bool = True) -> None:
+def materialized_override(image_mapping: Mapping[str, str]) -> bytes:
+    if set(image_mapping) != set(APP_SERVICES):
+        fail("image_mapping_invalid")
+    lines = ["# Managed by NURA P7B; persistent rollback material.", "services:"]
+    for service in APP_SERVICES:
+        image = image_mapping[service]
+        if not IMAGE_ID.fullmatch(image) and not re.fullmatch(
+            r"nura-release:[0-9a-f]{40}", image
+        ):
+            fail("mutable_image_reference")
+        lines.extend((f"  {service}:", f"    image: {image}"))
+        if service == "api":
+            lines.extend(("    environment:", '      RUN_MIGRATIONS: "0"'))
+    return ("\n".join(lines) + "\n").encode()
+
+
+def transaction(settings: Settings, phase: str, **updates: object) -> dict[str, object]:
+    if phase not in PHASES:
+        fail("invalid_transaction_phase")
+    existing: dict[str, object] = {}
+    if settings.transaction_file.exists():
+        existing = read_record(settings.transaction_file, "transaction")
+        if existing.get("target_sha") != settings.sha:
+            fail("transaction_target_mismatch")
+    existing.update(
+        {
+            "target_sha": settings.sha,
+            "phase": phase,
+            "compensation_owner": "p7b",
+            "updated_at": int(time.time()),
+            **updates,
+        }
+    )
+    write_record(settings.transaction_file, "transaction", existing)
+    return existing
+
+
+def load_release_state(path: Path, label: str) -> dict[str, object]:
+    if not path.is_file() or path.is_symlink():
+        fail(f"{label}_state_missing_or_unsafe")
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        fail(f"{label}_state_unreadable")
+    if not isinstance(value, dict):
+        fail(f"{label}_state_invalid")
+    sha = value.get("sha")
+    if not isinstance(sha, str):
+        fail(f"{label}_state_invalid")
+    require_sha(sha)
+    if value.get("status") != "successful":
+        fail(f"{label}_state_not_successful")
+    return value
+
+
+def load_canonical(settings: Settings) -> dict[str, object]:
+    return load_release_state(settings.canonical_state, "canonical")
+
+
+def verify_release_checkout(settings: Settings, runner: Runner) -> None:
+    working = safe_existing_directory(settings.working_directory, "working_directory")
+    revision = run_or_fail(
+        runner,
+        ("git", "-C", str(working.parent), "rev-parse", "--verify", "HEAD"),
+        "exact_release_sha",
+    )
+    if revision.strip() != settings.sha:
+        fail("verification_failed:exact_release_sha")
+    run_or_fail(
+        runner,
+        ("git", "-C", str(working.parent), "diff", "--quiet"),
+        "dirty_worktree",
+    )
+    run_or_fail(
+        runner,
+        ("git", "-C", str(working.parent), "diff", "--cached", "--quiet"),
+        "dirty_index",
+    )
+    untracked = run_or_fail(
+        runner,
+        (
+            "git",
+            "-C",
+            str(working.parent),
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+        ),
+        "untracked_worktree",
+    )
+    if untracked.strip():
+        fail("untracked_worktree")
+
+
+def validate_handoff(settings: Settings, runner: Runner) -> dict[str, object]:
+    handoff = read_record(settings.handoff_file, "handoff")
+    required = {
+        "target_sha",
+        "expected_baseline_sha",
+        "release_path",
+        "artifact_sha256",
+        "manifest_sha256",
+        "image_mapping",
+        "image_ids",
+        "compose_project",
+        "working_directory",
+        "compose_files",
+        "volumes",
+    }
+    if set(handoff) != required or handoff.get("target_sha") != settings.sha:
+        fail("handoff_schema_invalid")
+    expected = handoff.get("expected_baseline_sha")
+    if not isinstance(expected, str):
+        fail("handoff_schema_invalid")
+    require_sha(expected)
+    for key in ("artifact_sha256", "manifest_sha256"):
+        value = handoff.get(key)
+        if not isinstance(value, str):
+            fail("handoff_schema_invalid")
+        require_digest(value, key)
+    mapping = handoff.get("image_mapping")
+    ids = handoff.get("image_ids")
+    if not isinstance(mapping, dict) or not isinstance(ids, dict):
+        fail("handoff_schema_invalid")
+    if set(mapping) != set(APP_SERVICES) or set(ids) != set(APP_SERVICES):
+        fail("handoff_schema_invalid")
+    for service in APP_SERVICES:
+        image_ref = mapping.get(service)
+        image_id = ids.get(service)
+        if image_ref != f"nura-release:{settings.sha}" or not isinstance(image_id, str):
+            fail("mutable_image_reference")
+        require_image_id(image_id)
+        actual_id = run_or_fail(
+            runner,
+            ("docker", "image", "inspect", "--format", "{{.Id}}", image_ref),
+            f"target_image:{service}",
+        ).strip()
+        if actual_id != image_id:
+            fail(f"target_image_mismatch:{service}")
+    release_path = handoff.get("release_path")
+    if not isinstance(release_path, str):
+        fail("handoff_schema_invalid")
+    exact_release_path(settings, Path(release_path), settings.sha)
+    compose_files = handoff.get("compose_files")
+    if not isinstance(compose_files, list) or len(compose_files) != 2:
+        fail("handoff_schema_invalid")
+    for item in compose_files:
+        if not isinstance(item, str):
+            fail("handoff_schema_invalid")
+        safe_existing_file(Path(item), settings.state_directory, "compose")
+    project = str(handoff["compose_project"])
+    working_directory = str(handoff["working_directory"])
+    compose_context = [str(item) for item in compose_files]
+    run_or_fail(
+        runner,
+        compose_command(
+            project,
+            working_directory,
+            compose_context,
+            "config",
+            "--quiet",
+        ),
+        "handoff_compose",
+    )
+    volumes = handoff.get("volumes")
+    if not isinstance(volumes, dict):
+        fail("handoff_schema_invalid")
+    config_output = run_or_fail(
+        runner,
+        compose_command(
+            project,
+            working_directory,
+            compose_context,
+            "config",
+            "--format",
+            "json",
+        ),
+        "handoff_compose_volumes",
+    )
+    validate_compose_volume_contract(config_output, project, volumes)
+    return handoff
+
+
+def prepare_handoff(settings: Settings, args: argparse.Namespace) -> None:
+    with rollout_lock(settings.lock_file):
+        canonical = load_canonical(settings)
+        expected = require_sha(args.expected_baseline_sha)
+        if canonical.get("sha") != expected:
+            fail("canonical_baseline_mismatch")
+        release = exact_release_path(settings, args.release_path, settings.sha)
+        safe_existing_file(settings.base_compose, settings.working_directory, "base_compose")
+        image_id = require_image_id(args.image_id)
+        image_ref = f"nura-release:{settings.sha}"
+        actual = run_or_fail(
+            args.runner,
+            ("docker", "image", "inspect", "--format", "{{.Id}}", image_ref),
+            "target_image",
+        ).strip()
+        if actual != image_id:
+            fail("target_image_mismatch")
+        atomic_write(settings.target_compose, settings.base_compose.read_bytes())
+        mapping = {service: image_ref for service in APP_SERVICES}
+        ids = {service: image_id for service in APP_SERVICES}
+        atomic_write(settings.target_override, materialized_override(mapping))
+        handoff = {
+            "target_sha": settings.sha,
+            "expected_baseline_sha": expected,
+            "release_path": str(release),
+            "artifact_sha256": require_digest(args.artifact_sha256, "artifact_sha256"),
+            "manifest_sha256": require_digest(args.manifest_sha256, "manifest_sha256"),
+            "image_mapping": mapping,
+            "image_ids": ids,
+            "compose_project": settings.project,
+            "working_directory": str(settings.working_directory.resolve(strict=True)),
+            "compose_files": [str(settings.target_compose), str(settings.target_override)],
+            "volumes": {
+                "redis": args.redis_volume,
+                "postgres": args.postgres_volume,
+            },
+        }
+        if settings.handoff_file.exists():
+            existing = read_record(settings.handoff_file, "handoff")
+            if existing != handoff:
+                fail("existing_handoff_conflict")
+            if not settings.transaction_file.exists():
+                fail("handoff_transaction_missing")
+            print(f"p7b_prepare sha={settings.sha} status=reused secrets=redacted")
+            return
+        if settings.transaction_file.exists():
+            fail("transaction_without_handoff")
+        write_record(settings.handoff_file, "handoff", handoff)
+        transaction(settings, "prepared")
+        print(f"p7b_prepare sha={settings.sha} status=prepared secrets=redacted")
+
+
+def inspect_service(
+    runner: Runner,
+    project: str,
+    working_directory: str,
+    compose_files: Sequence[str],
+    service: str,
+) -> dict[str, str]:
+    container = run_or_fail(
+        runner,
+        compose_command(
+            project, working_directory, compose_files, "ps", "-q", "--all", service
+        ),
+        f"container:{service}",
+    ).strip()
+    if not container or "\n" in container:
+        fail(f"service_missing_or_ambiguous:{service}")
+    inspection = run_or_fail(
+        runner,
+        (
+            "docker",
+            "inspect",
+            "--format",
+            '{{.State.Running}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none'
+            "{{end}}|{{.Config.Image}}|{{.Image}}|"
+            '{{index .Config.Labels "org.opencontainers.image.revision"}}',
+            container,
+        ),
+        f"inspect:{service}",
+    ).strip()
+    fields = inspection.split("|")
+    if len(fields) != 5:
+        fail(f"service_inspection_invalid:{service}")
+    running, health, image_ref, image_id, revision = fields
+    if running != "true" or health == "unhealthy":
+        fail(f"service_unhealthy:{service}")
+    require_image_id(image_id)
+    return {
+        "container": container,
+        "image_ref": image_ref,
+        "image_id": image_id,
+        "revision": revision,
+    }
+
+
+def validate_compose_volume_contract(
+    output: str,
+    project: str,
+    expected: Mapping[str, object],
+) -> None:
+    try:
+        config = json.loads(output)
+    except json.JSONDecodeError:
+        fail("compose_volume_contract_unparseable")
+    if not isinstance(config, dict) or not isinstance(config.get("services"), dict):
+        fail("compose_volume_contract_unparseable")
+    definitions = config.get("volumes", {})
+    if not isinstance(definitions, dict):
+        fail("compose_volume_contract_unparseable")
+    destinations = {"postgres": "/var/lib/postgresql/data", "redis": "/data"}
+    for service, destination in destinations.items():
+        expected_name = expected.get(service)
+        service_config = config["services"].get(service)
+        if not isinstance(expected_name, str) or not isinstance(service_config, dict):
+            fail("compose_volume_contract_invalid")
+        mounts = service_config.get("volumes")
+        if not isinstance(mounts, list):
+            fail("compose_volume_contract_invalid")
+        matches = [
+            item
+            for item in mounts
+            if isinstance(item, dict)
+            and item.get("type") == "volume"
+            and item.get("target") == destination
+        ]
+        if len(matches) != 1 or not isinstance(matches[0].get("source"), str):
+            fail("compose_volume_contract_invalid")
+        source = str(matches[0]["source"])
+        definition = definitions.get(source, {})
+        if not isinstance(definition, dict):
+            fail("compose_volume_contract_invalid")
+        actual_name = definition.get("name") or f"{project}_{source}"
+        if actual_name != expected_name:
+            fail("compose_volume_identity_mismatch")
+
+
+def verify_live_volumes(
+    runner: Runner,
+    project: str,
+    working_directory: str,
+    compose_files: Sequence[str],
+    expected: Mapping[str, object],
+) -> None:
+    destinations = {"postgres": "/var/lib/postgresql/data", "redis": "/data"}
+    for service, destination in destinations.items():
+        volume = expected.get(service)
+        if not isinstance(volume, str):
+            fail("volume_identity_invalid")
+        actual = run_or_fail(
+            runner,
+            ("docker", "volume", "inspect", "--format", "{{.Name}}", volume),
+            f"volume:{service}",
+        ).strip()
+        if actual != volume:
+            fail("volume_identity_changed")
+        container = run_or_fail(
+            runner,
+            compose_command(
+                project,
+                working_directory,
+                compose_files,
+                "ps",
+                "-q",
+                "--all",
+                service,
+            ),
+            f"volume_container:{service}",
+        ).strip()
+        if not container or "\n" in container:
+            fail(f"service_missing_or_ambiguous:{service}")
+        mounts_output = run_or_fail(
+            runner,
+            ("docker", "inspect", "--format", "{{json .Mounts}}", container),
+            f"volume_mounts:{service}",
+        )
+        try:
+            mounts = json.loads(mounts_output)
+        except json.JSONDecodeError:
+            fail("volume_mounts_unparseable")
+        matches = [
+            item
+            for item in mounts
+            if isinstance(item, dict)
+            and item.get("Type") == "volume"
+            and item.get("Destination") == destination
+        ] if isinstance(mounts, list) else []
+        if len(matches) != 1 or matches[0].get("Name") != volume:
+            fail(f"live_volume_identity_mismatch:{service}")
+
+
+def bootstrap(settings: Settings, runner: Runner) -> None:
+    with rollout_lock(settings.lock_file):
+        handoff = read_record(settings.handoff_file, "handoff")
+        canonical = load_canonical(settings)
+        baseline_sha = handoff.get("expected_baseline_sha")
+        if canonical.get("sha") != baseline_sha or not isinstance(baseline_sha, str):
+            fail("canonical_runtime_mismatch")
+        require_environment(
+            settings.environment_file,
+            {"APP_ENV": "development", "TEST_MODE": "true"},
+        )
+        base_source = run_or_fail(
+            runner,
+            (
+                "git",
+                "-C",
+                str(settings.working_directory.parent),
+                "show",
+                f"{baseline_sha}:nura_app/docker-compose.yml",
+            ),
+            "baseline_compose_materialization",
+        ).encode()
+        baseline_compose = settings.baseline_compose(baseline_sha)
+        atomic_write(baseline_compose, base_source)
+        compose_files = [str(baseline_compose)]
+        status = run_or_fail(
+            runner,
+            compose_command(
+                settings.project,
+                str(settings.working_directory),
+                compose_files,
+                "ps",
+                "--format",
+                "json",
+            ),
+            "baseline_compose_status",
+        )
+        parse_compose_status(
+            status,
+            (*DATA_SERVICES, *APP_SERVICES),
+            HEALTH_SERVICES,
+        )
+        mapping: dict[str, str] = {}
+        ids: dict[str, str] = {}
+        for service in APP_SERVICES:
+            inspected = inspect_service(
+                runner,
+                settings.project,
+                str(settings.working_directory),
+                compose_files,
+                service,
+            )
+            revision = inspected["revision"]
+            if revision and revision != baseline_sha:
+                fail("mixed_application_fleet")
+            mapping[service] = inspected["image_ref"]
+            ids[service] = inspected["image_id"]
+        if len(set(ids.values())) != 1:
+            fail("mixed_application_fleet")
+        atomic_write(settings.baseline_override(baseline_sha), materialized_override(ids))
+        volumes = handoff.get("volumes")
+        if not isinstance(volumes, dict) or set(volumes) != set(DATA_SERVICES):
+            fail("handoff_schema_invalid")
+        verify_live_volumes(
+            runner,
+            settings.project,
+            str(settings.working_directory),
+            compose_files,
+            volumes,
+        )
+        volume_ids = {service: str(volumes[service]) for service in DATA_SERVICES}
+        release_path = canonical.get("static_release_path")
+        if not isinstance(release_path, str):
+            fail("canonical_state_invalid")
+        exact_release_path(settings, Path(release_path), baseline_sha)
+        current_target = settings.current_link.resolve(strict=True)
+        if current_target != Path(release_path).resolve(strict=True):
+            fail("canonical_public_mismatch")
+        baseline = {
+            "target_sha": settings.sha,
+            "previous_sha": baseline_sha,
+            "release_path": release_path,
+            "image_mapping": mapping,
+            "image_ids": ids,
+            "compose_project": settings.project,
+            "working_directory": str(settings.working_directory.resolve(strict=True)),
+            "compose_files": [
+                str(baseline_compose),
+                str(settings.baseline_override(baseline_sha)),
+            ],
+            "volumes": volume_ids,
+            "canonical_digest": hashlib.sha256(
+                settings.canonical_state.read_bytes()
+            ).hexdigest(),
+            "public_target": str(current_target),
+        }
+        write_record(settings.baseline_file, "baseline", baseline)
+        transaction(settings, "baseline_ready")
+        print(
+            f"p7b_bootstrap sha={settings.sha} baseline={baseline_sha} "
+            "status=ready secrets=redacted"
+        )
+
+
+def verify_volumes(
+    runner: Runner,
+    payload: Mapping[str, object],
+    expected: Mapping[str, object],
+) -> None:
+    compose_files = payload.get("compose_files")
+    if not isinstance(compose_files, list) or not all(
+        isinstance(item, str) for item in compose_files
+    ):
+        fail("compose_context_invalid")
+    verify_live_volumes(
+        runner,
+        str(payload["compose_project"]),
+        str(payload["working_directory"]),
+        [str(item) for item in compose_files],
+        expected,
+    )
+
+
+def lifecycle(
+    payload: Mapping[str, object],
+    services: Sequence[str],
+    runner: Runner,
+) -> None:
+    compose_files = payload.get("compose_files")
+    if not isinstance(compose_files, list) or not all(
+        isinstance(item, str) for item in compose_files
+    ):
+        fail("compose_context_invalid")
+    run_or_fail(
+        runner,
+        compose_command(
+            str(payload["compose_project"]),
+            str(payload["working_directory"]),
+            [str(item) for item in compose_files],
+            "up",
+            "--detach",
+            "--force-recreate",
+            "--no-build",
+            "--no-deps",
+            "--wait",
+            "--wait-timeout",
+            "180",
+            *services,
+        ),
+        "compose_up",
+    )
+
+
+def verification_commands(payload: Mapping[str, object], stage: int) -> list[list[str]]:
+    compose_files = [str(item) for item in payload["compose_files"]]  # type: ignore[index]
+    project = str(payload["compose_project"])
+    working = str(payload["working_directory"])
+    commands = [
+        compose_command(project, working, compose_files, "ps", "--format", "json"),
+        compose_command(
+            project,
+            working,
+            compose_files,
+            "exec",
+            "-T",
+            "redis",
+            "/usr/local/bin/nura-redis-healthcheck",
+        ),
+        compose_command(
+            project, working, compose_files, "exec", "-T", "postgres", "pg_isready"
+        ),
+        compose_command(
+            project,
+            working,
+            compose_files,
+            "exec",
+            "-T",
+            "api",
+            "python",
+            "-c",
+            "import urllib.request; assert "
+            "urllib.request.urlopen('http://127.0.0.1:8000/health').status == 200",
+        ),
+        compose_command(
+            project,
+            working,
+            compose_files,
+            "exec",
+            "-T",
+            "celery-worker",
+            "celery",
+            "inspect",
+            "ping",
+        ),
+    ]
+    if stage == 2:
+        commands.append(
+            compose_command(
+                project,
+                working,
+                compose_files,
+                "exec",
+                "-T",
+                "api",
+                "python",
+                "-c",
+                "from core.config import settings; assert settings.is_production "
+                "and not settings.test_mode and settings.session_cookie_secure "
+                "and settings.yookassa_verify_on_webhook "
+                "and not settings.production_readiness_errors",
+            )
+        )
+    return commands
+
+
+def verify_stage(
+    settings: Settings,
+    stage: int,
+    runner: Runner,
+    *,
+    acquire_lock: bool = True,
+    persist: bool = True,
+) -> None:
     if acquire_lock:
         with rollout_lock(settings.lock_file):
-            verify(settings, stage, runner, acquire_lock=False)
+            verify_stage(
+                settings,
+                stage,
+                runner,
+                acquire_lock=False,
+                persist=persist,
+            )
         return
-    state = RolloutState.load(settings.state_file)
-    context = state.current
-    if context is None:
-        fail("release_context_missing")
-    if stage == 2 and not state.stage1_verified:
-        fail("stage1_verification_required")
-    require_environment(settings.environment_file, {"APP_ENV": "development", "TEST_MODE": "true"} if stage == 1 else {"APP_ENV": "production", "TEST_MODE": "false"})
-    commands = verification_commands(context, stage)
-    status = command_result(runner, commands[0])
-    if status.returncode != 0:
-        fail(f"verification_failed:stage{stage}_compose_status")
-    parse_compose_status(status.stdout, ("redis", "postgres", *APP_SERVICES), ("redis", "postgres", "api"))
+    handoff = read_record(settings.handoff_file, "handoff")
+    baseline = read_record(settings.baseline_file, "baseline")
+    state = read_record(settings.transaction_file, "transaction")
+    allowed = (
+        {"stage1_intent", "stage1_verified"}
+        if stage == 1
+        else {"stage2_intent", "stage2_verified", "smoke_verified", "finalizing"}
+    )
+    if state.get("phase") not in allowed:
+        fail(f"stage{stage}_intent_required")
+    require_environment(
+        settings.environment_file,
+        {"APP_ENV": "development", "TEST_MODE": "true"}
+        if stage == 1
+        else {"APP_ENV": "production", "TEST_MODE": "false"},
+    )
+    commands = verification_commands(handoff, stage)
+    status = run_or_fail(runner, commands[0], f"stage{stage}_compose_status")
+    parse_compose_status(
+        status,
+        (*DATA_SERVICES, *APP_SERVICES),
+        HEALTH_SERVICES,
+    )
     for command in commands[1:]:
         run_or_fail(runner, command, f"stage{stage}")
-    if stage == 1:
-        state.stage1_verified = True
-        state.stage2_verified = False
-    else:
-        state.stage2_verified = True
-    state.save(settings.state_file)
+    verify_volumes(runner, handoff, baseline["volumes"])  # type: ignore[arg-type]
+    phase = f"stage{stage}_verified"
+    if persist:
+        transaction(settings, phase)
+    if stage == 2 and persist:
+        receipt = {
+            "target_sha": settings.sha,
+            "previous_sha": baseline["previous_sha"],
+            "handoff_digest": payload_digest(handoff),
+            "baseline_digest": payload_digest(baseline),
+            "transaction_phase": phase,
+            "verified_at": int(time.time()),
+        }
+        write_record(settings.receipt_file, "receipt", receipt)
     print(f"p7b_verify_stage{stage} status=ok secrets=redacted")
 
 
-def plan(settings: Settings, stage: int) -> None:
-    context = settings.context()
-    services = STAGE1_SERVICES if stage == 1 else APP_SERVICES
-    print("p7b_plan " + json.dumps({"stage": stage, "sha": context.sha, "project": context.project,
-                                     "working_directory": context.working_directory, "services": services,
-                                     "secrets": "redacted"}, sort_keys=True))
+def compensate(settings: Settings, runner: Runner, failed_stage: int) -> None:
+    baseline = read_record(settings.baseline_file, "baseline")
+    if failed_stage == 2 and settings.environment_backup.exists():
+        restore_environment(settings)
+    lifecycle(baseline, STAGE1_SERVICES, runner)
+    require_environment(
+        settings.environment_file,
+        {"APP_ENV": "development", "TEST_MODE": "true"},
+    )
+    verify_volumes(runner, baseline, baseline["volumes"])  # type: ignore[arg-type]
+    transaction(
+        settings,
+        f"stage{failed_stage}_compensated",
+        compensated_to=baseline["previous_sha"],
+    )
+
+
+def verify_baseline_canonical(
+    settings: Settings,
+    baseline: Mapping[str, object],
+) -> None:
+    canonical = load_canonical(settings)
+    expected_sha = baseline.get("previous_sha")
+    expected_digest = baseline.get("canonical_digest")
+    actual_digest = hashlib.sha256(settings.canonical_state.read_bytes()).hexdigest()
+    if (
+        canonical.get("sha") != expected_sha
+        or not isinstance(expected_digest, str)
+        or actual_digest != expected_digest
+    ):
+        fail("canonical_baseline_changed")
 
 
 def stage1(settings: Settings, runner: Runner) -> None:
     with rollout_lock(settings.lock_file):
-        verify_release(settings, runner)
-        state = RolloutState.load(settings.state_file)
-        if state.current is None:
-            fail("baseline_release_context_required")
-        context = settings.context()
-        ensure_generated(context)
-        state.previous = state.current
-        state.current = context
-        state.stage1_verified = False
-        state.stage2_verified = False
-        state.save(settings.state_file)
-        lifecycle(context, STAGE1_SERVICES, runner, build=True)
-        verify(settings, 1, runner, acquire_lock=False)
+        handoff = validate_handoff(settings, runner)
+        baseline = read_record(settings.baseline_file, "baseline")
+        state = read_record(settings.transaction_file, "transaction")
+        if state.get("phase") == "stage1_verified":
+            verify_stage(settings, 1, runner, acquire_lock=False)
+            return
+        if state.get("phase") not in {
+            "baseline_ready",
+            "stage1_compensated",
+            "stage2_compensated",
+        }:
+            fail("baseline_ready_required")
+        transaction(settings, "stage1_intent")
+        try:
+            verify_baseline_canonical(settings, baseline)
+            verify_volumes(
+                runner,
+                baseline,
+                baseline["volumes"],  # type: ignore[arg-type]
+            )
+            lifecycle(handoff, STAGE1_SERVICES, runner)
+            verify_stage(settings, 1, runner, acquire_lock=False)
+        except BaseException:
+            compensate(settings, runner, 1)
+            raise
 
 
 def stage2(settings: Settings, runner: Runner) -> None:
     with rollout_lock(settings.lock_file):
-        state = RolloutState.load(settings.state_file)
-        if not state.stage1_verified:
+        handoff = validate_handoff(settings, runner)
+        state = read_record(settings.transaction_file, "transaction")
+        if state.get("phase") == "stage2_verified":
+            verify_stage(settings, 2, runner, acquire_lock=False)
+            return
+        if state.get("phase") != "stage1_verified":
             fail("stage1_verification_required")
-        backup = settings.state_directory / f"environment-{state.current.sha}.backup" if state.current else None
-        if backup is None:
-            fail("release_context_missing")
-        if not backup.exists():
-            edit_environment(settings.environment_file, backup, {"APP_ENV": "production", "TEST_MODE": "false"})
-        else:
-            require_environment(settings.environment_file, {"APP_ENV": "production", "TEST_MODE": "false"})
-        lifecycle(state.current, APP_SERVICES, runner)
-        verify(settings, 2, runner, acquire_lock=False)
+        baseline = read_record(settings.baseline_file, "baseline")
+        verify_baseline_canonical(settings, baseline)
+        transaction(settings, "stage2_intent")
+        try:
+            if settings.environment_backup.exists():
+                require_environment(
+                    settings.environment_file,
+                    {"APP_ENV": "production", "TEST_MODE": "false"},
+                )
+            else:
+                edit_environment(
+                    settings.environment_file,
+                    settings.environment_backup,
+                    {"APP_ENV": "production", "TEST_MODE": "false"},
+                )
+            lifecycle(handoff, APP_SERVICES, runner)
+            verify_stage(settings, 2, runner, acquire_lock=False)
+        except BaseException:
+            compensate(settings, runner, 2)
+            raise
 
 
-def rollback_stage1(settings: Settings, runner: Runner) -> None:
-    with rollout_lock(settings.lock_file):
-        state = RolloutState.load(settings.state_file)
-        if state.previous is None:
-            fail("previous_release_context_missing")
-        ensure_generated(state.previous)
-        previous = state.previous
-        lifecycle(previous, STAGE1_SERVICES, runner)
-        state.current, state.previous = previous, state.current
-        state.stage1_verified = False
-        state.stage2_verified = False
-        state.save(settings.state_file)
+def preflight(settings: Settings, runner: Runner) -> None:
+    verify_release_checkout(settings, runner)
+    handoff = validate_handoff(settings, runner)
+    baseline = read_record(settings.baseline_file, "baseline")
+    verify_baseline_canonical(settings, baseline)
+    if handoff.get("expected_baseline_sha") != baseline.get("previous_sha"):
+        fail("baseline_contract_mismatch")
+    verify_volumes(runner, baseline, baseline["volumes"])  # type: ignore[arg-type]
+    print(f"p7b_preflight sha={settings.sha} status=ok secrets=redacted")
 
 
-def rollback_stage2(settings: Settings, runner: Runner) -> None:
-    with rollout_lock(settings.lock_file):
-        state = RolloutState.load(settings.state_file)
-        if state.current is None:
-            fail("release_context_missing")
-        backup = settings.state_directory / f"environment-{state.current.sha}.backup"
-        if not backup.is_file():
-            fail("environment_backup_missing")
-        atomic_write(settings.environment_file, backup.read_bytes(), stat.S_IMODE(backup.stat().st_mode), owner_from=backup)
-        lifecycle(state.current, APP_SERVICES, runner)
+def readiness(settings: Settings, runner: Runner) -> None:
+    state = read_record(settings.transaction_file, "transaction")
+    if state.get("phase") != "stage1_verified":
+        fail("stage1_verification_required")
+    handoff = read_record(settings.handoff_file, "handoff")
+    status = run_or_fail(
+        runner,
+        verification_commands(handoff, 1)[0],
+        "readiness_compose_status",
+    )
+    parse_compose_status(status, (*DATA_SERVICES, *APP_SERVICES), HEALTH_SERVICES)
+    print(f"p7b_readiness sha={settings.sha} status=ready secrets=redacted")
 
 
-def cleanup(settings: Settings) -> None:
-    state = RolloutState.load(settings.state_file)
-    protected = {value.generated_file for value in (state.current, state.previous) if value}
-    if not settings.generated_directory.exists():
-        print("p7b_cleanup removed=0 secrets=redacted")
-        return
-    removed = 0
-    for candidate in settings.generated_directory.glob("compose.p7b.*.yml"):
-        if str(candidate) in protected:
+def smoke_webhook(
+    settings: Settings,
+    runner: Runner,
+    webhook_url: str,
+) -> None:
+    if webhook_url != "http://127.0.0.1:8000/api/v1/payment/webhook":
+        fail("unsafe_webhook_smoke_url")
+    state = read_record(settings.transaction_file, "transaction")
+    if state.get("phase") != "stage2_verified":
+        fail("stage2_verification_required")
+    for payload in ("{", "[]", '"invalid"', "null"):
+        status = run_or_fail(
+            runner,
+            (
+                "curl",
+                "--silent",
+                "--show-error",
+                "--output",
+                "/dev/null",
+                "--write-out",
+                "%{http_code}",
+                "--header",
+                "Content-Type: application/json",
+                "--data-binary",
+                payload,
+                webhook_url,
+            ),
+            "malformed_webhook_smoke",
+        ).strip()
+        if status != "400":
+            fail("malformed_webhook_smoke_failed")
+    transaction(settings, "smoke_verified")
+    print(f"p7b_webhook_smoke sha={settings.sha} status=ok mutations=none")
+
+
+def activate(settings: Settings, runner: Runner, webhook_url: str) -> None:
+    """Own the full managed chain under the host-wide common release lock."""
+    with rollout_lock(settings.common_lock_file):
+        state = read_record(settings.transaction_file, "transaction")
+        phase = state.get("phase")
+        if phase == "prepared":
+            bootstrap(settings, runner)
+            phase = "baseline_ready"
+        if phase in {"stage1_intent", "stage2_intent", "stage2_verified"}:
+            recover(settings, runner)
+            phase = read_record(settings.transaction_file, "transaction").get("phase")
+        if phase in {
+            "baseline_ready",
+            "stage1_compensated",
+            "stage2_compensated",
+        }:
+            preflight(settings, runner)
+            stage1(settings, runner)
+            phase = "stage1_verified"
+        if phase == "stage1_verified":
+            readiness(settings, runner)
+            stage2(settings, runner)
+            phase = "stage2_verified"
+        if phase == "stage2_verified":
+            try:
+                with rollout_lock(settings.lock_file):
+                    smoke_webhook(settings, runner, webhook_url)
+            except BaseException:
+                with rollout_lock(settings.lock_file):
+                    compensate(settings, runner, 2)
+                raise
+            phase = "smoke_verified"
+        if phase in {"smoke_verified", "finalizing", "complete"}:
+            finalize(settings, runner)
+            return
+        fail("activation_phase_invalid")
+
+
+def atomic_symlink(link: Path, target: Path) -> None:
+    if link.is_symlink():
+        parent = link.parent
+    elif link.exists():
+        fail("current_marker_not_symlink")
+    else:
+        parent = link.parent
+    if parent.is_symlink() or not parent.is_dir():
+        fail("unsafe_current_marker_parent")
+    temporary = parent / f".{link.name}.{os.getpid()}.tmp"
+    if temporary.exists() or temporary.is_symlink():
+        temporary.unlink()
+    os.symlink(str(target), temporary, target_is_directory=True)
+    os.replace(temporary, link)
+
+
+def retention_cleanup(
+    settings: Settings,
+    current: Mapping[str, object],
+    runner: Runner,
+) -> None:
+    """Best-effort retention after durable completion, under the common lock."""
+    root = safe_existing_directory(settings.releases_directory, "releases_root")
+    history = current.get("activation_history", [])
+    if (
+        not isinstance(history, list)
+        or len(history) > 2
+        or not all(isinstance(item, str) and SHA.fullmatch(item) for item in history)
+    ):
+        fail("retention_history_invalid")
+    protected = {settings.sha, *history}
+    cleanup_failed = False
+    for candidate in root.iterdir():
+        if (
+            candidate.name in protected
+            or not SHA.fullmatch(candidate.name)
+            or candidate.is_symlink()
+            or not candidate.is_dir()
+        ):
             continue
-        if OWNERSHIP_MARKER in candidate.read_text(encoding="utf-8", errors="replace"):
-            candidate.unlink()
-            removed += 1
-    print(f"p7b_cleanup removed={removed} secrets=redacted")
+        record = settings.canonical_state.parent / "releases" / f"{candidate.name}.json"
+        if record.is_file() and not record.is_symlink():
+            try:
+                if json.loads(record.read_text(encoding="utf-8")).get("legacy"):
+                    continue
+            except (OSError, json.JSONDecodeError):
+                cleanup_failed = True
+                continue
+        shutil.rmtree(candidate)
+        result = command_result(
+            runner,
+            ("docker", "image", "rm", f"nura-release:{candidate.name}"),
+        )
+        if result.returncode != 0:
+            cleanup_failed = True
+    if cleanup_failed:
+        print("p7b_retention status=warning secrets=redacted")
+    else:
+        print("p7b_retention status=ok secrets=redacted")
+
+
+def finalize(
+    settings: Settings,
+    runner: Runner,
+    *,
+    acquire_lock: bool = True,
+) -> None:
+    if acquire_lock:
+        with rollout_lock(settings.lock_file):
+            finalize(settings, runner, acquire_lock=False)
+        return
+    else:
+        state = read_record(settings.transaction_file, "transaction")
+        if state.get("phase") == "complete":
+            canonical = load_canonical(settings)
+            if canonical.get("sha") != settings.sha:
+                fail("complete_canonical_mismatch")
+            retention_cleanup(settings, canonical, runner)
+            print(f"p7b_finalize sha={settings.sha} status=complete secrets=redacted")
+            return
+        if state.get("phase") not in {"smoke_verified", "finalizing"}:
+            fail("stage2_completion_proof_required")
+        receipt = read_record(settings.receipt_file, "receipt")
+        handoff = validate_handoff(settings, runner)
+        baseline = read_record(settings.baseline_file, "baseline")
+        if (
+            receipt.get("target_sha") != settings.sha
+            or receipt.get("transaction_phase") != "stage2_verified"
+            or receipt.get("handoff_digest") != payload_digest(handoff)
+            or receipt.get("baseline_digest") != payload_digest(baseline)
+        ):
+            fail("completion_proof_invalid")
+        verify_stage(settings, 2, runner, acquire_lock=False, persist=False)
+        if state.get("phase") == "smoke_verified":
+            previous_snapshot = canonical_json(load_canonical(settings)) + b"\n"
+            atomic_write(settings.previous_state, previous_snapshot, mode=0o640)
+            transaction(settings, "finalizing", previous_saved=True)
+        else:
+            previous = load_release_state(settings.previous_state, "previous")
+            if previous.get("sha") != baseline.get("previous_sha"):
+                fail("previous_marker_mismatch")
+        target_release = Path(str(handoff["release_path"]))
+        target_release = exact_release_path(settings, target_release, settings.sha)
+        atomic_symlink(settings.current_link, target_release)
+        version = target_release / "public" / "VERSION"
+        if not version.is_file() or version.is_symlink():
+            fail("active_version_missing")
+        if version.read_text(encoding="utf-8").split()[0] != settings.sha:
+            fail("active_version_mismatch")
+        if not settings.release_state_file.is_file() or settings.release_state_file.is_symlink():
+            fail("prepared_release_state_missing")
+        try:
+            current = json.loads(settings.release_state_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            fail("prepared_release_state_invalid")
+        if not isinstance(current, dict):
+            fail("prepared_release_state_invalid")
+        immutable = {
+            "sha": settings.sha,
+            "static_release_path": str(target_release),
+            "artifact_sha256": handoff["artifact_sha256"],
+            "public_manifest_sha256": handoff["manifest_sha256"],
+            "application_image_tag": f"nura-release:{settings.sha}",
+            "per_service_image_mapping": handoff["image_mapping"],
+            "per_service_image_ids": handoff["image_ids"],
+        }
+        for key, expected in immutable.items():
+            if current.get(key) != expected:
+                fail(f"prepared_release_state_mismatch:{key}")
+        image_ids = handoff["image_ids"]
+        if not isinstance(image_ids, dict):
+            fail("handoff_schema_invalid")
+        target_image_id = next(iter(image_ids.values()))
+        if current.get("application_image_id") != target_image_id:
+            fail("prepared_release_state_mismatch:application_image_id")
+        previous = load_release_state(settings.previous_state, "previous")
+        history = previous.get("activation_history", [])
+        if not isinstance(history, list):
+            fail("previous_activation_history_invalid")
+        next_history = [baseline["previous_sha"], *history][:2]
+        current.update(
+            {
+                "schema": 2,
+                "status": "successful",
+                "previous_successful_sha": baseline["previous_sha"],
+                "activation_history": next_history,
+                "activation_timestamp": time.strftime(
+                    "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
+                ),
+                "rollback_eligibility": True,
+                "compensation_verified": False,
+                "failure_stage": None,
+                "failure_reason": None,
+                "p7b_completion_receipt": str(settings.receipt_file),
+            }
+        )
+        atomic_write(
+            settings.release_state_file,
+            canonical_json(current) + b"\n",
+            mode=0o640,
+        )
+        atomic_write(settings.canonical_state, canonical_json(current) + b"\n", mode=0o640)
+        transaction(settings, "complete")
+        retention_cleanup(settings, current, runner)
+        print(f"p7b_finalize sha={settings.sha} status=complete secrets=redacted")
+
+
+def recover(settings: Settings, runner: Runner) -> None:
+    with rollout_lock(settings.lock_file):
+        state = read_record(settings.transaction_file, "transaction")
+        phase = state.get("phase")
+        if phase in {"prepared", "baseline_ready", "stage1_compensated", "stage2_compensated"}:
+            print(f"p7b_recover sha={settings.sha} phase={phase} action=none")
+        elif phase == "stage1_intent":
+            compensate(settings, runner, 1)
+        elif phase == "stage1_verified":
+            verify_stage(settings, 1, runner, acquire_lock=False)
+        elif phase == "stage2_intent":
+            compensate(settings, runner, 2)
+        elif phase == "stage2_verified":
+            compensate(settings, runner, 2)
+        elif phase == "smoke_verified":
+            finalize(settings, runner, acquire_lock=False)
+        elif phase == "finalizing":
+            finalize(settings, runner, acquire_lock=False)
+        elif phase == "complete":
+            finalize(settings, runner, acquire_lock=False)
+        else:
+            fail("recovery_phase_invalid")
+
+
+def recover_under_common_lock(settings: Settings, runner: Runner) -> None:
+    with rollout_lock(settings.common_lock_file):
+        recover(settings, runner)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -473,41 +1473,116 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("operation", choices=OPERATIONS)
     result.add_argument("--sha", required=True, type=require_sha)
     result.add_argument("--project", default="nura_app")
-    result.add_argument("--working-directory", type=Path, default=Path("/opt/nura/nura_app"))
-    result.add_argument("--base-compose", type=Path, default=Path("/opt/nura/nura_app/docker-compose.yml"))
+    result.add_argument(
+        "--working-directory", type=Path, default=Path("/opt/nura/nura_app")
+    )
+    result.add_argument(
+        "--base-compose", type=Path, default=Path("/opt/nura/nura_app/docker-compose.yml")
+    )
     result.add_argument("--env-file", type=Path, default=Path("/opt/nura/nura_app/.env"))
-    result.add_argument("--state-dir", type=Path, default=Path("/var/lib/nura-release-state/p7b"))
+    result.add_argument(
+        "--state-dir", type=Path, default=Path("/var/lib/nura-release-state/p7b")
+    )
+    result.add_argument(
+        "--canonical-state",
+        type=Path,
+        default=Path("/var/lib/nura-release-state/current.json"),
+    )
+    result.add_argument(
+        "--previous-state",
+        type=Path,
+        default=Path("/var/lib/nura-release-state/previous.json"),
+    )
+    result.add_argument(
+        "--current-link", type=Path, default=Path("/var/www/nura-releases/current")
+    )
+    result.add_argument(
+        "--releases-directory",
+        type=Path,
+        default=Path("/var/www/nura-releases/releases"),
+    )
+    result.add_argument(
+        "--common-lock-file",
+        type=Path,
+        default=Path("/var/lock/nura-deploy.lock"),
+    )
+    result.add_argument(
+        "--webhook-url",
+        default="http://127.0.0.1:8000/api/v1/payment/webhook",
+    )
+    result.add_argument("--release-path", type=Path)
+    result.add_argument("--image-id")
+    result.add_argument("--artifact-sha256")
+    result.add_argument("--manifest-sha256")
+    result.add_argument("--expected-baseline-sha")
+    result.add_argument("--redis-volume", default="nura_app_redis_data")
+    result.add_argument("--postgres-volume", default="nura_app_postgres_data")
     return result
 
 
 def main(argv: Sequence[str] | None = None, runner: Runner = default_runner) -> None:
     args = parser().parse_args(argv)
-    settings = Settings(args.sha, args.project, args.working_directory, args.base_compose, args.state_dir, args.env_file)
+    args.runner = runner
+    settings = Settings(
+        args.sha,
+        args.project,
+        args.working_directory,
+        args.base_compose,
+        args.state_dir,
+        args.env_file,
+        args.canonical_state,
+        args.previous_state,
+        args.current_link,
+        args.releases_directory,
+        args.common_lock_file,
+    )
+    direct_managed = {
+        "bootstrap",
+        "stage1",
+        "verify-stage1",
+        "readiness",
+        "stage2",
+        "verify-stage2",
+        "finalize",
+    }
+    if args.operation in direct_managed:
+        fail("managed_activation_use_activate")
     if args.operation == "status":
-        state = RolloutState.load(settings.state_file)
-        print("p7b_status " + json.dumps({"current": state.current.sha if state.current else None,
-                                            "stage1_verified": state.stage1_verified,
-                                            "stage2_verified": state.stage2_verified, "secrets": "redacted"}, sort_keys=True))
+        payload = (
+            read_record(settings.transaction_file, "transaction")
+            if settings.transaction_file.exists()
+            else {"target_sha": settings.sha, "phase": "absent"}
+        )
+        print("p7b_status " + json.dumps(payload, sort_keys=True))
+    elif args.operation == "prepare-handoff":
+        required = (
+            args.release_path,
+            args.image_id,
+            args.artifact_sha256,
+            args.manifest_sha256,
+            args.expected_baseline_sha,
+        )
+        if any(value is None for value in required):
+            fail("prepare_handoff_arguments_required")
+        prepare_handoff(settings, args)
     elif args.operation == "preflight":
-        verify_release(settings, runner)
-        run_or_fail(runner, compose_command(settings.context(), "config", "--quiet"), "compose_config")
-        print(f"p7b_preflight sha={settings.sha} project={settings.project} status=ok secrets=redacted")
-    elif args.operation.startswith("plan-"):
-        plan(settings, 1 if args.operation.endswith("stage1") else 2)
-    elif args.operation == "stage1":
-        stage1(settings, runner)
-    elif args.operation == "verify-stage1":
-        verify(settings, 1, runner)
-    elif args.operation == "stage2":
-        stage2(settings, runner)
-    elif args.operation == "verify-stage2":
-        verify(settings, 2, runner)
-    elif args.operation == "rollback-stage1":
-        rollback_stage1(settings, runner)
-    elif args.operation == "rollback-stage2":
-        rollback_stage2(settings, runner)
+        preflight(settings, runner)
+    elif args.operation == "plan-stage1":
+        print(
+            json.dumps(
+                {"stage": 1, "services": STAGE1_SERVICES, "compensation_owner": "p7b"}
+            )
+        )
+    elif args.operation == "plan-stage2":
+        print(
+            json.dumps(
+                {"stage": 2, "services": APP_SERVICES, "compensation_owner": "p7b"}
+            )
+        )
+    elif args.operation == "activate":
+        activate(settings, runner, args.webhook_url)
     else:
-        cleanup(settings)
+        recover_under_common_lock(settings, runner)
 
 
 if __name__ == "__main__":
