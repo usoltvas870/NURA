@@ -301,7 +301,10 @@ def test_root_engine_orders_activation_and_compensation() -> None:
 def test_p7b_prepare_handoff_exits_before_common_application_mutation() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     prepare = script.index('if [[ "$COMMAND" == prepare-p7b ]]')
-    handoff = script.index('"$REPO_ROOT/scripts/p7b_rollout.py" prepare-handoff', prepare)
+    handoff = script.index(
+        'git -C "$REPO_ROOT" show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 - prepare-handoff',
+        prepare,
+    )
     stop = script.index("exit 0", handoff)
     mutation = script.index("APP_MUTATED=1", stop)
     assert prepare < handoff < stop < mutation
@@ -310,6 +313,16 @@ def test_p7b_prepare_handoff_exits_before_common_application_mutation() -> None:
     assert "switch-current" not in block
     assert "APP_ENV" not in block
     assert "TEST_MODE" not in block
+
+
+def test_p7b_workflow_and_prepare_use_the_exact_target_controller() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    workflow = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
+    controller = 'git show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 -'
+    assert controller in workflow
+    assert 'git -C "$REPO_ROOT" show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 -' in script
+    assert "/opt/nura/scripts/p7b_rollout.py" not in workflow
+    assert '"$REPO_ROOT/scripts/p7b_rollout.py" prepare-handoff' not in script
 
 
 def test_p7b_workflow_smoke_is_malformed_only_and_precedes_finalization() -> None:
@@ -325,11 +338,11 @@ def test_p7b_workflow_smoke_is_malformed_only_and_precedes_finalization() -> Non
 
 def test_workflow_resumes_partial_finalization_before_common_prepare() -> None:
     workflow = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
-    status = workflow.index("p7b_rollout.py status --sha")
+    status = workflow.index("p7b status --sha")
     phases = workflow.index(
         '[[ "$p7b_phase" == finalizing || "$p7b_phase" == smoke_verified'
     )
-    recover = workflow.index("p7b_rollout.py activate --sha", phases)
+    recover = workflow.index("p7b activate --sha", phases)
     cleanup = workflow.index("unsafe resumed incoming cleanup target", recover)
     prepare = workflow.index('bash "$launcher" prepare-p7b "$TARGET_SHA"')
     assert status < phases < recover < cleanup < prepare
@@ -392,7 +405,7 @@ def test_deploy_workflow_builds_exact_deterministic_artifact_for_14_days() -> No
     assert "compression-level: 0" in workflow
     assert "overwrite: false" in workflow
     assert 'bash "$launcher" prepare-p7b "$TARGET_SHA"' in workflow
-    assert "p7b_rollout.py activate --sha" in workflow
+    assert "p7b activate --sha" in workflow
     assert "allow_migrations" not in workflow
     assert "MIGRATIONS_APPROVED" not in workflow
     assert 'node-version: "24.15.0"' in workflow

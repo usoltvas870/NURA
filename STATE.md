@@ -1340,6 +1340,8 @@ docker compose restart bot celery-worker
   interruption.
 - В P7B mode общий deploy engine останавливается до Redis/application mutation;
   единственным владельцем application mutation и compensation является P7B.
+- Workflow и common prepare извлекают P7B controller из exact target SHA, поэтому
+  activation не может исполнить controller от предыдущей host checkout revision.
 - Официальный manual production workflow переведён на prepare → bootstrap →
   preflight → Stage 1 → readiness → Stage 2 → malformed webhook smoke →
   finalization. Workflow в рамках разработки не запускался.

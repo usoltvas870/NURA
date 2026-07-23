@@ -529,6 +529,31 @@ def test_webhook_smoke_failure_is_p7b_compensated(settings: p7b.Settings) -> Non
     )
 
 
+def test_readiness_failure_compensates_verified_stage1(
+    settings: p7b.Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed(settings)
+    runner = FakeRunner()
+
+    def failed_readiness(*args: object, **kwargs: object) -> None:
+        p7b.fail("verification_failed:readiness_compose_status")
+
+    monkeypatch.setattr(p7b, "readiness", failed_readiness)
+    with pytest.raises(SystemExit, match="verification_failed:readiness_compose_status"):
+        p7b.activate(
+            settings,
+            runner,
+            "http://127.0.0.1:8000/api/v1/payment/webhook",
+        )
+    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
+        "stage1_compensated"
+    )
+    up = [call for call in runner.calls if "up" in call]
+    assert len(up) == 2
+    assert "target-" in " ".join(up[0])
+    assert "baseline-" in " ".join(up[1])
+
+
 def verified_stage2(settings: p7b.Settings, runner: FakeRunner) -> None:
     seed(settings, "stage2_intent")
     settings.environment_file.write_text(
@@ -580,6 +605,20 @@ def test_finalize_recovers_after_partial_marker_switch(
     p7b.recover(settings, runner)
     assert json.loads(settings.canonical_state.read_text())["sha"] == TARGET
     assert json.loads(settings.previous_state.read_text())["sha"] == BASELINE
+
+
+def test_finalize_validates_release_provenance_before_switching_public_marker(
+    settings: p7b.Settings,
+) -> None:
+    runner = FakeRunner()
+    verified_stage2(settings, runner)
+    (settings.releases_directory / TARGET / "public" / "VERSION").write_text(
+        "wrong-target\n", encoding="utf-8"
+    )
+    with pytest.raises(SystemExit, match="active_version_mismatch"):
+        p7b.finalize(settings, runner)
+    assert settings.current_link.resolve().name == BASELINE
+    assert json.loads(settings.canonical_state.read_text(encoding="utf-8"))["sha"] == BASELINE
 
 
 def test_lock_is_nonblocking_and_process_death_safe(settings: p7b.Settings) -> None:

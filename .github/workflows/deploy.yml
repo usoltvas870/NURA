@@ -143,13 +143,16 @@ jobs:
             trap 'rm -f "$launcher"' EXIT
             git show "$TARGET_SHA:deploy.sh" > "$launcher"
             chmod 0700 "$launcher"
+            p7b() {
+              git show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 - "$@"
+            }
             incoming="/var/tmp/nura-release-incoming/$INCOMING_ID"
-            p7b_status="$(python3 /opt/nura/scripts/p7b_rollout.py status --sha "$TARGET_SHA" 2>/dev/null || true)"
+            p7b_status="$(p7b status --sha "$TARGET_SHA" 2>/dev/null || true)"
             p7b_phase="$(python3 -c \
               'import json,sys; raw=sys.stdin.read(); print(json.loads(raw.split(" ",1)[1]).get("phase","absent") if raw.startswith("p7b_status ") else "absent")' \
               <<< "$p7b_status")"
             if [[ "$p7b_phase" == finalizing || "$p7b_phase" == smoke_verified || "$p7b_phase" == complete ]]; then
-              python3 /opt/nura/scripts/p7b_rollout.py activate --sha "$TARGET_SHA"
+              p7b activate --sha "$TARGET_SHA"
               python3 - "$incoming" /var/tmp/nura-release-incoming <<'PY'
             import pathlib, shutil, sys
             incoming = pathlib.Path(sys.argv[1])
@@ -164,7 +167,7 @@ jobs:
               "$incoming/nura-static-$TARGET_SHA.tar.gz" \
               "$incoming/nura-static-$TARGET_SHA.tar.gz.sha256" \
               "$incoming/release-manifest.json"
-            python3 /opt/nura/scripts/p7b_rollout.py activate --sha "$TARGET_SHA"
+            p7b activate --sha "$TARGET_SHA"
             NURA_DEPLOY_BOOTSTRAP
 
       - name: Verify public release contracts

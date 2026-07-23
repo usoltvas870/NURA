@@ -705,7 +705,7 @@ PREVIOUS_RELEASE_PATH="$RELEASES_DIR/$CURRENT_SHA"
 write_state staged "" "" "$CURRENT_SHA"
 STATE_STAGED=1
 if [[ "$COMMAND" == prepare-p7b ]]; then
-  python3 "$REPO_ROOT/scripts/p7b_rollout.py" prepare-handoff \
+  git -C "$REPO_ROOT" show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 - prepare-handoff \
     --sha "$TARGET_SHA" \
     --project nura_app \
     --working-directory "$REPO_ROOT/nura_app" \

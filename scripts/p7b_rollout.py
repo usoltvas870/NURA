@@ -1254,7 +1254,12 @@ def activate(settings: Settings, runner: Runner, webhook_url: str) -> None:
             stage1(settings, runner)
             phase = "stage1_verified"
         if phase == "stage1_verified":
-            readiness(settings, runner)
+            try:
+                readiness(settings, runner)
+            except BaseException:
+                with rollout_lock(settings.lock_file):
+                    compensate(settings, runner, 1)
+                raise
             stage2(settings, runner)
             phase = "stage2_verified"
         if phase == "stage2_verified":
@@ -1375,7 +1380,6 @@ def finalize(
                 fail("previous_marker_mismatch")
         target_release = Path(str(handoff["release_path"]))
         target_release = exact_release_path(settings, target_release, settings.sha)
-        atomic_symlink(settings.current_link, target_release)
         version = target_release / "public" / "VERSION"
         if not version.is_file() or version.is_symlink():
             fail("active_version_missing")
@@ -1428,6 +1432,7 @@ def finalize(
                 "p7b_completion_receipt": str(settings.receipt_file),
             }
         )
+        atomic_symlink(settings.current_link, target_release)
         atomic_write(
             settings.release_state_file,
             canonical_json(current) + b"\n",
