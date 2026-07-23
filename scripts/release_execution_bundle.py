@@ -23,6 +23,7 @@ BUNDLE_FILES = (
     "scripts/build_release_artifact.py",
     "scripts/deploy_static_release.py",
     "scripts/prepare_atomic_release_host.py",
+    "scripts/environment_reconciliation.py",
 )
 
 

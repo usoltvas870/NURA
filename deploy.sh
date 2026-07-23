@@ -224,6 +224,7 @@ if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
   readonly ARTIFACT_HELPER="$EXECUTION_BUNDLE/scripts/build_release_artifact.py"
   readonly STATIC_HELPER="$EXECUTION_BUNDLE/scripts/deploy_static_release.py"
   readonly STATE_HELPER="$EXECUTION_BUNDLE/scripts/prepare_atomic_release_host.py"
+  readonly ENVIRONMENT_RECONCILE_HELPER="$EXECUTION_BUNDLE/scripts/environment_reconciliation.py"
   readonly LOCK_HELPER="$EXECUTION_BUNDLE/scripts/release_lock.py"
 elif [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
   [[ "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]] \
@@ -240,9 +241,14 @@ elif [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
 else
   readonly ARTIFACT_HELPER="$REPO_ROOT/scripts/build_release_artifact.py"
   readonly STATIC_HELPER="$REPO_ROOT/scripts/deploy_static_release.py"
-  readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
   readonly LOCK_HELPER="${NURA_RELEASE_LOCK_HELPER:-$REPO_ROOT/scripts/release_lock.py}"
 fi
+if [[ -z "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
+  readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
+  readonly ENVIRONMENT_RECONCILE_HELPER="$REPO_ROOT/scripts/environment_reconciliation.py"
+fi
+readonly ENVIRONMENT_FILE="$REPO_ROOT/nura_app/.env"
+readonly P7B_STATE_ROOT="$STATE_ROOT/p7b"
 readonly IMAGE_TAG="nura-release:$TARGET_SHA"
 readonly SOURCE_LABEL="https://github.com/usoltvas870/NURA"
 
@@ -252,6 +258,7 @@ done
 [[ -d "$REPO_ROOT" && ! -L "$REPO_ROOT" ]] || fail "repository root must be a real directory"
 [[ -f "$ARTIFACT_HELPER" && ! -L "$ARTIFACT_HELPER" ]] || fail "artifact helper is missing or unsafe"
 [[ -f "$STATIC_HELPER" && ! -L "$STATIC_HELPER" ]] || fail "static helper is missing or unsafe"
+[[ -f "$ENVIRONMENT_RECONCILE_HELPER" && ! -L "$ENVIRONMENT_RECONCILE_HELPER" ]] || fail "environment reconciliation helper is missing or unsafe"
 [[ -f "$LOCK_HELPER" && ! -L "$LOCK_HELPER" ]] || fail "release lock helper is missing or unsafe"
 [[ -f "$SCRIPT_PATH" && ! -L "$SCRIPT_PATH" ]] || fail "deploy launcher is missing or unsafe"
 [[ -d "$RELEASE_ROOT" && ! -L "$RELEASE_ROOT" ]] || fail "release root is not prepared; run the separately approved host transition"
@@ -297,8 +304,10 @@ if history:
 print(sha)
 PY
 )"
-[[ "$TARGET_SHA" != "$CURRENT_SHA" ]] \
-  || fail "target SHA is already current; refusing to create a self-referential release lineage"
+if [[ "$COMMAND" != rollback ]]; then
+  [[ "$TARGET_SHA" != "$CURRENT_SHA" ]] \
+    || fail "target SHA is already current; refusing to create a self-referential release lineage"
+fi
 PREVIOUS_STATE_FILE="$(mktemp "${TMPDIR:-/tmp}/nura-current-state.XXXXXX.json")"
 install -m 0640 "$CURRENT_STATE" "$PREVIOUS_STATE_FILE"
 PREVIOUS_POINTER_SNAPSHOT=""
@@ -536,6 +545,7 @@ STATIC_SWITCHED=0
 SUCCESS=0
 PREVIOUS_RELEASE_PATH=""
 TARGET_STATE_SNAPSHOT=""
+ENVIRONMENT_RECONCILED=0
 cleanup() {
   local exit_code=$?
   local compensation_ok=1
@@ -547,6 +557,7 @@ cleanup() {
       fi
     fi
     if [[ $APP_MUTATED -eq 1 ]]; then
+      if [[ $ENVIRONMENT_RECONCILED -eq 1 ]] && ! python3 "$ENVIRONMENT_RECONCILE_HELPER" restore --target-sha "$TARGET_SHA" --environment "$ENVIRONMENT_FILE" --state-root "$STATE_ROOT" --p7b-root "$P7B_STATE_ROOT"; then compensation_ok=0; fi
       if ! activate_from_state "$PREVIOUS_STATE_FILE" "$CURRENT_SHA"; then
         compensation_ok=0
       fi
@@ -621,18 +632,26 @@ if not isinstance(target_history,list) or len(target_history)>2 or len(target_hi
     raise SystemExit("rollback target activation_history is invalid")
 if any(not isinstance(item,str) or re.fullmatch(r"[0-9a-f]{40}",item) is None for item in target_history) or target.get("sha") in target_history:
     raise SystemExit("rollback target activation_history contains invalid or self SHA")
-if target.get("sha") not in current.get("activation_history",[]):
+if target.get("sha") != current.get("sha") and target.get("sha") not in current.get("activation_history",[]):
     raise SystemExit("rollback target is outside current activation_history")
 PY
   readonly TARGET_RELEASE="$RELEASES_DIR/$TARGET_SHA"
   python3 "$ARTIFACT_HELPER" validate-current --current "$CURRENT_LINK" --expected-sha "$CURRENT_SHA" >/dev/null
   python3 -c 'import importlib.util,sys; p=sys.argv[1]; s=importlib.util.spec_from_file_location("a",p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); m.verify_release_directory(__import__("pathlib").Path(sys.argv[2]))' "$ARTIFACT_HELPER" "$TARGET_RELEASE"
   PREVIOUS_RELEASE_PATH="$RELEASES_DIR/$CURRENT_SHA"
+  python3 "$ENVIRONMENT_RECONCILE_HELPER" reconcile --target-sha "$TARGET_SHA" --environment "$ENVIRONMENT_FILE" --state-root "$STATE_ROOT" --p7b-root "$P7B_STATE_ROOT"
+  ENVIRONMENT_RECONCILED=1
   python3 "$ARTIFACT_HELPER" switch-current --current "$CURRENT_LINK" --target "$TARGET_RELEASE"
   STATIC_SWITCHED=1
   APP_MUTATED=1
   activate_from_state "$TARGET_STATE" "$TARGET_SHA"
   public_smoke "$TARGET_SHA" || fail "public rollback verification failed"
+  python3 "$ENVIRONMENT_RECONCILE_HELPER" verify --target-sha "$TARGET_SHA" --environment "$ENVIRONMENT_FILE" --state-root "$STATE_ROOT" --p7b-root "$P7B_STATE_ROOT" || fail "rollback environment verification failed"
+  if [[ "$TARGET_SHA" == "$CURRENT_SHA" ]]; then
+    SUCCESS=1
+    log "coordinated same-target environment reconciliation completed at $TARGET_SHA"
+    exit 0
+  fi
   atomic_copy_state "$CURRENT_STATE" "$PREVIOUS_STATE"
   python3 - "$TARGET_STATE" "$PREVIOUS_STATE_FILE" "$STATE_HELPER" <<'PY'
 import importlib.util, json, os, sys, tempfile
