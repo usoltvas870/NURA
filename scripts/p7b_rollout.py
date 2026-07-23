@@ -38,6 +38,9 @@ APP_SERVICES = ("api", "bot", "celery-worker", "celery-beat", "admin-bot")
 STAGE1_SERVICES = ("redis", *APP_SERVICES)
 DATA_SERVICES = ("postgres", "redis")
 HEALTH_SERVICES = ("postgres", "redis", "api")
+CELERY_PING_ATTEMPTS = 6
+CELERY_PING_DELAY_SECONDS = 5
+CELERY_PING_TIMEOUT_SECONDS = 5
 SCHEMA = 1
 KINDS = {"handoff", "baseline", "transaction", "receipt"}
 PHASES = {
@@ -1252,50 +1255,37 @@ def lifecycle(
     )
 
 
-def verification_commands(payload: Mapping[str, object], stage: int) -> list[list[str]]:
+def verification_commands(
+    payload: Mapping[str, object], stage: int
+) -> list[tuple[str, list[str]]]:
     compose_files = [str(item) for item in payload["compose_files"]]  # type: ignore[index]
     project = str(payload["compose_project"])
     working = str(payload["working_directory"])
     commands = [
-        compose_command(project, working, compose_files, "ps", "--format", "json"),
-        compose_command(
-            project,
-            working,
-            compose_files,
-            "exec",
-            "-T",
-            "redis",
-            "/usr/local/bin/nura-redis-healthcheck",
+        (
+            "compose_status",
+            compose_command(project, working, compose_files, "ps", "--format", "json"),
         ),
-        compose_command(
-            project, working, compose_files, "exec", "-T", "postgres", "pg_isready"
+        (
+            "redis_authenticated_healthcheck",
+            compose_command(
+                project,
+                working,
+                compose_files,
+                "exec",
+                "-T",
+                "redis",
+                "/usr/local/bin/nura-redis-healthcheck",
+            ),
         ),
-        compose_command(
-            project,
-            working,
-            compose_files,
-            "exec",
-            "-T",
-            "api",
-            "python",
-            "-c",
-            "import urllib.request; assert "
-            "urllib.request.urlopen('http://127.0.0.1:8000/health').status == 200",
+        (
+            "postgres_readiness",
+            compose_command(
+                project, working, compose_files, "exec", "-T", "postgres", "pg_isready"
+            ),
         ),
-        compose_command(
-            project,
-            working,
-            compose_files,
-            "exec",
-            "-T",
-            "celery-worker",
-            "celery",
-            "inspect",
-            "ping",
-        ),
-    ]
-    if stage == 2:
-        commands.append(
+        (
+            "api_health",
             compose_command(
                 project,
                 working,
@@ -1305,13 +1295,98 @@ def verification_commands(payload: Mapping[str, object], stage: int) -> list[lis
                 "api",
                 "python",
                 "-c",
-                "from core.config import settings; assert settings.is_production "
-                "and not settings.test_mode and settings.session_cookie_secure "
-                "and settings.yookassa_verify_on_webhook "
-                "and not settings.production_readiness_errors",
+                "import urllib.request; assert "
+                "urllib.request.urlopen('http://127.0.0.1:8000/health').status == 200",
+            ),
+        ),
+        (
+            "celery_worker_ping",
+            compose_command(
+                project,
+                working,
+                compose_files,
+                "exec",
+                "-T",
+                "celery-worker",
+                "celery",
+                "-A",
+                "core.tasks",
+                "inspect",
+                "ping",
+                "--timeout",
+                str(CELERY_PING_TIMEOUT_SECONDS),
+            ),
+        ),
+    ]
+    if stage == 2:
+        commands.append(
+            (
+                "production_settings",
+                compose_command(
+                    project,
+                    working,
+                    compose_files,
+                    "exec",
+                    "-T",
+                    "api",
+                    "python",
+                    "-c",
+                    "from core.config import settings; assert settings.is_production "
+                    "and not settings.test_mode and settings.session_cookie_secure "
+                    "and settings.yookassa_verify_on_webhook "
+                    "and not settings.production_readiness_errors",
+                ),
             )
         )
     return commands
+
+
+def verify_application_identity(
+    settings: Settings,
+    handoff: Mapping[str, object],
+    runner: Runner,
+) -> None:
+    mappings = handoff.get("image_mapping")
+    ids = handoff.get("image_ids")
+    compose_files = handoff.get("compose_files")
+    if (
+        not isinstance(mappings, dict)
+        or set(mappings) != set(APP_SERVICES)
+        or not isinstance(ids, dict)
+        or set(ids) != set(APP_SERVICES)
+        or not isinstance(compose_files, list)
+        or not all(isinstance(item, str) for item in compose_files)
+    ):
+        fail("handoff_schema_invalid")
+    for service in APP_SERVICES:
+        inspected = inspect_service(
+            runner,
+            str(handoff["compose_project"]),
+            str(handoff["working_directory"]),
+            [str(item) for item in compose_files],
+            service,
+        )
+        if (
+            inspected["image_ref"] != mappings[service]
+            or inspected["image_id"] != ids[service]
+            or inspected["revision"] != settings.sha
+        ):
+            fail(f"target_identity_mismatch:{service}")
+
+
+def verify_celery_worker_ping(
+    runner: Runner,
+    command: Sequence[str],
+    check: str,
+) -> None:
+    for attempt in range(CELERY_PING_ATTEMPTS):
+        result = command_result(runner, command)
+        pong = any(line.strip().lower() == "pong" for line in result.stdout.splitlines())
+        if result.returncode == 0 and pong:
+            return
+        if attempt + 1 < CELERY_PING_ATTEMPTS:
+            time.sleep(CELERY_PING_DELAY_SECONDS)
+    fail(f"verification_failed:{check}")
 
 
 def verify_stage(
@@ -1349,14 +1424,23 @@ def verify_stage(
         else {"APP_ENV": "production", "TEST_MODE": "false"},
     )
     commands = verification_commands(handoff, stage)
-    status = run_or_fail(runner, commands[0], f"stage{stage}_compose_status")
+    status = run_or_fail(
+        runner,
+        commands[0][1],
+        f"stage{stage}:{commands[0][0]}",
+    )
     parse_compose_status(
         status,
         (*DATA_SERVICES, *APP_SERVICES),
         HEALTH_SERVICES,
     )
-    for command in commands[1:]:
-        run_or_fail(runner, command, f"stage{stage}")
+    verify_application_identity(settings, handoff, runner)
+    for check, command in commands[1:]:
+        identifier = f"stage{stage}:{check}"
+        if check == "celery_worker_ping":
+            verify_celery_worker_ping(runner, command, identifier)
+        else:
+            run_or_fail(runner, command, identifier)
     verify_volumes(runner, handoff, baseline["volumes"])  # type: ignore[arg-type]
     phase = f"stage{stage}_verified"
     if persist:
@@ -1485,7 +1569,7 @@ def readiness(settings: Settings, runner: Runner) -> None:
     handoff = read_record(settings.handoff_file, "handoff")
     status = run_or_fail(
         runner,
-        verification_commands(handoff, 1)[0],
+        verification_commands(handoff, 1)[0][1],
         "readiness_compose_status",
     )
     parse_compose_status(status, (*DATA_SERVICES, *APP_SERVICES), HEALTH_SERVICES)
