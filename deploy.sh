@@ -683,7 +683,7 @@ else
     [[ "$(stat -c %u "$TARGET_RELEASE")" == "$(id -u)" ]] || fail "prepared release owner is unsafe"
     python3 -c 'import importlib.util,json,sys,pathlib; s=importlib.util.spec_from_file_location("a",sys.argv[1]); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); manifest=json.load(open(sys.argv[3],encoding="utf-8")); m.verify_release_directory(pathlib.Path(sys.argv[2]),manifest)' "$ARTIFACT_HELPER" "$TARGET_RELEASE" "$MANIFEST_PATH" || fail "prepared static material is not recoverable"
     TARGET_IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE_TAG")"
-    IMAGE_LABELS="$(docker image inspect --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}|{{index .Config.Labels \"org.opencontainers.image.source\"}}|{{index .Config.Labels \"org.opencontainers.image.created\"}}' "$IMAGE_TAG")"
+    IMAGE_LABELS="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}|{{index .Config.Labels "org.opencontainers.image.source"}}|{{index .Config.Labels "org.opencontainers.image.created"}}' "$IMAGE_TAG")"
     [[ "$IMAGE_LABELS" == "$TARGET_SHA|$SOURCE_LABEL|$CREATED_LABEL" ]] || fail "prepared image provenance is not recoverable"
     REUSE_RELEASE=1
     log "recovered prepared immutable material without staged provenance"

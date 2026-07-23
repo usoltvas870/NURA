@@ -492,6 +492,8 @@ def test_incomplete_prepared_material_is_recovered_only_after_exact_validation()
     assert "prepared static material is not recoverable" in recovery
     assert "prepared image provenance is not recoverable" in recovery
     assert "recovered prepared immutable material without staged provenance" in recovery
+    assert '\\"org.opencontainers.image.revision\\"' not in recovery
+    assert '{{index .Config.Labels "org.opencontainers.image.revision"}}' in recovery
     assert "write_state staged" not in recovery
 
 
