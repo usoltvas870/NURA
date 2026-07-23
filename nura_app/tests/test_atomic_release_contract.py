@@ -33,6 +33,26 @@ def _load_module(name: str, path: Path) -> ModuleType:
         sys.path.pop(0)
 
 
+def test_transition_importlib_load_uses_trusted_sibling_lock_not_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "release_lock.py").write_text("raise RuntimeError('hostile cwd import')\n")
+    monkeypatch.chdir(tmp_path)
+    sys.modules.pop("release_lock", None)
+    module = _load_module("isolated_transition", TRANSITION_PATH)
+    assert module.release_lock.__module__ == "nura_release_lock"
+
+
+def test_transition_importlib_rejects_symlinked_script_path(tmp_path: Path) -> None:
+    linked_script = tmp_path / TRANSITION_PATH.name
+    try:
+        linked_script.symlink_to(TRANSITION_PATH)
+    except OSError:
+        pytest.skip("symlink creation is unavailable")
+    with pytest.raises(RuntimeError, match="unsafe release lock helper path"):
+        _load_module("symlinked_transition", linked_script)
+
+
 builder = _load_module("build_release_artifact", BUILDER_PATH)
 transition = _load_module("prepare_atomic_release_host", TRANSITION_PATH)
 static_contract = sys.modules["deploy_static_release"]

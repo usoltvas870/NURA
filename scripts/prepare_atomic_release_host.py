@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -25,10 +26,26 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, NamedTuple
 
-from release_lock import release_lock
-
 EXPECTED_LEGACY_SHA = "d0d39ae8717ceb0920d98f27dd9092f746755c6c"
 SCRIPT_DIR = Path(__file__).resolve().parent
+
+
+def _load_release_lock() -> Any:
+    """Load only the checked sibling helper, independent of cwd/sys.path."""
+    source = Path(__file__)
+    helper = SCRIPT_DIR / "release_lock.py"
+    if source.is_symlink() or helper.is_symlink() or not helper.is_file():
+        raise RuntimeError("unsafe release lock helper path")
+    spec = importlib.util.spec_from_file_location("nura_release_lock", helper)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("release lock helper could not be loaded")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module.release_lock
+
+
+release_lock = _load_release_lock()
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 LEGACY_VERSION_PATTERN = re.compile(
     rf"^(?P<sha>{EXPECTED_LEGACY_SHA}) - "

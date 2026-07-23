@@ -485,6 +485,18 @@ def test_candidate_is_validated_published_and_removed_before_application_mutatio
     assert script.index('docker image rm "$CANDIDATE_TAG"', publish) < staged
 
 
+def test_incomplete_prepared_material_is_recovered_only_after_exact_validation() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    recovery = script[script.index("else\n  if [[ -d \"$TARGET_RELEASE\"") : script.index("if [[ $REUSE_RELEASE -eq 0 ]")]
+    assert "prepared material already references the active release" in recovery
+    assert "prepared static material is not recoverable" in recovery
+    assert "prepared image provenance is not recoverable" in recovery
+    assert "recovered prepared immutable material without staged provenance" in recovery
+    assert '\\"org.opencontainers.image.revision\\"' not in recovery
+    assert '{{index .Config.Labels "org.opencontainers.image.revision"}}' in recovery
+    assert "write_state staged" not in recovery
+
+
 def test_reactivation_path_reuses_recorded_static_and_image_without_build() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     reuse = script[script.index('if [[ -e "$TARGET_STATE_FILE"') : script.index("if [[ $REUSE_RELEASE -eq 0 ]]")]
