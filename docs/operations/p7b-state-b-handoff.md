@@ -101,7 +101,12 @@ It then verifies production readiness and writes the completion receipt. Failure
 restores the environment and materialized previous runtime.
 
 The single `activate` controller holds the same host-wide common release lock
-used by the normal deploy/rollback engine for the complete managed chain.
+used by the normal deploy/rollback engine for the complete managed chain. Its
+canonical path is `/run/lock/nura-deploy.lock`; `/run/lock` is the root-owned
+sticky system lock directory, and the lock file itself must be a regular,
+root-owned, non-group/world-writable file. P7B's private state lock remains
+`/var/lib/nura-release-state/p7b/rollout.lock` under a root-owned mode `0700`
+directory; symlinks are rejected for both lock paths.
 Before finalization, it sends only malformed payment webhook bodies
 (`{`, array, string, and `null`) and requires HTTP 400. It does not send a valid
 payment event or mutate entitlement state. A smoke failure or interruption

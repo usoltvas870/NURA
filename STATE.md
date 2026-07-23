@@ -1351,3 +1351,12 @@ docker compose restart bot celery-worker
 - Graphify update deferred: штатный `graphify update <path>` выполняет
   repository-wide re-extraction; после известного unsafe full-rebuild debt
   точечный update без unrelated generated churn не подтверждён.
+
+## P7B-T2A4 — 23.07.2026
+
+- Исправлен fail-closed pre-Stage-1 дефект: стандартный `/var/lock` является
+  symlink на `/run/lock`, поэтому canonical common lock перенесён на
+  `/run/lock/nura-deploy.lock` без изменения lock identity.
+- Private P7B lock directory по-прежнему требует mode `0700`, trusted parent
+  chain и отсутствие symlink; shared `/run/lock` принимается только как
+  root-owned sticky system directory.

@@ -140,9 +140,12 @@ jobs:
             git cat-file -e "$TARGET_SHA^{commit}"
             git merge-base --is-ancestor "$TARGET_SHA" refs/remotes/origin/main
             launcher="$(mktemp)"
-            trap 'rm -f "$launcher"' EXIT
+            lock_helper="$(mktemp)"
+            trap 'rm -f "$launcher" "$lock_helper"' EXIT
             git show "$TARGET_SHA:deploy.sh" > "$launcher"
+            git show "$TARGET_SHA:scripts/release_lock.py" > "$lock_helper"
             chmod 0700 "$launcher"
+            chmod 0700 "$lock_helper"
             p7b() {
               git show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 - "$@"
             }
@@ -163,7 +166,7 @@ jobs:
             PY
               exit 0
             fi
-            bash "$launcher" prepare-p7b "$TARGET_SHA" \
+            NURA_RELEASE_LOCK_HELPER="$lock_helper" bash "$launcher" prepare-p7b "$TARGET_SHA" \
               "$incoming/nura-static-$TARGET_SHA.tar.gz" \
               "$incoming/nura-static-$TARGET_SHA.tar.gz.sha256" \
               "$incoming/release-manifest.json"

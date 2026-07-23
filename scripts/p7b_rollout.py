@@ -217,7 +217,7 @@ class Settings:
     previous_state: Path = Path("/var/lib/nura-release-state/previous.json")
     current_link: Path = Path("/var/www/nura-releases/current")
     releases_directory: Path = Path("/var/www/nura-releases/releases")
-    common_lock_file: Path = Path("/var/lock/nura-deploy.lock")
+    common_lock_file: Path = Path("/run/lock/nura-deploy.lock")
 
     @property
     def lock_file(self) -> Path:
@@ -262,16 +262,69 @@ class Settings:
         return self.canonical_state.parent / "releases" / f"{self.sha}.json"
 
 
+def secure_lock_directory(path: Path) -> None:
+    """Create or validate the private P7B lock directory without relaxing path checks."""
+    if not path.is_absolute() or path.is_symlink():
+        fail("unsafe_lock_directory")
+    if path == Path("/run/lock"):
+        metadata = path.stat()
+        if (
+            not stat.S_ISDIR(metadata.st_mode)
+            or metadata.st_uid != 0
+            or stat.S_IMODE(metadata.st_mode) != 0o1777
+        ):
+            fail("unsafe_lock_directory")
+        return
+    parent = path.parent
+    if parent.is_symlink() or not parent.is_dir():
+        fail("unsafe_lock_parent")
+    parent_metadata = parent.stat()
+    if not stat.S_ISDIR(parent_metadata.st_mode):
+        fail("unsafe_lock_parent")
+    if os.name != "nt" and (
+        (stat.S_IMODE(parent_metadata.st_mode) & 0o022)
+        or parent_metadata.st_uid != os.geteuid()
+    ):
+        fail("unsafe_lock_parent")
+    if not path.exists():
+        try:
+            path.mkdir(mode=0o700)
+        except FileExistsError:
+            pass
+    if path.is_symlink() or not path.is_dir():
+        fail("unsafe_lock_directory")
+    metadata = path.stat()
+    if not stat.S_ISDIR(metadata.st_mode):
+        fail("unsafe_lock_directory")
+    if os.name != "nt" and (
+        stat.S_IMODE(metadata.st_mode) != 0o700
+        or metadata.st_uid != os.geteuid()
+    ):
+        fail("unsafe_lock_directory")
+
+
 @contextmanager
 def rollout_lock(path: Path) -> Iterator[None]:
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if path.parent.is_symlink():
-        fail("unsafe_lock_directory")
-    if os.name != "nt":
-        os.chmod(path.parent, 0o700)
-    descriptor = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
+    secure_lock_directory(path.parent)
+    if path.is_symlink():
+        fail("unsafe_lock_file")
+    flags = os.O_CREAT | os.O_RDWR
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    try:
+        descriptor = os.open(path, flags, 0o600)
+    except OSError:
+        fail("unsafe_lock_file")
     acquired = False
     try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            fail("unsafe_lock_file")
+        if os.name != "nt" and (
+            (stat.S_IMODE(metadata.st_mode) & 0o022)
+            or metadata.st_uid != os.geteuid()
+        ):
+            fail("unsafe_lock_file")
         if fcntl is not None:
             try:
                 fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -1509,7 +1562,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--common-lock-file",
         type=Path,
-        default=Path("/var/lock/nura-deploy.lock"),
+        default=Path("/run/lock/nura-deploy.lock"),
     )
     result.add_argument(
         "--webhook-url",
