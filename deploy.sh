@@ -82,6 +82,81 @@ print(heads.pop())
 PY
 }
 
+materialize_compose_base() {
+  local target_sha="$1" destination="$2"
+  python3 - "$REPO_ROOT" "$target_sha" "$destination" <<'PY'
+import os
+import pathlib
+import re
+import stat
+import subprocess
+import sys
+import tempfile
+
+repo = pathlib.Path(sys.argv[1]).resolve(strict=True)
+target_sha = sys.argv[2]
+destination = pathlib.Path(sys.argv[3])
+expected_parent = (repo / "nura_app").resolve(strict=True)
+if (
+    re.fullmatch(r"[0-9a-f]{40}", target_sha) is None
+    or not destination.is_absolute()
+    or destination.parent.resolve(strict=True) != expected_parent
+    or not destination.name.startswith(".nura-compose-base.")
+    or not destination.name.endswith(".yml")
+    or destination.exists()
+    or destination.is_symlink()
+):
+    raise SystemExit("unsafe Compose base destination")
+if subprocess.check_output(
+    ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+).strip() != target_sha:
+    raise SystemExit("Compose base checkout identity mismatch")
+content = subprocess.check_output(
+    ["git", "-C", str(repo), "show", f"{target_sha}:nura_app/docker-compose.yml"]
+)
+if not content.strip():
+    raise SystemExit("exact target Compose base is empty")
+descriptor, temporary_name = tempfile.mkstemp(
+    prefix=".nura-compose-materialize.", suffix=".yml", dir=expected_parent
+)
+temporary = pathlib.Path(temporary_name)
+try:
+    os.fchmod(descriptor, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(content)
+        stream.flush()
+        os.fsync(stream.fileno())
+    metadata = temporary.lstat()
+    if (
+        temporary.is_symlink()
+        or not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_uid != os.geteuid()
+        or stat.S_IMODE(metadata.st_mode) != 0o600
+        or metadata.st_size == 0
+    ):
+        raise SystemExit("materialized Compose base is unsafe")
+    os.replace(temporary, destination)
+    directory = os.open(expected_parent, os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+    if (
+        destination.is_symlink()
+        or not destination.is_file()
+        or destination.read_bytes() != content
+        or destination.stat().st_size == 0
+    ):
+        raise SystemExit("materialized Compose base verification failed")
+finally:
+    if temporary.exists():
+        temporary.unlink()
+PY
+  docker compose --project-directory "$REPO_ROOT/nura_app" \
+    -f "$destination" config --quiet \
+    || fail "exact target Compose base is not parseable"
+}
+
 if [[ $# -lt 2 ]]; then
   fail "usage: deploy.sh deploy|prepare-p7b <sha> <archive> <checksum> <manifest> | deploy.sh rollback <sha>"
 fi
@@ -609,7 +684,7 @@ git -C "$REPO_ROOT" merge --ff-only --no-edit "$TARGET_SHA"
 # but it must not make the post-fast-forward checkout appear dirty.
 rm -f -- "$COMPOSE_BASE"
 assert_clean_checkout
-COMPOSE_BASE="$(mktemp "$REPO_ROOT/nura_app/.nura-compose-base.XXXXXX.yml")"
+materialize_compose_base "$TARGET_SHA" "$COMPOSE_BASE"
 python3 "$REPO_ROOT/scripts/build_pwa_release.py" --check
 node "$REPO_ROOT/frontend/test_pwa_release.mjs"
 

@@ -1360,3 +1360,18 @@ docker compose restart bot celery-worker
 - Private P7B lock directory по-прежнему требует mode `0700`, trusted parent
   chain и отсутствие symlink; shared `/run/lock` принимается только как
   root-owned sticky system directory.
+
+## P7B-T2A5C — 23.07.2026
+
+- Исправлен pre-Stage-1 lifecycle adjacent Compose base: после fast-forward и
+  clean-check canonical `nura_app/docker-compose.yml` exact target повторно
+  материализуется через mode `0600` temporary file и atomic replace.
+- P7B handoff теперь связывает оба non-empty Compose input с SHA-256 digest и
+  до записи handoff выполняет Compose parse и проверку Redis/PostgreSQL volume
+  contract.
+- Same-target retry может восстановить только известный missing/empty Compose
+  input при фазе `prepared` или `baseline_ready`, согласованном baseline,
+  exact staged provenance и отсутствии active/rollback reference.
+- Symlink, non-empty mismatch, owner mismatch и любая Stage 1 intent остаются
+  fail-closed; production deploy в этом change-блоке не выполняется.
+- Graphify update deferred: P7B workflow запрещает unrelated generated churn.

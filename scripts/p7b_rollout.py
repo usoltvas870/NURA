@@ -33,6 +33,7 @@ except ImportError:  # pragma: no cover - Windows-only test fallback
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 IMAGE_ID = re.compile(r"sha256:[0-9a-f]{64}\Z")
 DIGEST = re.compile(r"[0-9a-f]{64}\Z")
+EMPTY_DIGEST = hashlib.sha256(b"").hexdigest()
 APP_SERVICES = ("api", "bot", "celery-worker", "celery-beat", "admin-bot")
 STAGE1_SERVICES = ("redis", *APP_SERVICES)
 DATA_SERVICES = ("postgres", "redis")
@@ -188,6 +189,61 @@ def safe_existing_file(path: Path, root: Path, label: str) -> Path:
     except (OSError, ValueError):
         fail(f"unsafe_{label}_path")
     return resolved
+
+
+def compose_digest(path: Path, root: Path, label: str) -> str:
+    resolved = safe_existing_file(path, root, label)
+    content = resolved.read_bytes()
+    digest = hashlib.sha256(content).hexdigest()
+    if not content.strip() or digest == EMPTY_DIGEST:
+        fail(f"{label}_empty")
+    return digest
+
+
+def preflight_managed_compose(
+    path: Path,
+    content: bytes,
+    state_directory: Path,
+    *,
+    allow_empty_recovery: bool,
+) -> bool:
+    expected_parent = state_directory / "compose"
+    expected_parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if (
+        expected_parent.is_symlink()
+        or path.parent != expected_parent
+        or path.is_symlink()
+        or not content.strip()
+    ):
+        fail("unsafe_compose_materialization")
+    if not path.exists():
+        return True
+    if not path.is_file():
+        fail("unsafe_compose_materialization")
+    metadata = path.stat()
+    state_owner = state_directory.stat().st_uid if os.name != "nt" else None
+    if os.name != "nt" and metadata.st_uid != state_owner:
+        fail("unsafe_compose_materialization")
+    existing = path.read_bytes()
+    if existing:
+        if existing != content:
+            fail("existing_compose_material_conflict")
+        return False
+    if not allow_empty_recovery:
+        fail("unexpected_empty_compose_material")
+    return True
+
+
+def materialize_managed_compose(
+    path: Path,
+    content: bytes,
+    state_directory: Path,
+    *,
+    replace: bool,
+) -> str:
+    if replace:
+        atomic_write(path, content, owner_from=state_directory)
+    return compose_digest(path, state_directory, "compose_material")
 
 
 def safe_existing_directory(path: Path, label: str) -> Path:
@@ -540,6 +596,79 @@ def load_release_state(path: Path, label: str) -> dict[str, object]:
     return value
 
 
+def load_staged_release_state(
+    settings: Settings,
+    release: Path,
+    expected_baseline: str,
+    artifact_digest: str,
+    manifest_digest: str,
+    image_id: str,
+) -> dict[str, object]:
+    path = settings.release_state_file
+    root = settings.canonical_state.parent / "releases"
+    if path.parent != root or root.is_symlink() or not root.is_dir():
+        fail("prepared_release_state_path_invalid")
+    resolved = safe_existing_file(path, root, "prepared_release_state")
+    metadata = resolved.stat()
+    if os.name != "nt" and metadata.st_uid != root.stat().st_uid:
+        fail("prepared_release_state_owner_invalid")
+    try:
+        value = json.loads(resolved.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        fail("prepared_release_state_invalid")
+    services = set(APP_SERVICES)
+    image_tag = f"nura-release:{settings.sha}"
+    immutable: dict[str, object] = {
+        "schema": 2,
+        "sha": settings.sha,
+        "status": "staged",
+        "static_release_path": str(release),
+        "artifact_sha256": artifact_digest,
+        "public_manifest_sha256": manifest_digest,
+        "application_image_tag": image_tag,
+        "application_image_id": image_id,
+        "oci_revision": settings.sha,
+        "oci_source": "https://github.com/usoltvas870/NURA",
+        "migration_delta": False,
+        "previous_successful_sha": expected_baseline,
+        "rollback_eligibility": False,
+        "compensation_verified": False,
+        "failure_stage": None,
+        "failure_reason": None,
+    }
+    if not isinstance(value, dict) or any(
+        value.get(key) != expected for key, expected in immutable.items()
+    ):
+        fail("prepared_release_state_mismatch")
+    created = value.get("oci_created")
+    history = value.get("activation_history")
+    mappings = value.get("per_service_image_mapping")
+    ids = value.get("per_service_image_ids")
+    if (
+        not isinstance(created, str)
+        or not created
+        or not isinstance(history, list)
+        or not history
+        or len(history) > 2
+        or len(history) != len(set(history))
+        or history[0] != expected_baseline
+        or any(
+            not isinstance(item, str)
+            or SHA.fullmatch(item) is None
+            or item == settings.sha
+            for item in history
+        )
+        or not isinstance(mappings, dict)
+        or set(mappings) != services
+        or any(value != image_tag for value in mappings.values())
+        or not isinstance(ids, dict)
+        or set(ids) != services
+        or any(value != image_id for value in ids.values())
+    ):
+        fail("prepared_release_state_mismatch")
+    return value
+
+
 def load_canonical(settings: Settings) -> dict[str, object]:
     return load_release_state(settings.canonical_state, "canonical")
 
@@ -592,6 +721,7 @@ def validate_handoff(settings: Settings, runner: Runner) -> dict[str, object]:
         "compose_project",
         "working_directory",
         "compose_files",
+        "compose_digests",
         "volumes",
     }
     if set(handoff) != required or handoff.get("target_sha") != settings.sha:
@@ -631,10 +761,19 @@ def validate_handoff(settings: Settings, runner: Runner) -> dict[str, object]:
     compose_files = handoff.get("compose_files")
     if not isinstance(compose_files, list) or len(compose_files) != 2:
         fail("handoff_schema_invalid")
-    for item in compose_files:
+    compose_digests = handoff.get("compose_digests")
+    if not isinstance(compose_digests, list) or len(compose_digests) != len(compose_files):
+        fail("handoff_schema_invalid")
+    for item, expected_digest in zip(compose_files, compose_digests, strict=True):
         if not isinstance(item, str):
             fail("handoff_schema_invalid")
-        safe_existing_file(Path(item), settings.state_directory, "compose")
+        if not isinstance(expected_digest, str):
+            fail("handoff_schema_invalid")
+        require_digest(expected_digest, "compose_digest")
+        if expected_digest == EMPTY_DIGEST:
+            fail("compose_digest_empty")
+        if compose_digest(Path(item), settings.state_directory, "compose") != expected_digest:
+            fail("compose_digest_mismatch")
     project = str(handoff["compose_project"])
     working_directory = str(handoff["working_directory"])
     compose_context = [str(item) for item in compose_files]
@@ -672,10 +811,14 @@ def prepare_handoff(settings: Settings, args: argparse.Namespace) -> None:
     with rollout_lock(settings.lock_file):
         canonical = load_canonical(settings)
         expected = require_sha(args.expected_baseline_sha)
-        if canonical.get("sha") != expected:
+        if canonical.get("sha") != expected or expected == settings.sha:
             fail("canonical_baseline_mismatch")
         release = exact_release_path(settings, args.release_path, settings.sha)
-        safe_existing_file(settings.base_compose, settings.working_directory, "base_compose")
+        base_source = safe_existing_file(
+            settings.base_compose, settings.working_directory, "base_compose"
+        ).read_bytes()
+        if not base_source.strip():
+            fail("base_compose_empty")
         image_id = require_image_id(args.image_id)
         image_ref = f"nura-release:{settings.sha}"
         actual = run_or_fail(
@@ -685,11 +828,10 @@ def prepare_handoff(settings: Settings, args: argparse.Namespace) -> None:
         ).strip()
         if actual != image_id:
             fail("target_image_mismatch")
-        atomic_write(settings.target_compose, settings.base_compose.read_bytes())
         mapping = {service: image_ref for service in APP_SERVICES}
         ids = {service: image_id for service in APP_SERVICES}
-        atomic_write(settings.target_override, materialized_override(mapping))
-        handoff = {
+        override_source = materialized_override(mapping)
+        legacy_handoff = {
             "target_sha": settings.sha,
             "expected_baseline_sha": expected,
             "release_path": str(release),
@@ -705,17 +847,115 @@ def prepare_handoff(settings: Settings, args: argparse.Namespace) -> None:
                 "postgres": args.postgres_volume,
             },
         }
+        existing_handoff: dict[str, object] | None = None
         if settings.handoff_file.exists():
-            existing = read_record(settings.handoff_file, "handoff")
-            if existing != handoff:
+            existing_handoff = read_record(settings.handoff_file, "handoff")
+            comparable = dict(existing_handoff)
+            comparable.pop("compose_digests", None)
+            if comparable != legacy_handoff:
                 fail("existing_handoff_conflict")
             if not settings.transaction_file.exists():
                 fail("handoff_transaction_missing")
-            print(f"p7b_prepare sha={settings.sha} status=reused secrets=redacted")
-            return
-        if settings.transaction_file.exists():
+            state = read_record(settings.transaction_file, "transaction")
+            if state.get("target_sha") != settings.sha or state.get("phase") not in {
+                "prepared",
+                "baseline_ready",
+            }:
+                fail("compose_recovery_phase_invalid")
+            current_target = settings.current_link.resolve(strict=True)
+            canonical_release = canonical.get("static_release_path")
+            if (
+                not isinstance(canonical_release, str)
+                or current_target != Path(canonical_release).resolve(strict=True)
+                or current_target == release
+            ):
+                fail("compose_recovery_active_reference")
+            if settings.previous_state.exists():
+                previous = load_release_state(settings.previous_state, "previous")
+                if previous.get("sha") == settings.sha:
+                    fail("compose_recovery_rollback_reference")
+            load_staged_release_state(
+                settings,
+                release,
+                expected,
+                args.artifact_sha256,
+                args.manifest_sha256,
+                image_id,
+            )
+        elif settings.transaction_file.exists():
             fail("transaction_without_handoff")
+        expected_compose_digests = [
+            hashlib.sha256(base_source).hexdigest(),
+            hashlib.sha256(override_source).hexdigest(),
+        ]
+        if (
+            existing_handoff is not None
+            and "compose_digests" in existing_handoff
+            and existing_handoff["compose_digests"] != expected_compose_digests
+        ):
+            fail("existing_compose_digest_conflict")
+        allow_empty_recovery = existing_handoff is not None
+        replace_base = preflight_managed_compose(
+            settings.target_compose,
+            base_source,
+            settings.state_directory,
+            allow_empty_recovery=allow_empty_recovery,
+        )
+        replace_override = preflight_managed_compose(
+            settings.target_override,
+            override_source,
+            settings.state_directory,
+            allow_empty_recovery=allow_empty_recovery,
+        )
+        base_digest = materialize_managed_compose(
+            settings.target_compose,
+            base_source,
+            settings.state_directory,
+            replace=replace_base,
+        )
+        override_digest = materialize_managed_compose(
+            settings.target_override,
+            override_source,
+            settings.state_directory,
+            replace=replace_override,
+        )
+        handoff = {
+            **legacy_handoff,
+            "compose_digests": [base_digest, override_digest],
+        }
+        compose_context = [str(settings.target_compose), str(settings.target_override)]
+        run_or_fail(
+            args.runner,
+            compose_command(
+                settings.project,
+                str(settings.working_directory.resolve(strict=True)),
+                compose_context,
+                "config",
+                "--quiet",
+            ),
+            "prepared_compose",
+        )
+        config_output = run_or_fail(
+            args.runner,
+            compose_command(
+                settings.project,
+                str(settings.working_directory.resolve(strict=True)),
+                compose_context,
+                "config",
+                "--format",
+                "json",
+            ),
+            "prepared_compose_volumes",
+        )
+        validate_compose_volume_contract(
+            config_output,
+            settings.project,
+            handoff["volumes"],  # type: ignore[arg-type]
+        )
         write_record(settings.handoff_file, "handoff", handoff)
+        if existing_handoff is not None:
+            print(f"p7b_prepare sha={settings.sha} status=recovered secrets=redacted")
+            return
         transaction(settings, "prepared")
         print(f"p7b_prepare sha={settings.sha} status=prepared secrets=redacted")
 

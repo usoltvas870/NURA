@@ -365,8 +365,15 @@ def test_root_engine_keeps_compose_base_beside_application_compose_file() -> Non
     post_fast_forward = script[script.index('git -C "$REPO_ROOT" merge --ff-only --no-edit "$TARGET_SHA"') :]
     assert post_fast_forward.index('rm -f -- "$COMPOSE_BASE"') < post_fast_forward.index("assert_clean_checkout")
     assert post_fast_forward.index("assert_clean_checkout") < post_fast_forward.index(
-        'COMPOSE_BASE="$(mktemp "$REPO_ROOT/nura_app/.nura-compose-base.XXXXXX.yml")"'
+        'materialize_compose_base "$TARGET_SHA" "$COMPOSE_BASE"'
     )
+    materialize = script[script.index("materialize_compose_base()") : script.index("if [[ $# -lt 2 ]]")]
+    assert "subprocess.check_output" in materialize
+    assert 'f"{target_sha}:nura_app/docker-compose.yml"' in materialize
+    assert "if not content.strip()" in materialize
+    assert "os.replace(temporary, destination)" in materialize
+    assert "config --quiet" in materialize
+    assert "destination.is_symlink()" in materialize
     cleanup = script[script.index("cleanup()") : script.index("trap cleanup EXIT")]
     assert cleanup.index("switch-current") < cleanup.index("activate_from_state")
     rollback = script[script.index('if [[ "$COMMAND" == rollback ]]') : script.index('[[ -f "$ARTIFACT_PATH"')]
