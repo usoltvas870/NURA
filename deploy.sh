@@ -596,7 +596,11 @@ git -C "$REPO_ROOT" merge-base --is-ancestor "$CHECKOUT_HEAD" "$TARGET_SHA" \
   || fail "server main cannot fast-forward to target"
 git -C "$REPO_ROOT" merge --ff-only --no-edit "$TARGET_SHA"
 [[ "$(git -C "$REPO_ROOT" rev-parse HEAD)" == "$TARGET_SHA" ]] || fail "checkout did not reach exact target"
+# The compose base must live beside docker-compose.yml for relative bind mounts,
+# but it must not make the post-fast-forward checkout appear dirty.
+rm -f -- "$COMPOSE_BASE"
 assert_clean_checkout
+COMPOSE_BASE="$(mktemp "$REPO_ROOT/nura_app/.nura-compose-base.XXXXXX.yml")"
 python3 "$REPO_ROOT/scripts/build_pwa_release.py" --check
 node "$REPO_ROOT/frontend/test_pwa_release.mjs"
 

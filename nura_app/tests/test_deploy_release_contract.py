@@ -302,6 +302,11 @@ def test_root_engine_keeps_compose_base_beside_application_compose_file() -> Non
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
 
     assert 'mktemp "$REPO_ROOT/nura_app/.nura-compose-base.XXXXXX.yml"' in script
+    post_fast_forward = script[script.index('git -C "$REPO_ROOT" merge --ff-only --no-edit "$TARGET_SHA"') :]
+    assert post_fast_forward.index('rm -f -- "$COMPOSE_BASE"') < post_fast_forward.index("assert_clean_checkout")
+    assert post_fast_forward.index("assert_clean_checkout") < post_fast_forward.index(
+        'COMPOSE_BASE="$(mktemp "$REPO_ROOT/nura_app/.nura-compose-base.XXXXXX.yml")"'
+    )
     cleanup = script[script.index("cleanup()") : script.index("trap cleanup EXIT")]
     assert cleanup.index("switch-current") < cleanup.index("activate_from_state")
     rollback = script[script.index('if [[ "$COMMAND" == rollback ]]') : script.index('[[ -f "$ARTIFACT_PATH"')]
