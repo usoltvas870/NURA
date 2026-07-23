@@ -99,7 +99,12 @@ def load_record(record: Path, root: Path, target: str) -> dict:
     if (
         doc.get("schema") != 1
         or doc.get("target_sha") != target
-        or doc.get("phase") not in {"environment_reconcile_intent", "environment_reconcile_verified"}
+        or doc.get("phase")
+        not in {
+            "environment_reconcile_intent",
+            "environment_reconcile_verified",
+            "environment_reconcile_rolled_back",
+        }
         or doc.get("environment_contract") != expected
     ):
         fail("invalid_reconcile_record")
@@ -168,6 +173,14 @@ def main() -> int:
                 atomic(env, baseline, stat.S_IMODE(env_meta.st_mode), env_meta)
             if contract(env.read_bytes()) != doc["environment_contract"]:
                 fail("reconcile_resume_verification_failed")
+            if doc["phase"] == "environment_reconcile_rolled_back":
+                doc["phase"] = "environment_reconcile_intent"
+                atomic(
+                    record,
+                    (json.dumps(doc, sort_keys=True, separators=(",", ":")) + "\n").encode(),
+                    0o600,
+                    env_meta,
+                )
             return 0
         release, legacy = source_for(args.p7b_root, args.target_sha)
         safe_file(legacy)

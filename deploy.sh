@@ -647,6 +647,11 @@ PY
   activate_from_state "$TARGET_STATE" "$TARGET_SHA"
   public_smoke "$TARGET_SHA" || fail "public rollback verification failed"
   python3 "$ENVIRONMENT_RECONCILE_HELPER" verify --target-sha "$TARGET_SHA" --environment "$ENVIRONMENT_FILE" --state-root "$STATE_ROOT" --p7b-root "$P7B_STATE_ROOT" || fail "rollback environment verification failed"
+  if [[ "$TARGET_SHA" == "$CURRENT_SHA" ]]; then
+    SUCCESS=1
+    log "coordinated same-target environment reconciliation completed at $TARGET_SHA"
+    exit 0
+  fi
   atomic_copy_state "$CURRENT_STATE" "$PREVIOUS_STATE"
   python3 - "$TARGET_STATE" "$PREVIOUS_STATE_FILE" "$STATE_HELPER" <<'PY'
 import importlib.util, json, os, sys, tempfile
