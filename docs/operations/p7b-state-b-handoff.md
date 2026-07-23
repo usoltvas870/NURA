@@ -112,9 +112,26 @@ target Redis identity error) and enters the single compensation path.
 
 Compose `--wait` also proves healthchecked API readiness, but
 Celery worker registration is asynchronous after its container reaches
-`running`. The verifier therefore invokes the explicit `core.tasks` application
-and requires a real `pong` within six attempts, each bounded by a five-second
-Celery timeout with a five-second delay. Exhaustion fails closed as
+`running`. Secret-file deployments supply the credential-free broker and result
+backend locations through the NURA-specific
+`NURA_CELERY_BROKER_URL`/`NURA_CELERY_RESULT_BACKEND` settings inputs. The raw
+`CELERY_BROKER_URL`/`CELERY_RESULT_BACKEND` process variables are explicitly
+blank, preventing Celery's CLI loader from overriding the credential-bearing
+runtime URLs that `core.config` constructs from the mounted secret.
+
+The verifier invokes the explicit `core.tasks` application and requires a real
+`pong` within six attempts. Each attempt has a five-second Celery timeout and a
+45-second process deadline, followed by a five-second delay. It remains bound to
+the exact target worker container captured after Stage 1 recreation. Each
+attempt persists only redacted categories: target-container identity, running
+state, restart count, command/app identifiers, timeout values, exit code,
+stdout/stderr category, broker-error class, node visibility, and whether an
+exact standalone `pong` was present. Raw output and transport URLs are not
+stored. Stage 1 and Stage 2 keep separate container and attempt records. Before
+every probe, the verifier requires the current Compose service binding to match
+the durable captured ID and executes the control client through
+`docker exec <captured-id>`, preventing a replacement container from satisfying
+an earlier identity check. Exhaustion fails closed as
 `verification_failed:stage1:celery_worker_ping` and enters the single P7B
 compensation path. Every other command also has a stable Stage/check identifier,
 and all five application containers must match the handoff image reference,

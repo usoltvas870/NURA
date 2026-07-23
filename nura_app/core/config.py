@@ -1,7 +1,7 @@
 from pathlib import Path
 from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -74,8 +74,22 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # Celery
-    celery_broker_url: str = "redis://localhost:6379/1"
-    celery_result_backend: str = "redis://localhost:6379/2"
+    celery_broker_url: str = Field(
+        default="redis://localhost:6379/1",
+        validation_alias=AliasChoices(
+            "NURA_CELERY_BROKER_URL",
+            "CELERY_BROKER_URL",
+            "celery_broker_url",
+        ),
+    )
+    celery_result_backend: str = Field(
+        default="redis://localhost:6379/2",
+        validation_alias=AliasChoices(
+            "NURA_CELERY_RESULT_BACKEND",
+            "CELERY_RESULT_BACKEND",
+            "celery_result_backend",
+        ),
+    )
 
     # Report generation scheduling
     report_generation_dispatch_interval_seconds: int = Field(
@@ -244,6 +258,7 @@ class Settings(BaseSettings):
         "env_file_encoding": "utf-8",
         "extra": "ignore",
         "hide_input_in_errors": True,
+        "populate_by_name": True,
     }
 
 

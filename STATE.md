@@ -1416,3 +1416,33 @@ docker compose restart bot celery-worker
 - Graphify update is not required: the implementation stays inside the existing
   P7B module and helper without package, dependency-direction or cross-layer
   architecture changes.
+
+## P7B-T2A5H — 23.07.2026
+
+- Production run `30006775648` reached Stage 1 and failed all bounded Celery
+  control probes at `stage1:celery_worker_ping`; managed P7B compensation
+  restored baseline `9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532`.
+- A production-like Docker reproduction proved a configuration defect rather
+  than a readiness-window defect: `core.config` correctly injected the mounted
+  Redis secret, but Celery's CLI loader subsequently gave precedence to the
+  credential-free raw `CELERY_BROKER_URL` environment value. Worker and control
+  client therefore reached Redis without authentication.
+- Compose now supplies credential-free broker/backend locations through
+  NURA-specific settings inputs and explicitly blanks Celery's raw override
+  variables. Worker, beat, inspect/control client, broker, backend, and task
+  producer share the secret-file-derived runtime URLs without exposing the
+  credential in Docker metadata.
+- P7B Celery verification now has a 45-second outer deadline, remains bound to
+  the captured exact target worker container by rechecking the Compose binding
+  and using direct `docker exec` for every attempt. It durably records separate
+  Stage 1/Stage 2 secret-free attempt categories without raw stdout, stderr,
+  URLs, or credentials.
+- A real Docker integration contract covers authenticated Redis, worker
+  registration, first standalone pong, wrong/missing/unreadable secret
+  material, wrong app module, bounded persistent failure, worker/beat logs, and
+  credential-free container metadata.
+- No production deployment or credential rotation is launched by this change
+  block.
+- Graphify update is not required: changes remain inside existing settings,
+  Compose, P7B verification, tests, and CI wiring without package or dependency
+  architecture changes.

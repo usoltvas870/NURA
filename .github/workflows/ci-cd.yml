@@ -120,3 +120,18 @@ jobs:
         env:
           APP_ENV: test
           REDIS_URL: redis://localhost:***@v4
+
+  celery-secret-file-integration:
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nura_app
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Reproduce production-like Redis and Celery secret-file startup
+        env:
+          TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: bash tests/integration/test_p7b_celery_secret_file.sh

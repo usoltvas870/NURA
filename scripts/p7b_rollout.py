@@ -44,6 +44,7 @@ REDIS_HEALTHCHECK_TIMEOUT_SECONDS = 5
 CELERY_PING_ATTEMPTS = 6
 CELERY_PING_DELAY_SECONDS = 5
 CELERY_PING_TIMEOUT_SECONDS = 5
+CELERY_PING_OUTER_TIMEOUT_SECONDS = 45
 SCHEMA = 1
 KINDS = {"handoff", "baseline", "transaction", "receipt"}
 PHASES = {
@@ -81,6 +82,7 @@ OPERATIONS = (
 class CommandResult:
     returncode: int
     stdout: str = ""
+    stderr: str = ""
 
 
 Runner = Callable[[Sequence[str]], int | CommandResult]
@@ -424,8 +426,8 @@ def default_runner(command: Sequence[str]) -> CommandResult:
             timeout=300,
         )
     except (OSError, subprocess.TimeoutExpired):
-        return CommandResult(1)
-    return CommandResult(completed.returncode, completed.stdout)
+        return CommandResult(124, stderr="command_timeout")
+    return CommandResult(completed.returncode, completed.stdout, completed.stderr)
 
 
 def command_result(runner: Runner, command: Sequence[str]) -> CommandResult:
@@ -1307,24 +1309,6 @@ def verification_commands(
                 "urllib.request.urlopen('http://127.0.0.1:8000/health').status == 200",
             ),
         ),
-        (
-            "celery_worker_ping",
-            compose_command(
-                project,
-                working,
-                compose_files,
-                "exec",
-                "-T",
-                "celery-worker",
-                "celery",
-                "-A",
-                "core.tasks",
-                "inspect",
-                "ping",
-                "--timeout",
-                str(CELERY_PING_TIMEOUT_SECONDS),
-            ),
-        ),
     ]
     if stage == 2:
         commands.append(
@@ -1344,7 +1328,7 @@ def verification_commands(
                     "and settings.yookassa_verify_on_webhook "
                     "and not settings.production_readiness_errors",
                 ),
-            )
+            ),
         )
     return commands
 
@@ -1353,7 +1337,7 @@ def verify_application_identity(
     settings: Settings,
     handoff: Mapping[str, object],
     runner: Runner,
-) -> None:
+) -> dict[str, dict[str, str]]:
     mappings = handoff.get("image_mapping")
     ids = handoff.get("image_ids")
     compose_files = handoff.get("compose_files")
@@ -1366,6 +1350,7 @@ def verify_application_identity(
         or not all(isinstance(item, str) for item in compose_files)
     ):
         fail("handoff_schema_invalid")
+    inspected_services: dict[str, dict[str, str]] = {}
     for service in APP_SERVICES:
         inspected = inspect_service(
             runner,
@@ -1380,6 +1365,8 @@ def verify_application_identity(
             or inspected["revision"] != settings.sha
         ):
             fail(f"target_identity_mismatch:{service}")
+        inspected_services[service] = inspected
+    return inspected_services
 
 
 def verify_redis_target_identity(
@@ -1419,6 +1406,23 @@ def redis_authenticated_healthcheck_command(container: str) -> tuple[str, ...]:
     )
 
 
+def celery_worker_ping_command(container: str) -> tuple[str, ...]:
+    return (
+        "timeout",
+        str(CELERY_PING_OUTER_TIMEOUT_SECONDS),
+        "docker",
+        "exec",
+        container,
+        "celery",
+        "-A",
+        "core.tasks",
+        "inspect",
+        "ping",
+        "--timeout",
+        str(CELERY_PING_TIMEOUT_SECONDS),
+    )
+
+
 def verify_redis_authenticated_healthcheck(
     runner: Runner,
     command: Sequence[str],
@@ -1433,15 +1437,160 @@ def verify_redis_authenticated_healthcheck(
     fail(f"verification_failed:{check}")
 
 
+def celery_output_category(output: str, *, stderr: bool) -> str:
+    lowered = output.lower()
+    if not output.strip():
+        return "empty"
+    if "authentication required" in lowered or "noauth" in lowered:
+        return "authentication_required"
+    if "wrongpass" in lowered or "invalid username-password pair" in lowered:
+        return "wrong_password"
+    if "connection refused" in lowered:
+        return "connection_refused"
+    if (
+        "name or service not known" in lowered
+        or "temporary failure in name resolution" in lowered
+    ):
+        return "dns_failure"
+    if "no nodes replied" in lowered or "no workers replied" in lowered:
+        return "no_worker_reply"
+    if "unable to load celery application" in lowered or "module not found" in lowered:
+        return "invalid_app_module"
+    if "timed out" in lowered or "command_timeout" in lowered:
+        return "timeout"
+    if not stderr and any(
+        line.strip().lower() == "pong" for line in output.splitlines()
+    ):
+        return "standalone_pong"
+    return "other"
+
+
+def celery_attempt_container_state(
+    runner: Runner,
+    container: str,
+    current_service_command: Sequence[str],
+) -> dict[str, object]:
+    current_service = command_result(runner, current_service_command)
+    current_container = current_service.stdout.strip()
+    if (
+        current_service.returncode != 0
+        or not current_container
+        or "\n" in current_container
+    ):
+        return {
+            "container_identity": "service_missing",
+            "container_running": False,
+            "restart_count": None,
+        }
+    result = command_result(
+        runner,
+        (
+            "docker",
+            "inspect",
+            "--format",
+            "{{.Id}}|{{.State.Running}}|{{.RestartCount}}",
+            container,
+        ),
+    )
+    if result.returncode != 0:
+        return {
+            "container_identity": "missing",
+            "container_running": False,
+            "restart_count": None,
+        }
+    fields = result.stdout.strip().split("|")
+    if len(fields) != 3:
+        return {
+            "container_identity": "unparseable",
+            "container_running": False,
+            "restart_count": None,
+        }
+    actual, running, restarts = fields
+    try:
+        restart_count: int | None = int(restarts)
+    except ValueError:
+        restart_count = None
+    return {
+        "container_identity": (
+            "exact_target"
+            if actual == container and current_container == container
+            else "service_rebound"
+            if actual == container
+            else "stale"
+        ),
+        "container_running": running == "true",
+        "restart_count": restart_count,
+    }
+
+
 def verify_celery_worker_ping(
+    settings: Settings,
     runner: Runner,
     command: Sequence[str],
     check: str,
+    worker_container: str,
+    current_service_command: Sequence[str],
+    stage: int,
+    *,
+    persist: bool,
 ) -> None:
+    attempts: list[dict[str, object]] = []
     for attempt in range(CELERY_PING_ATTEMPTS):
+        container_state = celery_attempt_container_state(
+            runner,
+            worker_container,
+            current_service_command,
+        )
         result = command_result(runner, command)
         pong = any(line.strip().lower() == "pong" for line in result.stdout.splitlines())
-        if result.returncode == 0 and pong:
+        stdout_category = celery_output_category(result.stdout, stderr=False)
+        stderr_category = celery_output_category(result.stderr, stderr=True)
+        diagnostic = {
+            "attempt": attempt + 1,
+            **container_state,
+            "command_path": "docker_exec",
+            "celery_app": "core.tasks",
+            "outer_timeout_seconds": CELERY_PING_OUTER_TIMEOUT_SECONDS,
+            "internal_timeout_seconds": CELERY_PING_TIMEOUT_SECONDS,
+            "exit_code": result.returncode,
+            "stdout_category": stdout_category,
+            "stderr_category": stderr_category,
+            "pong_found": pong,
+            "broker_connection_error_class": (
+                stderr_category
+                if stderr_category
+                in {
+                    "authentication_required",
+                    "wrong_password",
+                    "connection_refused",
+                    "dns_failure",
+                    "timeout",
+                }
+                else "none"
+            ),
+            "worker_node_visible": "celery@" in result.stdout and ": OK" in result.stdout,
+        }
+        attempts.append(diagnostic)
+        if persist:
+            current_phase = read_record(
+                settings.transaction_file,
+                "transaction",
+            ).get("phase")
+            if not isinstance(current_phase, str) or current_phase not in PHASES:
+                fail("invalid_transaction_phase")
+            transaction(
+                settings,
+                current_phase,
+                **{
+                    f"stage{stage}_celery_ping_attempts": attempts,
+                },
+            )
+        if (
+            result.returncode == 0
+            and pong
+            and container_state["container_identity"] == "exact_target"
+            and container_state["container_running"] is True
+        ):
             return
         if attempt + 1 < CELERY_PING_ATTEMPTS:
             time.sleep(CELERY_PING_DELAY_SECONDS)
@@ -1494,18 +1643,37 @@ def verify_stage(
         HEALTH_SERVICES,
     )
     redis_container = verify_redis_target_identity(handoff, state, runner)
-    verify_application_identity(settings, handoff, runner)
+    inspected_services = verify_application_identity(settings, handoff, runner)
+    worker_container = state.get(f"stage{stage}_worker_container")
+    if not isinstance(worker_container, str) or not worker_container:
+        fail(f"stage{stage}_worker_identity_missing")
+    if inspected_services["celery-worker"]["container"] != worker_container:
+        fail("target_identity_mismatch:celery-worker")
     verify_redis_authenticated_healthcheck(
         runner,
         redis_authenticated_healthcheck_command(redis_container),
         f"stage{stage}:redis_authenticated_healthcheck",
     )
     for check, command in commands[1:]:
-        identifier = f"stage{stage}:{check}"
-        if check == "celery_worker_ping":
-            verify_celery_worker_ping(runner, command, identifier)
-        else:
-            run_or_fail(runner, command, identifier)
+        run_or_fail(runner, command, f"stage{stage}:{check}")
+    verify_celery_worker_ping(
+        settings,
+        runner,
+        celery_worker_ping_command(worker_container),
+        f"stage{stage}:celery_worker_ping",
+        worker_container,
+        compose_command(
+            str(handoff["compose_project"]),
+            str(handoff["working_directory"]),
+            [str(item) for item in handoff["compose_files"]],  # type: ignore[index]
+            "ps",
+            "-q",
+            "--all",
+            "celery-worker",
+        ),
+        stage,
+        persist=persist,
+    )
     verify_volumes(runner, handoff, baseline["volumes"])  # type: ignore[arg-type]
     phase = f"stage{stage}_verified"
     if persist:
@@ -1591,10 +1759,18 @@ def stage1(settings: Settings, runner: Runner) -> None:
                 [str(item) for item in compose_files],
                 "redis",
             )
+            worker_container = service_container(
+                runner,
+                str(handoff["compose_project"]),
+                str(handoff["working_directory"]),
+                [str(item) for item in compose_files],
+                "celery-worker",
+            )
             transaction(
                 settings,
                 "stage1_intent",
                 stage1_redis_container=redis_container,
+                stage1_worker_container=worker_container,
             )
             verify_stage(settings, 1, runner, acquire_lock=False)
         except BaseException:
@@ -1627,6 +1803,23 @@ def stage2(settings: Settings, runner: Runner) -> None:
                     {"APP_ENV": "production", "TEST_MODE": "false"},
                 )
             lifecycle(handoff, APP_SERVICES, runner)
+            compose_files = handoff.get("compose_files")
+            if not isinstance(compose_files, list) or not all(
+                isinstance(item, str) for item in compose_files
+            ):
+                fail("handoff_schema_invalid")
+            worker_container = service_container(
+                runner,
+                str(handoff["compose_project"]),
+                str(handoff["working_directory"]),
+                [str(item) for item in compose_files],
+                "celery-worker",
+            )
+            transaction(
+                settings,
+                "stage2_intent",
+                stage2_worker_container=worker_container,
+            )
             verify_stage(settings, 2, runner, acquire_lock=False)
         except BaseException:
             compensate(settings, runner, 2)
