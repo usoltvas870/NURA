@@ -58,11 +58,18 @@ class FakeRunner:
         fail_target_up: bool = False,
         fail_smoke: bool = False,
         wrong_live_volume: bool = False,
+        celery_ping_failures: int = 0,
+        celery_ping_without_pong: bool = False,
+        wrong_target_service: str | None = None,
     ) -> None:
         self.calls: list[tuple[str, ...]] = []
         self.fail_target_up = fail_target_up
         self.fail_smoke = fail_smoke
         self.wrong_live_volume = wrong_live_volume
+        self.celery_ping_failures = celery_ping_failures
+        self.celery_ping_without_pong = celery_ping_without_pong
+        self.wrong_target_service = wrong_target_service
+        self.celery_ping_calls = 0
 
     def __call__(self, command: p7b.Sequence[str]) -> p7b.CommandResult:
         call = tuple(command)
@@ -90,6 +97,10 @@ class FakeRunner:
             baseline = call[-1].startswith("baseline-container-")
             sha = BASELINE if baseline else TARGET
             image_id = BASELINE_ID if baseline else TARGET_ID
+            service = call[-1].removeprefix("container-")
+            if not baseline and service == self.wrong_target_service:
+                sha = BASELINE
+                image_id = BASELINE_ID
             return p7b.CommandResult(
                 0,
                 f"true|healthy|nura-release:{sha}|{image_id}|{sha}\n",
@@ -143,6 +154,17 @@ class FakeRunner:
                     }
                 ),
             )
+        if (
+            " compose " in f" {joined} "
+            and " exec -T celery-worker celery " in f" {joined} "
+            and " inspect ping " in f" {joined} "
+        ):
+            self.celery_ping_calls += 1
+            if self.celery_ping_calls <= self.celery_ping_failures:
+                return p7b.CommandResult(1)
+            if self.celery_ping_without_pong:
+                return p7b.CommandResult(0, "no workers replied\n")
+            return p7b.CommandResult(0, "celery@worker: OK\n    pong\n")
         if " compose " in f" {joined} " and " up " in f" {joined} ":
             if self.fail_target_up and "target-" in joined:
                 return p7b.CommandResult(1)
@@ -747,6 +769,94 @@ def test_stage1_failure_has_exactly_one_p7b_compensation_owner(
     assert len(up) == 2
     assert "target-" in " ".join(up[0])
     assert "baseline-" in " ".join(up[1])
+
+
+def test_stage1_bounds_celery_registration_race_before_success(
+    settings: p7b.Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    seed(settings)
+    runner = FakeRunner(celery_ping_failures=2)
+    waits: list[float] = []
+    monkeypatch.setattr(p7b.time, "sleep", waits.append)
+    p7b.stage1(settings, runner)
+    assert runner.celery_ping_calls == 3
+    assert waits == [
+        p7b.CELERY_PING_DELAY_SECONDS,
+        p7b.CELERY_PING_DELAY_SECONDS,
+    ]
+    ping = [
+        call
+        for call in runner.calls
+        if " exec -T celery-worker celery " in f" {' '.join(call)} "
+    ][0]
+    assert ("-A", "core.tasks") == ping[ping.index("-A") : ping.index("-A") + 2]
+    assert ping[-2:] == ("--timeout", str(p7b.CELERY_PING_TIMEOUT_SECONDS))
+    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
+        "stage1_verified"
+    )
+    assert "SECRET" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("runner", "failure"),
+    [
+        (
+            FakeRunner(celery_ping_failures=p7b.CELERY_PING_ATTEMPTS),
+            "verification_failed:stage1:celery_worker_ping",
+        ),
+        (
+            FakeRunner(celery_ping_without_pong=True),
+            "verification_failed:stage1:celery_worker_ping",
+        ),
+        (
+            FakeRunner(wrong_target_service="celery-worker"),
+            "target_identity_mismatch:celery-worker",
+        ),
+    ],
+)
+def test_stage1_real_failure_stays_fail_closed_and_compensates_once(
+    settings: p7b.Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    runner: FakeRunner,
+    failure: str,
+) -> None:
+    seed(settings)
+    waits: list[float] = []
+    monkeypatch.setattr(p7b.time, "sleep", waits.append)
+    with pytest.raises(SystemExit, match=failure):
+        p7b.activate(
+            settings,
+            runner,
+            "http://127.0.0.1:8000/api/v1/payment/webhook",
+        )
+    state = p7b.read_record(settings.transaction_file, "transaction")
+    assert state["phase"] == "stage1_compensated"
+    assert state["compensation_owner"] == "p7b"
+    assert state["compensated_to"] == BASELINE
+    up = [call for call in runner.calls if "up" in call]
+    assert len(up) == 2
+    assert "target-" in " ".join(up[0])
+    assert "baseline-" in " ".join(up[1])
+    assert not settings.environment_backup.exists()
+    assert "APP_ENV=development" in settings.environment_file.read_text(
+        encoding="utf-8"
+    )
+    assert json.loads(settings.canonical_state.read_text(encoding="utf-8"))["sha"] == (
+        BASELINE
+    )
+    assert settings.current_link.resolve().name == BASELINE
+    if runner.wrong_target_service is None:
+        assert runner.celery_ping_calls == p7b.CELERY_PING_ATTEMPTS
+        assert len(waits) == p7b.CELERY_PING_ATTEMPTS - 1
+    else:
+        assert runner.celery_ping_calls == 0
+        assert not waits
+    captured = capsys.readouterr()
+    assert "SECRET" not in captured.out
+    assert "SECRET" not in captured.err
 
 
 def test_stage2_changes_only_app_services_and_writes_completion_receipt(

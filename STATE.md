@@ -1375,3 +1375,19 @@ docker compose restart bot celery-worker
 - Symlink, non-empty mismatch, owner mismatch и любая Stage 1 intent остаются
   fail-closed; production deploy в этом change-блоке не выполняется.
 - Graphify update deferred: P7B workflow запрещает unrelated generated churn.
+
+## P7B-T2A5E — 23.07.2026
+
+- Production run `29995488177` reached Stage 1, then failed the immediate Celery
+  worker ping before asynchronous worker registration stabilized; P7B restored
+  baseline `9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532` and durably recorded
+  `stage1_compensated`.
+- Stage verification now reports stable per-check identifiers, validates exact
+  image reference, image ID and OCI revision for all five application services,
+  and requires an explicit `core.tasks` Celery `pong`.
+- Celery readiness is bounded to six five-second probes separated by five-second
+  delays. Exhaustion remains fail-closed and invokes exactly one P7B-owned
+  compensation; Stage 2 and canonical/public finalization remain gated.
+- No deployment is launched by this change block.
+- Graphify update is not required: the change is scoped inside the existing P7B
+  verification module and does not alter package or dependency architecture.

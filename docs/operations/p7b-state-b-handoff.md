@@ -96,6 +96,16 @@ services with immutable target images. It verifies Compose state, Redis,
 PostgreSQL, API health, Celery, target identity, and unchanged data volumes.
 Canonical and public markers remain on the previous release.
 
+Compose `--wait` proves healthchecked Redis, PostgreSQL, and API readiness, but
+Celery worker registration is asynchronous after its container reaches
+`running`. The verifier therefore invokes the explicit `core.tasks` application
+and requires a real `pong` within six attempts, each bounded by a five-second
+Celery timeout with a five-second delay. Exhaustion fails closed as
+`verification_failed:stage1:celery_worker_ping` and enters the single P7B
+compensation path. Every other command also has a stable Stage/check identifier,
+and all five application containers must match the handoff image reference,
+image ID, and exact OCI revision before Stage 1 can become verified.
+
 Stage 2 first writes a byte-for-byte environment backup, changes only:
 
 ```text
