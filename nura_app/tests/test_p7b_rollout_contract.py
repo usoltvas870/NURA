@@ -219,7 +219,12 @@ def settings(tmp_path: Path) -> p7b.Settings:
                 "oci_source": "https://github.com/usoltvas870/NURA",
                 "oci_created": "2026-07-23T00:00:00Z",
                 "migration_delta": False,
+                "previous_successful_sha": BASELINE,
                 "activation_history": [BASELINE],
+                "rollback_eligibility": False,
+                "compensation_verified": False,
+                "failure_stage": None,
+                "failure_reason": None,
             }
         ),
         encoding="utf-8",
@@ -261,6 +266,10 @@ def handoff(settings: p7b.Settings) -> dict[str, object]:
         "compose_project": "nura_app",
         "working_directory": str(settings.working_directory.resolve()),
         "compose_files": [str(settings.target_compose), str(settings.target_override)],
+        "compose_digests": [
+            p7b.hashlib.sha256(settings.target_compose.read_bytes()).hexdigest(),
+            p7b.hashlib.sha256(settings.target_override.read_bytes()).hexdigest(),
+        ],
         "volumes": {
             "redis": "nura_app_redis_data",
             "postgres": "nura_app_postgres_data",
@@ -330,7 +339,7 @@ def test_atomic_write_rejects_symlink_target(tmp_path: Path) -> None:
     assert target.read_text(encoding="utf-8") == "safe"
 
 
-def test_prepare_handoff_is_secret_free_and_does_not_run_compose(
+def test_prepare_handoff_is_secret_free_and_validates_compose_without_mutation(
     settings: p7b.Settings,
 ) -> None:
     runner = FakeRunner()
@@ -356,8 +365,297 @@ def test_prepare_handoff_is_secret_free_and_does_not_run_compose(
     saved = settings.handoff_file.read_text(encoding="utf-8")
     assert "SECRET" not in saved
     assert "untouched" not in saved
-    assert not any(" compose " in f" {' '.join(call)} " for call in runner.calls)
+    compose_calls = [
+        call for call in runner.calls if " compose " in f" {' '.join(call)} "
+    ]
+    assert any(call[-2:] == ("config", "--quiet") for call in compose_calls)
+    assert any(call[-3:] == ("config", "--format", "json") for call in compose_calls)
+    assert not any("up" in call for call in compose_calls)
+    saved_handoff = p7b.read_record(settings.handoff_file, "handoff")
+    assert saved_handoff["compose_digests"] == [
+        p7b.hashlib.sha256(settings.base_compose.read_bytes()).hexdigest(),
+        p7b.hashlib.sha256(settings.target_override.read_bytes()).hexdigest(),
+    ]
     assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == "prepared"
+
+
+def test_prepare_handoff_recovers_known_empty_compose_before_stage1(
+    settings: p7b.Settings,
+) -> None:
+    value = handoff(settings)
+    value.pop("compose_digests")
+    p7b.write_record(settings.handoff_file, "handoff", value)
+    p7b.transaction(settings, "baseline_ready")
+    settings.target_compose.write_bytes(b"")
+    runner = FakeRunner()
+    args = p7b.parser().parse_args(
+        [
+            "prepare-handoff",
+            "--sha",
+            TARGET,
+            "--release-path",
+            str(settings.releases_directory / TARGET),
+            "--image-id",
+            TARGET_ID,
+            "--artifact-sha256",
+            DIGEST,
+            "--manifest-sha256",
+            DIGEST,
+            "--expected-baseline-sha",
+            BASELINE,
+        ]
+    )
+    args.runner = runner
+    p7b.prepare_handoff(settings, args)
+    assert settings.target_compose.read_bytes() == settings.base_compose.read_bytes()
+    recovered = p7b.read_record(settings.handoff_file, "handoff")
+    assert recovered["compose_digests"][0] != p7b.EMPTY_DIGEST
+    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
+        "baseline_ready"
+    )
+    assert not any("up" in call for call in runner.calls)
+
+
+def test_prepare_handoff_rejects_empty_new_compose_and_symlink(
+    settings: p7b.Settings, tmp_path: Path
+) -> None:
+    settings.base_compose.write_bytes(b"")
+    args = p7b.parser().parse_args(
+        [
+            "prepare-handoff",
+            "--sha",
+            TARGET,
+            "--release-path",
+            str(settings.releases_directory / TARGET),
+            "--image-id",
+            TARGET_ID,
+            "--artifact-sha256",
+            DIGEST,
+            "--manifest-sha256",
+            DIGEST,
+            "--expected-baseline-sha",
+            BASELINE,
+        ]
+    )
+    args.runner = FakeRunner()
+    with pytest.raises(SystemExit, match="base_compose_empty"):
+        p7b.prepare_handoff(settings, args)
+    settings.base_compose.write_text("services: {}\n", encoding="utf-8")
+    settings.target_compose.parent.mkdir(parents=True, exist_ok=True)
+    outside = tmp_path / "outside-compose"
+    outside.write_text("safe", encoding="utf-8")
+    try:
+        settings.target_compose.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks are unavailable")
+    with pytest.raises(SystemExit, match="unsafe_compose_materialization"):
+        p7b.prepare_handoff(settings, args)
+    assert outside.read_text(encoding="utf-8") == "safe"
+
+
+def test_prepare_handoff_recovery_rejects_mutated_material_and_stage1_intent(
+    settings: p7b.Settings,
+) -> None:
+    value = handoff(settings)
+    value.pop("compose_digests")
+    p7b.write_record(settings.handoff_file, "handoff", value)
+    p7b.transaction(settings, "stage1_intent")
+    settings.target_compose.write_bytes(b"")
+    args = p7b.parser().parse_args(
+        [
+            "prepare-handoff",
+            "--sha",
+            TARGET,
+            "--release-path",
+            str(settings.releases_directory / TARGET),
+            "--image-id",
+            TARGET_ID,
+            "--artifact-sha256",
+            DIGEST,
+            "--manifest-sha256",
+            DIGEST,
+            "--expected-baseline-sha",
+            BASELINE,
+        ]
+    )
+    args.runner = FakeRunner()
+    with pytest.raises(SystemExit, match="compose_recovery_phase_invalid"):
+        p7b.prepare_handoff(settings, args)
+    assert settings.target_compose.read_bytes() == b""
+
+
+def test_prepare_handoff_recovery_rejects_nonempty_mismatch_and_active_target(
+    settings: p7b.Settings,
+) -> None:
+    value = handoff(settings)
+    value.pop("compose_digests")
+    p7b.write_record(settings.handoff_file, "handoff", value)
+    p7b.transaction(settings, "baseline_ready")
+    args = p7b.parser().parse_args(
+        [
+            "prepare-handoff",
+            "--sha",
+            TARGET,
+            "--release-path",
+            str(settings.releases_directory / TARGET),
+            "--image-id",
+            TARGET_ID,
+            "--artifact-sha256",
+            DIGEST,
+            "--manifest-sha256",
+            DIGEST,
+            "--expected-baseline-sha",
+            BASELINE,
+        ]
+    )
+    args.runner = FakeRunner()
+    settings.target_compose.write_text("services:\n  hostile: {}\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="existing_compose_material_conflict"):
+        p7b.prepare_handoff(settings, args)
+    assert settings.target_compose.read_text(encoding="utf-8") == (
+        "services:\n  hostile: {}\n"
+    )
+    settings.target_compose.write_bytes(b"")
+    directory_link(settings.current_link, settings.releases_directory / TARGET)
+    with pytest.raises(SystemExit, match="compose_recovery_active_reference"):
+        p7b.prepare_handoff(settings, args)
+    assert settings.target_compose.read_bytes() == b""
+
+
+def test_prepare_handoff_preflights_both_inputs_before_recovery_mutation(
+    settings: p7b.Settings,
+) -> None:
+    value = handoff(settings)
+    value.pop("compose_digests")
+    p7b.write_record(settings.handoff_file, "handoff", value)
+    p7b.transaction(settings, "baseline_ready")
+    args = p7b.parser().parse_args(
+        [
+            "prepare-handoff",
+            "--sha",
+            TARGET,
+            "--release-path",
+            str(settings.releases_directory / TARGET),
+            "--image-id",
+            TARGET_ID,
+            "--artifact-sha256",
+            DIGEST,
+            "--manifest-sha256",
+            DIGEST,
+            "--expected-baseline-sha",
+            BASELINE,
+        ]
+    )
+    args.runner = FakeRunner()
+    settings.target_compose.write_bytes(b"")
+    settings.target_override.write_bytes(b"hostile")
+    with pytest.raises(SystemExit, match="existing_compose_material_conflict"):
+        p7b.prepare_handoff(settings, args)
+    assert settings.target_compose.read_bytes() == b""
+    assert settings.target_override.read_bytes() == b"hostile"
+    settings.target_compose.write_bytes(b"hostile")
+    settings.target_override.write_bytes(b"")
+    with pytest.raises(SystemExit, match="existing_compose_material_conflict"):
+        p7b.prepare_handoff(settings, args)
+    assert settings.target_compose.read_bytes() == b"hostile"
+    assert settings.target_override.read_bytes() == b""
+
+
+def test_prepare_handoff_recovery_requires_complete_regular_staged_provenance(
+    settings: p7b.Settings, tmp_path: Path
+) -> None:
+    value = handoff(settings)
+    value.pop("compose_digests")
+    p7b.write_record(settings.handoff_file, "handoff", value)
+    p7b.transaction(settings, "baseline_ready")
+    settings.target_compose.write_bytes(b"")
+    args = p7b.parser().parse_args(
+        [
+            "prepare-handoff",
+            "--sha",
+            TARGET,
+            "--release-path",
+            str(settings.releases_directory / TARGET),
+            "--image-id",
+            TARGET_ID,
+            "--artifact-sha256",
+            DIGEST,
+            "--manifest-sha256",
+            DIGEST,
+            "--expected-baseline-sha",
+            BASELINE,
+        ]
+    )
+    args.runner = FakeRunner()
+    truncated = {
+        "schema": 2,
+        "sha": TARGET,
+        "status": "staged",
+        "static_release_path": str(settings.releases_directory / TARGET),
+        "artifact_sha256": DIGEST,
+        "public_manifest_sha256": DIGEST,
+        "application_image_id": TARGET_ID,
+    }
+    settings.release_state_file.write_text(json.dumps(truncated), encoding="utf-8")
+    with pytest.raises(SystemExit, match="prepared_release_state_mismatch"):
+        p7b.prepare_handoff(settings, args)
+    assert settings.target_compose.read_bytes() == b""
+    outside = tmp_path / "outside-release-state.json"
+    outside.write_text(json.dumps(truncated), encoding="utf-8")
+    settings.release_state_file.unlink()
+    try:
+        settings.release_state_file.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks are unavailable")
+    with pytest.raises(SystemExit, match="unsafe_prepared_release_state_path"):
+        p7b.prepare_handoff(settings, args)
+    assert settings.target_compose.read_bytes() == b""
+
+
+def test_prepare_handoff_recovery_rejects_conflicting_recorded_digest(
+    settings: p7b.Settings,
+) -> None:
+    value = handoff(settings)
+    value["compose_digests"][0] = "f" * 64
+    p7b.write_record(settings.handoff_file, "handoff", value)
+    p7b.transaction(settings, "baseline_ready")
+    args = p7b.parser().parse_args(
+        [
+            "prepare-handoff",
+            "--sha",
+            TARGET,
+            "--release-path",
+            str(settings.releases_directory / TARGET),
+            "--image-id",
+            TARGET_ID,
+            "--artifact-sha256",
+            DIGEST,
+            "--manifest-sha256",
+            DIGEST,
+            "--expected-baseline-sha",
+            BASELINE,
+        ]
+    )
+    args.runner = FakeRunner()
+    settings.target_compose.write_bytes(b"")
+    with pytest.raises(SystemExit, match="existing_compose_digest_conflict"):
+        p7b.prepare_handoff(settings, args)
+    assert settings.target_compose.read_bytes() == b""
+
+
+def test_validate_handoff_rejects_empty_or_changed_compose_digest(
+    settings: p7b.Settings,
+) -> None:
+    value = handoff(settings)
+    value["compose_digests"][0] = p7b.EMPTY_DIGEST
+    p7b.write_record(settings.handoff_file, "handoff", value)
+    with pytest.raises(SystemExit, match="compose_digest_empty"):
+        p7b.validate_handoff(settings, FakeRunner())
+    value = handoff(settings)
+    p7b.write_record(settings.handoff_file, "handoff", value)
+    settings.target_compose.write_text("services:\n  changed: {}\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="compose_digest_mismatch"):
+        p7b.validate_handoff(settings, FakeRunner())
 
 
 def test_handoff_rejects_mutable_or_inconsistent_image_reference(

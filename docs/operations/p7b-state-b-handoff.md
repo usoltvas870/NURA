@@ -31,8 +31,8 @@ non-P7B `deploy` path. It does not compensate a failed managed P7B activation.
 materialized Compose inputs:
 
 - `handoffs/<target>.json` — exact target SHA, release path, artifact digests,
-  application image tag and IDs, Compose context, expected baseline, and data
-  volume names;
+  application image tag and IDs, non-empty Compose inputs and their SHA-256
+  digests, expected baseline, and data volume names;
 - `baselines/<target>.json` — canonical previous SHA, public target, exact live
   application image IDs, materialized rollback Compose inputs, and data volume
   identities;
@@ -48,6 +48,13 @@ unknown top-level fields. Reads fail closed for malformed JSON, schema drift,
 digest mismatch, symlinks, unsafe paths, mutable image references, or runtime
 identity mismatch. Environment contents are never copied into JSON or command
 arguments.
+
+The adjacent temporary Compose base is removed before the post-fast-forward
+clean-check. After the exact checkout is proven clean, the base is rebuilt from
+`<target>:nura_app/docker-compose.yml` through a mode `0600` temporary file and
+an atomic replace, then parsed by Docker Compose. Common prepare will not persist
+a handoff until both Compose inputs are regular, non-symlink, non-empty,
+parseable, volume-valid, and bound to non-empty SHA-256 digests.
 
 ## State machine
 
@@ -132,6 +139,15 @@ detects an integrity-valid `smoke_verified`, `finalizing`, or `complete`
 transaction for the exact target before invoking common prepare, so it can
 resume a partially switched public/canonical marker pair. That early-resume path
 also validates and removes the exact newly transferred incoming directory.
+
+A same-target retry may atomically rematerialize a missing or empty managed
+target Compose input only while the durable phase is `prepared` or
+`baseline_ready`, canonical/public state still identifies the expected
+baseline, the target has an exact staged release record, and no rollback marker
+references the target. Non-empty mismatched material, symlinks, owner mismatch,
+or any Stage 1 intent fail closed and are never replaced automatically. Both
+inputs and the complete staged provenance record are preflighted before either
+input is changed, so a corrupt peer cannot leave a partial recovery.
 
 ## Operational constraints
 
