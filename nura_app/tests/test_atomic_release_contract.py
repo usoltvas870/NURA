@@ -55,7 +55,7 @@ def test_transition_importlib_rejects_symlinked_script_path(tmp_path: Path) -> N
 
 builder = _load_module("build_release_artifact", BUILDER_PATH)
 transition = _load_module("prepare_atomic_release_host", TRANSITION_PATH)
-static_contract = sys.modules["deploy_static_release"]
+static_contract = _load_module("deploy_static_release_contract", SCRIPTS / "deploy_static_release.py")
 
 
 def _run(*args: str, cwd: Path) -> str:

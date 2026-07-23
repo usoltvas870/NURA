@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 import os
 import re
 import shutil
@@ -17,6 +18,7 @@ DEPLOY_SCRIPT = REPO_ROOT / "deploy.sh"
 AUDITED_P6B_SCRIPT = REPO_ROOT / "scripts" / "deploy_audited_p6b_transition.sh"
 STATIC_HELPER_PATH = REPO_ROOT / "scripts" / "deploy_static_release.py"
 ARTIFACT_HELPER_PATH = REPO_ROOT / "scripts" / "build_release_artifact.py"
+BUNDLE_HELPER_PATH = REPO_ROOT / "scripts" / "release_execution_bundle.py"
 DEPLOY_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
 ROLLBACK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "rollback.yml"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci-cd.yml"
@@ -38,6 +40,7 @@ def _load_module(name: str, path: Path) -> ModuleType:
 
 
 static_helper = _load_module("deploy_static_release", STATIC_HELPER_PATH)
+bundle_helper = _load_module("release_execution_bundle", BUNDLE_HELPER_PATH)
 
 
 def _run(*args: str, cwd: Path, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -439,9 +442,11 @@ def test_rollback_workflow_requires_exact_target_and_acknowledgement() -> None:
     assert "target_sha:" in workflow
     assert "acknowledge_rollback:" in workflow
     assert "inputs.acknowledge_rollback" in workflow
-    assert 'git show "$WORKFLOW_SHA:deploy.sh" > "$launcher"' in workflow
-    assert 'git show "$WORKFLOW_SHA:scripts/release_lock.py" > "$lock_helper"' in workflow
-    assert 'NURA_RELEASE_LOCK_HELPER="$lock_helper" bash "$launcher" rollback "$TARGET_SHA"' in workflow
+    assert 'git show "$WORKFLOW_SHA:scripts/release_execution_bundle.py" | python3 - "$@"' in workflow
+    assert "materialize --repo /opt/nura --workflow-sha" in workflow
+    assert 'NURA_RELEASE_EXECUTION_BUNDLE="$bundle" NURA_WORKFLOW_SHA="$WORKFLOW_SHA"' in workflow
+    assert 'bash "$bundle/deploy.sh" rollback "$TARGET_SHA"' in workflow
+    assert "cleanup --bundle" in workflow
     assert "git checkout" not in workflow
     assert "alembic" not in workflow.lower()
     assert workflow.count("release-check=1") == 6
@@ -453,9 +458,95 @@ def test_exact_deploy_and_rollback_launchers_materialize_the_safe_lock_helper() 
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     assert 'git show "$TARGET_SHA:scripts/release_lock.py" > "$lock_helper"' in deploy_workflow
     assert 'NURA_RELEASE_LOCK_HELPER="$lock_helper" bash "$launcher" prepare-p7b' in deploy_workflow
-    assert 'git show "$WORKFLOW_SHA:scripts/release_lock.py" > "$lock_helper"' in rollback_workflow
+    assert "release_execution_bundle.py" in rollback_workflow
     assert 'readonly SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"' in script
     assert 'exec python3 "$LOCK_HELPER" --lock-file "$LOCK_FILE" -- "$SCRIPT_PATH" "$@"' in script
+
+
+def _bundle_fixture_repo(path: Path) -> str:
+    _run("git", "init", "--initial-branch=main", str(path), cwd=path.parent)
+    _run("git", "config", "user.email", "fixture@example.invalid", cwd=path)
+    _run("git", "config", "user.name", "Fixture", cwd=path)
+    for source in bundle_helper.BUNDLE_FILES:
+        destination = path / source
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((REPO_ROOT / source).read_bytes())
+    _run("git", "add", "--all", cwd=path)
+    _run("git", "commit", "-m", "bundle fixture", cwd=path)
+    return _run("git", "rev-parse", "HEAD", cwd=path).stdout.strip()
+
+
+def test_rollback_bundle_reproduces_the_isolated_loader_failure(tmp_path: Path) -> None:
+    isolated = tmp_path / "build_release_artifact.py"
+    isolated.write_text("import deploy_static_release\n", encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(isolated), "--help"], capture_output=True, text=True, check=False
+    )
+    assert result.returncode != 0
+    assert "deploy_static_release" in result.stderr
+
+
+def test_trusted_rollback_bundle_is_exact_and_ignores_hostile_import_context(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    workflow_sha = _bundle_fixture_repo(repo)
+    bundle = bundle_helper.materialize(repo, workflow_sha, tmp_path)
+    bundle_helper.verify(bundle, workflow_sha)
+    provenance = json.loads((bundle / "provenance.json").read_text(encoding="utf-8"))
+    assert provenance["workflow_sha"] == workflow_sha
+    assert {item["path"] for item in provenance["members"]} == set(bundle_helper.BUNDLE_FILES)
+    hostile = tmp_path / "hostile"
+    hostile.mkdir()
+    (hostile / "deploy_static_release.py").write_text("raise RuntimeError('hostile')\n")
+    environment = {**os.environ, "PYTHONPATH": str(hostile), "PYTHONDONTWRITEBYTECODE": "1"}
+    direct = subprocess.run(
+        [sys.executable, str(bundle / "scripts" / "build_release_artifact.py"), "--help"],
+        cwd=hostile,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert direct.returncode == 0, direct.stderr
+    imported = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import importlib.util,sys;"
+            "s=importlib.util.spec_from_file_location('isolated',sys.argv[1]);"
+            "m=importlib.util.module_from_spec(s);s.loader.exec_module(m)",
+            str(bundle / "scripts" / "build_release_artifact.py"),
+        ],
+        cwd=hostile,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert imported.returncode == 0, imported.stderr
+
+
+@pytest.mark.parametrize("mutation", ["missing", "symlink", "checksum", "workflow"])
+def test_trusted_rollback_bundle_fails_closed_on_provenance_or_member_tampering(
+    tmp_path: Path, mutation: str
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    workflow_sha = _bundle_fixture_repo(repo)
+    bundle = bundle_helper.materialize(repo, workflow_sha, tmp_path)
+    helper = bundle / "scripts" / "deploy_static_release.py"
+    if mutation == "missing":
+        helper.unlink()
+    elif mutation == "symlink":
+        helper.unlink()
+        try:
+            helper.symlink_to(bundle / "scripts" / "build_release_artifact.py")
+        except OSError:
+            pytest.skip("local filesystem does not permit symlink fixtures")
+    elif mutation == "checksum":
+        helper.write_text("tampered\n", encoding="utf-8")
+    with pytest.raises(bundle_helper.BundleError):
+        bundle_helper.verify(bundle, "0" * 40 if mutation == "workflow" else workflow_sha)
 
 
 @pytest.mark.parametrize(

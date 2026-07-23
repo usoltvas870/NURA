@@ -192,6 +192,24 @@ input is changed, so a corrupt peer cannot leave a partial recovery.
 
 ## Operational constraints
 
+### Trusted normal-rollback controller bundle
+
+The normal rollback workflow executes the controller from a temporary trusted
+bundle, not from isolated `mktemp` files. Before the controller starts, the
+workflow materializes `deploy.sh`, its lock, artifact, static-release, atomic
+release, and bundle-loader helpers from one exact `WORKFLOW_SHA`. The bundle is
+a root-owned non-symlink directory with mode `0700`; every member is a regular
+file with a recorded SHA-256 in secret-free provenance. The launcher verifies
+that provenance again before it opens the common lock or can begin rollback
+intent.
+
+`build_release_artifact.py` resolves `deploy_static_release.py` as a checked
+sibling of its own file with `importlib`, never through cwd, `PYTHONPATH`, or a
+same-name installed module. Missing, symlinked, changed, mixed-commit, or
+otherwise unproven helpers fail closed before any runtime mutation. The workflow
+removes the bundle only after controller completion. This path keeps the normal
+rollback contract available without changing P7B's State B ownership rules.
+
 - Never run `deploy.yml` while validating repository changes.
 - Never use this document as approval for SSH, deployment, migration, secret
   rotation, or production mutation.

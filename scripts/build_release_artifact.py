@@ -6,10 +6,12 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import importlib.util
 import io
 import json
 import os
 import re
+import stat
 import shutil
 import subprocess
 import sys
@@ -18,9 +20,33 @@ import uuid
 from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
+from types import ModuleType
 from typing import Any
 
-import deploy_static_release as static_contract
+
+def _load_static_contract() -> ModuleType:
+    """Load the tracked sibling without consulting cwd or ``sys.path``."""
+
+    script = Path(__file__).absolute()
+    script_metadata = script.lstat()
+    helper = script.with_name("deploy_static_release.py")
+    metadata = helper.lstat()
+    if (
+        script.is_symlink()
+        or not stat.S_ISREG(script_metadata.st_mode)
+        or helper.is_symlink()
+        or not stat.S_ISREG(metadata.st_mode)
+    ):
+        raise RuntimeError("trusted deploy_static_release sibling is missing or unsafe")
+    spec = importlib.util.spec_from_file_location("nura_trusted_static_contract", helper)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("trusted deploy_static_release sibling cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+static_contract = _load_static_contract()
 
 SCHEMA_VERSION = 2
 ARTIFACT_FORMAT = "nura-static-tar-gzip"

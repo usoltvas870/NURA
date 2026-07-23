@@ -212,7 +212,20 @@ readonly CURRENT_LINK="$RELEASE_ROOT/current"
 readonly RELEASE_STATE_DIR="$STATE_ROOT/releases"
 readonly CURRENT_STATE="$STATE_ROOT/current.json"
 readonly PREVIOUS_STATE="$STATE_ROOT/previous.json"
-if [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
+readonly SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
+  [[ -z "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" && -z "${NURA_RELEASE_LOCK_HELPER:-}" ]] \
+    || fail "execution bundle cannot be combined with helper overrides"
+  readonly EXECUTION_BUNDLE="$(readlink -f "$NURA_RELEASE_EXECUTION_BUNDLE")"
+  python3 "$EXECUTION_BUNDLE/scripts/release_execution_bundle.py" verify \
+    --bundle "$EXECUTION_BUNDLE" --workflow-sha "${NURA_WORKFLOW_SHA:?execution bundle requires workflow SHA}" \
+    || fail "trusted execution bundle verification failed"
+  [[ "$SCRIPT_PATH" == "$EXECUTION_BUNDLE/deploy.sh" ]] || fail "execution bundle launcher mismatch"
+  readonly ARTIFACT_HELPER="$EXECUTION_BUNDLE/scripts/build_release_artifact.py"
+  readonly STATIC_HELPER="$EXECUTION_BUNDLE/scripts/deploy_static_release.py"
+  readonly STATE_HELPER="$EXECUTION_BUNDLE/scripts/prepare_atomic_release_host.py"
+  readonly LOCK_HELPER="$EXECUTION_BUNDLE/scripts/release_lock.py"
+elif [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
   [[ "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]] \
     || fail "pinned helper root is only valid for the audited migration target"
   [[ "${NURA_PREAPPLIED_MIGRATION_REVISION:-}" == "$AUDITED_MIGRATION_REVISION" ]] \
@@ -227,10 +240,9 @@ if [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
 else
   readonly ARTIFACT_HELPER="$REPO_ROOT/scripts/build_release_artifact.py"
   readonly STATIC_HELPER="$REPO_ROOT/scripts/deploy_static_release.py"
+  readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
+  readonly LOCK_HELPER="${NURA_RELEASE_LOCK_HELPER:-$REPO_ROOT/scripts/release_lock.py}"
 fi
-readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
-readonly LOCK_HELPER="${NURA_RELEASE_LOCK_HELPER:-$REPO_ROOT/scripts/release_lock.py}"
-readonly SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 readonly IMAGE_TAG="nura-release:$TARGET_SHA"
 readonly SOURCE_LABEL="https://github.com/usoltvas870/NURA"
 
