@@ -43,6 +43,16 @@ def test_transition_importlib_load_uses_trusted_sibling_lock_not_cwd(
     assert module.release_lock.__module__ == "nura_release_lock"
 
 
+def test_transition_importlib_rejects_symlinked_script_path(tmp_path: Path) -> None:
+    linked_script = tmp_path / TRANSITION_PATH.name
+    try:
+        linked_script.symlink_to(TRANSITION_PATH)
+    except OSError:
+        pytest.skip("symlink creation is unavailable")
+    with pytest.raises(RuntimeError, match="unsafe release lock helper path"):
+        _load_module("symlinked_transition", linked_script)
+
+
 builder = _load_module("build_release_artifact", BUILDER_PATH)
 transition = _load_module("prepare_atomic_release_host", TRANSITION_PATH)
 static_contract = sys.modules["deploy_static_release"]
