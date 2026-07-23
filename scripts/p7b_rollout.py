@@ -38,6 +38,9 @@ APP_SERVICES = ("api", "bot", "celery-worker", "celery-beat", "admin-bot")
 STAGE1_SERVICES = ("redis", *APP_SERVICES)
 DATA_SERVICES = ("postgres", "redis")
 HEALTH_SERVICES = ("postgres", "redis", "api")
+REDIS_HEALTHCHECK_ATTEMPTS = 6
+REDIS_HEALTHCHECK_DELAY_SECONDS = 5
+REDIS_HEALTHCHECK_TIMEOUT_SECONDS = 5
 CELERY_PING_ATTEMPTS = 6
 CELERY_PING_DELAY_SECONDS = 5
 CELERY_PING_TIMEOUT_SECONDS = 5
@@ -963,13 +966,13 @@ def prepare_handoff(settings: Settings, args: argparse.Namespace) -> None:
         print(f"p7b_prepare sha={settings.sha} status=prepared secrets=redacted")
 
 
-def inspect_service(
+def service_container(
     runner: Runner,
     project: str,
     working_directory: str,
     compose_files: Sequence[str],
     service: str,
-) -> dict[str, str]:
+) -> str:
     container = run_or_fail(
         runner,
         compose_command(
@@ -979,6 +982,23 @@ def inspect_service(
     ).strip()
     if not container or "\n" in container:
         fail(f"service_missing_or_ambiguous:{service}")
+    return container
+
+
+def inspect_service(
+    runner: Runner,
+    project: str,
+    working_directory: str,
+    compose_files: Sequence[str],
+    service: str,
+) -> dict[str, str]:
+    container = service_container(
+        runner,
+        project,
+        working_directory,
+        compose_files,
+        service,
+    )
     inspection = run_or_fail(
         runner,
         (
@@ -1267,18 +1287,6 @@ def verification_commands(
             compose_command(project, working, compose_files, "ps", "--format", "json"),
         ),
         (
-            "redis_authenticated_healthcheck",
-            compose_command(
-                project,
-                working,
-                compose_files,
-                "exec",
-                "-T",
-                "redis",
-                "/usr/local/bin/nura-redis-healthcheck",
-            ),
-        ),
-        (
             "postgres_readiness",
             compose_command(
                 project, working, compose_files, "exec", "-T", "postgres", "pg_isready"
@@ -1374,6 +1382,57 @@ def verify_application_identity(
             fail(f"target_identity_mismatch:{service}")
 
 
+def verify_redis_target_identity(
+    handoff: Mapping[str, object],
+    state: Mapping[str, object],
+    runner: Runner,
+) -> str:
+    expected = state.get("stage1_redis_container")
+    if not isinstance(expected, str) or not expected:
+        fail("target_redis_identity_missing")
+    compose_files = handoff.get("compose_files")
+    if not isinstance(compose_files, list) or not all(
+        isinstance(item, str) for item in compose_files
+    ):
+        fail("handoff_schema_invalid")
+    actual = service_container(
+        runner,
+        str(handoff["compose_project"]),
+        str(handoff["working_directory"]),
+        [str(item) for item in compose_files],
+        "redis",
+    )
+    if actual != expected:
+        fail("target_redis_identity_mismatch")
+    return expected
+
+
+def redis_authenticated_healthcheck_command(container: str) -> tuple[str, ...]:
+    return (
+        "docker",
+        "exec",
+        container,
+        "timeout",
+        str(REDIS_HEALTHCHECK_TIMEOUT_SECONDS),
+        "/bin/sh",
+        "/usr/local/bin/nura-redis-healthcheck",
+    )
+
+
+def verify_redis_authenticated_healthcheck(
+    runner: Runner,
+    command: Sequence[str],
+    check: str,
+) -> None:
+    for attempt in range(REDIS_HEALTHCHECK_ATTEMPTS):
+        result = command_result(runner, command)
+        if result.returncode == 0 and result.stdout.strip() == "PONG":
+            return
+        if attempt + 1 < REDIS_HEALTHCHECK_ATTEMPTS:
+            time.sleep(REDIS_HEALTHCHECK_DELAY_SECONDS)
+    fail(f"verification_failed:{check}")
+
+
 def verify_celery_worker_ping(
     runner: Runner,
     command: Sequence[str],
@@ -1434,7 +1493,13 @@ def verify_stage(
         (*DATA_SERVICES, *APP_SERVICES),
         HEALTH_SERVICES,
     )
+    redis_container = verify_redis_target_identity(handoff, state, runner)
     verify_application_identity(settings, handoff, runner)
+    verify_redis_authenticated_healthcheck(
+        runner,
+        redis_authenticated_healthcheck_command(redis_container),
+        f"stage{stage}:redis_authenticated_healthcheck",
+    )
     for check, command in commands[1:]:
         identifier = f"stage{stage}:{check}"
         if check == "celery_worker_ping":
@@ -1514,6 +1579,23 @@ def stage1(settings: Settings, runner: Runner) -> None:
                 baseline["volumes"],  # type: ignore[arg-type]
             )
             lifecycle(handoff, STAGE1_SERVICES, runner)
+            compose_files = handoff.get("compose_files")
+            if not isinstance(compose_files, list) or not all(
+                isinstance(item, str) for item in compose_files
+            ):
+                fail("handoff_schema_invalid")
+            redis_container = service_container(
+                runner,
+                str(handoff["compose_project"]),
+                str(handoff["working_directory"]),
+                [str(item) for item in compose_files],
+                "redis",
+            )
+            transaction(
+                settings,
+                "stage1_intent",
+                stage1_redis_container=redis_container,
+            )
             verify_stage(settings, 1, runner, acquire_lock=False)
         except BaseException:
             compensate(settings, runner, 1)

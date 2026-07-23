@@ -97,6 +97,20 @@ PostgreSQL, API health, Celery, target identity, and unchanged data volumes.
 Canonical and public markers remain on the previous release.
 
 Compose `--wait` proves healthchecked Redis, PostgreSQL, and API readiness, but
+the Redis proof is repeated by P7B against the exact container ID captured
+immediately after the forced Stage 1 recreation. Both Compose and P7B invoke the
+read-only bind-mounted helper through `/bin/sh`, so verification does not depend
+on an executable bit that the reviewed file does not carry. The helper reads
+only `/run/secrets/redis_password`, transports the credential through
+`REDISCLI_AUTH`, and returns an exact `PONG`; no credential is placed in argv,
+Compose metadata, or verifier output. P7B requires that exact response within
+six attempts, each bounded by a five-second container-local timeout with a
+five-second delay. A missing or unreadable secret, wrong mount, NOAUTH,
+WRONGPASS, stale container, timeout, or non-PONG response remains fail-closed as
+`verification_failed:stage1:redis_authenticated_healthcheck` (or the preceding
+target Redis identity error) and enters the single compensation path.
+
+Compose `--wait` also proves healthchecked API readiness, but
 Celery worker registration is asynchronous after its container reaches
 `running`. The verifier therefore invokes the explicit `core.tasks` application
 and requires a real `pong` within six attempts, each bounded by a five-second
