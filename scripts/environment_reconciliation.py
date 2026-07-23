@@ -79,7 +79,7 @@ def envelope(path: Path) -> dict:
         payload = doc["payload"]
     except Exception:
         fail("invalid_p7b_provenance")
-    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
     if (
         doc.get("schema") != 1
         or not isinstance(payload, dict)
