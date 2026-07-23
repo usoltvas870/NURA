@@ -99,6 +99,5 @@
 |------|--------|-------|---------------------|
 | `AGENTS.md` | 209, 229 | `id_ed25519_astro` | SSH-ключ, имя файла содержит "astro" — совпадение |
 | `STATE.md` | 219, 239 | `id_ed25519_astro` | То же самое |
-| `nura-trend-radar/` | 505, 532, 1625 | `astrology` | Контент TikTok-анализа, не Astro Insight |
 | `.opencode/skills/ui-ux-pro-max/` | 118, 151 | `shadcn` и др. | Generic UI-скилл, не связанный с Astro Insight |
 | `graphify-out/` | — | `framer-motion`, `shadcn` | Авто-сгенерированный граф знаний |
