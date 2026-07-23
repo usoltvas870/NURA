@@ -163,14 +163,18 @@ def test_redis_compose_uses_secret_files_and_non_sensitive_commands() -> None:
         "/bin/sh",
         "/usr/local/bin/nura-redis-healthcheck",
     ]
-    assert redis["secrets"] == ["redis_password"]
+    assert redis["secrets"] == [
+        {"source": "redis_password", "target": "redis_password", "mode": 0o444}
+    ]
     assert compose["secrets"]["redis_password"] == {
         "environment": "REDIS_PASSWORD"
     }
 
     for service_name in ("api", "bot", "celery-worker", "celery-beat", "admin-bot"):
         service = compose["services"][service_name]
-        assert service["secrets"] == ["redis_password"]
+        assert service["secrets"] == [
+            {"source": "redis_password", "target": "redis_password", "mode": 0o444}
+        ]
         assert service["environment"]["REDIS_PASSWORD"] == ""
         assert service["environment"]["REDIS_PASSWORD_FILE"] == (
             "/run/secrets/redis_password"

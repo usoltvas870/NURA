@@ -35,7 +35,9 @@ services:
     restart: unless-stopped
     command: ["/bin/sh", "/usr/local/bin/nura-redis-entrypoint"]
     secrets:
-      - redis_password
+      - source: redis_password
+        target: redis_password
+        mode: 0444
     volumes:
       - redis_data:/data
       - ./scripts/redis-entrypoint.sh:/usr/local/bin/nura-redis-entrypoint:ro
@@ -63,7 +65,9 @@ services:
     env_file:
       - .env
     secrets:
-      - redis_password
+      - source: redis_password
+        target: redis_password
+        mode: 0444
     environment:
       <<: *app-redis-environment
       RUN_MIGRATIONS: "1"
@@ -99,7 +103,9 @@ services:
     env_file:
       - .env
     secrets:
-      - redis_password
+      - source: redis_password
+        target: redis_password
+        mode: 0444
     environment:
       <<: *app-redis-environment
     depends_on:
@@ -126,7 +132,9 @@ services:
     env_file:
       - .env
     secrets:
-      - redis_password
+      - source: redis_password
+        target: redis_password
+        mode: 0444
     environment:
       <<: *app-redis-environment
       PYTHONPATH: /app
@@ -156,7 +164,9 @@ services:
     env_file:
       - .env
     secrets:
-      - redis_password
+      - source: redis_password
+        target: redis_password
+        mode: 0444
     environment:
       <<: *app-redis-environment
       PYTHONPATH: /app
@@ -184,7 +194,9 @@ services:
     env_file:
       - .env
     secrets:
-      - redis_password
+      - source: redis_password
+        target: redis_password
+        mode: 0444
     environment:
       <<: *app-redis-environment
     depends_on:
