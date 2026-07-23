@@ -336,7 +336,10 @@ def settings(tmp_path: Path) -> p7b.Settings:
 
 def handoff(settings: p7b.Settings) -> dict[str, object]:
     settings.target_compose.parent.mkdir(parents=True, exist_ok=True)
-    settings.target_compose.write_text("services: {}\n", encoding="utf-8")
+    settings.target_compose.write_text(
+        "services: {}\nsecrets:\n  redis_password:\n    environment: REDIS_PASSWORD\n",
+        encoding="utf-8",
+    )
     settings.target_override.write_bytes(
         p7b.materialized_override(
             {service: f"nura-release:{TARGET}" for service in p7b.APP_SERVICES}

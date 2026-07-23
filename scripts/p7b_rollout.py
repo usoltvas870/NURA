@@ -559,10 +559,51 @@ def materialized_override(image_mapping: Mapping[str, str]) -> bytes:
             r"nura-release:[0-9a-f]{40}", image
         ):
             fail("mutable_image_reference")
-        lines.extend((f"  {service}:", f"    image: {image}"))
+        lines.extend(
+            (
+                f"  {service}:",
+                f"    image: {image}",
+                "    secrets:",
+                "      - source: redis_password",
+                "        target: redis_password",
+                "        mode: 0444",
+                "    environment:",
+                '      REDIS_PASSWORD: ""',
+                "      REDIS_PASSWORD_FILE: /run/secrets/redis_password",
+                "      REDIS_URL: redis://redis:6379/0",
+                '      CELERY_BROKER_URL: ""',
+                '      CELERY_RESULT_BACKEND: ""',
+                "      NURA_CELERY_BROKER_URL: redis://redis:6379/1",
+                "      NURA_CELERY_RESULT_BACKEND: redis://redis:6379/2",
+            )
+        )
         if service == "api":
-            lines.extend(("    environment:", '      RUN_MIGRATIONS: "0"'))
+            lines.append('      RUN_MIGRATIONS: "0"')
     return ("\n".join(lines) + "\n").encode()
+
+
+def verify_secret_file_compose_contract(handoff: Mapping[str, object]) -> None:
+    """Reject incomplete application secret transport before Stage 1 mutation."""
+
+    files = handoff.get("compose_files")
+    if not isinstance(files, list) or not files:
+        fail("application_secret_mount_missing")
+    content = "\n".join(Path(str(item)).read_text(encoding="utf-8") for item in files)
+    required = (
+        "secrets:",
+        "redis_password:",
+        "source: redis_password",
+        "target: redis_password",
+        "REDIS_PASSWORD_FILE: /run/secrets/redis_password",
+        'REDIS_PASSWORD: ""',
+        'CELERY_BROKER_URL: ""',
+        'CELERY_RESULT_BACKEND: ""',
+    )
+    if any(item not in content for item in required):
+        fail("application_secret_mount_missing")
+    for service in APP_SERVICES:
+        if f"  {service}:" not in content:
+            fail("application_secret_mount_missing")
 
 
 def transaction(settings: Settings, phase: str, **updates: object) -> dict[str, object]:
@@ -1833,6 +1874,7 @@ def preflight(settings: Settings, runner: Runner) -> None:
     verify_baseline_canonical(settings, baseline)
     if handoff.get("expected_baseline_sha") != baseline.get("previous_sha"):
         fail("baseline_contract_mismatch")
+    verify_secret_file_compose_contract(handoff)
     verify_volumes(runner, baseline, baseline["volumes"])  # type: ignore[arg-type]
     print(f"p7b_preflight sha={settings.sha} status=ok secrets=redacted")
 
