@@ -325,6 +325,16 @@ def test_p7b_workflow_and_prepare_use_the_exact_target_controller() -> None:
     assert '"$REPO_ROOT/scripts/p7b_rollout.py" prepare-handoff' not in script
 
 
+def test_common_release_lock_is_opened_by_the_safe_launcher() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    helper = (REPO_ROOT / "scripts" / "release_lock.py").read_text(encoding="utf-8")
+    assert 'LOCK_HELPER="${NURA_RELEASE_LOCK_HELPER:-$REPO_ROOT/scripts/release_lock.py}"' in script
+    assert 'exec python3 "$LOCK_HELPER" --lock-file "$LOCK_FILE" -- "$SCRIPT_PATH" "$@"' in script
+    assert 'exec 9>"$LOCK_FILE"' not in script
+    assert "O_NOFOLLOW" in helper
+    assert "NURA_COMMON_LOCK_FD" in helper
+
+
 def test_p7b_workflow_smoke_is_malformed_only_and_precedes_finalization() -> None:
     workflow = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
     rollout = (REPO_ROOT / "scripts" / "p7b_rollout.py").read_text(encoding="utf-8")
@@ -422,10 +432,23 @@ def test_rollback_workflow_requires_exact_target_and_acknowledgement() -> None:
     assert "target_sha:" in workflow
     assert "acknowledge_rollback:" in workflow
     assert "inputs.acknowledge_rollback" in workflow
-    assert 'bash deploy.sh rollback "$TARGET_SHA"' in workflow
+    assert 'git show "$WORKFLOW_SHA:deploy.sh" > "$launcher"' in workflow
+    assert 'git show "$WORKFLOW_SHA:scripts/release_lock.py" > "$lock_helper"' in workflow
+    assert 'NURA_RELEASE_LOCK_HELPER="$lock_helper" bash "$launcher" rollback "$TARGET_SHA"' in workflow
     assert "git checkout" not in workflow
     assert "alembic" not in workflow.lower()
     assert workflow.count("release-check=1") == 6
+
+
+def test_exact_deploy_and_rollback_launchers_materialize_the_safe_lock_helper() -> None:
+    deploy_workflow = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
+    rollback_workflow = ROLLBACK_WORKFLOW.read_text(encoding="utf-8")
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    assert 'git show "$TARGET_SHA:scripts/release_lock.py" > "$lock_helper"' in deploy_workflow
+    assert 'NURA_RELEASE_LOCK_HELPER="$lock_helper" bash "$launcher" prepare-p7b' in deploy_workflow
+    assert 'git show "$WORKFLOW_SHA:scripts/release_lock.py" > "$lock_helper"' in rollback_workflow
+    assert 'readonly SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"' in script
+    assert 'exec python3 "$LOCK_HELPER" --lock-file "$LOCK_FILE" -- "$SCRIPT_PATH" "$@"' in script
 
 
 @pytest.mark.parametrize(

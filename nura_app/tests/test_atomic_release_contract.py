@@ -845,7 +845,7 @@ def test_legacy_extra_change_after_approval_is_detected(tmp_path: Path) -> None:
 def test_apply_rebuilds_authoritative_inventory_under_common_lock() -> None:
     source = TRANSITION_PATH.read_text(encoding="utf-8")
     apply_source = source[source.index("def apply_transition") : source.index("def datetime_utc")]
-    lock = apply_source.index("fcntl.flock")
+    lock = apply_source.index("with release_lock(args.lock_file):")
     locked_inventory = apply_source.index("locked_inventory = collect_inventory(args)")
     snapshot = apply_source.index("_snapshot(args, inventory, transition_dir)")
     approval = apply_source.index("_copy_approved_drop_evidence")

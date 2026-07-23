@@ -27,6 +27,7 @@ jobs:
     environment: production
     env:
       TARGET_SHA: ${{ inputs.target_sha }}
+      WORKFLOW_SHA: ${{ github.sha }}
     steps:
       - name: Validate exact rollback request
         run: |
@@ -36,19 +37,30 @@ jobs:
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           TARGET_SHA: ${{ env.TARGET_SHA }}
+          WORKFLOW_SHA: ${{ env.WORKFLOW_SHA }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: TARGET_SHA
+          envs: TARGET_SHA,WORKFLOW_SHA
           script: |
             bash -se <<'NURA_ROLLBACK'
             set -Eeuo pipefail
             [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]
             cd /opt/nura
             test "$(git branch --show-current)" = main
-            bash deploy.sh rollback "$TARGET_SHA"
+            git fetch --no-tags origin main
+            git cat-file -e "$WORKFLOW_SHA^{commit}"
+            git merge-base --is-ancestor "$WORKFLOW_SHA" refs/remotes/origin/main
+            launcher="$(mktemp)"
+            lock_helper="$(mktemp)"
+            trap 'rm -f "$launcher" "$lock_helper"' EXIT
+            git show "$WORKFLOW_SHA:deploy.sh" > "$launcher"
+            git show "$WORKFLOW_SHA:scripts/release_lock.py" > "$lock_helper"
+            chmod 0700 "$launcher" "$lock_helper"
+            NURA_RELEASE_LOCK_HELPER="$lock_helper" bash "$launcher" rollback "$TARGET_SHA"
             NURA_ROLLBACK
 
       - name: Verify rolled-back public release

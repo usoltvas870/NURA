@@ -25,10 +25,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, NamedTuple
 
-try:
-    import fcntl
-except ImportError:  # pragma: no cover - apply mode is Linux-host only
-    fcntl = None  # type: ignore[assignment]
+from release_lock import release_lock
 
 EXPECTED_LEGACY_SHA = "d0d39ae8717ceb0920d98f27dd9092f746755c6c"
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -886,11 +883,7 @@ def apply_transition(args: argparse.Namespace, inventory: dict[str, Any]) -> str
         if root != expected:
             raise TransitionError(f"apply root must use exact canonical path: {expected}")
 
-    args.lock_file.parent.mkdir(parents=True, exist_ok=True)
-    with args.lock_file.open("a+") as lock:
-        if fcntl is None:
-            raise TransitionError("apply mode requires POSIX flock support")
-        fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    with release_lock(args.lock_file):
         locked_inventory = collect_inventory(args)
         if _canonical_json(locked_inventory) != _canonical_json(inventory):
             raise TransitionError("transition inventory changed before the common lock")
@@ -1031,7 +1024,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--backup-root", type=Path, default=Path("/var/backups/nura-release-transition"))
     parser.add_argument("--sites-enabled", type=Path, default=Path("/etc/nginx/sites-enabled"))
     parser.add_argument("--sites-available", type=Path, default=Path("/etc/nginx/sites-available"))
-    parser.add_argument("--lock-file", type=Path, default=Path("/var/lock/nura-deploy.lock"))
+    parser.add_argument("--lock-file", type=Path, default=Path("/run/lock/nura-deploy.lock"))
     parser.add_argument("--base-url", default="https://nura-ai.ru")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--drop-candidate-output", type=Path)

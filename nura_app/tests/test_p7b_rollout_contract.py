@@ -17,6 +17,14 @@ p7b = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = p7b
 spec.loader.exec_module(p7b)
 
+lock_spec = importlib.util.spec_from_file_location(
+    "release_lock", ROOT / "scripts" / "release_lock.py"
+)
+assert lock_spec and lock_spec.loader
+release_lock = importlib.util.module_from_spec(lock_spec)
+sys.modules[lock_spec.name] = release_lock
+lock_spec.loader.exec_module(release_lock)
+
 TARGET = "a" * 40
 BASELINE = "b" * 40
 TARGET_ID = "sha256:" + "a" * 64
@@ -159,6 +167,7 @@ def settings(tmp_path: Path) -> p7b.Settings:
     env.write_text("SECRET=untouched\nAPP_ENV=development\nTEST_MODE=true\n", encoding="utf-8")
     state_root = tmp_path / "release-state"
     p7b_dir = state_root / "p7b"
+    p7b_dir.mkdir(parents=True, mode=0o700)
     releases = tmp_path / "releases"
     baseline_release = releases / BASELINE
     target_release = releases / TARGET
@@ -169,7 +178,7 @@ def settings(tmp_path: Path) -> p7b.Settings:
     current = tmp_path / "current"
     directory_link(current, baseline_release)
     canonical = state_root / "current.json"
-    canonical.parent.mkdir(parents=True)
+    canonical.parent.mkdir(parents=True, exist_ok=True)
     canonical.write_text(
         json.dumps(
             {
@@ -628,6 +637,67 @@ def test_lock_is_nonblocking_and_process_death_safe(settings: p7b.Settings) -> N
                 pass
     with p7b.rollout_lock(settings.lock_file):
         pass
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX lock metadata contract")
+def test_missing_private_lock_directory_is_created_with_restricted_mode(
+    tmp_path: Path,
+) -> None:
+    parent = tmp_path / "state"
+    parent.mkdir(mode=0o755)
+    lock = parent / "p7b" / "rollout.lock"
+    with p7b.rollout_lock(lock):
+        assert lock.is_file()
+    assert (lock.parent.stat().st_mode & 0o777) == 0o700
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX lock metadata contract")
+def test_lock_rejects_unsafe_existing_directory_and_symlink_parent(
+    tmp_path: Path,
+) -> None:
+    parent = tmp_path / "state"
+    parent.mkdir(mode=0o755)
+    unsafe = parent / "p7b"
+    unsafe.mkdir(mode=0o700)
+    os.chmod(unsafe, 0o770)
+    with pytest.raises(SystemExit, match="unsafe_lock_directory"):
+        with p7b.rollout_lock(unsafe / "rollout.lock"):
+            pass
+    os.chmod(unsafe, 0o700)
+    target = tmp_path / "target"
+    target.mkdir(mode=0o700)
+    linked_parent = tmp_path / "linked-state"
+    linked_parent.symlink_to(target, target_is_directory=True)
+    with pytest.raises(SystemExit, match="unsafe_lock_directory"):
+        with p7b.rollout_lock(linked_parent / "rollout.lock"):
+            pass
+
+
+def test_common_lock_default_uses_canonical_run_lock_directory() -> None:
+    args = p7b.parser().parse_args(["status", "--sha", TARGET])
+    assert args.common_lock_file == Path("/run/lock/nura-deploy.lock")
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX release lock contract")
+def test_common_lock_helper_rejects_symlinks_and_writable_directories(
+    tmp_path: Path,
+) -> None:
+    parent = tmp_path / "locks"
+    parent.mkdir(mode=0o755)
+    lock = parent / "common.lock"
+    with release_lock.release_lock(lock):
+        assert lock.is_file()
+    target = tmp_path / "target"
+    target.write_text("unchanged", encoding="utf-8")
+    link = parent / "linked.lock"
+    link.symlink_to(target)
+    with pytest.raises(SystemExit, match="unsafe_lock_file"):
+        with release_lock.release_lock(link):
+            pass
+    os.chmod(parent, 0o777)
+    with pytest.raises(SystemExit, match="unsafe_lock_directory"):
+        with release_lock.release_lock(parent / "second.lock"):
+            pass
 
 
 def test_activation_requires_host_wide_common_lock(settings: p7b.Settings) -> None:

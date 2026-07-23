@@ -113,7 +113,7 @@ case "${NURA_DEPLOY_TEST_MODE:-0}" in
     readonly RELEASE_ROOT="/var/www/nura-releases"
     readonly STATE_ROOT="/var/lib/nura-release-state"
     readonly INCOMING_ROOT="/var/tmp/nura-release-incoming"
-    readonly LOCK_FILE="/var/lock/nura-deploy.lock"
+    readonly LOCK_FILE="/run/lock/nura-deploy.lock"
     readonly ENABLED_NGINX_DIR="/etc/nginx/sites-enabled"
     readonly BASE_URL="https://nura-ai.ru"
     ;;
@@ -154,6 +154,8 @@ else
   readonly STATIC_HELPER="$REPO_ROOT/scripts/deploy_static_release.py"
 fi
 readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
+readonly LOCK_HELPER="${NURA_RELEASE_LOCK_HELPER:-$REPO_ROOT/scripts/release_lock.py}"
+readonly SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 readonly IMAGE_TAG="nura-release:$TARGET_SHA"
 readonly SOURCE_LABEL="https://github.com/usoltvas870/NURA"
 
@@ -163,12 +165,14 @@ done
 [[ -d "$REPO_ROOT" && ! -L "$REPO_ROOT" ]] || fail "repository root must be a real directory"
 [[ -f "$ARTIFACT_HELPER" && ! -L "$ARTIFACT_HELPER" ]] || fail "artifact helper is missing or unsafe"
 [[ -f "$STATIC_HELPER" && ! -L "$STATIC_HELPER" ]] || fail "static helper is missing or unsafe"
+[[ -f "$LOCK_HELPER" && ! -L "$LOCK_HELPER" ]] || fail "release lock helper is missing or unsafe"
+[[ -f "$SCRIPT_PATH" && ! -L "$SCRIPT_PATH" ]] || fail "deploy launcher is missing or unsafe"
 [[ -d "$RELEASE_ROOT" && ! -L "$RELEASE_ROOT" ]] || fail "release root is not prepared; run the separately approved host transition"
 [[ -d "$STATE_ROOT" && ! -L "$STATE_ROOT" ]] || fail "state root is not prepared; run the separately approved host transition"
 [[ -d "$ENABLED_NGINX_DIR" && ! -L "$ENABLED_NGINX_DIR" ]] || fail "Nginx enabled directory is invalid"
-[[ -d "$(dirname "$LOCK_FILE")" ]] || fail "deployment lock directory is missing"
-
-exec 9>"$LOCK_FILE"
+if [[ "${NURA_COMMON_LOCK_FD:-}" != 9 ]]; then
+  exec python3 "$LOCK_HELPER" --lock-file "$LOCK_FILE" -- "$SCRIPT_PATH" "$@"
+fi
 flock -n 9 || fail "another deploy or rollback holds the common lock"
 log "acquired common release lock"
 
