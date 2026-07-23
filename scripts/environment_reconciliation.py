@@ -79,9 +79,38 @@ def envelope(path: Path) -> dict:
         payload = doc["payload"]
     except Exception:
         fail("invalid_p7b_provenance")
-    if not isinstance(payload, dict) or not isinstance(doc.get("digest"), str):
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    if (
+        doc.get("schema") != 1
+        or not isinstance(payload, dict)
+        or doc.get("digest") != digest(canonical)
+    ):
         fail("invalid_p7b_provenance")
     return payload
+
+
+def load_record(record: Path, root: Path, target: str) -> dict:
+    safe_file(record, mode=0o600)
+    try:
+        doc = json.loads(record.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        fail("invalid_reconcile_record")
+    expected = {"APP_ENV": "development", "TEST_MODE": "true"}
+    if (
+        doc.get("schema") != 1
+        or doc.get("target_sha") != target
+        or doc.get("phase") not in {"environment_reconcile_intent", "environment_reconcile_verified"}
+        or doc.get("environment_contract") != expected
+    ):
+        fail("invalid_reconcile_record")
+    for key, suffix in (("baseline_backup_path", ".baseline.backup"), ("pre_reconcile_backup_path", ".pre-reconcile.backup")):
+        path = Path(str(doc.get(key, "")))
+        if path.parent != root or path.name != target + suffix:
+            fail("reconcile_backup_path_mismatch")
+        data = path.read_bytes() if safe_file(path, mode=0o600) else b""
+        if doc.get(key.replace("_path", "_sha256")) != digest(data):
+            fail("reconcile_backup_digest_mismatch")
+    return doc
 
 
 def source_for(p7b: Path, target: str) -> tuple[str, Path]:
@@ -126,6 +155,20 @@ def main() -> int:
         fail("unsafe_state_directory")
     record = root / (args.target_sha + ".json")
     if args.command == "reconcile":
+        if record.exists():
+            doc = load_record(record, root, args.target_sha)
+            baseline = Path(str(doc["baseline_backup_path"])).read_bytes()
+            current = env.read_bytes()
+            if digest(current) not in {
+                doc["pre_reconcile_backup_sha256"],
+                doc["baseline_backup_sha256"],
+            }:
+                fail("reconcile_resume_environment_mismatch")
+            if digest(current) == doc["pre_reconcile_backup_sha256"]:
+                atomic(env, baseline, stat.S_IMODE(env_meta.st_mode), env_meta)
+            if contract(env.read_bytes()) != doc["environment_contract"]:
+                fail("reconcile_resume_verification_failed")
+            return 0
         release, legacy = source_for(args.p7b_root, args.target_sha)
         safe_file(legacy)
         baseline = legacy.read_bytes()
@@ -159,8 +202,7 @@ def main() -> int:
         if contract(env.read_bytes()) != expected:
             fail("environment_restore_verification_failed")
     else:
-        safe_file(record, mode=0o600)
-        doc = json.loads(record.read_text(encoding="utf-8"))
+        doc = load_record(record, root, args.target_sha)
         expected = doc.get("environment_contract")
         if not isinstance(expected, dict):
             fail("invalid_reconcile_record")

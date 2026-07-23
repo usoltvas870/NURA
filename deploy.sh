@@ -304,8 +304,10 @@ if history:
 print(sha)
 PY
 )"
-[[ "$TARGET_SHA" != "$CURRENT_SHA" ]] \
-  || fail "target SHA is already current; refusing to create a self-referential release lineage"
+if [[ "$COMMAND" != rollback ]]; then
+  [[ "$TARGET_SHA" != "$CURRENT_SHA" ]] \
+    || fail "target SHA is already current; refusing to create a self-referential release lineage"
+fi
 PREVIOUS_STATE_FILE="$(mktemp "${TMPDIR:-/tmp}/nura-current-state.XXXXXX.json")"
 install -m 0640 "$CURRENT_STATE" "$PREVIOUS_STATE_FILE"
 PREVIOUS_POINTER_SNAPSHOT=""
