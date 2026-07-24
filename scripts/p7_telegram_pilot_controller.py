@@ -31,6 +31,7 @@ PHASES = frozenset({
 PROJECT = "nura_tg"
 PILOT_TOKEN_FILE = Path("/opt/nura/secrets/nura_tg/telegram_bot_token")
 PILOT_DATABASE_URL_FILE = Path("/opt/nura/secrets/nura_tg/database_url")
+AUTHORITATIVE_SECRET_OWNER_IDS = frozenset({0})
 
 
 class PilotError(RuntimeError):
@@ -53,13 +54,66 @@ def regular(path: Path, mode: int | None = None) -> None:
         fail("unsafe_file_mode")
 
 
+def read_authoritative_secret(
+    path: Path,
+    *,
+    root: Path = Path("/"),
+    owner_ids: frozenset[int] = AUTHORITATIVE_SECRET_OWNER_IDS,
+) -> bytes:
+    """Open an authoritative fixed secret path without following any link."""
+    if not path.is_absolute():
+        fail("unsafe_secret_path")
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+    file_flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(root, directory_flags)
+    try:
+        for component in path.parts[1:-1]:
+            try:
+                child = os.open(component, directory_flags, dir_fd=descriptor)
+            except OSError as exc:
+                raise PilotError("unsafe_secret_path") from exc
+            os.close(descriptor)
+            descriptor = child
+            info = os.fstat(descriptor)
+            if (
+                not stat.S_ISDIR(info.st_mode)
+                or info.st_uid not in owner_ids
+                or stat.S_IMODE(info.st_mode) & 0o022
+            ):
+                fail("unsafe_secret_path")
+        try:
+            secret_fd = os.open(path.name, file_flags, dir_fd=descriptor)
+        except OSError as exc:
+            raise PilotError("unsafe_secret_path") from exc
+        try:
+            info = os.fstat(secret_fd)
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or info.st_uid not in owner_ids
+                or info.st_nlink != 1
+                or stat.S_IMODE(info.st_mode) != 0o600
+            ):
+                fail("unsafe_secret_path")
+            return os.read(secret_fd, info.st_size + 1)
+        finally:
+            os.close(secret_fd)
+    finally:
+        os.close(descriptor)
+
+
 def exact_sha(value: str, name: str) -> None:
     if not SHA.fullmatch(value):
         fail(f"invalid_{name}")
 
 
-def command(*args: str, cwd: Path | None = None) -> None:
-    result = subprocess.run(args, cwd=cwd, capture_output=True, text=True, check=False)
+def command(
+    *args: str,
+    cwd: Path | None = None,
+    environment: dict[str, str] | None = None,
+) -> None:
+    result = subprocess.run(
+        args, cwd=cwd, env=environment, capture_output=True, text=True, check=False
+    )
     if result.returncode:
         fail("controller_command_failed")
 
@@ -117,17 +171,17 @@ def preflight(repo: Path, controller_sha: str, target_sha: str, expected_host: s
     if not expected_host or "\n" in expected_host:
         fail("invalid_expected_host")
     regular(controller, 0o600)
-    regular(token, 0o600)
-    if not token.read_bytes() or b"\n" in token.read_bytes():
+    token_value = read_authoritative_secret(token)
+    if not token_value or b"\n" in token_value or b"\r" in token_value or b"\x00" in token_value:
         fail("invalid_pilot_token")
     database_url = PILOT_DATABASE_URL_FILE
-    regular(database_url, 0o600)
-    if not database_url.read_bytes() or b"\n" in database_url.read_bytes():
+    database_url_value = read_authoritative_secret(database_url)
+    if not database_url_value or b"\n" in database_url_value or b"\r" in database_url_value or b"\x00" in database_url_value:
         fail("invalid_pilot_database_url")
     legacy_env = Path("/opt/nura/nura_app/.env")
     regular(legacy_env)
     legacy_token = legacy_token_from_env(legacy_env)
-    if hmac.compare_digest(token.read_bytes(), legacy_token):
+    if hmac.compare_digest(token_value, legacy_token):
         fail("pilot_legacy_token_contract_failed")
     if sha256(controller) != os.environ.get("NURA_TG_CONTROLLER_DIGEST", ""):
         fail("controller_digest_mismatch")
@@ -198,6 +252,7 @@ def verify_worker(app: Path, environment: dict[str, str]) -> None:
     require_running(app, environment, "celery-worker")
     for secret in ("/run/secrets/telegram_bot_token", "/run/secrets/redis_password"):
         exec_probe(app, environment, "celery-worker", "test", "-r", secret)
+    exec_probe(app, environment, "celery-worker", "python", "-m", "core.redis_auth_probe")
     probe = "import asyncio\nfrom core.database import create_engine, get_redis\nasync def p():\n e=create_engine()\n async with e.connect() as c: await c.exec_driver_sql('SELECT 1')\n await e.dispose()\n await get_redis().ping()\nasyncio.run(p())"
     exec_probe(app, environment, "celery-worker", "python", "-c", probe)
     exec_probe(app, environment, "celery-worker", "celery", "-A", "core.tasks", "inspect", "ping")
@@ -261,7 +316,11 @@ def deploy(args: argparse.Namespace) -> None:
             resolved_compose(compose, app, environment)
             subprocess.run(["docker", "compose", "-p", PROJECT, "-f", str(compose), "up", "-d", "redis"], cwd=app, env=environment, check=True)
             require_running(app, environment, "redis")
-            command("docker", "compose", "-p", PROJECT, "-f", str(compose), "exec", "-T", "redis", "/bin/sh", "/usr/local/bin/nura-redis-healthcheck", cwd=app)
+            command(
+                "docker", "compose", "-p", PROJECT, "-f", str(compose), "exec", "-T",
+                "redis", "/bin/sh", "/usr/local/bin/nura-redis-healthcheck",
+                cwd=app, environment=environment,
+            )
             unauth = subprocess.run(["docker", "compose", "-p", PROJECT, "-f", str(compose), "exec", "-T", "redis", "redis-cli", "ping"], cwd=app, env=environment, capture_output=True, check=False)
             if unauth.returncode == 0:
                 fail("pilot_redis_unauthenticated_access")
@@ -298,7 +357,7 @@ def deploy(args: argparse.Namespace) -> None:
                     cwd=app, env=environment, check=False, capture_output=True,
                 )
                 lease_check = subprocess.run(
-                    ["docker", "compose", "-p", PROJECT, "-f", "docker-compose.nura-tg.yml", "exec", "-T", "redis", "/bin/sh", "-c", "cat /run/secrets/redis_password | redis-cli --askpass mget nura_tg:polling_lease nura_tg:polling_active"],
+                    ["docker", "compose", "-p", PROJECT, "-f", "docker-compose.nura-tg.yml", "exec", "-T", "redis", "redis-cli", "mget", "nura_tg:polling_lease", "nura_tg:polling_active"],
                     cwd=app, env=environment, check=False, capture_output=True, text=True,
                 )
                 redis_stop = subprocess.run(

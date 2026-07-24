@@ -12,6 +12,7 @@ x-pilot-environment: &pilot-environment
   TELEGRAM_BOT_TOKEN: ""
   TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
   DATABASE_URL_FILE: /run/secrets/database_url
+  NURA_RUNTIME_PROFILE: nura_tg
   NURA_TG_PILOT: "true"
   NURA_TG_POLLING_ENABLED: ${NURA_TG_POLLING_ENABLED:-false}
   YOOKASSA_SHOP_ID: ""

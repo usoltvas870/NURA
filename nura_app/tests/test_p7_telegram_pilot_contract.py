@@ -86,9 +86,84 @@ def test_polling_receipt_requires_runtime_marker_and_verified_rollback() -> None
     assert "polling_marker_key" in bot
 
 
+def test_pilot_verified_requires_authenticated_redis_probe_and_unauth_rejection() -> None:
+    source = CONTROLLER.read_text(encoding="utf-8")
+    assert '"python", "-m", "core.redis_auth_probe"' in source
+    assert "pilot_redis_unauthenticated_access" in source
+    assert source.index('"core.redis_auth_probe"') < source.index('write_state(state, "pilot_verified"')
+    assert "cwd=app, environment=environment" in source
+
+
 def test_authoritative_secret_paths_are_checked_before_symlink_resolution() -> None:
     source = CONTROLLER.read_text(encoding="utf-8")
     assert "PILOT_TOKEN_FILE.resolve" not in source
     assert "PILOT_DATABASE_URL_FILE.resolve" not in source
-    assert "regular(token, 0o600)" in source
-    assert "regular(database_url, 0o600)" in source
+    assert "read_authoritative_secret(token)" in source
+    assert "O_NOFOLLOW" in source
+    assert "info.st_nlink != 1" in source
+
+
+def _authoritative_secret_tree(tmp_path: Path) -> tuple[Path, Path]:
+    directory = tmp_path / "opt" / "nura" / "secrets" / "nura_tg"
+    directory.mkdir(parents=True, mode=0o700)
+    for parent in (tmp_path / "opt", tmp_path / "opt" / "nura", tmp_path / "opt" / "nura" / "secrets", directory):
+        parent.chmod(0o700)
+    secret = directory / "telegram_bot_token"
+    secret.write_bytes(b"test-token")
+    secret.chmod(0o600)
+    return tmp_path, secret
+
+
+@pytest.mark.skipif(__import__("os").name == "nt", reason="openat semantics are POSIX-only")
+def test_authoritative_secret_reader_rejects_symlink_each_parent_component(tmp_path: Path) -> None:
+    import os
+    import shutil
+
+    for component in ("opt", "nura", "secrets", "nura_tg"):
+        root, secret = _authoritative_secret_tree(tmp_path / component)
+        link = root / "opt"
+        for name in ("nura", "secrets", "nura_tg"):
+            if name == component:
+                break
+            link = link / name
+        shutil.rmtree(link)
+        link.symlink_to(root)
+        with pytest.raises(controller.PilotError, match="unsafe_secret_path"):
+            controller.read_authoritative_secret(
+                Path("/opt/nura/secrets/nura_tg/telegram_bot_token"),
+                root=root,
+                owner_ids=frozenset({os.getuid()}),
+            )
+
+
+@pytest.mark.skipif(__import__("os").name == "nt", reason="POSIX mode bits are unavailable")
+@pytest.mark.parametrize("case", ["unsafe_permissions", "wrong_owner", "non_directory", "hard_link"])
+def test_authoritative_secret_reader_rejects_unsafe_chain(tmp_path: Path, case: str) -> None:
+    import os
+
+    root, secret = _authoritative_secret_tree(tmp_path)
+    if case == "unsafe_permissions":
+        secret.parent.chmod(0o722)
+    elif case == "wrong_owner":
+        owner_ids = frozenset({os.getuid() + 1})
+        with pytest.raises(controller.PilotError, match="unsafe_secret_path"):
+            controller.read_authoritative_secret(Path("/opt/nura/secrets/nura_tg/telegram_bot_token"), root=root, owner_ids=owner_ids)
+        return
+    elif case == "non_directory":
+        secret.unlink()
+        secret.parent.rmdir()
+        secret.parent.write_text("not-a-directory", encoding="utf-8")
+    else:
+        os.link(secret, secret.with_name("another_link"))
+    with pytest.raises(controller.PilotError, match="unsafe_secret_path"):
+        controller.read_authoritative_secret(Path("/opt/nura/secrets/nura_tg/telegram_bot_token"), root=root, owner_ids=frozenset({os.getuid()}))
+
+
+@pytest.mark.skipif(__import__("os").name == "nt", reason="POSIX mode bits are unavailable")
+def test_authoritative_secret_reader_reads_valid_regular_file(tmp_path: Path) -> None:
+    import os
+
+    root, _ = _authoritative_secret_tree(tmp_path)
+    assert controller.read_authoritative_secret(
+        Path("/opt/nura/secrets/nura_tg/telegram_bot_token"), root=root, owner_ids=frozenset({os.getuid()})
+    ) == b"test-token"
