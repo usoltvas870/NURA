@@ -1114,11 +1114,18 @@ def validate_compose_volume_contract(
 def verify_live_volumes(
     runner: Runner,
     project: str,
-    working_directory: str,
-    compose_files: Sequence[str],
     expected: Mapping[str, object],
-) -> None:
+) -> dict[str, dict[str, str]]:
+    """Verify the running data containers independently from target Compose state.
+
+    PostgreSQL and Redis are deliberately not recreated by either P7B stage.  A
+    generated target Compose file therefore cannot be used to discover their
+    current containers: it describes the desired volume contract, not the
+    container which already owns the data.  Discovery is limited to the exact
+    Compose service label and then bound to the immutable expected volume.
+    """
     destinations = {"postgres": "/var/lib/postgresql/data", "redis": "/data"}
+    identities: dict[str, dict[str, str]] = {}
     for service, destination in destinations.items():
         volume = expected.get(service)
         if not isinstance(volume, str):
@@ -1130,30 +1137,49 @@ def verify_live_volumes(
         ).strip()
         if actual != volume:
             fail("volume_identity_changed")
-        container = run_or_fail(
+        candidates = run_or_fail(
             runner,
-            compose_command(
-                project,
-                working_directory,
-                compose_files,
+            (
+                "docker",
                 "ps",
-                "-q",
                 "--all",
-                service,
+                "--filter",
+                f"label=com.docker.compose.service={service}",
+                "--format",
+                "{{.ID}}",
             ),
             f"volume_container:{service}",
-        ).strip()
-        if not container or "\n" in container:
-            fail(f"service_missing_or_ambiguous:{service}")
-        mounts_output = run_or_fail(
+        )
+        containers = [item for item in candidates.splitlines() if item]
+        if not containers:
+            fail(f"verification_failed:volume_container:{service}:{service}_container_missing")
+        if len(containers) != 1:
+            fail(f"verification_failed:volume_container:{service}:{service}_container_ambiguous")
+        container = containers[0]
+        inspection = run_or_fail(
             runner,
-            ("docker", "inspect", "--format", "{{json .Mounts}}", container),
-            f"volume_mounts:{service}",
+            (
+                "docker",
+                "inspect",
+                "--format",
+                "{{.State.Running}}|{{if .State.Health}}{{.State.Health.Status}}"
+                "{{else}}none{{end}}|{{index .Config.Labels \"com.docker.compose.project\"}}|"
+                "{{index .Config.Labels \"com.docker.compose.service\"}}|{{json .Mounts}}",
+                container,
+            ),
+            f"volume_container:{service}",
         )
         try:
+            running, health, actual_project, actual_service, mounts_output = inspection.strip().split("|", 4)
             mounts = json.loads(mounts_output)
         except json.JSONDecodeError:
-            fail("volume_mounts_unparseable")
+            fail(f"verification_failed:volume_container:{service}:{service}_container_inspection_invalid")
+        except ValueError:
+            fail(f"verification_failed:volume_container:{service}:{service}_container_inspection_invalid")
+        if running != "true" or health != "healthy":
+            fail(f"verification_failed:volume_container:{service}:{service}_container_unhealthy")
+        if actual_project != project or actual_service != service:
+            fail(f"verification_failed:volume_container:{service}:{service}_container_lineage_mismatch")
         matches = [
             item
             for item in mounts
@@ -1162,7 +1188,14 @@ def verify_live_volumes(
             and item.get("Destination") == destination
         ] if isinstance(mounts, list) else []
         if len(matches) != 1 or matches[0].get("Name") != volume:
-            fail(f"live_volume_identity_mismatch:{service}")
+            fail(f"verification_failed:volume_container:{service}:live_volume_identity_mismatch")
+        identities[service] = {
+            "container": container,
+            "compose_project": actual_project,
+            "compose_service": actual_service,
+            "volume": volume,
+        }
+    return identities
 
 
 def bootstrap(settings: Settings, runner: Runner) -> None:
@@ -1228,11 +1261,13 @@ def bootstrap(settings: Settings, runner: Runner) -> None:
         volumes = handoff.get("volumes")
         if not isinstance(volumes, dict) or set(volumes) != set(DATA_SERVICES):
             fail("handoff_schema_invalid")
-        verify_live_volumes(
+        data_containers = verify_volumes(
             runner,
-            settings.project,
-            str(settings.working_directory),
-            compose_files,
+            {
+                "compose_project": settings.project,
+                "working_directory": str(settings.working_directory),
+                "compose_files": compose_files,
+            },
             volumes,
         )
         volume_ids = {service: str(volumes[service]) for service in DATA_SERVICES}
@@ -1256,6 +1291,10 @@ def bootstrap(settings: Settings, runner: Runner) -> None:
                 str(settings.baseline_override(baseline_sha)),
             ],
             "volumes": volume_ids,
+            # Redis is intentionally recreated in Stage 1 and compensation.
+            # PostgreSQL is never recreated by P7B, so only its container
+            # identity is durable across the transaction.
+            "data_containers": {"postgres": data_containers["postgres"]},
             "canonical_digest": hashlib.sha256(
                 settings.canonical_state.read_bytes()
             ).hexdigest(),
@@ -1273,19 +1312,43 @@ def verify_volumes(
     runner: Runner,
     payload: Mapping[str, object],
     expected: Mapping[str, object],
-) -> None:
+) -> dict[str, dict[str, str]]:
     compose_files = payload.get("compose_files")
     if not isinstance(compose_files, list) or not all(
         isinstance(item, str) for item in compose_files
     ):
         fail("compose_context_invalid")
-    verify_live_volumes(
+    config_output = run_or_fail(
         runner,
+        compose_command(
+            str(payload["compose_project"]),
+            str(payload["working_directory"]),
+            [str(item) for item in compose_files],
+            "config",
+            "--format",
+            "json",
+        ),
+        "compose_volume_contract",
+    )
+    validate_compose_volume_contract(
+        config_output,
         str(payload["compose_project"]),
-        str(payload["working_directory"]),
-        [str(item) for item in compose_files],
         expected,
     )
+    identities = verify_live_volumes(
+        runner,
+        str(payload["compose_project"]),
+        expected,
+    )
+    recorded = payload.get("data_containers")
+    if recorded is not None:
+        if (
+            not isinstance(recorded, dict)
+            or set(recorded) != {"postgres"}
+            or recorded["postgres"] != identities["postgres"]
+        ):
+            fail("data_container_identity_changed")
+    return identities
 
 
 def lifecycle(

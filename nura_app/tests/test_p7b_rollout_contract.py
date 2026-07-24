@@ -58,6 +58,11 @@ class FakeRunner:
         fail_target_up: bool = False,
         fail_smoke: bool = False,
         wrong_live_volume: bool = False,
+        missing_postgres_container: bool = False,
+        ambiguous_postgres_containers: bool = False,
+        wrong_postgres_lineage: bool = False,
+        unhealthy_postgres: bool = False,
+        redis_container_id: str = "current-container-redis",
         redis_health_failures: int = 0,
         redis_health_timeout_failures: int = 0,
         redis_health_lowercase_pong: bool = False,
@@ -74,6 +79,11 @@ class FakeRunner:
         self.fail_target_up = fail_target_up
         self.fail_smoke = fail_smoke
         self.wrong_live_volume = wrong_live_volume
+        self.missing_postgres_container = missing_postgres_container
+        self.ambiguous_postgres_containers = ambiguous_postgres_containers
+        self.wrong_postgres_lineage = wrong_postgres_lineage
+        self.unhealthy_postgres = unhealthy_postgres
+        self.redis_container_id = redis_container_id
         self.redis_health_failures = redis_health_failures
         self.redis_health_timeout_failures = redis_health_timeout_failures
         self.redis_health_lowercase_pong = redis_health_lowercase_pong
@@ -99,14 +109,34 @@ class FakeRunner:
             return p7b.CommandResult(0, TARGET_ID + "\n")
         if call[:4] == ("docker", "volume", "inspect", "--format"):
             return p7b.CommandResult(0, call[-1] + "\n")
-        if call[:2] == ("docker", "inspect") and "{{json .Mounts}}" in call:
-            service = "postgres" if call[-1].endswith("postgres") else "redis"
+        if call[:3] == ("docker", "ps", "--all"):
+            service = call[4].removeprefix("label=com.docker.compose.service=")
+            if service == "postgres" and self.missing_postgres_container:
+                return p7b.CommandResult(0)
+            if service == "postgres" and self.ambiguous_postgres_containers:
+                return p7b.CommandResult(0, "current-container-postgres-a\ncurrent-container-postgres-b\n")
+            container = (
+                self.redis_container_id
+                if service == "redis"
+                else f"current-container-{service}"
+            )
+            return p7b.CommandResult(0, f"{container}\n")
+        if call[:2] == ("docker", "inspect") and any("{{json .Mounts}}" in item for item in call):
+            service = "postgres" if "postgres" in call[-1] else "redis"
             name = (
                 "wrong_volume"
                 if self.wrong_live_volume
                 else f"nura_app_{service}_data"
             )
             destination = "/var/lib/postgresql/data" if service == "postgres" else "/data"
+            if any("{{.State.Running}}" in item for item in call):
+                health = "unhealthy" if service == "postgres" and self.unhealthy_postgres else "healthy"
+                project = "unexpected" if service == "postgres" and self.wrong_postgres_lineage else "nura_app"
+                return p7b.CommandResult(
+                    0,
+                    f"true|{health}|{project}|{service}|"
+                    + json.dumps([{"Type": "volume", "Name": name, "Destination": destination}]),
+                )
             return p7b.CommandResult(
                 0,
                 json.dumps(
@@ -808,8 +838,66 @@ def test_bootstrap_rejects_existing_but_unmounted_expected_volume(
 ) -> None:
     p7b.write_record(settings.handoff_file, "handoff", handoff(settings))
     p7b.transaction(settings, "prepared")
-    with pytest.raises(SystemExit, match="live_volume_identity_mismatch"):
+    with pytest.raises(SystemExit, match="verification_failed:volume_container:postgres:live_volume_identity_mismatch"):
         p7b.bootstrap(settings, FakeRunner(wrong_live_volume=True))
+
+
+def test_bootstrap_discovers_current_postgres_without_target_compose_container(
+    settings: p7b.Settings,
+) -> None:
+    p7b.write_record(settings.handoff_file, "handoff", handoff(settings))
+    p7b.transaction(settings, "prepared")
+    runner = FakeRunner()
+    p7b.bootstrap(settings, runner)
+    saved = p7b.read_record(settings.baseline_file, "baseline")
+    assert saved["data_containers"] == {"postgres": {
+        "container": "current-container-postgres",
+        "compose_project": "nura_app",
+        "compose_service": "postgres",
+        "volume": "nura_app_postgres_data",
+    }}
+    assert not any(" ps -q --all postgres" in " ".join(call) for call in runner.calls)
+
+
+@pytest.mark.parametrize(
+    ("runner", "detail"),
+    [
+        (FakeRunner(missing_postgres_container=True), "postgres_container_missing"),
+        (FakeRunner(ambiguous_postgres_containers=True), "postgres_container_ambiguous"),
+        (FakeRunner(wrong_postgres_lineage=True), "postgres_container_lineage_mismatch"),
+        (FakeRunner(unhealthy_postgres=True), "postgres_container_unhealthy"),
+    ],
+)
+def test_bootstrap_fails_closed_for_invalid_current_postgres_identity(
+    settings: p7b.Settings,
+    runner: FakeRunner,
+    detail: str,
+) -> None:
+    p7b.write_record(settings.handoff_file, "handoff", handoff(settings))
+    p7b.transaction(settings, "prepared")
+    with pytest.raises(SystemExit, match=f"verification_failed:volume_container:postgres:{detail}"):
+        p7b.bootstrap(settings, runner)
+    assert not any(" up " in f" {' '.join(call)} " for call in runner.calls)
+
+
+def test_volume_verification_preserves_postgres_identity_but_allows_redis_recreate(
+    settings: p7b.Settings,
+) -> None:
+    payload = baseline(settings)
+    payload["data_containers"] = {
+        "postgres": {
+            "container": "current-container-postgres",
+            "compose_project": "nura_app",
+            "compose_service": "postgres",
+            "volume": "nura_app_postgres_data",
+        }
+    }
+    identities = p7b.verify_volumes(
+        FakeRunner(redis_container_id="replacement-container-redis"),
+        payload,
+        payload["volumes"],
+    )
+    assert identities["redis"]["container"] == "replacement-container-redis"
 
 
 def test_stage1_orders_intent_before_single_mutation_and_verification(
