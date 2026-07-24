@@ -43,6 +43,11 @@ class PromoCheckoutError(ValueError):
 
 class PaymentService:
     @staticmethod
+    def _require_payments_enabled() -> None:
+        if not settings.payments_enabled:
+            raise RuntimeError("payments_disabled_for_telegram_pilot")
+
+    @staticmethod
     def _web_product_base_amount(
         product: Literal["web_matrix", "web_tarot"],
     ) -> int:
@@ -190,6 +195,7 @@ class PaymentService:
         *,
         idempotence_key: str | None = None,
     ) -> dict:
+        PaymentService._require_payments_enabled()
         idempotence_key = idempotence_key or uuid.uuid4().hex[:32]
         payment = YooPayment.create(
             {
@@ -225,6 +231,7 @@ class PaymentService:
         *,
         idempotence_key: str | None = None,
     ) -> dict:
+        PaymentService._require_payments_enabled()
         idempotence_key = idempotence_key or uuid.uuid4().hex[:32]
         payment = YooPayment.create(
             {
@@ -304,6 +311,7 @@ class PaymentService:
 
     @staticmethod
     async def create_matrix_payment(telegram_id: int) -> dict:
+        PaymentService._require_payments_enabled()
         idempotence_key = uuid.uuid4().hex[:32]
         payment = YooPayment.create(
             {
@@ -340,6 +348,7 @@ class PaymentService:
         *,
         idempotence_key: str | None = None,
     ) -> dict:
+        PaymentService._require_payments_enabled()
         if checkout_amount.product != "web_matrix":
             raise ValueError("Invalid checkout amount product")
         idempotence_key = idempotence_key or uuid.uuid4().hex[:32]
@@ -377,6 +386,7 @@ class PaymentService:
         *,
         idempotence_key: str | None = None,
     ) -> dict:
+        PaymentService._require_payments_enabled()
         if checkout_amount.product != "web_tarot":
             raise ValueError("Invalid checkout amount product")
         idempotence_key = idempotence_key or uuid.uuid4().hex[:32]
@@ -435,6 +445,7 @@ class PaymentService:
         description: str,
         metadata: dict,
     ) -> dict:
+        PaymentService._require_payments_enabled()
         idempotence_key = uuid.uuid4().hex[:32]
         payment = YooPayment.create(
             {

@@ -25,6 +25,7 @@ BUNDLE_FILES = (
     "scripts/prepare_atomic_release_host.py",
     "scripts/environment_reconciliation.py",
     "scripts/p7b_rollout.py",
+    "scripts/p7_telegram_pilot_controller.py",
 )
 BUNDLE_SCHEMA = 2
 

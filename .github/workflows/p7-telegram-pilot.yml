@@ -1,0 +1,97 @@
+name: P7 Telegram pilot deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      controller_sha:
+        description: Exact merged commit containing the P7 pilot controller
+        required: true
+        type: string
+      target_sha:
+        description: Exact merged commit to run as the isolated pilot
+        required: true
+        type: string
+      expected_production_host:
+        description: Exact production hostname expected by the controller
+        required: true
+        type: string
+
+concurrency:
+  group: nura-tg-pilot-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-pilot:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CONTROLLER_SHA: ${{ inputs.controller_sha }}
+      TARGET_SHA: ${{ inputs.target_sha }}
+      EXPECTED_HOST: ${{ inputs.expected_production_host }}
+      NURA_TG_BOT_TOKEN: ${{ secrets.NURA_TG_BOT_TOKEN }}
+    steps:
+      - name: Check exact controller and target identities
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Reject mutable or malformed deploy identities
+        run: |
+          set -Eeuo pipefail
+          [[ "$CONTROLLER_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test -n "$EXPECTED_HOST"
+          test -n "$NURA_TG_BOT_TOKEN"
+          git cat-file -e "$CONTROLLER_SHA^{commit}"
+          git cat-file -e "$TARGET_SHA^{commit}"
+          git merge-base --is-ancestor "$CONTROLLER_SHA" origin/main
+          git merge-base --is-ancestor "$TARGET_SHA" origin/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+
+      - name: Run immutable exact-controller bundle
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          CONTROLLER_SHA: ${{ env.CONTROLLER_SHA }}
+          TARGET_SHA: ${{ env.TARGET_SHA }}
+          EXPECTED_HOST: ${{ env.EXPECTED_HOST }}
+          NURA_TG_BOT_TOKEN: ${{ env.NURA_TG_BOT_TOKEN }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: CONTROLLER_SHA,TARGET_SHA,EXPECTED_HOST,NURA_TG_BOT_TOKEN
+          script: |
+            set -Eeuo pipefail
+            [[ "$CONTROLLER_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+            cd /opt/nura
+            git fetch --no-tags origin main
+            git cat-file -e "$CONTROLLER_SHA^{commit}"
+            git cat-file -e "$TARGET_SHA^{commit}"
+            git merge-base --is-ancestor "$CONTROLLER_SHA" refs/remotes/origin/main
+            git merge-base --is-ancestor "$TARGET_SHA" refs/remotes/origin/main
+            bundle_manager() {
+              git show "$CONTROLLER_SHA:scripts/release_execution_bundle.py" | python3 - "$@"
+            }
+            bundle="$(bundle_manager materialize --repo /opt/nura --workflow-sha "$CONTROLLER_SHA" --parent /var/tmp)"
+            token_file="$(mktemp /var/tmp/nura-tg-token.XXXXXX)"
+            chmod 600 "$token_file"
+            printf '%s' "$NURA_TG_BOT_TOKEN" > "$token_file"
+            unset NURA_TG_BOT_TOKEN
+            cleanup() {
+              status=$?
+              rm -f -- "$token_file"
+              bundle_manager cleanup --bundle "$bundle" --workflow-sha "$CONTROLLER_SHA" || status=1
+              exit "$status"
+            }
+            trap cleanup EXIT
+            controller_digest="$(sha256sum "$bundle/scripts/p7_telegram_pilot_controller.py" | awk '{print $1}')"
+            env -u PYTHONPATH -u PYTHONHOME NURA_TG_CONTROLLER_DIGEST="$controller_digest" \
+              python3 "$bundle/scripts/p7_telegram_pilot_controller.py" deploy \
+              --repo /opt/nura --controller-sha "$CONTROLLER_SHA" --target-sha "$TARGET_SHA" \
+              --expected-host "$EXPECTED_HOST" --token-file "$token_file"

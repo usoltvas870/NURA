@@ -12,9 +12,10 @@ if [ "$raw_bytes" -ne "$single_line_bytes" ]; then
     exit 1
 fi
 
-REDISCLI_AUTH=$(cat "$secret_file")
-if [ -z "$REDISCLI_AUTH" ]; then
+if [ ! -s "$secret_file" ]; then
     exit 1
 fi
-export REDISCLI_AUTH
-exec redis-cli --no-auth-warning ping
+
+# --askpass reads stdin; the credential is never inherited through environment
+# or command arguments by the healthcheck process.
+cat "$secret_file" | redis-cli --no-auth-warning --askpass ping

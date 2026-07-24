@@ -41,9 +41,12 @@ celery_app.conf.update(
     task_time_limit=480,
     task_soft_time_limit=360,
     broker_connection_retry_on_startup=True,
+    task_default_queue=settings.celery_task_queue,
+    task_default_exchange=settings.celery_task_queue,
+    task_default_routing_key=settings.celery_task_queue,
 )
 
-celery_app.conf.beat_schedule = {
+celery_app.conf.beat_schedule = {} if settings.nura_tg_pilot else {
     "send-daily-card": {
         "task": "core.tasks.send_daily_card",
         "schedule": crontab(hour=3, minute=0),
@@ -1133,6 +1136,9 @@ async def _downgrade_expired_subscriptions_async() -> dict:
 
 @celery_app.task(name="core.tasks.charge_recurring_subscriptions")
 def charge_recurring_subscriptions() -> dict:
+    if not settings.payments_enabled:
+        logger.warning("recurring payments are disabled for the Telegram pilot")
+        return {"charged": 0, "failed": 0, "total": 0, "disabled": True}
     return _run_async(_charge_recurring_subscriptions_async())
 
 

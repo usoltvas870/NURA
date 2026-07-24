@@ -226,7 +226,8 @@ def test_redis_helpers_read_only_the_secret_file_at_runtime() -> None:
     assert "${REDIS_PASSWORD}" not in entrypoint
     assert "${REDIS_PASSWORD}" not in healthcheck
     assert "redis-cli -a" not in healthcheck
-    assert "REDISCLI_AUTH" in healthcheck
+    assert "REDISCLI_AUTH" not in healthcheck
+    assert "--askpass" in healthcheck
     assert "requirepass" in entrypoint
     assert ">/dev/null" not in healthcheck
 

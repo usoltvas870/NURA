@@ -90,6 +90,8 @@ class Settings(BaseSettings):
             "celery_result_backend",
         ),
     )
+    celery_task_queue: str = "celery"
+    nura_tg_pilot: bool = False
 
     # Report generation scheduling
     report_generation_dispatch_interval_seconds: int = Field(
@@ -112,7 +114,47 @@ class Settings(BaseSettings):
 
     # Telegram
     telegram_bot_token: str | None = None
+    telegram_bot_token_file: str | None = None
+    telegram_polling_enabled: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_plaintext_pilot_token(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+        pilot = values.get("nura_tg_pilot", values.get("NURA_TG_PILOT", False))
+        direct = values.get("telegram_bot_token", values.get("TELEGRAM_BOT_TOKEN"))
+        if pilot and direct:
+            raise ValueError("pilot_plaintext_telegram_token_forbidden")
+        return values
     bot_username: str | None = None
+
+    @model_validator(mode="after")
+    def _load_telegram_token_file(self) -> "Settings":
+        if not self.telegram_bot_token_file:
+            return self
+        try:
+            token = Path(self.telegram_bot_token_file).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise ValueError("telegram_bot_token_file_unreadable") from exc
+        if not token or "\n" in token or "\r" in token or "\x00" in token:
+            raise ValueError("telegram_bot_token_file_invalid")
+        self.telegram_bot_token = token
+        return self
+
+    @model_validator(mode="after")
+    def _require_pilot_secret_contract(self) -> "Settings":
+        """Pilot credentials must enter only through the read-only secret file."""
+        if not self.nura_tg_pilot:
+            return self
+        if not self.telegram_bot_token_file or not self.telegram_bot_token:
+            raise ValueError("pilot_telegram_token_file_required")
+        return self
+
+    @property
+    def payments_enabled(self) -> bool:
+        """The isolated Telegram pilot is intentionally sandbox-only."""
+        return not self.nura_tg_pilot
 
     # Admin Bot
     admin_bot_token: str | None = None
