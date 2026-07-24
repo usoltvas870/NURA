@@ -857,6 +857,21 @@ def test_compose_up_failure_category_is_redacted(
     assert p7b.compose_up_failure_category(p7b.CommandResult(1, stderr=stderr)) == category
 
 
+def test_compose_runtime_summary_is_secret_free_and_service_scoped() -> None:
+    payload = {
+        "compose_project": "nura_app",
+        "working_directory": "C:/work/nura_app",
+        "compose_files": ["C:/work/compose.yml"],
+    }
+    summary = p7b.compose_runtime_summary(
+        payload, p7b.APP_SERVICES, FakeRunner()
+    )
+    assert summary == {
+        service: "running:healthy" if service == "api" else "running:none"
+        for service in p7b.APP_SERVICES
+    }
+
+
 def test_resolved_compose_accepts_canonical_physical_data_sources() -> None:
     resolved = {
         "services": {
@@ -1345,6 +1360,25 @@ def test_stage2_failure_restores_environment_and_previous_runtime(
     assert settings.environment_file.read_text(encoding="utf-8").endswith(
         "TEST_MODE=true\n"
     )
+    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
+        "stage2_compensated"
+    )
+
+
+def test_stage2_compensates_when_diagnostic_persistence_fails(
+    settings: p7b.Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed(settings, "stage1_verified")
+    original = p7b.transaction
+
+    def failing_diagnostic(*args: object, **kwargs: object) -> None:
+        if "stage2_compose_runtime" in kwargs:
+            raise OSError("diagnostic storage unavailable")
+        original(*args, **kwargs)
+
+    monkeypatch.setattr(p7b, "transaction", failing_diagnostic)
+    with pytest.raises(SystemExit, match="verification_failed:compose_up"):
+        p7b.stage2(settings, FakeRunner(fail_target_up=True))
     assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
         "stage2_compensated"
     )
