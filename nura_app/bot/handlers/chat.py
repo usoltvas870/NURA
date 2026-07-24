@@ -18,6 +18,11 @@ from bot.texts.chat import (
     paywall_text,
 )
 from bot.texts.start import help_text
+from bot.utils.formatting import (
+    TELEGRAM_INPUT_MAX_LENGTH,
+    TELEGRAM_MESSAGE_MAX_LENGTH,
+    split_telegram_html_text,
+)
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
 from core.repositories.report import ReportRepository
@@ -138,6 +143,16 @@ async def chat_command_exit(message: Message, state: FSMContext) -> None:
 
 @router.message(ChatStates.chatting)
 async def chat_message(message: Message, state: FSMContext) -> None:
+    user_message = message.text
+    if not user_message or not user_message.strip():
+        await message.answer("Напиши сообщение текстом.")
+        return
+    if len(user_message) > TELEGRAM_INPUT_MAX_LENGTH:
+        await message.answer(
+            f"Сообщение слишком длинное. Максимум — {TELEGRAM_INPUT_MAX_LENGTH} символов."
+        )
+        return
+
     state_data = await state.get_data()
     chat_history = state_data.get("chat_history", [])
     matrix_data = state_data.get("matrix_data")
@@ -159,10 +174,10 @@ async def chat_message(message: Message, state: FSMContext) -> None:
 
     await message.bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
 
-    chat_history.append({"role": "user", "content": message.text})
+    chat_history.append({"role": "user", "content": user_message})
 
     response = await AIService.chat_response(
-        user_message=message.text,
+        user_message=user_message,
         chat_history=chat_history,
         matrix_data=matrix_data or {},
         user_name=user_name,
@@ -192,17 +207,24 @@ async def chat_message(message: Message, state: FSMContext) -> None:
         messages_left = max(0, FREE_MESSAGES_LIMIT - new_count)
         await state.update_data(chat_messages_left=messages_left)
 
+    suffix = ""
     if messages_left == 0:
-        response += messages_remaining_text(0)
-        await message.answer(response)
+        suffix = messages_remaining_text(0)
+    elif messages_left > 0:
+        suffix = messages_remaining_text(messages_left)
+
+    response_chunks = split_telegram_html_text(
+        response,
+        max_length=TELEGRAM_MESSAGE_MAX_LENGTH - len(suffix),
+    )
+    response_chunks[-1] += suffix
+    for response_chunk in response_chunks:
+        await message.answer(response_chunk)
+
+    if messages_left == 0:
         await message.answer(paywall_text(), reply_markup=pwa_cta_keyboard())
         await state.clear()
         return
-
-    if messages_left > 0:
-        response += messages_remaining_text(messages_left)
-
-    await message.answer(response)
 
 
 @router.callback_query(F.data == "chat_exit")

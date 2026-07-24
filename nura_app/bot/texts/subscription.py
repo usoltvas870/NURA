@@ -1,3 +1,6 @@
+from bot.utils.formatting import escape_telegram_html
+
+
 def subscription_offer_text() -> str:
     return (
         "<b>💎 NURA Premium — 390 ₽/месяц</b>\n\n"
@@ -16,7 +19,7 @@ def subscription_activated_text(until: str) -> str:
     return (
         "<b>🎉 Подписка оформлена!</b>\n\n"
         "Твой статус: <b>👑 Premium</b>\n"
-        f"Действительна до: {until}\n\n"
+        f"Действительна до: {escape_telegram_html(until)}\n\n"
         "<b>Тебе доступно:</b>\n"
         "• Все полные отчёты\n"
         "• Чат с NURA\n"
@@ -46,8 +49,8 @@ def expired_text() -> str:
 
 def daily_insight_text(name: str, insight: str) -> str:
     return (
-        f"<b>🌅 Привет, {name}.</b>\n\n"
-        f"{insight}\n\n"
+        f"<b>🌅 Привет, {escape_telegram_html(name)}.</b>\n\n"
+        f"{escape_telegram_html(insight)}\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "✨ Хочешь глубже? Открой полный отчёт или\n"
         "напиши NURA в чате — сегодня твой архетип\n"

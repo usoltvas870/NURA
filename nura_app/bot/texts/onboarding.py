@@ -1,6 +1,10 @@
+from bot.utils.formatting import escape_telegram_html
+
+
 def onboarding_greeting_text(first_name: str) -> str:
+    safe_first_name = escape_telegram_html(first_name)
     return (
-        f"<b>Приятно познакомиться, {first_name}! ✶</b>\n\n"
+        f"<b>Приятно познакомиться, {safe_first_name}! ✶</b>\n\n"
         "NURA — это пространство, где ты можешь узнать себя\n"
         "через свою <b>Матрицу Судьбы</b>.\n\n"
         "22 аркана, зашифрованных в твоей дате рождения, хранят\n"

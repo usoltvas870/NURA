@@ -1,8 +1,22 @@
 # NURA — State
 
-> Последнее обновление: **18.07.2026 — Сессия 86** — GPT-5 Codex
+> Последнее обновление: **24.07.2026 — Сессия 87** — GPT-5 Codex
 
 ---
+
+## Сессия 87 — 24.07.2026
+- Модель: GPT-5 Codex
+- Что сделано: SECURITY RENDERING GATE
+  - Для HTML/XML report templates включён Jinja autoescape; сырой user/LLM-контент больше не проходит через `|safe`
+  - AI-текст full-report выводится как экранированный текст с сохранением переносов; mini/full HTML и PDF покрыты security rendering tests
+  - Для Telegram HTML добавлен единый escape/split helper; динамические имена, AI-ответы, вопросы и report/profile metadata экранируются отдельно от статических тегов
+  - Telegram chat и Tarot question/yes-no ограничены 2000 символами до AI, history и quota; длинные escaped-ответы разбиваются без разрыва HTML entities
+  - Settings security tests изолированы от локального `.env` и ambient YooKassa credentials без ослабления production fail-closed contract
+  - PWA, платежная логика, квоты, подписки, модели БД и миграции не изменялись
+- Проверки: целевой security/Telegram/settings набор, Ruff, mini/full WeasyPrint PDF QA; безопасный общий Python suite зелёный после исключения unrelated Tarot asset manifest check
+- Известное unrelated: `test_tarot_asset_builder_verifies_checked_in_derivatives` падает на существующем неканоничном Tarot asset manifest; assets не входят в diff этого этапа
+- Блокеры: нет в scope SECURITY RENDERING GATE
+- Следующие шаги: отдельным этапом оценить готовность к Telegram identity и attribution foundation
 
 ## Сессия 86 — 18.07.2026
 - Модель: GPT-5 Codex

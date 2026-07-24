@@ -1,3 +1,6 @@
+from bot.utils.formatting import escape_telegram_html
+
+
 def no_matrix_text() -> str:
     return (
         "Чтобы получать инсайты, сначала нужно рассчитать свою матрицу.\n\n"
@@ -8,9 +11,9 @@ def no_matrix_text() -> str:
 def insight_of_day_text(archetype: str, insight_text: str) -> str:
     return (
         f"<b>🌒 Инсайт дня</b>\n"
-        f"<i>для архетипа {archetype}</i>\n\n"
+        f"<i>для архетипа {escape_telegram_html(archetype)}</i>\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"{insight_text}\n\n"
+        f"{escape_telegram_html(insight_text)}\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
         "Этот инсайт пришёл к тебе сегодня неслучайно.\n"
         "<i>Попробуй заметить, как он отзовётся в течение дня.</i>"
@@ -20,7 +23,7 @@ def insight_of_day_text(archetype: str, insight_text: str) -> str:
 def share_insight_text(insight_text: str) -> str:
     return (
         f"<b>🌒 Инсайт дня от NURA</b>\n\n"
-        f"{insight_text}\n\n"
+        f"{escape_telegram_html(insight_text)}\n\n"
         "— NURA, твой AI-проводник"
     )
 

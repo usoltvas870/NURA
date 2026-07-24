@@ -1,3 +1,6 @@
+from bot.utils.formatting import escape_telegram_html
+
+
 def explanation_text() -> str:
     return (
         "<b>❤️ Совместимость архетипов</b>\n\n"
@@ -22,11 +25,14 @@ def ask_partner_name_text() -> str:
 
 
 def ask_relation_type_text(partner_name: str) -> str:
-    return f"Хорошо. Кем {partner_name} приходится тебе?"
+    return f"Хорошо. Кем {escape_telegram_html(partner_name)} приходится тебе?"
 
 
 def ask_partner_date_text(partner_name: str) -> str:
-    return f"Введи дату рождения {partner_name} в формате ДД.ММ.ГГГГ"
+    return (
+        f"Введи дату рождения {escape_telegram_html(partner_name)} "
+        "в формате ДД.ММ.ГГГГ"
+    )
 
 
 def loading_steps() -> list[str]:
@@ -54,15 +60,17 @@ def mini_compatibility_text(
         "общение":    "Как вы взаимодействуете",
     }
     interact_label = rel_labels.get(relation_type, "Как вы взаимодействуете")
+    safe_user_name = escape_telegram_html(user_name)
+    safe_partner_name = escape_telegram_html(partner_name)
 
     return (
         f"<b>✦ Совместимость</b>\n\n"
-        f"<b>🎭 {user_name}</b>\n"
-        f"{portrait_user}\n\n"
-        f"<b>🎭 {partner_name}</b>\n"
-        f"{portrait_partner}\n\n"
+        f"<b>🎭 {safe_user_name}</b>\n"
+        f"{escape_telegram_html(portrait_user)}\n\n"
+        f"<b>🎭 {safe_partner_name}</b>\n"
+        f"{escape_telegram_html(portrait_partner)}\n\n"
         f"<b>💞 {interact_label}</b>\n"
-        f"{how_you_interact}"
+        f"{escape_telegram_html(how_you_interact)}"
     )
 
 def compat_details_text(
@@ -73,14 +81,18 @@ def compat_details_text(
     arcana_second_number: int,
     arcana_second_name: str,
 ) -> str:
+    safe_user_name = escape_telegram_html(user_name)
+    safe_partner_name = escape_telegram_html(partner_name)
+    safe_first_name = escape_telegram_html(arcana_first_name)
+    safe_second_name = escape_telegram_html(arcana_second_name)
     return (
         "🔍 <b>Как NURA считает совместимость</b>\n\n"
-        f"<b>{user_name}</b>\n"
-        f"Аркан: {arcana_first_number}. {arcana_first_name}\n"
+        f"<b>{safe_user_name}</b>\n"
+        f"Аркан: {arcana_first_number}. {safe_first_name}\n"
         "Это центральный аркан матрицы — архетип, который определяет "
         "базовую стратегию человека, его реакции и способ принятия решений.\n\n"
-        f"<b>{partner_name}</b>\n"
-        f"Аркан: {arcana_second_number}. {arcana_second_name}\n\n"
+        f"<b>{safe_partner_name}</b>\n"
+        f"Аркан: {arcana_second_number}. {safe_second_name}\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
         "<b>Метод расчёта:</b>\n"
         "Каждая дата рождения даёт число от 1 до 22 — номер аркана Таро. "

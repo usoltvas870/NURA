@@ -16,6 +16,11 @@ from bot.keyboards.tarot_keyboard import (
 )
 from bot.states.tarot_state import TarotStates
 from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
+from bot.utils.formatting import (
+    TELEGRAM_INPUT_MAX_LENGTH,
+    escape_telegram_html,
+    split_telegram_html_message,
+)
 from bot.utils.loading import animated_loading
 from core.arcana_data import ARCANA
 from core.config import settings
@@ -150,10 +155,10 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
     has_tarot = bool(user.tarot_subscription)
     user_name_display = user.first_name or user.username or "друг"
     text = (
-        f"🌒 <b>Карта дня для {user_name_display}</b>\n"
+        f"🌒 <b>Карта дня для {escape_telegram_html(user_name_display)}</b>\n"
         f"<i>{today.strftime('%d.%m.%Y')}</i>\n"
         f"{'─' * 20}\n\n"
-        f"{result_text}"
+        f"{escape_telegram_html(result_text)}"
     )
 
     if has_tarot:
@@ -215,17 +220,17 @@ async def show_tarot_weekly(callback: CallbackQuery) -> None:
     overall = result.get("overall", "")
     text = (
         f"✦ Расклад недели\n\n"
-        f"💪 Тело \u2014 {b.get('card_name', '')}\n"
-        f"{b.get('interpretation', '')}\n"
-        f"Практика: {b.get('practice', '')}\n\n"
-        f"🧠 Ум \u2014 {m.get('card_name', '')}\n"
-        f"{m.get('interpretation', '')}\n"
-        f"Практика: {m.get('practice', '')}\n\n"
-        f"🌀 Дух \u2014 {s.get('card_name', '')}\n"
-        f"{s.get('interpretation', '')}\n"
-        f"Практика: {s.get('practice', '')}\n\n"
+        f"💪 Тело \u2014 {escape_telegram_html(b.get('card_name', ''))}\n"
+        f"{escape_telegram_html(b.get('interpretation', ''))}\n"
+        f"Практика: {escape_telegram_html(b.get('practice', ''))}\n\n"
+        f"🧠 Ум \u2014 {escape_telegram_html(m.get('card_name', ''))}\n"
+        f"{escape_telegram_html(m.get('interpretation', ''))}\n"
+        f"Практика: {escape_telegram_html(m.get('practice', ''))}\n\n"
+        f"🌀 Дух \u2014 {escape_telegram_html(s.get('card_name', ''))}\n"
+        f"{escape_telegram_html(s.get('interpretation', ''))}\n"
+        f"Практика: {escape_telegram_html(s.get('practice', ''))}\n\n"
         f"{'─' * 16}\n"
-        f"{overall}"
+        f"{escape_telegram_html(overall)}"
     )
     await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
 
@@ -293,7 +298,7 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
     text = (
         f"✶ {sphere_name}\n"
         f"{'─' * 20}\n\n"
-        f"{interpretation}\n\n"
+        f"{escape_telegram_html(interpretation)}\n\n"
         f"Аркан · {arcana_name}"
     )
     await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
@@ -363,7 +368,7 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
     text = (
         f"☯ Теневые стороны\n"
         f"{'─' * 20}\n\n"
-        f"{interpretation}\n\n"
+        f"{escape_telegram_html(interpretation)}\n\n"
         f"{ARCANA[arcana_one]['name']} · {ARCANA[arcana_two]['name']}"
     )
     await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
@@ -427,7 +432,7 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
     text = (
         f"🌅 Энергия месяца — {month_name}\n"
         f"{'─' * 20}\n\n"
-        f"{interpretation}"
+        f"{escape_telegram_html(interpretation)}"
     )
     await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
 
@@ -491,7 +496,7 @@ async def show_tarot_blocks(callback: CallbackQuery) -> None:
     text = (
         f"🚧 Что мешает\n"
         f"{'─' * 20}\n\n"
-        f"{interpretation}"
+        f"{escape_telegram_html(interpretation)}"
     )
     await callback.message.edit_text(text, reply_markup=tarot_result_keyboard())
 
@@ -513,8 +518,13 @@ async def start_tarot_yes_no(callback: CallbackQuery, state: FSMContext) -> None
 
 @router.message(TarotStates.waiting_for_question)
 async def handle_question_input(message: Message, state: FSMContext) -> None:
-    if not message.text:
+    if not message.text or not message.text.strip():
         await message.answer("Напиши свой вопрос текстом.")
+        return
+    if len(message.text) > TELEGRAM_INPUT_MAX_LENGTH:
+        await message.answer(
+            f"Вопрос слишком длинный. Максимум — {TELEGRAM_INPUT_MAX_LENGTH} символов."
+        )
         return
 
     data = await state.get_data()
@@ -552,11 +562,14 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
         text = (
             f"🔮 Да/Нет\n"
             f"{'─' * 20}\n\n"
-            f"Вопрос: {question}\n\n"
-            f"{interpretation}\n\n"
+            f"Вопрос: {escape_telegram_html(question)}\n\n"
+            f"{escape_telegram_html(interpretation)}\n\n"
             f"Аркан · {arcana_name}"
         )
-        await message.answer(text, reply_markup=tarot_result_keyboard())
+        chunks = split_telegram_html_message(text)
+        for chunk in chunks[:-1]:
+            await message.answer(chunk)
+        await message.answer(chunks[-1], reply_markup=tarot_result_keyboard())
 
     else:
         past_num = (base_arcana - 1) % 22 + 1
@@ -596,12 +609,15 @@ async def handle_question_input(message: Message, state: FSMContext) -> None:
         text = (
             f"◈ Расклад по вопросу\n"
             f"{'─' * 20}\n\n"
-            f"Вопрос: {question}\n\n"
-            f"{interpretation}\n\n"
+            f"Вопрос: {escape_telegram_html(question)}\n\n"
+            f"{escape_telegram_html(interpretation)}\n\n"
             f"Прошлое · {past_name}\n"
             f"Настоящее · {present_name}\n"
             f"Будущее · {future_name}"
         )
-        await message.answer(text, reply_markup=tarot_result_keyboard())
+        chunks = split_telegram_html_message(text)
+        for chunk in chunks[:-1]:
+            await message.answer(chunk)
+        await message.answer(chunks[-1], reply_markup=tarot_result_keyboard())
 
     await state.clear()

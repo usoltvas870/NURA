@@ -30,7 +30,7 @@ def safe_production_settings(**overrides: object) -> Settings:
         "celery_result_backend": "redis://:test-password@redis:6379/2",
     }
     values.update(overrides)
-    return Settings(**values)
+    return Settings(_env_file=None, **values)
 
 
 @pytest.mark.parametrize(
@@ -47,7 +47,7 @@ def test_app_environment_aliases_and_unknown_values_fail_closed(
     environment: str,
 ) -> None:
     with pytest.raises(ValidationError, match="app_env_must_be_one_of"):
-        Settings(app_env=environment)
+        Settings(_env_file=None, app_env=environment)
 
 
 @pytest.mark.parametrize(
@@ -88,6 +88,7 @@ def test_invalid_production_configuration_fails_with_safe_error(
 def test_development_and_test_keep_transitional_configuration_compatible() -> None:
     for environment in ("development", "test"):
         settings = Settings(
+            _env_file=None,
             app_env=environment,
             test_mode=True,
             yookassa_verify_on_webhook=False,

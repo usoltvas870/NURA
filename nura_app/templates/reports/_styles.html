@@ -81,6 +81,10 @@ h3 { font-size: var(--h3-size); }
 
 p { font-size: var(--body-size); line-height: 1.7; color: rgba(245, 243, 238, 0.85); }
 small { font-size: var(--small-size); color: var(--muted); }
+.report-plain-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
 /* Cover */
 .cover {
@@ -1966,6 +1970,10 @@ small { font-size: var(--small-size); color: var(--muted); }
 }
 
 @media print {
+  noscript {
+    display: none !important;
+  }
+
   body {
     font-size: 11pt;
     color: #1a1a1a;

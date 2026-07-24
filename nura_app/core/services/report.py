@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.config import settings
@@ -44,7 +44,14 @@ class ReportService:
 
     @classmethod
     def _env(cls) -> Environment:
-        return Environment(loader=FileSystemLoader(str(cls.TEMPLATE_DIR)))
+        return Environment(
+            loader=FileSystemLoader(str(cls.TEMPLATE_DIR)),
+            autoescape=select_autoescape(
+                enabled_extensions=("html", "htm", "xml"),
+                default_for_string=False,
+                default=False,
+            ),
+        )
 
     @classmethod
     def generate_html_report(cls, report_data: dict, template_name: str = "full_report.html") -> str:

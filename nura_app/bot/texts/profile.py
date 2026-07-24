@@ -1,7 +1,23 @@
-def profile_no_matrix_text(name: str, birth_date: str | None = None) -> str:
-    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
+from bot.utils.formatting import escape_telegram_html
+
+
+def _profile_values(
+    name: str,
+    archetype: str = "",
+    birth_date: str | None = None,
+) -> tuple[str, str, str]:
     return (
-        f"<b>👤 {name}</b>\n\n"
+        escape_telegram_html(name),
+        escape_telegram_html(archetype),
+        escape_telegram_html(birth_date),
+    )
+
+
+def profile_no_matrix_text(name: str, birth_date: str | None = None) -> str:
+    safe_name, _, safe_birth_date = _profile_values(name, birth_date=birth_date)
+    bd_line = f"📅 Дата рождения: {safe_birth_date}\n" if birth_date else ""
+    return (
+        f"<b>👤 {safe_name}</b>\n\n"
         f"{bd_line}"
         "Статус: 🌱 <i>исследователь</i>\n"
         "Матрица: <i>ещё не рассчитана</i>\n\n"
@@ -12,10 +28,13 @@ def profile_no_matrix_text(name: str, birth_date: str | None = None) -> str:
 
 
 def profile_mini_text(name: str, archetype: str, reports_count: int, birth_date: str | None = None) -> str:
-    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
+    safe_name, safe_archetype, safe_birth_date = _profile_values(
+        name, archetype, birth_date
+    )
+    bd_line = f"📅 Дата рождения: {safe_birth_date}\n" if birth_date else ""
     return (
-        f"<b>👤 {name}</b>\n\n"
-        f"<b>🎭 Архетип:</b> {archetype}\n"
+        f"<b>👤 {safe_name}</b>\n\n"
+        f"<b>🎭 Архетип:</b> {safe_archetype}\n"
         f"{bd_line}"
         "Статус: 📖 <i>есть мини-разбор</i>\n"
         f"Отчётов: {reports_count}\n\n"
@@ -28,10 +47,13 @@ def profile_mini_text(name: str, archetype: str, reports_count: int, birth_date:
 
 
 def profile_full_text(name: str, archetype: str, reports_count: int, birth_date: str | None = None) -> str:
-    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
+    safe_name, safe_archetype, safe_birth_date = _profile_values(
+        name, archetype, birth_date
+    )
+    bd_line = f"📅 Дата рождения: {safe_birth_date}\n" if birth_date else ""
     return (
-        f"<b>👤 {name}</b>\n\n"
-        f"<b>🎭 Архетип:</b> {archetype}\n"
+        f"<b>👤 {safe_name}</b>\n\n"
+        f"<b>🎭 Архетип:</b> {safe_archetype}\n"
         f"{bd_line}"
         "Статус: 📖 <i>есть полный отчёт</i>\n"
         f"Отчётов: {reports_count}\n\n"
@@ -44,13 +66,16 @@ def profile_full_text(name: str, archetype: str, reports_count: int, birth_date:
 
 
 def profile_subscriber_text(name: str, archetype: str, until: str, reports_count: int, birth_date: str | None = None) -> str:
-    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
+    safe_name, safe_archetype, safe_birth_date = _profile_values(
+        name, archetype, birth_date
+    )
+    bd_line = f"📅 Дата рождения: {safe_birth_date}\n" if birth_date else ""
     return (
-        f"<b>👤 {name}</b>\n\n"
-        f"<b>🎭 Архетип:</b> {archetype}\n"
+        f"<b>👤 {safe_name}</b>\n\n"
+        f"<b>🎭 Архетип:</b> {safe_archetype}\n"
         f"{bd_line}"
         "👑 Статус: <b>подписка активна</b>\n"
-        f"Подписка до: {until}\n"
+        f"Подписка до: {escape_telegram_html(until)}\n"
         f"Отчётов: {reports_count}\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
         "<b>У тебя полный доступ:</b>\n"
@@ -61,10 +86,13 @@ def profile_subscriber_text(name: str, archetype: str, until: str, reports_count
 
 
 def profile_tarot_text(name: str, archetype: str, reports_count: int, birth_date: str | None = None) -> str:
-    bd_line = f"📅 Дата рождения: {birth_date}\n" if birth_date else ""
+    safe_name, safe_archetype, safe_birth_date = _profile_values(
+        name, archetype, birth_date
+    )
+    bd_line = f"📅 Дата рождения: {safe_birth_date}\n" if birth_date else ""
     return (
-        f"<b>👤 {name}</b>\n\n"
-        f"<b>🎭 Архетип:</b> {archetype}\n"
+        f"<b>👤 {safe_name}</b>\n\n"
+        f"<b>🎭 Архетип:</b> {safe_archetype}\n"
         f"{bd_line}"
         "🃏 Таро-подписка: активна\n"
         f"Отчётов: {reports_count}\n\n"
@@ -89,6 +117,9 @@ def reports_list_text(reports: list) -> str:
         date = r.get("date", "")
         subtype = "полный" if r.get("is_full") else "мини-разбор"
         emoji = "❤️" if "совместимость" in report_type.lower() else "🎭"
-        lines.append(f"{i}. {emoji} {report_type} — {date}")
+        lines.append(
+            f"{i}. {emoji} {escape_telegram_html(report_type)} — "
+            f"{escape_telegram_html(date)}"
+        )
         lines.append(f"   <i>Тип: {subtype}</i>\n")
     return "\n".join(lines)

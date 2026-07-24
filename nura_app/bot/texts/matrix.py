@@ -1,3 +1,6 @@
+from bot.utils.formatting import escape_telegram_html
+
+
 def ask_birth_date_text() -> str:
     return (
         "<b>Для расчёта матрицы мне нужна твоя дата рождения.</b>\n\n"
@@ -51,14 +54,22 @@ def mini_analysis_text(
     relationship_pattern: str,
     financial_block: str,
 ) -> str:
+    safe_values = {
+        "archetype_name": escape_telegram_html(archetype_name),
+        "main_archetype": escape_telegram_html(main_archetype),
+        "core_strength": escape_telegram_html(core_strength),
+        "emotional_conflict": escape_telegram_html(emotional_conflict),
+        "relationship_pattern": escape_telegram_html(relationship_pattern),
+        "financial_block": escape_telegram_html(financial_block),
+    }
     return (
         f"<b>✦ Твоя Матрица Судьбы</b>\n"
-        f"<i>Архетип: {archetype_name} | Энергия: {archetype_number}</i>\n\n"
+        f"<i>Архетип: {safe_values['archetype_name']} | Энергия: {archetype_number}</i>\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"<b>🎭 Главный архетип</b>\n{main_archetype}\n\n"
-        f"<b>💪 Сильная сторона</b>\n{core_strength}\n\n"
-        f"<b>🌊 Эмоциональный конфликт</b>\n{emotional_conflict}\n\n"
-        f"<b>🔄 Паттерн отношений</b>\n{relationship_pattern}\n\n"
-        f"<b>💰 Денежный блок</b>\n{financial_block}\n\n"
+        f"<b>🎭 Главный архетип</b>\n{safe_values['main_archetype']}\n\n"
+        f"<b>💪 Сильная сторона</b>\n{safe_values['core_strength']}\n\n"
+        f"<b>🌊 Эмоциональный конфликт</b>\n{safe_values['emotional_conflict']}\n\n"
+        f"<b>🔄 Паттерн отношений</b>\n{safe_values['relationship_pattern']}\n\n"
+        f"<b>💰 Денежный блок</b>\n{safe_values['financial_block']}\n\n"
         ""
     )

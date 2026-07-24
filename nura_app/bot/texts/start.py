@@ -1,3 +1,6 @@
+from bot.utils.formatting import escape_telegram_html
+
+
 def welcome_text() -> str:
     return (
         "<b>✨ Добро пожаловать в NURA</b>\n\n"
@@ -12,9 +15,11 @@ def welcome_text() -> str:
 
 
 def welcome_back_text(name: str, archetype: str) -> str:
+    safe_name = escape_telegram_html(name)
+    safe_archetype = escape_telegram_html(archetype)
     return (
-        f"<b>С возвращением, {name}</b>\n\n"
-        f"Твой архетип — <b>{archetype}</b>. Но матрица — это не раз прочитать и забыть.\n"
+        f"<b>С возвращением, {safe_name}</b>\n\n"
+        f"Твой архетип — <b>{safe_archetype}</b>. Но матрица — это не раз прочитать и забыть.\n"
         "Сегодня ты можешь увидеть то, что не заметил вчера.\n\n"
         "<i>Чем займёмся?</i>\n\n"
         "🌐 <b>Полный доступ — в веб-приложении:</b>\n"

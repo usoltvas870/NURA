@@ -10,7 +10,7 @@
   <div style="margin-bottom:8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:3px;">
     Главный архетип
   </div>
-  <div class="cover-archetype" style="font-size:clamp(32px,6vw,56px);color:var(--orange);font-family:var(--font-heading);font-weight:500;">
+  <div class="cover-archetype report-plain-text" style="font-size:clamp(32px,6vw,56px);color:var(--orange);font-family:var(--font-heading);font-weight:500;">
     {{ analysis.main_archetype }}
   </div>
 
@@ -19,22 +19,22 @@
 
 <div class="card">
   <h2>Сильная сторона</h2>
-  <p>{{ analysis.core_strength }}</p>
+  <p class="report-plain-text">{{ analysis.core_strength }}</p>
 </div>
 
 <div class="card">
   <h2>Эмоциональный конфликт</h2>
-  <p>{{ analysis.emotional_conflict }}</p>
+  <p class="report-plain-text">{{ analysis.emotional_conflict }}</p>
 </div>
 
 <div class="card">
   <h2>Паттерн отношений</h2>
-  <p>{{ analysis.relationship_pattern }}</p>
+  <p class="report-plain-text">{{ analysis.relationship_pattern }}</p>
 </div>
 
 <div class="card">
   <h2>Денежный блок</h2>
-  <p>{{ analysis.financial_block }}</p>
+  <p class="report-plain-text">{{ analysis.financial_block }}</p>
 </div>
 
 <div class="mini-cta" style="text-align:center;padding:40px 20px;margin-top:20px;border:1px solid rgba(217,122,50,0.24);border-radius:var(--radius-lg);background:radial-gradient(circle at 80% 20%, rgba(217,122,50,0.14), transparent 36%), rgba(17,17,17,0.5);">

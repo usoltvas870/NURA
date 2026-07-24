@@ -74,13 +74,25 @@ def webhook_payload(telegram_id: int) -> dict:
 def test_production_rejects_disabled_provider_verification_at_settings_load() -> None:
     with pytest.raises(ValidationError, match="production_payment_webhook_verification_required"):
         Settings(
+            _env_file=None,
             app_env="production",
+            secret_key="test-only-non-default-secret-at-least-32-chars",
+            session_cookie_secure=True,
+            test_mode=False,
             yookassa_verify_on_webhook=False,
+            yookassa_shop_id="test-shop",
+            yookassa_secret_key="test-secret",
+            redis_url="redis://:test-password@redis:6379/0",
+            celery_broker_url="redis://:test-password@redis:6379/1",
+            celery_result_backend="redis://:test-password@redis:6379/2",
         )
 
     assert Settings(
+        _env_file=None,
         app_env="production",
         secret_key="test-only-non-default-secret-at-least-32-chars",
+        session_cookie_secure=True,
+        test_mode=False,
         redis_url="redis://:test-password@redis:6379/0",
         celery_broker_url="redis://:test-password@redis:6379/1",
         celery_result_backend="redis://:test-password@redis:6379/2",
@@ -90,19 +102,35 @@ def test_production_rejects_disabled_provider_verification_at_settings_load() ->
     ).payment_webhook_configuration_error is None
 
 
-def test_production_missing_credentials_fails_startup_but_development_is_compatible() -> None:
+def test_production_missing_credentials_fails_startup_but_development_is_compatible(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("YOOKASSA_SHOP_ID", "ambient-shop-must-be-ignored")
+    monkeypatch.setenv(
+        "YOOKASSA_SECRET_KEY",
+        "ambient-secret-must-be-ignored",
+    )
     with pytest.raises(
         ValidationError, match="production_payment_webhook_credentials_required"
     ):
         Settings(
+            _env_file=None,
             app_env="production",
             secret_key="test-only-non-default-secret-at-least-32-chars",
+            session_cookie_secure=True,
+            test_mode=False,
             redis_url="redis://:test-password@redis:6379/0",
             celery_broker_url="redis://:test-password@redis:6379/1",
             celery_result_backend="redis://:test-password@redis:6379/2",
             yookassa_verify_on_webhook=True,
+            yookassa_shop_id=None,
+            yookassa_secret_key=None,
         )
-    development = Settings(app_env="development", yookassa_verify_on_webhook=False)
+    development = Settings(
+        _env_file=None,
+        app_env="development",
+        yookassa_verify_on_webhook=False,
+    )
 
     assert development.payment_webhook_configuration_error is None
     with patch.object(api_main, "settings", development):

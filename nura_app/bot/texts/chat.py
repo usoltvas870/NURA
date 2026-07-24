@@ -1,3 +1,6 @@
+from bot.utils.formatting import escape_telegram_html
+
+
 def paywall_text() -> str:
     return (
         "<b>✧ Ты использовал все 5 бесплатных сообщений.</b>\n\n"
@@ -9,9 +12,11 @@ def paywall_text() -> str:
     )
 
 def greeting_text_free(name: str, archetype: str) -> str:
+    safe_name = escape_telegram_html(name)
+    safe_archetype = escape_telegram_html(archetype)
     return (
         f"<b>💬 Чат с NURA</b>\n\n"
-        f"{name}, твой архетип — <b>{archetype}</b>.\n"
+        f"{safe_name}, твой архетип — <b>{safe_archetype}</b>.\n"
         "Я знаю твою матрицу, и я здесь, чтобы говорить с тобой\n"
         "на её языке.\n\n"
         "У тебя <b>5 бесплатных сообщений</b>, чтобы попробовать.\n\n"
@@ -23,9 +28,11 @@ def greeting_text_free(name: str, archetype: str) -> str:
 
 
 def greeting_text_unlimited(name: str, archetype: str) -> str:
+    safe_name = escape_telegram_html(name)
+    safe_archetype = escape_telegram_html(archetype)
     return (
         f"<b>💬 Чат с NURA</b>\n\n"
-        f"{name}, твой архетип — <b>{archetype}</b>.\n"
+        f"{safe_name}, твой архетип — <b>{safe_archetype}</b>.\n"
         "Я знаю твою матрицу, и я здесь, чтобы говорить с тобой\n"
         "на её языке.\n\n"
         "<b>✧ Полный доступ — без ограничений.</b>\n\n"
@@ -44,11 +51,12 @@ def history_cleared_text() -> str:
 
 
 def exit_text(name: str) -> str:
+    safe_name = escape_telegram_html(name)
     return (
         f"<b>🚪 Ты вышел из чата.</b>\n\n"
         "Но я всегда здесь. Если захочешь поговорить —\n"
         "нажми 💬 Чат с NURA в главном меню.\n\n"
-        f"<i>Береги себя, {name} ✶</i>"
+        f"<i>Береги себя, {safe_name} ✶</i>"
     )
 
 

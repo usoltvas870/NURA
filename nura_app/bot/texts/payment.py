@@ -1,3 +1,6 @@
+from bot.utils.formatting import escape_telegram_html
+
+
 def payment_link_text() -> str:
     return (
         "<b>Почти готово!</b>\n\n"
@@ -53,6 +56,6 @@ def already_paid_text() -> str:
 def report_ready_pwa_text(archetype: str | None = None) -> str:
     base = "✦ Твоя Матрица Судьбы готова!\n\n"
     if archetype:
-        base += f"Твой архетип — {archetype}.\n\n"
+        base += f"Твой архетип — {escape_telegram_html(archetype)}.\n\n"
     base += "Открой NURA, чтобы увидеть полный разбор."
     return base
