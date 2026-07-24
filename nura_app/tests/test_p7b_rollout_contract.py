@@ -842,6 +842,21 @@ def test_bootstrap_rejects_existing_but_unmounted_expected_volume(
         p7b.bootstrap(settings, FakeRunner(wrong_live_volume=True))
 
 
+@pytest.mark.parametrize(
+    ("stderr", "category"),
+    [
+        ("secret source file not found", "compose_up_secret_source_missing"),
+        ("container name is already in use", "compose_up_container_name_conflict"),
+        ("dependency failed to start", "compose_up_dependency_failed"),
+        ("unrecognized failure", "compose_up_service_start_failed"),
+    ],
+)
+def test_compose_up_failure_category_is_redacted(
+    stderr: str, category: str
+) -> None:
+    assert p7b.compose_up_failure_category(p7b.CommandResult(1, stderr=stderr)) == category
+
+
 def test_resolved_compose_accepts_canonical_physical_data_sources() -> None:
     resolved = {
         "services": {
