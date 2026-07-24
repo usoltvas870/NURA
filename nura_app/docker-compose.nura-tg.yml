@@ -30,24 +30,22 @@ services:
     networks: [pilot, legacy_postgres]
   bot:
     build: .
-    env_file: [${NURA_TG_ENV_FILE:?required}]
     environment:
       <<: *pilot-environment
       APP_ENV: staging
       TEST_MODE: "false"
-    secrets: [redis_password, telegram_bot_token]
+    secrets: [redis_password, telegram_bot_token, database_url]
     depends_on: {redis: {condition: service_healthy}}
     command: python -m bot.main
     networks: [pilot, legacy_postgres]
   celery-worker:
     build: .
-    env_file: [${NURA_TG_ENV_FILE:?required}]
     environment:
       <<: *pilot-environment
       APP_ENV: staging
       TEST_MODE: "false"
       PYTHONPATH: /app
-    secrets: [redis_password, telegram_bot_token]
+    secrets: [redis_password, database_url]
     depends_on: {redis: {condition: service_healthy}}
     command: celery -A core.tasks worker --loglevel=info --queues=nura_tg
     networks: [pilot, legacy_postgres]
@@ -59,3 +57,4 @@ networks:
 secrets:
   redis_password: {file: ${NURA_TG_REDIS_SECRET_FILE:?required}}
   telegram_bot_token: {file: ${NURA_TG_TELEGRAM_TOKEN_FILE:?required}}
+  database_url: {file: /var/lib/nura-tg-pilot/secrets/database_url}

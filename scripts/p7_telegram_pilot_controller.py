@@ -29,6 +29,7 @@ PHASES = frozenset({
     "pilot_verified", "pilot_rollback_intent", "pilot_rollback_verified",
 })
 PROJECT = "nura_tg"
+PILOT_TOKEN_FILE = Path("/opt/nura/secrets/nura_tg/telegram_bot_token")
 
 
 class PilotError(RuntimeError):
@@ -231,7 +232,7 @@ def deploy(args: argparse.Namespace) -> None:
     import fcntl
     repo = Path(args.repo).resolve(strict=True)
     controller = Path(__file__).resolve(strict=True)
-    token = Path(args.token_file).resolve(strict=True)
+    token = PILOT_TOKEN_FILE.resolve(strict=True)
     digest = preflight(repo, args.controller_sha, args.target_sha, args.expected_host, controller, token)
     state = Path("/var/lib/nura-tg-pilot")
     lock_path = Path("/run/lock/nura-tg-deploy.lock")
@@ -341,13 +342,12 @@ def main() -> int:
     parser.add_argument("--controller-sha", required=True)
     parser.add_argument("--target-sha", required=True)
     parser.add_argument("--expected-host", required=True)
-    parser.add_argument("--token-file", required=True)
     args = parser.parse_args()
     try:
         if args.command == "preflight":
             preflight(args.repo.resolve(strict=True), args.controller_sha, args.target_sha,
                       args.expected_host, Path(__file__).resolve(strict=True),
-                      Path(args.token_file).resolve(strict=True))
+                      PILOT_TOKEN_FILE.resolve(strict=True))
         else:
             deploy(args)
     except PilotError as exc:

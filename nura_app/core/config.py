@@ -13,6 +13,16 @@ INSECURE_SECRET_KEYS = frozenset(
 )
 
 
+def _read_secret_file(path: str, label: str) -> str:
+    try:
+        value = Path(path).read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ValueError(f"{label}_file_unreadable") from exc
+    if not value or "\n" in value or "\r" in value or "\x00" in value:
+        raise ValueError(f"{label}_file_invalid")
+    return value
+
+
 def is_production_environment(app_env: str) -> bool:
     return app_env == "production"
 
@@ -50,9 +60,12 @@ class Settings(BaseSettings):
     postgres_db: str = "nura"
     postgres_host: str = "localhost"
     postgres_port: int = 5432
+    database_url_file: str | None = None
 
     @property
     def database_url(self) -> str:
+        if self.database_url_file:
+            return _read_secret_file(self.database_url_file, "database_url")
         encoded_password = quote_plus(self.postgres_password)
         return (
             f"postgresql+asyncpg://{self.postgres_user}:"
@@ -62,6 +75,8 @@ class Settings(BaseSettings):
 
     @property
     def database_url_sync(self) -> str:
+        if self.database_url_file:
+            return _read_secret_file(self.database_url_file, "database_url").replace("+asyncpg", "")
         encoded_password = quote_plus(self.postgres_password)
         return (
             f"postgresql://{self.postgres_user}:"
