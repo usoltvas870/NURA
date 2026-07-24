@@ -1365,6 +1365,25 @@ def test_stage2_failure_restores_environment_and_previous_runtime(
     )
 
 
+def test_stage2_compensates_when_diagnostic_persistence_fails(
+    settings: p7b.Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed(settings, "stage1_verified")
+    original = p7b.transaction
+
+    def failing_diagnostic(*args: object, **kwargs: object) -> None:
+        if "stage2_compose_runtime" in kwargs:
+            raise OSError("diagnostic storage unavailable")
+        original(*args, **kwargs)
+
+    monkeypatch.setattr(p7b, "transaction", failing_diagnostic)
+    with pytest.raises(SystemExit, match="verification_failed:compose_up"):
+        p7b.stage2(settings, FakeRunner(fail_target_up=True))
+    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
+        "stage2_compensated"
+    )
+
+
 def test_stage2_intent_precedes_environment_mutation_and_crash_recovers(
     settings: p7b.Settings,
     monkeypatch: pytest.MonkeyPatch,

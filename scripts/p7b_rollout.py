@@ -1999,13 +1999,17 @@ def stage2(settings: Settings, runner: Runner) -> None:
             verify_stage(settings, 2, runner, acquire_lock=False)
         except BaseException as error:
             if str(error).startswith("p7b: verification_failed:compose_up:"):
-                transaction(
-                    settings,
-                    "stage2_intent",
-                    stage2_compose_runtime=compose_runtime_summary(
-                        handoff, APP_SERVICES, runner
-                    ),
-                )
+                try:
+                    transaction(
+                        settings,
+                        "stage2_intent",
+                        stage2_compose_runtime=compose_runtime_summary(
+                            handoff, APP_SERVICES, runner
+                        ),
+                    )
+                except BaseException:
+                    # Diagnostics are strictly best-effort: compensation owns safety.
+                    pass
             compensate(settings, runner, 2)
             raise
 
