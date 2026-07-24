@@ -304,10 +304,7 @@ def test_root_engine_orders_activation_and_compensation() -> None:
 def test_p7b_prepare_handoff_exits_before_common_application_mutation() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     prepare = script.index('if [[ "$COMMAND" == prepare-p7b ]]')
-    handoff = script.index(
-        'git -C "$REPO_ROOT" show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 - prepare-handoff',
-        prepare,
-    )
+    handoff = script.index('python3 "$P7B_HELPER" prepare-handoff', prepare)
     stop = script.index("exit 0", handoff)
     mutation = script.index("APP_MUTATED=1", stop)
     assert prepare < handoff < stop < mutation
@@ -321,9 +318,15 @@ def test_p7b_prepare_handoff_exits_before_common_application_mutation() -> None:
 def test_p7b_workflow_and_prepare_use_the_exact_target_controller() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
     workflow = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
-    controller = 'git show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 -'
-    assert controller in workflow
-    assert 'git -C "$REPO_ROOT" show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 -' in script
+    assert 'git show "$WORKFLOW_SHA:scripts/release_execution_bundle.py" | python3 - "$@"' in workflow
+    assert 'python3 "$bundle/scripts/p7b_rollout.py" "$@"' in workflow
+    assert 'NURA_RELEASE_EXECUTION_BUNDLE="$bundle" NURA_WORKFLOW_SHA="$WORKFLOW_SHA"' in workflow
+    assert 'git show "$TARGET_SHA:scripts/p7b_rollout.py"' not in workflow
+    assert "scripts/p7b_rollout.py" in bundle_helper.BUNDLE_FILES
+    assert 'readonly P7B_HELPER="$EXECUTION_BUNDLE/scripts/p7b_rollout.py"' in script
+    assert 'python3 "$P7B_HELPER" prepare-handoff' in script
+    assert 'execution bundle target must match workflow SHA' in script
+    assert 'git -C "$REPO_ROOT" show "$TARGET_SHA:scripts/p7b_rollout.py" |' in script
     assert "/opt/nura/scripts/p7b_rollout.py" not in workflow
     assert '"$REPO_ROOT/scripts/p7b_rollout.py" prepare-handoff' not in script
 
@@ -357,7 +360,7 @@ def test_workflow_resumes_partial_finalization_before_common_prepare() -> None:
     )
     recover = workflow.index("p7b activate --sha", phases)
     cleanup = workflow.index("unsafe resumed incoming cleanup target", recover)
-    prepare = workflow.index('bash "$launcher" prepare-p7b "$TARGET_SHA"')
+    prepare = workflow.index('bash "$bundle/deploy.sh" prepare-p7b "$TARGET_SHA"')
     assert status < phases < recover < cleanup < prepare
 
 
@@ -424,7 +427,7 @@ def test_deploy_workflow_builds_exact_deterministic_artifact_for_14_days() -> No
     assert "retention-days: 14" in workflow
     assert "compression-level: 0" in workflow
     assert "overwrite: false" in workflow
-    assert 'bash "$launcher" prepare-p7b "$TARGET_SHA"' in workflow
+    assert 'bash "$bundle/deploy.sh" prepare-p7b "$TARGET_SHA"' in workflow
     assert "p7b activate --sha" in workflow
     assert "allow_migrations" not in workflow
     assert "MIGRATIONS_APPROVED" not in workflow
@@ -456,8 +459,11 @@ def test_exact_deploy_and_rollback_launchers_materialize_the_safe_lock_helper() 
     deploy_workflow = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
     rollback_workflow = ROLLBACK_WORKFLOW.read_text(encoding="utf-8")
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
-    assert 'git show "$TARGET_SHA:scripts/release_lock.py" > "$lock_helper"' in deploy_workflow
-    assert 'NURA_RELEASE_LOCK_HELPER="$lock_helper" bash "$launcher" prepare-p7b' in deploy_workflow
+    assert 'git show "$WORKFLOW_SHA:scripts/release_execution_bundle.py" | python3 - "$@"' in deploy_workflow
+    assert 'materialize --repo /opt/nura --workflow-sha "$WORKFLOW_SHA" --parent /var/tmp' in deploy_workflow
+    assert 'NURA_RELEASE_EXECUTION_BUNDLE="$bundle" NURA_WORKFLOW_SHA="$WORKFLOW_SHA"' in deploy_workflow
+    assert 'bash "$bundle/deploy.sh" prepare-p7b "$TARGET_SHA"' in deploy_workflow
+    assert 'git show "$TARGET_SHA:scripts/release_lock.py"' not in deploy_workflow
     assert "release_execution_bundle.py" in rollback_workflow
     assert 'readonly SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"' in script
     assert 'exec python3 "$LOCK_HELPER" --lock-file "$LOCK_FILE" -- "$SCRIPT_PATH" "$@"' in script
@@ -471,7 +477,10 @@ def _bundle_fixture_repo(path: Path) -> str:
         destination = path / source
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes((REPO_ROOT / source).read_bytes())
+        if source == "deploy.sh":
+            destination.chmod(0o755)
     _run("git", "add", "--all", cwd=path)
+    _run("git", "update-index", "--chmod=+x", "deploy.sh", cwd=path)
     _run("git", "commit", "-m", "bundle fixture", cwd=path)
     return _run("git", "rev-parse", "HEAD", cwd=path).stdout.strip()
 
@@ -524,6 +533,87 @@ def test_trusted_rollback_bundle_is_exact_and_ignores_hostile_import_context(tmp
         check=False,
     )
     assert imported.returncode == 0, imported.stderr
+
+
+def test_trusted_deploy_bundle_includes_all_runtime_controllers_and_ignores_baseline(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    workflow_sha = _bundle_fixture_repo(repo)
+    baseline = tmp_path / "baseline"
+    baseline.mkdir()
+    assert not (baseline / "scripts" / "environment_reconciliation.py").exists()
+    bundle = bundle_helper.materialize(repo, workflow_sha, tmp_path)
+    provenance = json.loads((bundle / "provenance.json").read_text(encoding="utf-8"))
+    assert provenance["schema"] == bundle_helper.BUNDLE_SCHEMA
+    assert {item["path"] for item in provenance["members"]} == set(bundle_helper.BUNDLE_FILES)
+    assert next(item for item in provenance["members"] if item["path"] == "deploy.sh")["executable"] is True
+    assert all(
+        item["executable"] is False for item in provenance["members"] if item["path"] != "deploy.sh"
+    )
+    hostile = tmp_path / "hostile"
+    hostile.mkdir()
+    (hostile / "environment_reconciliation.py").write_text("raise RuntimeError('hostile')\n")
+    environment = {**os.environ, "PYTHONPATH": str(hostile), "PYTHONDONTWRITEBYTECODE": "1"}
+    result = subprocess.run(
+        [sys.executable, str(bundle / "scripts" / "p7b_rollout.py"), "--help"],
+        cwd=baseline,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (bundle / "scripts" / "environment_reconciliation.py").is_file()
+    assert (bundle / "scripts" / "deploy_static_release.py").is_file()
+
+
+def test_trusted_bundle_rejects_a_non_executable_launcher_in_the_exact_commit(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _bundle_fixture_repo(repo)
+    _run("git", "update-index", "--chmod=-x", "deploy.sh", cwd=repo)
+    _run("git", "commit", "-m", "unsafe launcher mode", cwd=repo)
+    unsafe_sha = _run("git", "rev-parse", "HEAD", cwd=repo).stdout.strip()
+    with pytest.raises(bundle_helper.BundleError, match="executable contract"):
+        bundle_helper.materialize(repo, unsafe_sha, tmp_path)
+
+
+def test_trusted_bundle_rejects_a_commit_without_environment_reconciliation_helper(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _bundle_fixture_repo(repo)
+    (repo / "scripts" / "environment_reconciliation.py").unlink()
+    _run("git", "add", "--all", cwd=repo)
+    _run("git", "commit", "-m", "missing environment helper", cwd=repo)
+    incomplete_sha = _run("git", "rev-parse", "HEAD", cwd=repo).stdout.strip()
+    with pytest.raises(bundle_helper.BundleError, match="missing or unsafe"):
+        bundle_helper.materialize(repo, incomplete_sha, tmp_path)
+
+
+def test_deploy_workflow_never_consults_the_active_checkout_for_controller_helpers() -> None:
+    workflow = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
+    for helper in bundle_helper.BUNDLE_FILES:
+        assert helper in (REPO_ROOT / "scripts" / "release_execution_bundle.py").read_text(encoding="utf-8")
+    assert 'git show "$WORKFLOW_SHA:scripts/release_execution_bundle.py"' in workflow
+    assert 'git show "$TARGET_SHA:deploy.sh"' not in workflow
+    assert 'git show "$TARGET_SHA:scripts/release_lock.py"' not in workflow
+    assert "NURA_RELEASE_EXECUTION_BUNDLE" in workflow
+    assert "env -u PYTHONPATH -u PYTHONHOME" in workflow
+
+
+def test_execution_bundle_pins_the_deploy_target_but_preserves_distinct_rollback_target() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    rollback = ROLLBACK_WORKFLOW.read_text(encoding="utf-8")
+    bundle_guard = script[script.index('if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]') :]
+    assert 'if [[ "$COMMAND" != rollback ]]; then' in bundle_guard
+    assert 'execution bundle target must match workflow SHA' in bundle_guard
+    assert 'bash "$bundle/deploy.sh" rollback "$TARGET_SHA"' in rollback
+    assert 'TARGET_SHA: ${{ inputs.target_sha }}' in rollback
+    assert 'WORKFLOW_SHA: ${{ github.sha }}' in rollback
 
 
 @pytest.mark.parametrize("mutation", ["missing", "symlink", "checksum", "workflow"])
