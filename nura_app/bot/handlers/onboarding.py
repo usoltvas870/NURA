@@ -110,7 +110,6 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
             m in raw for m in ["чуть больше времени", "запросить разбор ещё раз", "дай мне ещё одну попытку"]
         )
         if is_fallback:
-            await report_repo.delete(mini_report.id)
             username = callback.from_user.username or callback.from_user.first_name or "user"
             generate_mini_report.delay(str(user.id), user.birth_date, username)
             await callback.message.edit_text(

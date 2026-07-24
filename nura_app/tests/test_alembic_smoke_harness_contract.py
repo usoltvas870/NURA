@@ -47,6 +47,13 @@ ALLOWLIST = {
     "nura_app/core/services/mini_report_generation.py",
     "nura_app/tests/test_mini_report_generation_foundation.py",
     "nura_app/tests/test_mini_report_generation_migration_contract.py",
+    "nura_app/api/routes/web.py",
+    "nura_app/bot/handlers/onboarding.py",
+    "nura_app/core/repositories/guest.py",
+    "nura_app/core/services/mini_report_application.py",
+    "nura_app/core/tasks.py",
+    "nura_app/tests/test_mini_report_application.py",
+    "nura_app/tests/test_tasks.py",
 }
 
 

@@ -6,7 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from core.models import MiniReportGeneration, MiniReportGenerationState
+from core.models import GuestProfile, MiniReportGeneration, MiniReportGenerationState, Report, ReportType
 
 
 class MiniReportGenerationRepository:
@@ -167,6 +167,58 @@ class MiniReportGenerationRepository:
             failed = await session.get(MiniReportGeneration, generation_id)
             assert failed is not None
             return failed
+
+    async def finalize_result(
+        self,
+        generation_id: uuid.UUID,
+        *,
+        expected_attempt_count: int,
+        matrix_data: dict,
+        content: dict,
+        report_token: str,
+        now: datetime,
+    ) -> uuid.UUID | None:
+        """Persist the owner result and complete its claimed attempt atomically."""
+        async with self._session_factory() as session:
+            generation = (
+                await session.execute(
+                    select(MiniReportGeneration)
+                    .where(MiniReportGeneration.id == generation_id)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if (
+                generation is None
+                or generation.status != MiniReportGenerationState.GENERATING
+                or generation.attempt_count != expected_attempt_count
+            ):
+                raise ValueError("invalid_mini_report_generation_transition")
+            report_id = None
+            if generation.user_id is not None:
+                report = Report(
+                    id=uuid.uuid4(),
+                    user_id=generation.user_id,
+                    report_type=ReportType.MINI.value,
+                    token=report_token,
+                    matrix_data=matrix_data,
+                    ai_analysis=content,
+                )
+                session.add(report)
+                await session.flush()
+                report_id = report.id
+                generation.report_id = report_id
+            else:
+                guest = await session.get(GuestProfile, generation.guest_profile_id)
+                if guest is None:
+                    raise ValueError("guest_profile_not_found")
+                guest.report_data = {**content, "matrix_data": matrix_data}
+            generation.status = MiniReportGenerationState.COMPLETED
+            generation.completed_at = now
+            generation.failed_at = None
+            generation.error_code = None
+            generation.error_detail = None
+            await session.commit()
+            return report_id
 
     async def mark_stale_failed(
         self, generation_id: uuid.UUID, *, stale_before: datetime, now: datetime

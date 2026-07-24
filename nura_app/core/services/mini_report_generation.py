@@ -102,3 +102,21 @@ class MiniReportGenerationService:
             error_code=error_code,
             now=datetime.now(timezone.utc),
         )
+
+    async def finalize_result(
+        self,
+        generation_id: uuid.UUID,
+        *,
+        expected_attempt_count: int,
+        matrix_data: dict,
+        content: dict,
+        report_token: str,
+    ) -> uuid.UUID | None:
+        return await self._repository.finalize_result(
+            generation_id,
+            expected_attempt_count=expected_attempt_count,
+            matrix_data=matrix_data,
+            content=content,
+            report_token=report_token,
+            now=datetime.now(timezone.utc),
+        )

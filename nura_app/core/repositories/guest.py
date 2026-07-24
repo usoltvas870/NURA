@@ -62,6 +62,18 @@ class GuestProfileRepository(SQLAlchemyRepository[GuestProfile]):
             await session.refresh(guest)
             return guest
 
+    async def save_report_data_by_id(
+        self, guest_id: uuid.UUID, report_data: dict
+    ) -> GuestProfile | None:
+        async with self._session_factory() as session:
+            guest = await session.get(GuestProfile, guest_id)
+            if guest is None:
+                return None
+            guest.report_data = report_data
+            await session.commit()
+            await session.refresh(guest)
+            return guest
+
     async def delete_by_id(self, guest_id: uuid.UUID) -> None:
         async with self._session_factory() as session:
             await session.execute(

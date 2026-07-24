@@ -22,9 +22,17 @@ from core.repositories.promo_reservation import PromoReservationRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.repositories.guest import GuestProfileRepository
+from core.repositories.mini_report_generation import MiniReportGenerationRepository
 
+from core.services.mini_report_application import (
+    GuestMiniReportSubject,
+    MiniReportApplicationService,
+    MiniReportRequest,
+    MiniReportResultKind,
+    UserMiniReportSubject,
+)
+from core.services.mini_report_generation import MiniReportGenerationService
 from core.services.ai import AIService
-from core.services.matrix import MatrixService
 from core.services.payment import PaymentService, PromoCheckoutError
 from core.services.report_lifecycle import ReportLifecycleCoordinator
 
@@ -255,29 +263,33 @@ async def mini_analysis(
     if not body.pd_consent:
         raise HTTPException(status_code=400, detail="Необходимо согласие на обработку персональных данных")
 
-    try:
-        matrix_data = MatrixService.calculate(body.birth_date)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Неверный формат даты")
+    session_factory = get_async_sessionmaker()
+    guest_repo = GuestProfileRepository(session_factory)
+    if web_user is not None:
+        owner = UserMiniReportSubject(web_user.id)
+    elif body.guest_token:
+        guest = await guest_repo.get_by_token(body.guest_token)
+        if guest is None:
+            raise HTTPException(status_code=400, detail="Гостевой профиль не найден")
+        owner = GuestMiniReportSubject(guest.id)
+    else:
+        raise HTTPException(status_code=400, detail="Не найден гостевой профиль")
 
-    try:
-        analysis = await AIService.generate_mini_analysis(
-            birth_date=body.birth_date,
-            matrix_data=matrix_data,
-        )
-    except Exception:
+    service = MiniReportApplicationService(
+        MiniReportGenerationService(MiniReportGenerationRepository(session_factory)),
+        ReportRepository(session_factory),
+        guest_repo,
+    )
+    result = await service.generate(
+        MiniReportRequest(owner=owner, name=body.name, birth_date=body.birth_date)
+    )
+    if result.kind == MiniReportResultKind.INVALID_INPUT:
+        raise HTTPException(status_code=400, detail="Неверные данные")
+    if result.kind == MiniReportResultKind.IN_PROGRESS:
+        raise HTTPException(status_code=409, detail="Идёт генерация")
+    if result.kind in {MiniReportResultKind.FAILED_RETRYABLE, MiniReportResultKind.FAILED_NON_RETRYABLE}:
         raise HTTPException(status_code=503, detail="AI сервис временно недоступен")
-
-    if body.guest_token:
-        session_factory = get_async_sessionmaker()
-        guest_repo = GuestProfileRepository(session_factory)
-        report_data = {
-            **analysis,
-            "matrix_data": matrix_data.model_dump() if hasattr(matrix_data, "model_dump") else matrix_data,
-        }
-        await guest_repo.save_report_data(body.guest_token, report_data)
-
-    return MiniAnalysisResponse(**analysis)
+    return MiniAnalysisResponse(**(result.content or {}))
 
 
 @router.post("/create-payment", response_model=CreatePaymentResponse)

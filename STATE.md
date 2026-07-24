@@ -1,5 +1,12 @@
 # NURA — State
 
+## Session 90 — 24.07.2026
+
+- MINI-REPORT APPLICATION USE CASE added: a channel-neutral application service now owns input normalization, idempotency lifecycle, Matrix/AI orchestration, result persistence and safe result contracts.
+- Web and Celery mini-report adapters call the use case. Fenced completion and user/guest result persistence are atomic; no migration or dependency was added.
+- Targeted application/foundation/Celery tests: 29 passed. The deterministic safe suite completed in 11 file shards: 921 passed, 17 skipped, 0 failed; one approved Tarot asset node was deselected. Ruff, `git diff --check`, Alembic head `c1d2e3f4a5b6`, and `graphify check-update .`: PASS.
+- Next stage after a separate commit: MINI-REPORT TELEGRAM DELIVERY.
+
 > Последнее обновление: **24.07.2026 — Сессия 89** — GPT-5 Codex
 
 ---

@@ -17,10 +17,19 @@ from core.celery_async import run_celery_async as _run_async
 from core.database import get_async_sessionmaker, get_redis
 from core.models import ReportType, User
 from core.repositories import ReportRepository, UserRepository
+from core.repositories.guest import GuestProfileRepository
+from core.repositories.mini_report_generation import MiniReportGenerationRepository
 from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
 from core.fallbacks import FALLBACK_TAROT_DAILY
 from core.services.ai import AIService
 from core.services.matrix import ARCANA, MatrixService
+from core.services.mini_report_application import (
+    MiniReportApplicationService,
+    MiniReportRequest,
+    MiniReportResultKind,
+    UserMiniReportSubject,
+)
+from core.services.mini_report_generation import MiniReportGenerationService
 from core.services.report import ReportService
 from core.services.web_push import PushSubscriptionExpired, send_web_push
 
@@ -204,40 +213,34 @@ def format_daily_card_message(first_name: str, card: dict) -> str:
     return "\n".join(lines)
 
 
-async def _process_mini_report(user_id: str, birth_date: str) -> dict:
+async def _process_mini_report(user_id: str, birth_date: str, name: str = "user") -> dict:
     uid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
     report_repo = ReportRepository(session_factory)
-    user_repo = UserRepository(session_factory)
-
-    matrix = MatrixService.calculate(birth_date)
-    analysis = await AIService.generate_mini_analysis(birth_date, matrix)
-    token = ReportService.generate_token()
-    archetype_name = MatrixService.get_archetype_name(matrix.center)
-
-    existing = await report_repo.get_by_user_id_and_type(uid, ReportType.MINI)
-    if existing is not None:
-        await report_repo.delete(existing.id)
-
-    report = await report_repo.create(
-        user_id=uid,
-        report_type=ReportType.MINI,
-        token=token,
-        matrix_data=matrix.model_dump(),
-        ai_analysis=analysis,
+    service = MiniReportApplicationService(
+        MiniReportGenerationService(MiniReportGenerationRepository(session_factory)),
+        report_repo,
+        GuestProfileRepository(session_factory),
     )
-
-    await user_repo.update_archetype(
-        user_id=uid,
-        archetype=archetype_name,
-        number=matrix.center,
+    result = await service.generate(
+        MiniReportRequest(
+            owner=UserMiniReportSubject(uid),
+            name=name,
+            birth_date=birth_date,
+            allow_retry=True,
+        )
     )
-
+    if result.kind == MiniReportResultKind.FAILED_RETRYABLE:
+        raise ConnectionError(result.error_code or "mini_report_generation_failed")
+    token = None
+    if result.report_id is not None:
+        report = await report_repo.get(result.report_id)
+        token = report.token if report is not None else None
     return {
-        "report_id": str(report.id),
+        "kind": result.kind,
+        "report_id": str(result.report_id) if result.report_id else None,
         "token": token,
-        "analysis": analysis,
-        "archetype": {"name": archetype_name, "number": matrix.center},
+        "analysis": result.content,
     }
 
 
@@ -261,9 +264,9 @@ async def _get_user_telegram_id(user_id: str) -> int | None:
 )
 def generate_mini_report(user_id: str, birth_date: str, username: str) -> dict:
     async def _run_all():
-        result = await _process_mini_report(user_id, birth_date)
+        result = await _process_mini_report(user_id, birth_date, username)
         telegram_id = await _get_user_telegram_id(user_id)
-        if telegram_id:
+        if telegram_id and result["kind"] == MiniReportResultKind.COMPLETED_NEW and result["token"]:
             await _notify_mini_report(telegram_id, result["token"])
         return result
     return _run_async(_run_all())
