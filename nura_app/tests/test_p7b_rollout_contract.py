@@ -857,6 +857,21 @@ def test_compose_up_failure_category_is_redacted(
     assert p7b.compose_up_failure_category(p7b.CommandResult(1, stderr=stderr)) == category
 
 
+def test_compose_runtime_summary_is_secret_free_and_service_scoped() -> None:
+    payload = {
+        "compose_project": "nura_app",
+        "working_directory": "C:/work/nura_app",
+        "compose_files": ["C:/work/compose.yml"],
+    }
+    summary = p7b.compose_runtime_summary(
+        payload, p7b.APP_SERVICES, FakeRunner()
+    )
+    assert summary == {
+        service: "running:healthy" if service == "api" else "running:none"
+        for service in p7b.APP_SERVICES
+    }
+
+
 def test_resolved_compose_accepts_canonical_physical_data_sources() -> None:
     resolved = {
         "services": {

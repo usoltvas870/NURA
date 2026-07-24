@@ -1414,6 +1414,45 @@ def lifecycle(
     )
 
 
+def compose_runtime_summary(
+    payload: Mapping[str, object],
+    services: Sequence[str],
+    runner: Runner,
+) -> dict[str, str]:
+    """Return a bounded, secret-free post-failure Compose status summary."""
+    compose_files = payload.get("compose_files")
+    if not isinstance(compose_files, list) or not all(
+        isinstance(item, str) for item in compose_files
+    ):
+        return {"status": "compose_context_invalid"}
+    result = command_result(
+        runner,
+        compose_command(
+            str(payload["compose_project"]),
+            str(payload["working_directory"]),
+            [str(item) for item in compose_files],
+            "ps",
+            "--format",
+            "json",
+        ),
+    )
+    if result.returncode != 0:
+        return {"status": "unavailable"}
+    states: dict[str, str] = {}
+    try:
+        records = [json.loads(line) for line in result.stdout.splitlines() if line]
+    except json.JSONDecodeError:
+        return {"status": "unparseable"}
+    for record in records:
+        if not isinstance(record, dict) or record.get("Service") not in services:
+            continue
+        service = str(record["Service"])
+        state = str(record.get("State", "unknown"))
+        health = str(record.get("Health", ""))
+        states[service] = f"{state}:{health or 'none'}"
+    return states if set(states) == set(services) else {"status": "incomplete"}
+
+
 def verification_commands(
     payload: Mapping[str, object], stage: int
 ) -> list[tuple[str, list[str]]]:
@@ -1958,7 +1997,15 @@ def stage2(settings: Settings, runner: Runner) -> None:
                 stage2_worker_container=worker_container,
             )
             verify_stage(settings, 2, runner, acquire_lock=False)
-        except BaseException:
+        except BaseException as error:
+            if str(error).startswith("p7b: verification_failed:compose_up:"):
+                transaction(
+                    settings,
+                    "stage2_intent",
+                    stage2_compose_runtime=compose_runtime_summary(
+                        handoff, APP_SERVICES, runner
+                    ),
+                )
             compensate(settings, runner, 2)
             raise
 
