@@ -82,6 +82,7 @@
 |`operations/backup-restore.md`|Synthetic-only disposable PostgreSQL backup/restore proof и его safety gates|✅ Актуален|
 |`operations/p7a-security-configuration.md`|Redis secret-file hardening, APP_ENV contract, YooKassa verification facts и controlled P7B rollout|✅ Актуален|
 |`operations/p7b-state-b-handoff.md`|Persistent State B handoff, baseline bootstrap, managed activation, compensation, recovery и canonical finalization|✅ Актуален|
+|`operations/p7-telegram-pilot.md`|Owner runbook for the isolated Telegram pilot and exact-controller workflow|✅ Актуален|
 
 \---
 

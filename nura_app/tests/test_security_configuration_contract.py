@@ -11,6 +11,7 @@ import yaml
 from pydantic import ValidationError
 
 from core.config import Settings
+import core.config as config
 
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -153,6 +154,94 @@ def test_redis_password_file_errors_hide_sensitive_inputs(tmp_path: Path) -> Non
     assert marker not in str(exc_info.value)
 
 
+def test_nura_tg_settings_require_only_fixed_database_secret_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    secret_file = tmp_path / "database_url"
+    secret_file.write_text("postgresql+asyncpg://user:password@db/nura", encoding="utf-8")
+    monkeypatch.setattr(config, "NURA_TG_DATABASE_URL_FILE", str(secret_file))
+
+    settings = Settings(_env_file=None, runtime_profile="nura_tg", database_url_file=str(secret_file))
+    assert settings.database_url == "postgresql+asyncpg://user:password@db/nura"
+    assert "DATABASE_URL" not in os.environ
+
+    for values in (
+        {},
+        {"database_url_file": "wrong-path"},
+        {"DATABASE_URL": "postgresql://secret"},
+        {"DATABASE_URL": "postgresql://secret", "database_url_file": str(secret_file)},
+    ):
+        with pytest.raises(ValidationError, match="nura_tg_.*database_url") as exc_info:
+            Settings(_env_file=None, runtime_profile="nura_tg", **values)
+        assert "postgresql://secret" not in str(exc_info.value)
+
+
+@pytest.mark.parametrize("contents", ["", "postgresql://one\ntwo", "postgresql://one\rtwo"])
+def test_nura_tg_database_secret_invalid_content_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, contents: str
+) -> None:
+    secret_file = tmp_path / "database_url"
+    secret_file.write_text(contents, encoding="utf-8")
+    monkeypatch.setattr(config, "NURA_TG_DATABASE_URL_FILE", str(secret_file))
+    with pytest.raises(ValidationError, match="database_url_file_(invalid|unreadable)"):
+        Settings(_env_file=None, runtime_profile="nura_tg", database_url_file=str(secret_file))
+
+
+def test_nura_tg_bot_and_worker_share_settings_resolver() -> None:
+    bot = (APP_ROOT / "bot" / "main.py").read_text("utf-8")
+    worker = (APP_ROOT / "core" / "tasks.py").read_text("utf-8")
+    assert "from core.config import settings" in bot
+    assert "from core.config import settings" in worker
+    assert "core.redis_auth_probe" in (APP_ROOT.parent / "scripts" / "p7_telegram_pilot_controller.py").read_text("utf-8")
+
+
+@pytest.mark.asyncio
+async def test_authenticated_redis_probe_requires_authenticated_pong(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from core import redis_auth_probe
+
+    calls: list[object] = []
+
+    class FakeRedis:
+        def __init__(self, **kwargs: object) -> None:
+            calls.append(kwargs)
+
+        async def ping(self) -> bool:
+            return True
+
+        async def aclose(self) -> None:
+            calls.append("closed")
+
+    monkeypatch.setattr(redis_auth_probe, "Redis", FakeRedis)
+    monkeypatch.setattr(redis_auth_probe, "_read_secret_file", lambda *_: "probe-secret")
+    assert await redis_auth_probe.authenticated_redis_pong() is True
+    assert calls[0] == {"host": "redis", "port": 6379, "password": "probe-secret", "decode_responses": False}
+    assert calls[-1] == "closed"
+
+
+@pytest.mark.asyncio
+async def test_authenticated_redis_probe_rejects_wrong_credential(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from core import redis_auth_probe
+
+    class RejectingRedis:
+        def __init__(self, **kwargs: object) -> None:
+            pass
+
+        async def ping(self) -> bool:
+            raise RuntimeError("WRONGPASS")
+
+        async def aclose(self) -> None:
+            pass
+
+    monkeypatch.setattr(redis_auth_probe, "Redis", RejectingRedis)
+    monkeypatch.setattr(redis_auth_probe, "_read_secret_file", lambda *_: "wrong-secret")
+    with pytest.raises(RuntimeError, match="WRONGPASS"):
+        await redis_auth_probe.authenticated_redis_pong()
+
+
 def test_redis_compose_uses_secret_files_and_non_sensitive_commands() -> None:
     compose = yaml.safe_load((APP_ROOT / "docker-compose.yml").read_text("utf-8"))
     redis = compose["services"]["redis"]
@@ -222,13 +311,15 @@ def test_redis_helpers_read_only_the_secret_file_at_runtime() -> None:
     healthcheck = (APP_ROOT / "scripts" / "redis-healthcheck.sh").read_text("utf-8")
 
     assert "/run/secrets/redis_password" in entrypoint
-    assert "/run/secrets/redis_password" in healthcheck
+    assert "/run/secrets/redis_password" not in healthcheck
     assert "${REDIS_PASSWORD}" not in entrypoint
     assert "${REDIS_PASSWORD}" not in healthcheck
     assert "redis-cli -a" not in healthcheck
-    assert "REDISCLI_AUTH" in healthcheck
+    assert "REDISCLI_AUTH" not in healthcheck
+    assert "--askpass" not in healthcheck
     assert "requirepass" in entrypoint
-    assert ">/dev/null" not in healthcheck
+    assert "NOAUTH Authentication required." in healthcheck
+    assert "$()" not in healthcheck
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX mode bits are unavailable")
@@ -275,15 +366,12 @@ def fake_redis_cli(tmp_path: Path) -> tuple[Path, Path]:
     executable.write_text(
         "#!/bin/sh\n"
         'printf "%s\\n" "$@" > "$ARG_CAPTURE"\n'
-        'if [ "${REDISCLI_AUTH+x}" != x ]; then\n'
+        'if [ "$1" != "--no-auth-warning" ] || [ "$2" != "ping" ]; then\n'
         '    echo "NOAUTH Authentication required." >&2\n'
         "    exit 1\n"
         "fi\n"
-        'if [ "$REDISCLI_AUTH" != "$EXPECTED_REDIS_AUTH" ]; then\n'
-        '    echo "WRONGPASS invalid username-password pair" >&2\n'
-        "    exit 1\n"
-        "fi\n"
-        'printf "PONG\\n"\n',
+        'echo "NOAUTH Authentication required." >&2\n'
+        "exit 1\n",
         encoding="utf-8",
     )
     executable.chmod(0o700)
@@ -294,18 +382,13 @@ def fake_redis_cli(tmp_path: Path) -> tuple[Path, Path]:
     os.name == "nt" or shutil.which("sh") is None,
     reason="POSIX executable and PATH semantics are unavailable",
 )
-def test_redis_healthcheck_returns_authenticated_pong_without_argv_secret(
+def test_redis_healthcheck_is_secret_free_liveness_probe(
     tmp_path: Path,
 ) -> None:
-    marker = "redis-password-marker"
-    secret_file = tmp_path / "redis_password"
-    secret_file.write_text(marker, encoding="utf-8")
     binary_directory, argument_capture = fake_redis_cli(tmp_path)
     environment = os.environ | {
         "ARG_CAPTURE": str(argument_capture),
-        "EXPECTED_REDIS_AUTH": marker,
         "PATH": f"{binary_directory}{os.pathsep}{os.environ.get('PATH', '')}",
-        "REDIS_PASSWORD_FILE": str(secret_file),
     }
 
     result = subprocess.run(
@@ -317,31 +400,21 @@ def test_redis_healthcheck_returns_authenticated_pong_without_argv_secret(
     )
 
     assert result.returncode == 0
-    assert result.stdout == "PONG\n"
-    assert result.stderr == ""
     arguments = argument_capture.read_text(encoding="utf-8")
     assert arguments.splitlines() == ["--no-auth-warning", "ping"]
-    assert marker not in arguments
-    assert marker not in result.stdout
-    assert marker not in result.stderr
 
 
 @pytest.mark.skipif(
     os.name == "nt" or shutil.which("sh") is None,
     reason="POSIX executable and PATH semantics are unavailable",
 )
-def test_redis_healthcheck_rejects_wrongpass_without_leaking_secret(
+def test_redis_healthcheck_requires_noauth_response(
     tmp_path: Path,
 ) -> None:
-    marker = "redis-password-marker"
-    secret_file = tmp_path / "redis_password"
-    secret_file.write_text(marker, encoding="utf-8")
-    binary_directory, argument_capture = fake_redis_cli(tmp_path)
+    binary_directory, _ = fake_redis_cli(tmp_path)
     environment = os.environ | {
-        "ARG_CAPTURE": str(argument_capture),
-        "EXPECTED_REDIS_AUTH": "different-test-password",
+        "ARG_CAPTURE": str(tmp_path / "args"),
         "PATH": f"{binary_directory}{os.pathsep}{os.environ.get('PATH', '')}",
-        "REDIS_PASSWORD_FILE": str(secret_file),
     }
 
     result = subprocess.run(
@@ -352,59 +425,12 @@ def test_redis_healthcheck_rejects_wrongpass_without_leaking_secret(
         check=False,
     )
 
-    assert result.returncode != 0
-    assert "WRONGPASS" in result.stderr
-    assert marker not in argument_capture.read_text(encoding="utf-8")
-    assert marker not in result.stdout
-    assert marker not in result.stderr
-
-
-@pytest.mark.skipif(shutil.which("sh") is None, reason="POSIX shell is unavailable")
-@pytest.mark.parametrize("relative_path", ["missing-secret", "wrong-mount/redis_password"])
-def test_redis_healthcheck_rejects_missing_or_wrong_secret_mount(
-    tmp_path: Path,
-    relative_path: str,
-) -> None:
-    secret_file = tmp_path / relative_path
-    environment = os.environ | {"REDIS_PASSWORD_FILE": str(secret_file)}
-
-    result = subprocess.run(
-        ["sh", str(APP_ROOT / "scripts" / "redis-healthcheck.sh")],
-        env=environment,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    assert result.returncode != 0
-
-
-@pytest.mark.skipif(
-    os.name == "nt" or shutil.which("sh") is None,
-    reason="POSIX unreadable-file semantics are unavailable",
-)
-def test_redis_healthcheck_rejects_unreadable_secret_file(tmp_path: Path) -> None:
-    secret_file = tmp_path / "redis_password"
-    secret_file.write_text("redis-password-marker", encoding="utf-8")
-    secret_file.chmod(0)
-    environment = os.environ | {"REDIS_PASSWORD_FILE": str(secret_file)}
-    try:
-        result = subprocess.run(
-            ["sh", str(APP_ROOT / "scripts" / "redis-healthcheck.sh")],
-            env=environment,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    finally:
-        secret_file.chmod(0o600)
-
-    assert result.returncode != 0
+    assert result.returncode == 0
 
 
 @pytest.mark.skipif(shutil.which("sh") is None, reason="POSIX shell is unavailable")
 @pytest.mark.parametrize(
-    "helper_name", ["redis-entrypoint.sh", "redis-healthcheck.sh"]
+    "helper_name", ["redis-entrypoint.sh"]
 )
 @pytest.mark.parametrize(
     "secret_bytes",

@@ -1446,3 +1446,17 @@ docker compose restart bot celery-worker
 - Graphify update is not required: changes remain inside existing settings,
   Compose, P7B verification, tests, and CI wiring without package or dependency
   architecture changes.
+
+## P7-TELEGRAM-PILOT — 24.07.2026
+
+- Repository-side isolated `nura_tg` pilot profile and exact-controller workflow
+  are prepared; no production workflow, SSH deployment, credential rotation, or
+  production mutation was performed.
+- The pilot uses file-only bot/Redis secrets, a dedicated Redis volume and
+  Celery queue, no PostgreSQL ownership, no legacy Redis, no web/PWA,
+  celery-beat, or admin-bot. Standby readiness does not poll; polling requires
+  a renewable owner-bound Redis lease.
+- Pilot payments, recurring charges, and periodic schedules are disabled.
+- Graphify update is deferred: the repository lacks a reviewed confined
+  graphify-out baseline, while a full re-extraction would create unrelated
+  generated churn for this infrastructure-only controller change.

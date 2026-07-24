@@ -1,3 +1,5 @@
+import os
+import stat
 from pathlib import Path
 from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
 
@@ -11,6 +13,35 @@ SUPPORTED_APP_ENVIRONMENTS = frozenset(
 INSECURE_SECRET_KEYS = frozenset(
     {"change-me", "change-me-to-a-random-string-64-chars-min"}
 )
+
+NURA_TG_RUNTIME_PROFILE = "nura_tg"
+NURA_TG_DATABASE_URL_FILE = "/run/secrets/database_url"
+NURA_TG_REDIS_PASSWORD_FILE = "/run/secrets/redis_password"
+
+
+def _read_secret_fd(path: str, label: str) -> str:
+    """Read one regular, non-linked secret file through its checked descriptor."""
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        try:
+            info = os.fstat(descriptor)
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                raise ValueError(f"{label}_file_unsafe")
+            value = os.read(descriptor, info.st_size + 1).decode("utf-8")
+        finally:
+            os.close(descriptor)
+    except ValueError:
+        raise
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ValueError(f"{label}_file_unreadable") from exc
+    if not value or "\n" in value or "\r" in value or "\x00" in value:
+        raise ValueError(f"{label}_file_invalid")
+    return value
+
+
+def _read_secret_file(path: str, label: str) -> str:
+    return _read_secret_fd(path, label)
 
 
 def is_production_environment(app_env: str) -> bool:
@@ -50,9 +81,13 @@ class Settings(BaseSettings):
     postgres_db: str = "nura"
     postgres_host: str = "localhost"
     postgres_port: int = 5432
+    database_url_file: str | None = None
+    runtime_profile: str = "legacy"
 
     @property
     def database_url(self) -> str:
+        if self.database_url_file:
+            return _read_secret_file(self.database_url_file, "database_url")
         encoded_password = quote_plus(self.postgres_password)
         return (
             f"postgresql+asyncpg://{self.postgres_user}:"
@@ -62,6 +97,8 @@ class Settings(BaseSettings):
 
     @property
     def database_url_sync(self) -> str:
+        if self.database_url_file:
+            return _read_secret_file(self.database_url_file, "database_url").replace("+asyncpg", "")
         encoded_password = quote_plus(self.postgres_password)
         return (
             f"postgresql://{self.postgres_user}:"
@@ -90,6 +127,8 @@ class Settings(BaseSettings):
             "celery_result_backend",
         ),
     )
+    celery_task_queue: str = "celery"
+    nura_tg_pilot: bool = False
 
     # Report generation scheduling
     report_generation_dispatch_interval_seconds: int = Field(
@@ -112,7 +151,61 @@ class Settings(BaseSettings):
 
     # Telegram
     telegram_bot_token: str | None = None
+    telegram_bot_token_file: str | None = None
+    telegram_polling_enabled: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_plaintext_pilot_token(cls, values: object) -> object:
+        if not isinstance(values, dict):
+            return values
+        pilot = values.get("nura_tg_pilot", values.get("NURA_TG_PILOT", False))
+        profile = values.get("runtime_profile", values.get("NURA_RUNTIME_PROFILE", "legacy"))
+        direct = values.get("telegram_bot_token", values.get("TELEGRAM_BOT_TOKEN"))
+        database_url = values.get("database_url", values.get("DATABASE_URL"))
+        if pilot and direct:
+            raise ValueError("pilot_plaintext_telegram_token_forbidden")
+        if pilot and database_url:
+            raise ValueError("pilot_plaintext_database_url_forbidden")
+        database_url_file = values.get("database_url_file", values.get("DATABASE_URL_FILE"))
+        if profile == NURA_TG_RUNTIME_PROFILE:
+            if database_url:
+                raise ValueError("nura_tg_plaintext_database_url_forbidden")
+            if database_url_file != NURA_TG_DATABASE_URL_FILE:
+                raise ValueError("nura_tg_database_url_file_required")
+        return values
     bot_username: str | None = None
+
+    @model_validator(mode="after")
+    def _load_telegram_token_file(self) -> "Settings":
+        if not self.telegram_bot_token_file:
+            return self
+        try:
+            token = Path(self.telegram_bot_token_file).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise ValueError("telegram_bot_token_file_unreadable") from exc
+        if not token or "\n" in token or "\r" in token or "\x00" in token:
+            raise ValueError("telegram_bot_token_file_invalid")
+        self.telegram_bot_token = token
+        return self
+
+    @model_validator(mode="after")
+    def _require_pilot_secret_contract(self) -> "Settings":
+        """Pilot credentials must enter only through the read-only secret file."""
+        if self.runtime_profile == NURA_TG_RUNTIME_PROFILE:
+            if self.database_url_file != NURA_TG_DATABASE_URL_FILE:
+                raise ValueError("nura_tg_database_url_file_required")
+            _read_secret_file(self.database_url_file, "database_url")
+        if not self.nura_tg_pilot:
+            return self
+        if not self.telegram_bot_token_file or not self.telegram_bot_token:
+            raise ValueError("pilot_telegram_token_file_required")
+        return self
+
+    @property
+    def payments_enabled(self) -> bool:
+        """The isolated Telegram pilot is intentionally sandbox-only."""
+        return not self.nura_tg_pilot
 
     # Admin Bot
     admin_bot_token: str | None = None
