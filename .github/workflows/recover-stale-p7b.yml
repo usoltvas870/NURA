@@ -1,0 +1,60 @@
+name: Recover stale P7B transaction
+
+on:
+  workflow_dispatch:
+    inputs:
+      stale_sha:
+        description: Exact stale P7B transaction SHA
+        required: true
+        type: string
+      expected_baseline_sha:
+        description: Exact canonical/public baseline SHA
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  recover-stale:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      STALE_SHA: ${{ inputs.stale_sha }}
+      EXPECTED_BASELINE_SHA: ${{ inputs.expected_baseline_sha }}
+      WORKFLOW_SHA: ${{ github.sha }}
+    steps:
+      - name: Validate exact recovery request
+        run: |
+          [[ "$STALE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPECTED_BASELINE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Recover stale transaction through the trusted controller bundle
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          STALE_SHA: ${{ env.STALE_SHA }}
+          EXPECTED_BASELINE_SHA: ${{ env.EXPECTED_BASELINE_SHA }}
+          WORKFLOW_SHA: ${{ env.WORKFLOW_SHA }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: STALE_SHA,EXPECTED_BASELINE_SHA,WORKFLOW_SHA
+          script: |
+            set -Eeuo pipefail
+            cd /opt/nura
+            git fetch --no-tags origin main
+            git cat-file -e "$WORKFLOW_SHA^{commit}"
+            test "$WORKFLOW_SHA" = "$(git rev-parse refs/remotes/origin/main)"
+            bundle_manager() { git show "$WORKFLOW_SHA:scripts/release_execution_bundle.py" | python3 - "$@"; }
+            bundle="$(bundle_manager materialize --repo /opt/nura --workflow-sha "$WORKFLOW_SHA" --parent /var/tmp)"
+            trap 'bundle_manager cleanup --bundle "$bundle" --workflow-sha "$WORKFLOW_SHA"' EXIT
+            env -u PYTHONPATH -u PYTHONHOME PYTHONDONTWRITEBYTECODE=1 \
+              python3 "$bundle/scripts/p7b_rollout.py" recover-stale --sha "$STALE_SHA" --expected-baseline-sha "$EXPECTED_BASELINE_SHA"
