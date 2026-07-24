@@ -21,8 +21,8 @@ def test_exact_controller_workflow_is_dispatch_only_and_non_repeatable() -> None
     assert "expected_production_host:" in workflow
     assert 'test "$GITHUB_RUN_ATTEMPT" = 1' in workflow
     assert 'git show "$CONTROLLER_SHA:scripts/release_execution_bundle.py"' in workflow
-    assert "NURA_TG_BOT_TOKEN" in workflow
-    assert "printf '%s' \"$NURA_TG_BOT_TOKEN\" > \"$token_file\"" in workflow
+    assert "NURA_TG_BOT_TOKEN" not in workflow
+    assert "telegram_bot_token" not in workflow
 
 
 def test_controller_has_no_shell_input_and_records_secret_free_phases() -> None:
@@ -40,7 +40,7 @@ def test_compose_isolated_from_plaintext_tokens_and_schedulers() -> None:
     assert "celery-beat:" not in compose
     assert "admin-bot:" not in compose
     assert "\n  postgres:" not in compose
-    assert "env_file: [${NURA_TG_ENV_FILE:?required}]" in compose
+    assert "env_file:" not in compose
     assert "TELEGRAM_BOT_TOKEN: \"\"" in compose
     assert "TELEGRAM_BOT_TOKEN_FILE" in compose
     assert "nura_tg_redis_data" in compose
