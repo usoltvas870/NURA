@@ -435,9 +435,31 @@ def command_result(runner: Runner, command: Sequence[str]) -> CommandResult:
     return result if isinstance(result, CommandResult) else CommandResult(result)
 
 
+def compose_up_failure_category(result: CommandResult) -> str:
+    """Classify Compose failure without retaining its potentially sensitive text."""
+    output = f"{result.stderr}\n{result.stdout}".lower()
+    if "secret" in output and ("source" in output or "file" in output):
+        return "compose_up_secret_source_missing"
+    if "container name" in output or "already in use" in output:
+        return "compose_up_container_name_conflict"
+    if "postgres" in output and ("recreate" in output or "remove" in output):
+        return "compose_up_postgres_recreation_attempt"
+    if "volume" in output:
+        return "compose_up_volume_conflict"
+    if "network" in output:
+        return "compose_up_network_conflict"
+    if "pull access denied" in output or "image" in output and "not found" in output:
+        return "compose_up_image_missing"
+    if "dependency" in output or "unhealthy" in output or "timeout" in output:
+        return "compose_up_dependency_failed"
+    return "compose_up_service_start_failed"
+
+
 def run_or_fail(runner: Runner, command: Sequence[str], check: str) -> str:
     result = command_result(runner, command)
     if result.returncode != 0:
+        if check == "compose_up":
+            fail(f"verification_failed:compose_up:{compose_up_failure_category(result)}")
         fail(f"verification_failed:{check}")
     return result.stdout
 
