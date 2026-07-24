@@ -1408,6 +1408,28 @@ def test_stale_recovery_intent_is_resumable_after_interruption(settings: p7b.Set
     )
 
 
+def test_stale_recovery_accepts_baseline_image_id_override(
+    settings: p7b.Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed(settings, "stage2_intent")
+    settings.environment_backup.parent.mkdir(parents=True, exist_ok=True)
+    settings.environment_backup.write_text(
+        "SECRET=untouched\nAPP_ENV=development\nTEST_MODE=true\n", encoding="utf-8"
+    )
+    original = p7b.inspect_service
+
+    def id_override(*args: object, **kwargs: object) -> dict[str, str]:
+        value = original(*args, **kwargs)
+        value["image_ref"] = BASELINE_ID
+        return value
+
+    monkeypatch.setattr(p7b, "inspect_service", id_override)
+    p7b.recover_stale_stage2(settings, FakeRunner(), BASELINE)
+    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
+        "stale_stage2_recovered"
+    )
+
+
 def test_stage2_compensates_when_diagnostic_persistence_fails(
     settings: p7b.Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:

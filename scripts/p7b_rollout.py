@@ -2358,7 +2358,12 @@ def recover_stale_stage2(settings: Settings, runner: Runner, expected_baseline: 
         compose_files = [str(item) for item in baseline["compose_files"]]  # type: ignore[index]
         for service in APP_SERVICES:
             inspected = inspect_service(runner, str(baseline["compose_project"]), str(baseline["working_directory"]), compose_files, service)
-            if inspected["image_ref"] != mappings[service] or inspected["image_id"] != ids[service] or inspected["revision"] != expected_baseline:
+            acceptable_refs = {mappings[service], ids[service]}
+            if (
+                inspected["image_ref"] not in acceptable_refs
+                or inspected["image_id"] != ids[service]
+                or inspected["revision"] != expected_baseline
+            ):
                 fail(f"stale_recovery_baseline_identity_mismatch:{service}")
         status = run_or_fail(
             runner,
