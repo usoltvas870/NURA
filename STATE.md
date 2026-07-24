@@ -1496,3 +1496,14 @@ docker compose restart bot celery-worker
 - Graphify update is not required: changes remain inside existing settings,
   Compose, P7B verification, tests, and CI wiring without package or dependency
   architecture changes.
+## Mini-Report Telegram Delivery — 24.07.2026
+
+- Реализована первоначальная Telegram-доставка сохранённого mini Report: структурированный безопасно экранированный текст и PDF-документ `NURA-mini-report.pdf`.
+- Generation и delivery разделены: retry доставки использует сохранённые `Report` и `MiniReportGeneration`, не запускает Matrix или AI.
+- Добавлена durable `TelegramReportDelivery` с atomic claim, fencing через `attempt_count`, прогрессом text/document и продолжением обычного retry с первого неподтверждённого text chunk.
+- Добавлена миграция `d2e3f4a5b6c7` (единственный Alembic head); новые зависимости, frontend/PWA и web mini route не менялись.
+- Приёмка PostgreSQL 16 пройдена на disposable exact-container: blank/parent upgrade, schema/default/check/index/FK/CASCADE, downgrade/re-upgrade и конкурентные get-or-create/claim/stale-fencing/resume доказаны; контейнер удалён.
+- Расширенный targeted-набор: 241 passed; safe-suite пройден в 12 детерминированных file-shards: 938 passed, 17 skipped, 1 разрешённый node-test deselected; 53/53 разрешённых test-файла покрыты ровно один раз. Реальный mini PDF: 3 непустые A4-страницы, извлекаемая кириллица, без clipping/overlap на long-text fixture.
+- Graphify 0.9.7: hooks отключены, `check-update .` завершился успешно без generated diff; обновление Graphify не требуется, так как изменения остаются внутри существующих model/repository/service/task/migration связей.
+- Telegram не предоставляет application idempotency key: между успешным provider ACK и durable receipt остаётся узкое crash-window, поэтому абсолютная exactly-once delivery не заявляется.
+- «Мои разборы» и пользовательская repeated delivery пока не реализованы. Следующий этап после отдельного commit: MY REPORTS AND REPEATED DELIVERY.

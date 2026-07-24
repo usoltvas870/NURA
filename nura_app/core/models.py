@@ -62,6 +62,14 @@ class MiniReportGenerationState:
     FAILED = "failed"
 
 
+class TelegramReportDeliveryState:
+    PENDING = "pending"
+    DELIVERING = "delivering"
+    PARTIALLY_DELIVERED = "partially_delivered"
+    DELIVERED = "delivered"
+    FAILED = "failed"
+
+
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
@@ -430,6 +438,61 @@ class MiniReportGeneration(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+
+class TelegramReportDelivery(Base):
+    """Durable progress for the initial Telegram delivery of a mini report."""
+
+    __tablename__ = "telegram_report_deliveries"
+    __table_args__ = (
+        UniqueConstraint(
+            "mini_report_generation_id", "user_id", "purpose",
+            name="uq_telegram_report_deliveries_generation_user_purpose",
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'delivering', 'partially_delivered', 'delivered', 'failed')",
+            name="ck_telegram_report_deliveries_status",
+        ),
+        CheckConstraint(
+            "text_status IN ('pending', 'sent')",
+            name="ck_telegram_report_deliveries_text_status",
+        ),
+        CheckConstraint(
+            "document_status IN ('pending', 'sent')",
+            name="ck_telegram_report_deliveries_document_status",
+        ),
+        CheckConstraint(
+            "attempt_count >= 0",
+            name="ck_telegram_report_deliveries_attempt_count",
+        ),
+        Index("ix_telegram_report_deliveries_status", "status"),
+        Index(
+            "ix_telegram_report_deliveries_status_claimed_at",
+            "status",
+            "claimed_at",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    report_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("reports.id", ondelete="CASCADE"), nullable=False)
+    mini_report_generation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("mini_report_generations.id", ondelete="CASCADE"), nullable=False)
+    purpose: Mapped[str] = mapped_column(String(32), nullable=False, server_default="mini_initial")
+    status: Mapped[str] = mapped_column(String(24), nullable=False, server_default=TelegramReportDeliveryState.PENDING)
+    text_status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="pending")
+    document_status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="pending")
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    retryable: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default="true",
+    )
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    text_message_ids: Mapped[list[int] | None] = mapped_column(JSONB, nullable=True)
+    document_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    last_error_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
 class Payment(Base):

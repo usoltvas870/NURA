@@ -10,6 +10,7 @@ from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
 from celery.schedules import crontab
 from sqlalchemy import select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import load_only
 
 from core.config import settings
@@ -31,6 +32,7 @@ from core.services.mini_report_application import (
 )
 from core.services.mini_report_generation import MiniReportGenerationService
 from core.services.report import ReportService
+from core.services.telegram_report_delivery import MiniReportTelegramDeliveryService, TelegramDeliveryError
 from core.services.web_push import PushSubscriptionExpired, send_web_push
 
 MSK = timezone(timedelta(hours=3))
@@ -238,6 +240,7 @@ async def _process_mini_report(user_id: str, birth_date: str, name: str = "user"
         token = report.token if report is not None else None
     return {
         "kind": result.kind,
+        "generation_id": str(result.generation_id) if result.generation_id else None,
         "report_id": str(result.report_id) if result.report_id else None,
         "token": token,
         "analysis": result.content,
@@ -265,11 +268,37 @@ async def _get_user_telegram_id(user_id: str) -> int | None:
 def generate_mini_report(user_id: str, birth_date: str, username: str) -> dict:
     async def _run_all():
         result = await _process_mini_report(user_id, birth_date, username)
-        telegram_id = await _get_user_telegram_id(user_id)
-        if telegram_id and result["kind"] == MiniReportResultKind.COMPLETED_NEW and result["token"]:
-            await _notify_mini_report(telegram_id, result["token"])
+        if result["kind"] in (MiniReportResultKind.COMPLETED_NEW, MiniReportResultKind.COMPLETED_REUSED) and result["report_id"]:
+            deliver_mini_report.delay(user_id, result["report_id"], str(result.get("generation_id") or ""))
         return result
     return _run_async(_run_all())
+
+
+@celery_app.task(
+    bind=True,
+    name="core.tasks.deliver_mini_report",
+    max_retries=3,
+    acks_late=True,
+    reject_on_worker_lost=True,
+)
+def deliver_mini_report(self, user_id: str, report_id: str, generation_id: str) -> None:
+    async def _run_delivery() -> None:
+        try:
+            await MiniReportTelegramDeliveryService(get_async_sessionmaker()).deliver(
+                generation_id=uuid.UUID(generation_id), user_id=uuid.UUID(user_id), report_id=uuid.UUID(report_id)
+            )
+        except TelegramDeliveryError as error:
+            if error.retryable:
+                raise self.retry(
+                    exc=ConnectionError(error.code),
+                    countdown=error.retry_after or 20,
+                ) from error
+        except OperationalError as error:
+            raise self.retry(
+                exc=ConnectionError("delivery_database_unavailable"),
+                countdown=settings.telegram_delivery_claim_timeout_seconds,
+            ) from error
+    return _run_async(_run_delivery())
 
 
 async def _process_full_report(

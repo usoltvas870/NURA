@@ -203,7 +203,7 @@ def test_migration_backfills_legacy_reports_and_round_trips(tmp_path, monkeypatc
 
     script = ScriptDirectory.from_config(config)
     heads = script.get_heads()
-    assert heads == ["c1d2e3f4a5b6"]
+    assert heads == ["d2e3f4a5b6c7"]
 
     _create_pre_legacy_schema(database_path)
     command.stamp(config, PRE_LEGACY_REVISION)

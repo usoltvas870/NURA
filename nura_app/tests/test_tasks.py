@@ -2,13 +2,20 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from core.services.mini_report_application import MiniReportResultKind
-from core.tasks import _process_mini_report, _send_daily_card_async
+from core.services.telegram_report_delivery import TelegramDeliveryError
+from core.tasks import (
+    _process_mini_report,
+    _send_daily_card_async,
+    deliver_mini_report,
+    generate_mini_report,
+)
 
 
-@pytest.mark.asyncio
 class TestMiniReport:
+    @pytest.mark.asyncio
     async def test_celery_adapter_uses_application_service(self) -> None:
         user_id = str(uuid.uuid4())
         report = MagicMock(id=uuid.uuid4(), token="token-abc")
@@ -29,6 +36,7 @@ class TestMiniReport:
         assert payload["token"] == "token-abc"
         application_service.return_value.generate.assert_awaited_once()
 
+    @pytest.mark.asyncio
     async def test_celery_adapter_does_not_notify_without_new_report(self) -> None:
         user_id = str(uuid.uuid4())
         result = MagicMock(
@@ -45,6 +53,77 @@ class TestMiniReport:
             payload = await _process_mini_report(user_id, "01.01.2000", "Иван")
 
         assert payload["kind"] == MiniReportResultKind.COMPLETED_REUSED
+
+    @pytest.mark.parametrize(
+        "kind",
+        [
+            MiniReportResultKind.COMPLETED_NEW,
+            MiniReportResultKind.COMPLETED_REUSED,
+        ],
+    )
+    def test_generation_task_enqueues_same_idempotent_delivery(self, kind) -> None:
+        user_id = str(uuid.uuid4())
+        report_id = str(uuid.uuid4())
+        generation_id = str(uuid.uuid4())
+        with (
+            patch(
+                "core.tasks._process_mini_report",
+                new_callable=AsyncMock,
+                return_value={
+                    "kind": kind,
+                    "report_id": report_id,
+                    "generation_id": generation_id,
+                },
+            ),
+            patch("core.tasks.deliver_mini_report.delay") as enqueue,
+        ):
+            result = generate_mini_report.run(user_id, "01.01.2000", "Иван")
+
+        assert result["kind"] == kind
+        enqueue.assert_called_once_with(user_id, report_id, generation_id)
+
+    def test_delivery_task_retries_transient_database_failure(self) -> None:
+        operational_error = OperationalError("SELECT", {}, RuntimeError("down"))
+        with (
+            patch(
+                "core.tasks.MiniReportTelegramDeliveryService.deliver",
+                new_callable=AsyncMock,
+                side_effect=operational_error,
+            ),
+            patch.object(
+                deliver_mini_report,
+                "retry",
+                side_effect=RuntimeError("retry-called"),
+            ) as retry,
+        ):
+            with pytest.raises(RuntimeError, match="retry-called"):
+                deliver_mini_report.run(
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                    str(uuid.uuid4()),
+                )
+
+        retry.assert_called_once()
+
+    def test_delivery_task_does_not_retry_non_retryable_error(self) -> None:
+        with (
+            patch(
+                "core.tasks.MiniReportTelegramDeliveryService.deliver",
+                new_callable=AsyncMock,
+                side_effect=TelegramDeliveryError(
+                    "telegram_forbidden",
+                    retryable=False,
+                ),
+            ),
+            patch.object(deliver_mini_report, "retry") as retry,
+        ):
+            deliver_mini_report.run(
+                str(uuid.uuid4()),
+                str(uuid.uuid4()),
+                str(uuid.uuid4()),
+            )
+
+        retry.assert_not_called()
 
 
 @pytest.mark.asyncio

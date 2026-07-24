@@ -113,6 +113,8 @@ class Settings(BaseSettings):
     # Telegram
     telegram_bot_token: str | None = None
     bot_username: str | None = None
+    telegram_document_max_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=50 * 1024 * 1024)
+    telegram_delivery_claim_timeout_seconds: int = Field(default=900, ge=60, le=3600)
 
     # Admin Bot
     admin_bot_token: str | None = None

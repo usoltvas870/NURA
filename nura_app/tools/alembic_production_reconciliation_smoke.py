@@ -23,7 +23,7 @@ NURA_APP_ROOT = REPO_ROOT / "nura_app"
 PRODUCTION_REVISION = "d5e6f7a8b9c0"
 FK_NORMALIZATION_HEAD = "c0d1e2f3a4b5"
 EXPECTED_HEAD = "d1e2f3a4b5c6"
-GRAPH_HEAD = "c1d2e3f4a5b6"
+GRAPH_HEAD = "d2e3f4a5b6c7"
 SHADOW_SCHEMA = "p43d_shadow"
 PRODUCTION_SCHEMA_FINGERPRINT = (
     "6b4d42974f1b0d4538e22d90f310c42fb2ffaa417ccbe7dd2e1d16802c41ab87"
@@ -399,6 +399,7 @@ def _scenario_canonical_and_downgrade() -> None:
         "attribution_links",
         "attribution_touches",
         "mini_report_generations",
+        "telegram_report_deliveries",
     }
     _check("Post-d1 foundation tables absent at d1", foundation_tables.isdisjoint(d1_tables))
 

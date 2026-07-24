@@ -27,6 +27,7 @@ HARNESS_PATHS = (
     NURA_APP_ROOT / "tools" / "alembic_postgres_bootstrap_smoke.py",
     NURA_APP_ROOT / "tools" / "alembic_fk_normalization_smoke.py",
     NURA_APP_ROOT / "tools" / "alembic_production_reconciliation_smoke.py",
+    NURA_APP_ROOT / "tools" / "telegram_report_delivery_postgres_smoke.py",
 )
 READY_TIMEOUT_SECONDS = 45
 _EXECUTION_ENV_KEYS = (
@@ -120,6 +121,7 @@ def _database_evidence(database_url: str) -> tuple[str, list[dict[str, object]],
         "promo_reservations",
         "report_generation_jobs",
         "mini_report_generations",
+        "telegram_report_deliveries",
         "guest_profiles",
         "referral_rewards",
         "alembic_version",
@@ -272,6 +274,14 @@ def main() -> int:
                     secrets_to_mask,
                 ),
             )
+            _write(
+                evidence_dir / "telegram-report-delivery-smoke.txt",
+                _sanitize(
+                    outputs[HARNESS_PATHS[3].name].stdout
+                    + outputs[HARNESS_PATHS[3].name].stderr,
+                    secrets_to_mask,
+                ),
+            )
             heads = _run(_alembic_command("heads"), env=child_env, secrets_to_mask=secrets_to_mask)
             history = _run(_alembic_command("history"), env=child_env, secrets_to_mask=secrets_to_mask)
             _write(evidence_dir / "alembic-heads.txt", heads.stdout + heads.stderr)
@@ -305,6 +315,7 @@ def main() -> int:
                         "python tools/alembic_postgres_bootstrap_smoke.py",
                         "python tools/alembic_fk_normalization_smoke.py",
                         "python tools/alembic_production_reconciliation_smoke.py",
+                        "python tools/telegram_report_delivery_postgres_smoke.py",
                         "alembic heads",
                         "alembic history",
                         f"docker rm -f -v {container_name}",

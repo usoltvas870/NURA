@@ -5,6 +5,7 @@ from pathlib import Path
 TASKS_PATH = Path(__file__).parents[1] / "core" / "tasks.py"
 EXPECTED_ASYNC_TASKS = {
     "generate_mini_report",
+    "deliver_mini_report",
     "generate_full_report",
     "process_report_generation_job",
     "dispatch_report_generation_jobs",

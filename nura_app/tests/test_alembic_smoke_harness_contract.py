@@ -15,8 +15,9 @@ TOOLS_ROOT = NURA_APP_ROOT / "tools"
 BOOTSTRAP_PATH = TOOLS_ROOT / "alembic_postgres_bootstrap_smoke.py"
 FK_PATH = TOOLS_ROOT / "alembic_fk_normalization_smoke.py"
 RECONCILIATION_PATH = TOOLS_ROOT / "alembic_production_reconciliation_smoke.py"
+DELIVERY_PATH = TOOLS_ROOT / "telegram_report_delivery_postgres_smoke.py"
 RUNNER_PATH = TOOLS_ROOT / "run_alembic_postgres_smoke.py"
-HARNESS_PATHS = (BOOTSTRAP_PATH, FK_PATH, RECONCILIATION_PATH)
+HARNESS_PATHS = (BOOTSTRAP_PATH, FK_PATH, RECONCILIATION_PATH, DELIVERY_PATH)
 ALLOWLIST = {
     "STATE.md",
     "nura_app/alembic/versions/a1b2c3d4e5f6_add_attribution_foundation.py",
@@ -32,6 +33,7 @@ ALLOWLIST = {
     "nura_app/tools/alembic_fk_normalization_smoke.py",
     "nura_app/tools/alembic_production_reconciliation_smoke.py",
     "nura_app/tools/run_alembic_postgres_smoke.py",
+    "nura_app/tools/telegram_report_delivery_postgres_smoke.py",
     "nura_app/tests/test_alembic_bootstrap_contract.py",
     "nura_app/tests/test_alembic_default_reconciliation_contract.py",
     "nura_app/tests/test_alembic_fk_normalization_contract.py",
@@ -42,11 +44,16 @@ ALLOWLIST = {
     "nura_app/tests/test_attribution_migration_contract.py",
     "nura_app/tests/test_report_lifecycle_schema_foundation.py",
     "nura_app/alembic/versions/c1d2e3f4a5b6_add_mini_report_generation_foundation.py",
+    "nura_app/alembic/versions/d2e3f4a5b6c7_add_telegram_mini_report_delivery.py",
+    "nura_app/core/config.py",
     "nura_app/core/repositories/__init__.py",
     "nura_app/core/repositories/mini_report_generation.py",
+    "nura_app/core/repositories/telegram_report_delivery.py",
     "nura_app/core/services/mini_report_generation.py",
+    "nura_app/core/services/telegram_report_delivery.py",
     "nura_app/tests/test_mini_report_generation_foundation.py",
     "nura_app/tests/test_mini_report_generation_migration_contract.py",
+    "nura_app/tests/test_mini_report_telegram_delivery.py",
     "nura_app/api/routes/web.py",
     "nura_app/bot/handlers/onboarding.py",
     "nura_app/core/repositories/guest.py",
@@ -54,6 +61,7 @@ ALLOWLIST = {
     "nura_app/core/tasks.py",
     "nura_app/tests/test_mini_report_application.py",
     "nura_app/tests/test_tasks.py",
+    "nura_app/tests/test_celery_async_task_contract.py",
 }
 
 
@@ -92,7 +100,10 @@ def test_harnesses_have_no_stale_worktree_or_docker_sql() -> None:
         assert "docker exec" not in source.lower()
         assert "nura_smoke_bootstrap" not in source
         assert "nura_fk_smoke" not in source
-        assert "psycopg2.connect(_URL)" in source
+        assert (
+            "psycopg2.connect(_URL)" in source
+            or "psycopg2.connect(database_url)" in source
+        )
 
 
 def test_roots_are_derived_from_resolved_file(bootstrap, fk, reconciliation) -> None:
@@ -129,14 +140,14 @@ def test_revision_constants(bootstrap, fk, reconciliation) -> None:
     assert bootstrap.EXPECTED_BASE == "0001a2b3c4d5e6"
     assert bootstrap.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert bootstrap.PREVIOUS_HEAD == "d1e2f3a4b5c6"
-    assert bootstrap.EXPECTED_HEAD == "c1d2e3f4a5b6"
+    assert bootstrap.EXPECTED_HEAD == "d2e3f4a5b6c7"
     assert fk.PREVIOUS_HEAD == "b9c0d1e2f3a4"
     assert fk.NORMALIZATION_REVISION == "c0d1e2f3a4b5"
-    assert fk.EXPECTED_HEAD == "c1d2e3f4a5b6"
+    assert fk.EXPECTED_HEAD == "d2e3f4a5b6c7"
     assert reconciliation.PRODUCTION_REVISION == "d5e6f7a8b9c0"
     assert reconciliation.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert reconciliation.EXPECTED_HEAD == "d1e2f3a4b5c6"
-    assert reconciliation.GRAPH_HEAD == "c1d2e3f4a5b6"
+    assert reconciliation.GRAPH_HEAD == "d2e3f4a5b6c7"
 
 
 def test_structured_contract_helpers_reject_drift(bootstrap) -> None:
