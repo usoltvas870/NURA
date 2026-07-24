@@ -1086,13 +1086,14 @@ def validate_compose_volume_contract(
         fail("compose_volume_contract_unparseable")
     destinations = {"postgres": "/var/lib/postgresql/data", "redis": "/data"}
     for service, destination in destinations.items():
+        detail = f"{service}_data_volume_unresolved"
         expected_name = expected.get(service)
         service_config = config["services"].get(service)
         if not isinstance(expected_name, str) or not isinstance(service_config, dict):
-            fail("compose_volume_contract_invalid")
+            fail(f"verification_failed:compose_volume_contract:{detail}")
         mounts = service_config.get("volumes")
         if not isinstance(mounts, list):
-            fail("compose_volume_contract_invalid")
+            fail(f"verification_failed:compose_volume_contract:{detail}")
         matches = [
             item
             for item in mounts
@@ -1101,14 +1102,27 @@ def validate_compose_volume_contract(
             and item.get("target") == destination
         ]
         if len(matches) != 1 or not isinstance(matches[0].get("source"), str):
-            fail("compose_volume_contract_invalid")
+            fail(f"verification_failed:compose_volume_contract:{detail}")
         source = str(matches[0]["source"])
         definition = definitions.get(source, {})
-        if not isinstance(definition, dict):
-            fail("compose_volume_contract_invalid")
-        actual_name = definition.get("name") or f"{project}_{source}"
+        if definition and not isinstance(definition, dict):
+            fail(f"verification_failed:compose_volume_contract:{detail}")
+        if isinstance(definition, dict) and isinstance(definition.get("name"), str):
+            actual_name = definition["name"]
+        elif source == expected_name:
+            # `docker compose config` may already resolve a logical alias to
+            # the engine volume name.  This is safe only when it is the exact
+            # canonical identity captured from the current data container.
+            actual_name = source
+        elif isinstance(definition, dict):
+            actual_name = f"{project}_{source}"
+        else:
+            fail(f"verification_failed:compose_volume_contract:{detail}")
         if actual_name != expected_name:
-            fail("compose_volume_identity_mismatch")
+            fail(
+                "verification_failed:compose_volume_contract:"
+                f"{service}_data_volume_identity_mismatch"
+            )
 
 
 def verify_live_volumes(
