@@ -92,6 +92,7 @@ jobs:
     environment: production
     env:
       TARGET_SHA: ${{ needs.build-release-artifact.outputs.target-sha }}
+      WORKFLOW_SHA: ${{ github.sha }}
       ARTIFACT_NAME: ${{ needs.build-release-artifact.outputs.artifact-name }}
       INCOMING_ID: ${{ github.run_id }}-${{ github.run_attempt }}-${{ needs.build-release-artifact.outputs.target-sha }}
     steps:
@@ -123,31 +124,39 @@ jobs:
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           TARGET_SHA: ${{ env.TARGET_SHA }}
+          WORKFLOW_SHA: ${{ env.WORKFLOW_SHA }}
           INCOMING_ID: ${{ env.INCOMING_ID }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: TARGET_SHA,INCOMING_ID
+          envs: TARGET_SHA,WORKFLOW_SHA,INCOMING_ID
           script: |
             bash -se <<'NURA_DEPLOY_BOOTSTRAP'
             set -Eeuo pipefail
             [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$TARGET_SHA" == "$WORKFLOW_SHA" ]]
             [[ "$INCOMING_ID" == *"$TARGET_SHA" ]]
             cd /opt/nura
             git fetch --no-tags origin main
             git cat-file -e "$TARGET_SHA^{commit}"
             git merge-base --is-ancestor "$TARGET_SHA" refs/remotes/origin/main
-            launcher="$(mktemp)"
-            lock_helper="$(mktemp)"
-            trap 'rm -f "$launcher" "$lock_helper"' EXIT
-            git show "$TARGET_SHA:deploy.sh" > "$launcher"
-            git show "$TARGET_SHA:scripts/release_lock.py" > "$lock_helper"
-            chmod 0700 "$launcher"
-            chmod 0700 "$lock_helper"
+            bundle_manager() {
+              git show "$WORKFLOW_SHA:scripts/release_execution_bundle.py" | python3 - "$@"
+            }
+            bundle="$(bundle_manager materialize --repo /opt/nura --workflow-sha "$WORKFLOW_SHA" --parent /var/tmp)"
+            cleanup_bundle() {
+              local status=$?
+              trap - EXIT
+              bundle_manager cleanup --bundle "$bundle" --workflow-sha "$WORKFLOW_SHA" || status=1
+              exit "$status"
+            }
+            trap cleanup_bundle EXIT
             p7b() {
-              git show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 - "$@"
+              env -u PYTHONPATH -u PYTHONHOME PYTHONDONTWRITEBYTECODE=1 \
+                python3 "$bundle/scripts/p7b_rollout.py" "$@"
             }
             incoming="/var/tmp/nura-release-incoming/$INCOMING_ID"
             p7b_status="$(p7b status --sha "$TARGET_SHA" 2>/dev/null || true)"
@@ -166,7 +175,9 @@ jobs:
             PY
               exit 0
             fi
-            NURA_RELEASE_LOCK_HELPER="$lock_helper" bash "$launcher" prepare-p7b "$TARGET_SHA" \
+            env -u PYTHONPATH -u PYTHONHOME \
+              NURA_RELEASE_EXECUTION_BUNDLE="$bundle" NURA_WORKFLOW_SHA="$WORKFLOW_SHA" \
+              bash "$bundle/deploy.sh" prepare-p7b "$TARGET_SHA" \
               "$incoming/nura-static-$TARGET_SHA.tar.gz" \
               "$incoming/nura-static-$TARGET_SHA.tar.gz.sha256" \
               "$incoming/release-manifest.json"

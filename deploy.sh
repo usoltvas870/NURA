@@ -216,6 +216,10 @@ readonly SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
   [[ -z "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" && -z "${NURA_RELEASE_LOCK_HELPER:-}" ]] \
     || fail "execution bundle cannot be combined with helper overrides"
+  if [[ "$COMMAND" != rollback ]]; then
+    [[ "$TARGET_SHA" == "${NURA_WORKFLOW_SHA:?execution bundle requires workflow SHA}" ]] \
+      || fail "execution bundle target must match workflow SHA"
+  fi
   readonly EXECUTION_BUNDLE="$(readlink -f "$NURA_RELEASE_EXECUTION_BUNDLE")"
   python3 "$EXECUTION_BUNDLE/scripts/release_execution_bundle.py" verify \
     --bundle "$EXECUTION_BUNDLE" --workflow-sha "${NURA_WORKFLOW_SHA:?execution bundle requires workflow SHA}" \
@@ -225,6 +229,7 @@ if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
   readonly STATIC_HELPER="$EXECUTION_BUNDLE/scripts/deploy_static_release.py"
   readonly STATE_HELPER="$EXECUTION_BUNDLE/scripts/prepare_atomic_release_host.py"
   readonly ENVIRONMENT_RECONCILE_HELPER="$EXECUTION_BUNDLE/scripts/environment_reconciliation.py"
+  readonly P7B_HELPER="$EXECUTION_BUNDLE/scripts/p7b_rollout.py"
   readonly LOCK_HELPER="$EXECUTION_BUNDLE/scripts/release_lock.py"
 elif [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
   [[ "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]] \
@@ -238,10 +243,12 @@ elif [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
     || fail "pinned helper root must be a real directory"
   readonly ARTIFACT_HELPER="$AUDITED_HELPER_ROOT/build_release_artifact.py"
   readonly STATIC_HELPER="$AUDITED_HELPER_ROOT/deploy_static_release.py"
+  readonly P7B_HELPER="$REPO_ROOT/scripts/p7b_rollout.py"
 else
   readonly ARTIFACT_HELPER="$REPO_ROOT/scripts/build_release_artifact.py"
   readonly STATIC_HELPER="$REPO_ROOT/scripts/deploy_static_release.py"
   readonly LOCK_HELPER="${NURA_RELEASE_LOCK_HELPER:-$REPO_ROOT/scripts/release_lock.py}"
+  readonly P7B_HELPER="$REPO_ROOT/scripts/p7b_rollout.py"
 fi
 if [[ -z "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
   readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
@@ -259,6 +266,9 @@ done
 [[ -f "$ARTIFACT_HELPER" && ! -L "$ARTIFACT_HELPER" ]] || fail "artifact helper is missing or unsafe"
 [[ -f "$STATIC_HELPER" && ! -L "$STATIC_HELPER" ]] || fail "static helper is missing or unsafe"
 [[ -f "$ENVIRONMENT_RECONCILE_HELPER" && ! -L "$ENVIRONMENT_RECONCILE_HELPER" ]] || fail "environment reconciliation helper is missing or unsafe"
+if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
+  [[ -f "$P7B_HELPER" && ! -L "$P7B_HELPER" ]] || fail "P7B helper is missing or unsafe"
+fi
 [[ -f "$LOCK_HELPER" && ! -L "$LOCK_HELPER" ]] || fail "release lock helper is missing or unsafe"
 [[ -f "$SCRIPT_PATH" && ! -L "$SCRIPT_PATH" ]] || fail "deploy launcher is missing or unsafe"
 [[ -d "$RELEASE_ROOT" && ! -L "$RELEASE_ROOT" ]] || fail "release root is not prepared; run the separately approved host transition"
@@ -826,7 +836,26 @@ PREVIOUS_RELEASE_PATH="$RELEASES_DIR/$CURRENT_SHA"
 write_state staged "" "" "$CURRENT_SHA"
 STATE_STAGED=1
 if [[ "$COMMAND" == prepare-p7b ]]; then
-  git -C "$REPO_ROOT" show "$TARGET_SHA:scripts/p7b_rollout.py" | python3 - prepare-handoff \
+  if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
+    env -u PYTHONPATH -u PYTHONHOME PYTHONDONTWRITEBYTECODE=1 python3 "$P7B_HELPER" prepare-handoff \
+      --sha "$TARGET_SHA" \
+      --project nura_app \
+      --working-directory "$REPO_ROOT/nura_app" \
+      --base-compose "$COMPOSE_BASE" \
+      --env-file "$REPO_ROOT/nura_app/.env" \
+      --state-dir "$STATE_ROOT/p7b" \
+      --canonical-state "$CURRENT_STATE" \
+      --previous-state "$PREVIOUS_STATE" \
+      --current-link "$CURRENT_LINK" \
+      --releases-directory "$RELEASES_DIR" \
+      --release-path "$TARGET_RELEASE" \
+      --image-id "$TARGET_IMAGE_ID" \
+      --artifact-sha256 "$ARTIFACT_DIGEST" \
+      --manifest-sha256 "$PUBLIC_MANIFEST_DIGEST" \
+      --expected-baseline-sha "$CURRENT_SHA"
+  else
+    git -C "$REPO_ROOT" show "$TARGET_SHA:scripts/p7b_rollout.py" | \
+      env -u PYTHONPATH -u PYTHONHOME PYTHONDONTWRITEBYTECODE=1 python3 - prepare-handoff \
     --sha "$TARGET_SHA" \
     --project nura_app \
     --working-directory "$REPO_ROOT/nura_app" \
@@ -842,6 +871,7 @@ if [[ "$COMMAND" == prepare-p7b ]]; then
     --artifact-sha256 "$ARTIFACT_DIGEST" \
     --manifest-sha256 "$PUBLIC_MANIFEST_DIGEST" \
     --expected-baseline-sha "$CURRENT_SHA"
+  fi
   SUCCESS=1
   log "P7B prepare handoff persisted at exact target $TARGET_SHA; application and data services were not mutated"
   exit 0

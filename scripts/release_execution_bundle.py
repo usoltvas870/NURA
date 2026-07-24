@@ -24,7 +24,9 @@ BUNDLE_FILES = (
     "scripts/deploy_static_release.py",
     "scripts/prepare_atomic_release_host.py",
     "scripts/environment_reconciliation.py",
+    "scripts/p7b_rollout.py",
 )
+BUNDLE_SCHEMA = 2
 
 
 class BundleError(RuntimeError):
@@ -58,6 +60,25 @@ def _git(repo: Path, *args: str) -> bytes:
     if result.returncode:
         _fail("exact workflow Git object is unavailable")
     return result.stdout
+
+
+def _source_is_regular_file(repo: Path, workflow_sha: str, source: str) -> None:
+    """Reject a missing, symlinked, or otherwise non-regular Git member."""
+
+    listing = _git(repo, "ls-tree", "-z", workflow_sha, "--", source)
+    records = listing.split(b"\0")
+    if len(records) != 2 or not records[0] or records[1]:
+        _fail("exact bundle member is missing or unsafe")
+    try:
+        metadata, tracked_path = records[0].split(b"\t", maxsplit=1)
+        mode, kind, _object = metadata.split(maxsplit=2)
+    except ValueError:
+        _fail("exact bundle member is missing or unsafe")
+    if tracked_path.decode("utf-8", "strict") != source or kind != b"blob":
+        _fail("exact bundle member is missing or unsafe")
+    expected_mode = b"100755" if source == "deploy.sh" else b"100644"
+    if mode != expected_mode:
+        _fail("exact bundle member has an unsafe executable contract")
 
 
 def _lstat_regular(path: Path, *, mode: int | None = None) -> os.stat_result:
@@ -137,9 +158,10 @@ def materialize(repo: Path, workflow_sha: str, parent: Path) -> Path:
     os.chmod(bundle, 0o700)
     try:
         _validate_root(bundle, require_manifest=False)
-        members: list[dict[str, str]] = []
+        members: list[dict[str, str | bool]] = []
         for source in BUNDLE_FILES:
             relative = _safe_relative(source)
+            _source_is_regular_file(repo, workflow_sha, source)
             destination = bundle.joinpath(*relative.parts)
             destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             for ancestor in (destination.parent, *destination.parent.parents):
@@ -151,10 +173,13 @@ def materialize(repo: Path, workflow_sha: str, parent: Path) -> Path:
             content = _git(repo, "show", f"{workflow_sha}:{source}")
             if not content:
                 _fail("exact bundle member is empty")
-            _atomic_write(destination, content, 0o700 if source == "deploy.sh" else 0o600)
-            members.append({"path": source, "sha256": _sha256(content)})
+            executable = source == "deploy.sh"
+            _atomic_write(destination, content, 0o700 if executable else 0o600)
+            members.append(
+                {"path": source, "sha256": _sha256(content), "executable": executable}
+            )
         provenance = {
-            "schema": 1,
+            "schema": BUNDLE_SCHEMA,
             "workflow_sha": workflow_sha,
             "members": members,
         }
@@ -176,7 +201,7 @@ def verify(bundle: Path, workflow_sha: str) -> None:
     bundle = bundle.absolute()
     manifest = _validate_root(bundle, require_manifest=True)
     assert manifest is not None
-    if manifest.get("schema") != 1 or manifest.get("workflow_sha") != workflow_sha:
+    if manifest.get("schema") != BUNDLE_SCHEMA or manifest.get("workflow_sha") != workflow_sha:
         _fail("bundle provenance mismatch")
     members = manifest.get("members")
     if not isinstance(members, list) or len(members) != len(BUNDLE_FILES):
@@ -187,11 +212,19 @@ def verify(bundle: Path, workflow_sha: str) -> None:
             _fail("bundle member manifest is invalid")
         path = member.get("path")
         digest = member.get("sha256")
-        if not isinstance(path, str) or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        executable = member.get("executable")
+        if (
+            not isinstance(path, str)
+            or not isinstance(digest, str)
+            or not isinstance(executable, bool)
+            or not re.fullmatch(r"[0-9a-f]{64}", digest)
+        ):
             _fail("bundle member manifest is invalid")
         if path in expected:
             _fail("bundle member manifest is invalid")
         expected[path] = digest
+        if executable != (path == "deploy.sh"):
+            _fail("bundle member executable contract is invalid")
     if set(expected) != set(BUNDLE_FILES):
         _fail("bundle member manifest is incomplete")
     for source in BUNDLE_FILES:
