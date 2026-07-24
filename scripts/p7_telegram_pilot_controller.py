@@ -30,6 +30,7 @@ PHASES = frozenset({
 })
 PROJECT = "nura_tg"
 PILOT_TOKEN_FILE = Path("/opt/nura/secrets/nura_tg/telegram_bot_token")
+PILOT_DATABASE_URL_FILE = Path("/opt/nura/secrets/nura_tg/database_url")
 
 
 class PilotError(RuntimeError):
@@ -119,6 +120,10 @@ def preflight(repo: Path, controller_sha: str, target_sha: str, expected_host: s
     regular(token, 0o600)
     if not token.read_bytes() or b"\n" in token.read_bytes():
         fail("invalid_pilot_token")
+    database_url = PILOT_DATABASE_URL_FILE.resolve(strict=True)
+    regular(database_url, 0o600)
+    if not database_url.read_bytes() or b"\n" in database_url.read_bytes():
+        fail("invalid_pilot_database_url")
     legacy_env = Path("/opt/nura/nura_app/.env")
     regular(legacy_env)
     legacy_token = legacy_token_from_env(legacy_env)
@@ -243,14 +248,10 @@ def deploy(args: argparse.Namespace) -> None:
                 fail("target_compose_missing")
             secret_root = Path("/var/lib/nura-tg-pilot/secrets")
             secret_root.mkdir(mode=0o700, parents=True, exist_ok=True)
-            pilot_token = secret_root / "telegram_bot_token"
-            pilot_token.write_bytes(token.read_bytes())
-            os.chmod(pilot_token, 0o600)
             redis_secret = secret_root / "redis_password"
             if not redis_secret.exists():
                 redis_secret.write_text(secrets.token_urlsafe(48), encoding="ascii")
                 os.chmod(redis_secret, 0o600)
-            regular(pilot_token, 0o600)
             regular(redis_secret, 0o600)
             environment = os.environ.copy()
             environment.update({

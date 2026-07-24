@@ -58,4 +58,4 @@ networks:
 secrets:
   redis_password: {file: ${NURA_TG_REDIS_SECRET_FILE:?required}}
   telegram_bot_token: {file: /opt/nura/secrets/nura_tg/telegram_bot_token}
-  database_url: {file: /var/lib/nura-tg-pilot/secrets/database_url}
+  database_url: {file: /opt/nura/secrets/nura_tg/database_url}
