@@ -74,21 +74,6 @@ def write_state(root: Path, phase: str, target_sha: str, controller_digest: str)
     os.replace(temporary, root / "state.json")
 
 
-def compose_env(source: Path, destination: Path) -> None:
-    """Copy only DB/application non-payment settings from legacy environment."""
-    regular(source)
-    allowed = {"POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "POSTGRES_HOST",
-               "POSTGRES_PORT", "SECRET_KEY", "DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL",
-               "DEEPSEEK_MODEL", "BOT_USERNAME", "REPORT_BASE_URL", "SENTRY_DSN"}
-    lines = []
-    for line in source.read_text(encoding="utf-8").splitlines():
-        key = line.split("=", 1)[0]
-        if key in allowed:
-            lines.append(line)
-    destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    os.chmod(destination, 0o600)
-
-
 def legacy_token_from_env(path: Path) -> bytes:
     """Parse only one dotenv key; never evaluate the legacy environment file."""
     regular(path)
@@ -267,13 +252,9 @@ def deploy(args: argparse.Namespace) -> None:
                 os.chmod(redis_secret, 0o600)
             regular(pilot_token, 0o600)
             regular(redis_secret, 0o600)
-            env_file = secret_root / "pilot.env"
-            compose_env(Path("/opt/nura/nura_app/.env"), env_file)
             environment = os.environ.copy()
             environment.update({
-                "NURA_TG_ENV_FILE": str(env_file),
                 "NURA_TG_REDIS_SECRET_FILE": str(redis_secret),
-                "NURA_TG_TELEGRAM_TOKEN_FILE": str(pilot_token),
                 "NURA_TG_POLLING_ENABLED": "false",
             })
             resolved_compose(compose, app, environment)

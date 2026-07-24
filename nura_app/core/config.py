@@ -139,8 +139,11 @@ class Settings(BaseSettings):
             return values
         pilot = values.get("nura_tg_pilot", values.get("NURA_TG_PILOT", False))
         direct = values.get("telegram_bot_token", values.get("TELEGRAM_BOT_TOKEN"))
+        database_url = values.get("database_url", values.get("DATABASE_URL"))
         if pilot and direct:
             raise ValueError("pilot_plaintext_telegram_token_forbidden")
+        if pilot and database_url:
+            raise ValueError("pilot_plaintext_database_url_forbidden")
         return values
     bot_username: str | None = None
 

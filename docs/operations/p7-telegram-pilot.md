@@ -6,8 +6,8 @@ SSH commands manually.
 
 1. Create a new, separate Telegram bot with BotFather.
 2. Do not send its token in chat, an issue, a commit, or a pull request.
-3. Add the value only as the GitHub Actions repository secret
-   `NURA_TG_BOT_TOKEN`.
+3. Do not add the value to GitHub Actions. A separately authorized SSH
+   provisioning operation must place it in the fixed owner-only host file.
 4. Do not change the legacy bot token.
 5. Wait for green main CI before using any production workflow.
 6. Use only a new `workflow_dispatch` run of **P7 Telegram pilot deploy** with
