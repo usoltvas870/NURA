@@ -276,11 +276,12 @@ def fake_redis_cli(tmp_path: Path) -> tuple[Path, Path]:
     executable.write_text(
         "#!/bin/sh\n"
         'printf "%s\\n" "$@" > "$ARG_CAPTURE"\n'
-        'if [ "${REDISCLI_AUTH+x}" != x ]; then\n'
+        'if [ "$1" != "--no-auth-warning" ] || [ "$2" != "--askpass" ]; then\n'
         '    echo "NOAUTH Authentication required." >&2\n'
         "    exit 1\n"
         "fi\n"
-        'if [ "$REDISCLI_AUTH" != "$EXPECTED_REDIS_AUTH" ]; then\n'
+        'IFS= read -r supplied\n'
+        'if [ "$supplied" != "$EXPECTED_REDIS_AUTH" ]; then\n'
         '    echo "WRONGPASS invalid username-password pair" >&2\n'
         "    exit 1\n"
         "fi\n"
@@ -321,7 +322,7 @@ def test_redis_healthcheck_returns_authenticated_pong_without_argv_secret(
     assert result.stdout == "PONG\n"
     assert result.stderr == ""
     arguments = argument_capture.read_text(encoding="utf-8")
-    assert arguments.splitlines() == ["--no-auth-warning", "ping"]
+    assert arguments.splitlines() == ["--no-auth-warning", "--askpass", "ping"]
     assert marker not in arguments
     assert marker not in result.stdout
     assert marker not in result.stderr
