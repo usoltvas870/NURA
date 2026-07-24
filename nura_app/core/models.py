@@ -5,6 +5,7 @@ from datetime import datetime
 from sqlalchemy import (
     BigInteger,
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -13,6 +14,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -51,6 +53,13 @@ class ReportGenerationJobState:
     COMPLETED = "completed"
     FAILED_RETRYABLE = "failed_retryable"
     FAILED_TERMINAL = "failed_terminal"
+
+
+class MiniReportGenerationState:
+    PENDING = "pending"
+    GENERATING = "generating"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 class User(Base):
@@ -339,6 +348,79 @@ class ReportGenerationJob(Base):
     )
     last_error_category: Mapped[str | None] = mapped_column(String(128), nullable=True)
     celery_task_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class MiniReportGeneration(Base):
+    """Durable idempotency and lifecycle record for a channel-neutral mini report."""
+
+    __tablename__ = "mini_report_generations"
+    __table_args__ = (
+        CheckConstraint(
+            "(user_id IS NOT NULL AND guest_profile_id IS NULL) OR "
+            "(user_id IS NULL AND guest_profile_id IS NOT NULL)",
+            name="ck_mini_report_generations_exactly_one_owner",
+        ),
+        Index(
+            "uq_mini_report_generations_user_fingerprint_version",
+            "user_id",
+            "fingerprint",
+            "generation_version",
+            unique=True,
+            postgresql_where=text("user_id IS NOT NULL"),
+            sqlite_where=text("user_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_mini_report_generations_guest_fingerprint_version",
+            "guest_profile_id",
+            "fingerprint",
+            "generation_version",
+            unique=True,
+            postgresql_where=text("guest_profile_id IS NOT NULL"),
+            sqlite_where=text("guest_profile_id IS NOT NULL"),
+        ),
+        Index("ix_mini_report_generations_status", "status"),
+        Index("ix_mini_report_generations_report_id", "report_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
+    )
+    guest_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("guest_profiles.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    generation_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16),
+        default=MiniReportGenerationState.PENDING,
+        server_default=MiniReportGenerationState.PENDING,
+        nullable=False,
+    )
+    attempt_count: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    report_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("reports.id", ondelete="SET NULL"), nullable=True
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    error_detail: Mapped[str | None] = mapped_column(String(256))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

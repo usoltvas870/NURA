@@ -1,8 +1,26 @@
 # NURA — State
 
-> Последнее обновление: **24.07.2026 — Сессия 87** — GPT-5 Codex
+> Последнее обновление: **24.07.2026 — Сессия 89** — GPT-5 Codex
 
 ---
+
+## Сессия 89 — 24.07.2026
+- Модель: GPT-5 Codex
+- Что сделано: MINI-REPORT PERSISTENCE AND IDEMPOTENCY FOUNDATION
+  - Добавлена отдельная сущность `MiniReportGeneration` без изменения семантики существующего `Report`: XOR-владелец (`user_id`/`guest_id`), каскадное удаление по owner и `SET NULL` для опциональной связи с отчётом.
+  - Зафиксированы раздельные partial unique indexes для user/guest idempotency и статусы `pending/generating/completed/failed`.
+  - Repository/service обеспечивают deterministic HMAC-SHA256 fingerprint, конкурентно-безопасный `get-or-create`, CAS claim/complete/fail с fencing по `attempt_count` и детерминированное восстановление stale generation через передаваемый cutoff.
+  - Добавлена миграция `c1d2e3f4a5b6` с рабочим downgrade; PostgreSQL smoke harness обновлён так, чтобы current-model legacy fixture не создавал новую таблицу до применения миграции.
+  - Runtime adapters, bot/API/Celery/Matrix/AI/prompts/PWA не подключены; production migration, deploy и внешние API не выполнялись.
+- Приёмка:
+  - целевой набор: 110 passed;
+  - полный безопасный Python suite в 12 детерминированных file-shards: 918 passed, 17 skipped, 0 failed, один заранее исключённый unrelated Tarot asset integrity node;
+  - одноразовый PostgreSQL 16 migration smoke: bootstrap, FK normalization 10/10 и production reconciliation — PASS;
+  - отдельный PostgreSQL concurrency proof: user/guest get-or-create, single-winner claim, stale-attempt fencing и owner cascade delete — PASS;
+  - Ruff, Alembic head/history, `git diff --check` — PASS.
+- Graphify update deferred: `graphify check-update .` завершился с кодом 0 без уведомления о pending semantic re-extraction; hooks отключены, `graphify-out` не изменён. Полный repository-wide rebuild не выполнялся из-за ранее подтверждённого крупного generated churn baseline.
+- Ограничение foundation: fingerprint зависит от текущего `SECRET_KEY`; ротация ключа меняет fingerprint для идентичного logical input. В текущем этапе dual-key/backfill стратегия не добавлялась.
+- Следующие шаги: отдельным этапом подключить application use case/runtime adapters поверх принятого persistence foundation.
 
 ## Сессия 88 — 24.07.2026
 - Модель: GPT-5 Codex

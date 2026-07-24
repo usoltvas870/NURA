@@ -23,7 +23,7 @@ NURA_APP_ROOT = REPO_ROOT / "nura_app"
 PRODUCTION_REVISION = "d5e6f7a8b9c0"
 FK_NORMALIZATION_HEAD = "c0d1e2f3a4b5"
 EXPECTED_HEAD = "d1e2f3a4b5c6"
-GRAPH_HEAD = "b1c2d3e4f5a6"
+GRAPH_HEAD = "c1d2e3f4a5b6"
 SHADOW_SCHEMA = "p43d_shadow"
 PRODUCTION_SCHEMA_FINGERPRINT = (
     "6b4d42974f1b0d4538e22d90f310c42fb2ffaa417ccbe7dd2e1d16802c41ab87"
@@ -395,8 +395,12 @@ def _scenario_canonical_and_downgrade() -> None:
         "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
     )
     d1_tables = {row[0] for row in d1_rows}
-    attribution_tables = {"attribution_links", "attribution_touches"}
-    _check("Attribution tables absent at d1", attribution_tables.isdisjoint(d1_tables))
+    foundation_tables = {
+        "attribution_links",
+        "attribution_touches",
+        "mini_report_generations",
+    }
+    _check("Post-d1 foundation tables absent at d1", foundation_tables.isdisjoint(d1_tables))
 
     _check("d1 to graph head succeeds", _alembic("upgrade", GRAPH_HEAD).returncode == 0)
     _check("Revision is graph head", _current_revision() == GRAPH_HEAD)
@@ -405,8 +409,8 @@ def _scenario_canonical_and_downgrade() -> None:
     )
     graph_head_tables = {row[0] for row in graph_head_rows}
     _check(
-        "Graph head adds only attribution tables",
-        graph_head_tables == d1_tables | attribution_tables,
+        "Graph head adds only post-d1 foundation tables",
+        graph_head_tables == d1_tables | foundation_tables,
         str(graph_head_tables - d1_tables),
     )
 
@@ -416,8 +420,8 @@ def _scenario_canonical_and_downgrade() -> None:
         "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
     )
     downgraded_tables = {row[0] for row in downgraded_rows}
-    _check("Downgrade removes only attribution tables", downgraded_tables == d1_tables)
-    _check("Attribution downgrade preserves defaults", _default_expressions() == before)
+    _check("Downgrade removes only post-d1 foundation tables", downgraded_tables == d1_tables)
+    _check("Foundation downgrade preserves defaults", _default_expressions() == before)
 
     _check("Re-upgrade d1 to graph head succeeds", _alembic("upgrade", GRAPH_HEAD).returncode == 0)
     _check("Revision returns to graph head", _current_revision() == GRAPH_HEAD)
@@ -426,8 +430,8 @@ def _scenario_canonical_and_downgrade() -> None:
     )
     reupgraded_tables = {row[0] for row in reupgraded_rows}
     _check(
-        "Re-upgrade restores only attribution tables",
-        reupgraded_tables == d1_tables | attribution_tables,
+        "Re-upgrade restores only post-d1 foundation tables",
+        reupgraded_tables == d1_tables | foundation_tables,
     )
 
 

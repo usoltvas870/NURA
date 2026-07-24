@@ -29,7 +29,7 @@ NURA_APP_ROOT = REPO_ROOT / "nura_app"
 EXPECTED_BASE = "0001a2b3c4d5e6"
 FK_NORMALIZATION_HEAD = "c0d1e2f3a4b5"
 PREVIOUS_HEAD = "d1e2f3a4b5c6"
-EXPECTED_HEAD = "b1c2d3e4f5a6"
+EXPECTED_HEAD = "c1d2e3f4a5b6"
 
 _URL = ""
 
@@ -251,7 +251,8 @@ def main():
     }
     expected = ["alembic_version", "attribution_links", "attribution_touches",
                 "guest_profiles", "payments", "promo_codes", "promo_reservations",
-                "referral_rewards", "report_generation_jobs", "reports", "users"]
+                "referral_rewards", "report_generation_jobs", "reports", "users",
+                "mini_report_generations"]
     for t in expected:
         ok = check(f"Table {t} exists", t in tables)
         all_ok &= ok

@@ -31,7 +31,7 @@ NURA_APP_ROOT = REPO_ROOT / "nura_app"
 
 PREVIOUS_HEAD = "b9c0d1e2f3a4"
 NORMALIZATION_REVISION = "c0d1e2f3a4b5"
-EXPECTED_HEAD = "b1c2d3e4f5a6"
+EXPECTED_HEAD = "c1d2e3f4a5b6"
 
 _URL = ""
 _ALL_OK = True
@@ -294,7 +294,12 @@ def _create_all_schema(connection) -> None:
     pre_attribution_tables = [
         table
         for table in Base.metadata.sorted_tables
-        if table.name not in {"attribution_links", "attribution_touches"}
+        if table.name
+        not in {
+            "attribution_links",
+            "attribution_touches",
+            "mini_report_generations",
+        }
     ]
     Base.metadata.create_all(connection, tables=pre_attribution_tables)
 
@@ -344,7 +349,7 @@ def scenario_01_properly_migrated_noop():
     check("FK names unchanged", fks_after == fks_before, str(fks_after))
     _assert_current(NORMALIZATION_REVISION, f"Current is {NORMALIZATION_REVISION}")
     r = _alembic("upgrade", "head", check=False)
-    check("Upgrade c0 to d1 reconciliation succeeds", r.returncode == 0)
+    check("Upgrade c0 to current head succeeds", r.returncode == 0)
     _assert_current(EXPECTED_HEAD, f"Current is {EXPECTED_HEAD}")
 
 
@@ -373,12 +378,12 @@ def scenario_02_legacy_normalized():
     )
     _assert_current(NORMALIZATION_REVISION, f"Current is {NORMALIZATION_REVISION}")
     r = _alembic("upgrade", "head", check=False)
-    check("Upgrade c0 to d1 reconciliation succeeds", r.returncode == 0)
+    check("Upgrade c0 to current head succeeds", r.returncode == 0)
     _assert_current(EXPECTED_HEAD, f"Current is {EXPECTED_HEAD}")
 
     versions = _psql("SELECT version_num FROM alembic_version;")
     check(
-        "Single alembic_version row at d1e2f3a4b5c6",
+        "Single alembic_version row at current head",
         versions.strip() == EXPECTED_HEAD,
         versions,
     )

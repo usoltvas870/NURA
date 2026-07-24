@@ -41,6 +41,12 @@ ALLOWLIST = {
     "nura_app/tests/test_attribution_cli.py",
     "nura_app/tests/test_attribution_migration_contract.py",
     "nura_app/tests/test_report_lifecycle_schema_foundation.py",
+    "nura_app/alembic/versions/c1d2e3f4a5b6_add_mini_report_generation_foundation.py",
+    "nura_app/core/repositories/__init__.py",
+    "nura_app/core/repositories/mini_report_generation.py",
+    "nura_app/core/services/mini_report_generation.py",
+    "nura_app/tests/test_mini_report_generation_foundation.py",
+    "nura_app/tests/test_mini_report_generation_migration_contract.py",
 }
 
 
@@ -116,14 +122,14 @@ def test_revision_constants(bootstrap, fk, reconciliation) -> None:
     assert bootstrap.EXPECTED_BASE == "0001a2b3c4d5e6"
     assert bootstrap.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert bootstrap.PREVIOUS_HEAD == "d1e2f3a4b5c6"
-    assert bootstrap.EXPECTED_HEAD == "b1c2d3e4f5a6"
+    assert bootstrap.EXPECTED_HEAD == "c1d2e3f4a5b6"
     assert fk.PREVIOUS_HEAD == "b9c0d1e2f3a4"
     assert fk.NORMALIZATION_REVISION == "c0d1e2f3a4b5"
-    assert fk.EXPECTED_HEAD == "b1c2d3e4f5a6"
+    assert fk.EXPECTED_HEAD == "c1d2e3f4a5b6"
     assert reconciliation.PRODUCTION_REVISION == "d5e6f7a8b9c0"
     assert reconciliation.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert reconciliation.EXPECTED_HEAD == "d1e2f3a4b5c6"
-    assert reconciliation.GRAPH_HEAD == "b1c2d3e4f5a6"
+    assert reconciliation.GRAPH_HEAD == "c1d2e3f4a5b6"
 
 
 def test_structured_contract_helpers_reject_drift(bootstrap) -> None:
