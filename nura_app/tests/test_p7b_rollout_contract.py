@@ -842,6 +842,54 @@ def test_bootstrap_rejects_existing_but_unmounted_expected_volume(
         p7b.bootstrap(settings, FakeRunner(wrong_live_volume=True))
 
 
+def test_resolved_compose_accepts_canonical_physical_data_sources() -> None:
+    resolved = {
+        "services": {
+            "postgres": {
+                "volumes": [
+                    {
+                        "type": "volume",
+                        "source": "nura_app_postgres_data",
+                        "target": "/var/lib/postgresql/data",
+                    }
+                ]
+            },
+            "redis": {
+                "volumes": [
+                    {"type": "volume", "source": "nura_app_redis_data", "target": "/data"},
+                    {"type": "bind", "source": "./redis-entrypoint.sh", "target": "/entrypoint"},
+                ]
+            },
+        },
+        "volumes": {},
+    }
+    p7b.validate_compose_volume_contract(
+        json.dumps(resolved),
+        "nura_app",
+        {"postgres": "nura_app_postgres_data", "redis": "nura_app_redis_data"},
+    )
+
+
+@pytest.mark.parametrize(
+    ("service", "expected"),
+    [("postgres", "wrong_postgres"), ("redis", "wrong_redis")],
+)
+def test_resolved_compose_rejects_wrong_physical_data_source(
+    service: str, expected: str
+) -> None:
+    resolved = {
+        "services": {
+            "postgres": {"volumes": [{"type": "volume", "source": "nura_app_postgres_data", "target": "/var/lib/postgresql/data"}]},
+            "redis": {"volumes": [{"type": "volume", "source": "nura_app_redis_data", "target": "/data"}]},
+        },
+        "volumes": {},
+    }
+    expected_volumes = {"postgres": "nura_app_postgres_data", "redis": "nura_app_redis_data"}
+    expected_volumes[service] = expected
+    with pytest.raises(SystemExit, match=f"verification_failed:compose_volume_contract:{service}_data_volume_identity_mismatch"):
+        p7b.validate_compose_volume_contract(json.dumps(resolved), "nura_app", expected_volumes)
+
+
 def test_bootstrap_discovers_current_postgres_without_target_compose_container(
     settings: p7b.Settings,
 ) -> None:
