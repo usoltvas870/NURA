@@ -23,6 +23,7 @@ NURA_APP_ROOT = REPO_ROOT / "nura_app"
 PRODUCTION_REVISION = "d5e6f7a8b9c0"
 FK_NORMALIZATION_HEAD = "c0d1e2f3a4b5"
 EXPECTED_HEAD = "d1e2f3a4b5c6"
+GRAPH_HEAD = "b1c2d3e4f5a6"
 SHADOW_SCHEMA = "p43d_shadow"
 PRODUCTION_SCHEMA_FINGERPRINT = (
     "6b4d42974f1b0d4538e22d90f310c42fb2ffaa417ccbe7dd2e1d16802c41ab87"
@@ -341,7 +342,7 @@ def _scenario_production_d5() -> tuple[dict[str, object], dict[str, object]]:
     _insert_synthetic_rows()
     result = _alembic("upgrade", "head")
     _check("Production-like d5 upgrades to new head", result.returncode == 0)
-    _check("Single revision is d1", _current_revision() == EXPECTED_HEAD)
+    _check("Single revision is graph head", _current_revision() == GRAPH_HEAD)
     defaults = _default_expressions()
     _check("Three canonical defaults restored", _defaults_are_canonical(defaults), str(defaults))
     _, counts = _query(
@@ -383,20 +384,51 @@ def _scenario_production_d5() -> tuple[dict[str, object], dict[str, object]]:
 
 
 def _scenario_canonical_and_downgrade() -> None:
-    print("\n--- RECONCILE-02: canonical c0, d1 no-op, downgrade/re-upgrade ---")
+    print("\n--- RECONCILE-02: canonical c0, d1, attribution round-trip ---")
     _reset_schema()
     _check("Canonical c0 setup succeeds", _alembic("upgrade", FK_NORMALIZATION_HEAD).returncode == 0)
     before = _default_expressions()
     _check("Canonical c0 defaults present", _defaults_are_canonical(before), str(before))
     _check("c0 to d1 succeeds", _alembic("upgrade", EXPECTED_HEAD).returncode == 0)
     _check("Canonical defaults unchanged", _default_expressions() == before)
-    second = _alembic("upgrade", "head")
-    _check("Existing d1 upgrade head is no-op", second.returncode == 0 and "Running upgrade" not in second.stdout)
-    _check("Downgrade d1 to c0 succeeds", _alembic("downgrade", FK_NORMALIZATION_HEAD).returncode == 0)
-    _check("Revision is c0 after downgrade", _current_revision() == FK_NORMALIZATION_HEAD)
-    _check("Downgrade preserves defaults", _default_expressions() == before)
-    _check("Re-upgrade c0 to d1 succeeds", _alembic("upgrade", EXPECTED_HEAD).returncode == 0)
-    _check("Re-upgrade preserves defaults", _default_expressions() == before)
+    _, d1_rows = _query(
+        "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
+    )
+    d1_tables = {row[0] for row in d1_rows}
+    attribution_tables = {"attribution_links", "attribution_touches"}
+    _check("Attribution tables absent at d1", attribution_tables.isdisjoint(d1_tables))
+
+    _check("d1 to graph head succeeds", _alembic("upgrade", GRAPH_HEAD).returncode == 0)
+    _check("Revision is graph head", _current_revision() == GRAPH_HEAD)
+    _, graph_head_rows = _query(
+        "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
+    )
+    graph_head_tables = {row[0] for row in graph_head_rows}
+    _check(
+        "Graph head adds only attribution tables",
+        graph_head_tables == d1_tables | attribution_tables,
+        str(graph_head_tables - d1_tables),
+    )
+
+    _check("Downgrade graph head to d1 succeeds", _alembic("downgrade", EXPECTED_HEAD).returncode == 0)
+    _check("Revision is d1 after downgrade", _current_revision() == EXPECTED_HEAD)
+    _, downgraded_rows = _query(
+        "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
+    )
+    downgraded_tables = {row[0] for row in downgraded_rows}
+    _check("Downgrade removes only attribution tables", downgraded_tables == d1_tables)
+    _check("Attribution downgrade preserves defaults", _default_expressions() == before)
+
+    _check("Re-upgrade d1 to graph head succeeds", _alembic("upgrade", GRAPH_HEAD).returncode == 0)
+    _check("Revision returns to graph head", _current_revision() == GRAPH_HEAD)
+    _, reupgraded_rows = _query(
+        "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename"
+    )
+    reupgraded_tables = {row[0] for row in reupgraded_rows}
+    _check(
+        "Re-upgrade restores only attribution tables",
+        reupgraded_tables == d1_tables | attribution_tables,
+    )
 
 
 def _scenario_shadow_search_path() -> dict[str, object]:

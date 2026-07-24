@@ -134,6 +134,63 @@ class User(Base):
     )
 
 
+class AttributionLink(Base):
+    __tablename__ = "attribution_links"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    code: Mapped[str] = mapped_column(String(24), unique=True, nullable=False, index=True)
+    platform: Mapped[str] = mapped_column(String(64), nullable=False)
+    source: Mapped[str] = mapped_column(String(128), nullable=False)
+    campaign: Mapped[str] = mapped_column(String(128), nullable=False)
+    content_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    topic: Mapped[str] = mapped_column(String(128), nullable=False)
+    label: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="true"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class AttributionTouch(Base):
+    __tablename__ = "attribution_touches"
+    __table_args__ = (
+        UniqueConstraint("user_id", "normalized_code", name="uq_attribution_touches_user_code"),
+        Index("ix_attribution_touches_user_id", "user_id"),
+        Index("ix_attribution_touches_link_id", "attribution_link_id"),
+        Index("ix_attribution_touches_first_seen_at", "first_seen_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    attribution_link_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("attribution_links.id"), nullable=True
+    )
+    raw_start_parameter: Mapped[str] = mapped_column(String(66), nullable=False)
+    normalized_code: Mapped[str] = mapped_column(String(24), nullable=False)
+    resolution_status: Mapped[str] = mapped_column(String(16), nullable=False)
+    platform: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    campaign: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    content_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    topic: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    visit_count: Mapped[int] = mapped_column(
+        Integer, default=1, server_default="1", nullable=False
+    )
+
+
 class GuestProfile(Base):
     __tablename__ = "guest_profiles"
 

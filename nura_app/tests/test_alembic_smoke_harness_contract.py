@@ -18,8 +18,16 @@ RECONCILIATION_PATH = TOOLS_ROOT / "alembic_production_reconciliation_smoke.py"
 RUNNER_PATH = TOOLS_ROOT / "run_alembic_postgres_smoke.py"
 HARNESS_PATHS = (BOOTSTRAP_PATH, FK_PATH, RECONCILIATION_PATH)
 ALLOWLIST = {
+    "STATE.md",
+    "nura_app/alembic/versions/a1b2c3d4e5f6_add_attribution_foundation.py",
     "nura_app/alembic/versions/d1e2f3a4b5c6_reconcile_legacy_server_defaults.py",
+    "nura_app/bot/handlers/start.py",
     "nura_app/core/models.py",
+    "nura_app/core/repositories/attribution.py",
+    "nura_app/core/repositories/user.py",
+    "nura_app/core/services/attribution.py",
+    "nura_app/scripts/__init__.py",
+    "nura_app/scripts/attribution_links.py",
     "nura_app/tools/alembic_postgres_bootstrap_smoke.py",
     "nura_app/tools/alembic_fk_normalization_smoke.py",
     "nura_app/tools/alembic_production_reconciliation_smoke.py",
@@ -29,6 +37,10 @@ ALLOWLIST = {
     "nura_app/tests/test_alembic_fk_normalization_contract.py",
     "nura_app/tests/test_report_lifecycle_schema_foundation.py",
     "nura_app/tests/test_alembic_smoke_harness_contract.py",
+    "nura_app/tests/test_attribution.py",
+    "nura_app/tests/test_attribution_cli.py",
+    "nura_app/tests/test_attribution_migration_contract.py",
+    "nura_app/tests/test_report_lifecycle_schema_foundation.py",
 }
 
 
@@ -103,14 +115,15 @@ def test_harness_import_is_independent_of_current_directory(tmp_path: Path) -> N
 def test_revision_constants(bootstrap, fk, reconciliation) -> None:
     assert bootstrap.EXPECTED_BASE == "0001a2b3c4d5e6"
     assert bootstrap.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
-    assert bootstrap.PREVIOUS_HEAD == "c0d1e2f3a4b5"
-    assert bootstrap.EXPECTED_HEAD == "d1e2f3a4b5c6"
+    assert bootstrap.PREVIOUS_HEAD == "d1e2f3a4b5c6"
+    assert bootstrap.EXPECTED_HEAD == "b1c2d3e4f5a6"
     assert fk.PREVIOUS_HEAD == "b9c0d1e2f3a4"
     assert fk.NORMALIZATION_REVISION == "c0d1e2f3a4b5"
-    assert fk.EXPECTED_HEAD == "d1e2f3a4b5c6"
+    assert fk.EXPECTED_HEAD == "b1c2d3e4f5a6"
     assert reconciliation.PRODUCTION_REVISION == "d5e6f7a8b9c0"
     assert reconciliation.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert reconciliation.EXPECTED_HEAD == "d1e2f3a4b5c6"
+    assert reconciliation.GRAPH_HEAD == "b1c2d3e4f5a6"
 
 
 def test_structured_contract_helpers_reject_drift(bootstrap) -> None:

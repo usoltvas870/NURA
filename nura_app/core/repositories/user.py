@@ -2,7 +2,6 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import delete, select, update
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import load_only
@@ -44,18 +43,30 @@ class UserRepository(SQLAlchemyRepository[User]):
         first_name: str | None = None,
     ) -> User:
         async with self._session_factory() as session:
-            stmt = pg_insert(User).values(
-                id=uuid.uuid4(),
-                telegram_id=telegram_id,
-                username=username,
-                first_name=first_name,
-            ).on_conflict_do_nothing()
-            await session.execute(stmt)
-            await session.commit()
-            result = await session.execute(
-                select(User).where(User.telegram_id == telegram_id)
-            )
-            return result.scalar_one()
+            result = await session.execute(select(User).where(User.telegram_id == telegram_id))
+            user = result.scalar_one_or_none()
+            if user is None:
+                user = User(
+                    id=uuid.uuid4(), telegram_id=telegram_id,
+                    username=username, first_name=first_name,
+                )
+                session.add(user)
+                try:
+                    await session.commit()
+                except IntegrityError:
+                    await session.rollback()
+                    result = await session.execute(
+                        select(User).where(User.telegram_id == telegram_id)
+                    )
+                    user = result.scalar_one()
+            else:
+                if username is not None:
+                    user.username = username
+                if first_name is not None:
+                    user.first_name = first_name
+                await session.commit()
+            await session.refresh(user)
+            return user
 
     async def update_archetype(
         self,

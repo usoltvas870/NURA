@@ -24,6 +24,7 @@ from core.database import get_async_sessionmaker, get_redis
 from core.repositories.payment import PaymentRepository
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
+from core.services.attribution import AttributionService
 from core.services.auth import TelegramLinkConfirmationService
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,17 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
         await _handle_link_token(message, token)
         return
 
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    start_result = await AttributionService(
+        session_factory, user_repository=user_repo
+    ).process_telegram_start(
+        telegram_id=message.from_user.id,
+        username=message.from_user.username,
+        first_name=message.from_user.first_name,
+        start_parameter=args,
+    )
+
     if args and args.startswith("ref_"):
         ref_part = args[4:]
         if ref_part.isdigit():
@@ -70,13 +82,7 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
             if referrer_telegram_id != message.from_user.id:
                 await _handle_referral(message, referrer_telegram_id)
 
-    session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-    user = await user_repo.get_or_create_by_telegram_id(
-        message.from_user.id,
-        username=message.from_user.username,
-        first_name=message.from_user.first_name,
-    )
+    user = start_result.user
 
     if user and user.birth_date:
         await _show_authenticated_menu(message, user)

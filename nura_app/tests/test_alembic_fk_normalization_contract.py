@@ -44,7 +44,7 @@ class TestGraphContract:
     def test_single_head(self, script):
         heads = script.get_revisions("heads")
         assert len(heads) == 1
-        assert heads[0].revision == "d1e2f3a4b5c6"
+        assert heads[0].revision == "b1c2d3e4f5a6"
 
     def test_new_revision_exists(self, script):
         rev = script.get_revision("c0d1e2f3a4b5")
@@ -65,9 +65,10 @@ class TestGraphContract:
         ids = [r.revision for r in revisions]
         ids.reverse()
         assert ids[0] == "0001a2b3c4d5e6"
-        assert ids[-1] == "d1e2f3a4b5c6"
+        assert ids[-1] == "b1c2d3e4f5a6"
         assert "b9c0d1e2f3a4" in ids
         assert ids.index("c0d1e2f3a4b5") == ids.index("d1e2f3a4b5c6") - 1
+        assert ids.index("d1e2f3a4b5c6") == ids.index("b1c2d3e4f5a6") - 1
         assert ids.index("b9c0d1e2f3a4") == ids.index("c0d1e2f3a4b5") - 1
 
 

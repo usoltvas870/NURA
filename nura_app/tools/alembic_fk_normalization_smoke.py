@@ -31,7 +31,7 @@ NURA_APP_ROOT = REPO_ROOT / "nura_app"
 
 PREVIOUS_HEAD = "b9c0d1e2f3a4"
 NORMALIZATION_REVISION = "c0d1e2f3a4b5"
-EXPECTED_HEAD = "d1e2f3a4b5c6"
+EXPECTED_HEAD = "b1c2d3e4f5a6"
 
 _URL = ""
 _ALL_OK = True
@@ -291,7 +291,12 @@ def _create_all_schema(connection) -> None:
     """Synchronous callback for create_all inside an async connection."""
     from core.models import Base
 
-    Base.metadata.create_all(connection)
+    pre_attribution_tables = [
+        table
+        for table in Base.metadata.sorted_tables
+        if table.name not in {"attribution_links", "attribution_touches"}
+    ]
+    Base.metadata.create_all(connection, tables=pre_attribution_tables)
 
 
 def setup_properly_migrated_db():

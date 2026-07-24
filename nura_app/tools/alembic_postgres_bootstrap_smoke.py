@@ -28,8 +28,8 @@ NURA_APP_ROOT = REPO_ROOT / "nura_app"
 
 EXPECTED_BASE = "0001a2b3c4d5e6"
 FK_NORMALIZATION_HEAD = "c0d1e2f3a4b5"
-PREVIOUS_HEAD = FK_NORMALIZATION_HEAD
-EXPECTED_HEAD = "d1e2f3a4b5c6"
+PREVIOUS_HEAD = "d1e2f3a4b5c6"
+EXPECTED_HEAD = "b1c2d3e4f5a6"
 
 _URL = ""
 
@@ -249,9 +249,9 @@ def main():
             "WHERE schemaname='public' ORDER BY tablename;"
         )
     }
-    expected = ["alembic_version", "guest_profiles", "payments", "promo_codes",
-                "promo_reservations", "referral_rewards", "report_generation_jobs",
-                "reports", "users"]
+    expected = ["alembic_version", "attribution_links", "attribution_touches",
+                "guest_profiles", "payments", "promo_codes", "promo_reservations",
+                "referral_rewards", "report_generation_jobs", "reports", "users"]
     for t in expected:
         ok = check(f"Table {t} exists", t in tables)
         all_ok &= ok
@@ -292,6 +292,51 @@ def main():
     ok = check("uq_report_generation_jobs_report_job_type",
                "uq_report_generation_jobs_report_job_type" in cons)
     all_ok &= ok
+
+    attribution_constraints = {
+        row[0]: row[1]
+        for row in _query(
+            "SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint "
+            "WHERE conrelid='attribution_touches'::regclass;"
+        )
+    }
+    ok = check(
+        "attribution touch user/code uniqueness",
+        "uq_attribution_touches_user_code" in attribution_constraints,
+    )
+    all_ok &= ok
+    user_fk = next(
+        (
+            definition
+            for name, definition in attribution_constraints.items()
+            if name != "uq_attribution_touches_user_code"
+            and "FOREIGN KEY (user_id)" in definition
+        ),
+        "",
+    )
+    ok = check(
+        "attribution touch user FK cascades",
+        "REFERENCES users(id) ON DELETE CASCADE" in user_fk,
+        user_fk,
+    )
+    all_ok &= ok
+
+    attribution_indexes = {
+        row[0]
+        for row in _query(
+            "SELECT indexname FROM pg_indexes "
+            "WHERE schemaname='public' AND tablename IN "
+            "('attribution_links', 'attribution_touches');"
+        )
+    }
+    for index_name in (
+        "ix_attribution_links_code",
+        "ix_attribution_touches_user_id",
+        "ix_attribution_touches_link_id",
+        "ix_attribution_touches_first_seen_at",
+    ):
+        ok = check(f"Attribution index {index_name}", index_name in attribution_indexes)
+        all_ok &= ok
 
     # ── ALEMBIC-BOOT-04: baseline fidelity ──
     print("\n--- ALEMBIC-BOOT-04: baseline fidelity ---")

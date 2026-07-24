@@ -4,6 +4,17 @@
 
 ---
 
+## Сессия 88 — 24.07.2026
+- Модель: GPT-5 Codex
+- Что сделано: TELEGRAM IDENTITY AND ATTRIBUTION FOUNDATION
+  - Добавлены `AttributionLink` и `AttributionTouch`, отдельный repository и небольшой application service; Telegram identity переиспользует существующий `User.telegram_id`.
+  - `/start` теперь создаёт или получает внутреннего пользователя до обработки `ref_` и `a_`; `link_` и retired `tgauth_` сохраняют прежние отдельные security-контракты.
+  - Добавлены валидируемые opaque-коды `a_<code>`, immutable snapshot metadata, atomic increment повторных touch и минимальный CLI создания ссылки с явным разрешением production-среды.
+  - Добавлена миграция `b1c2d3e4f5a6` с корректным downgrade и каскадным удалением touch вместе с User; production migration, deploy и внешние API не выполнялись.
+  - Проверки: полный безопасный Python suite (909 passed, 17 skipped, 0 failed), одноразовый PostgreSQL 16 migration smoke, Ruff, Alembic head/history и `git diff --check`.
+- Graphify update deferred: baseline `graphify-out` существует, но штатный repository-wide rebuild создаёт неподтверждённый generated churn; hooks отключены, обновление не выполнялось.
+- Следующие шаги: проект готов к оценке этапа MINI-REPORT APPLICATION USE CASE.
+
 ## Сессия 87 — 24.07.2026
 - Модель: GPT-5 Codex
 - Что сделано: SECURITY RENDERING GATE
