@@ -1275,15 +1275,7 @@ def bootstrap(settings: Settings, runner: Runner) -> None:
         volumes = handoff.get("volumes")
         if not isinstance(volumes, dict) or set(volumes) != set(DATA_SERVICES):
             fail("handoff_schema_invalid")
-        data_containers = verify_volumes(
-            runner,
-            {
-                "compose_project": settings.project,
-                "working_directory": str(settings.working_directory),
-                "compose_files": compose_files,
-            },
-            volumes,
-        )
+        data_containers = verify_live_volumes(runner, settings.project, volumes)
         volume_ids = {service: str(volumes[service]) for service in DATA_SERVICES}
         release_path = canonical.get("static_release_path")
         if not isinstance(release_path, str):
@@ -1332,23 +1324,28 @@ def verify_volumes(
         isinstance(item, str) for item in compose_files
     ):
         fail("compose_context_invalid")
-    config_output = run_or_fail(
-        runner,
-        compose_command(
+    # The handoff describes the target and is validated against its resolved
+    # Compose model.  A baseline record describes the already-running
+    # rollback runtime; its data contract is established by direct container
+    # inspection, not by re-resolving historical Compose with current inputs.
+    if "previous_sha" not in payload:
+        config_output = run_or_fail(
+            runner,
+            compose_command(
+                str(payload["compose_project"]),
+                str(payload["working_directory"]),
+                [str(item) for item in compose_files],
+                "config",
+                "--format",
+                "json",
+            ),
+            "compose_volume_contract",
+        )
+        validate_compose_volume_contract(
+            config_output,
             str(payload["compose_project"]),
-            str(payload["working_directory"]),
-            [str(item) for item in compose_files],
-            "config",
-            "--format",
-            "json",
-        ),
-        "compose_volume_contract",
-    )
-    validate_compose_volume_contract(
-        config_output,
-        str(payload["compose_project"]),
-        expected,
-    )
+            expected,
+        )
     identities = verify_live_volumes(
         runner,
         str(payload["compose_project"]),
