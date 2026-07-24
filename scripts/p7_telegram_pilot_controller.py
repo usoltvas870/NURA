@@ -120,7 +120,7 @@ def preflight(repo: Path, controller_sha: str, target_sha: str, expected_host: s
     regular(token, 0o600)
     if not token.read_bytes() or b"\n" in token.read_bytes():
         fail("invalid_pilot_token")
-    database_url = PILOT_DATABASE_URL_FILE.resolve(strict=True)
+    database_url = PILOT_DATABASE_URL_FILE
     regular(database_url, 0o600)
     if not database_url.read_bytes() or b"\n" in database_url.read_bytes():
         fail("invalid_pilot_database_url")
@@ -222,7 +222,7 @@ def deploy(args: argparse.Namespace) -> None:
     import fcntl
     repo = Path(args.repo).resolve(strict=True)
     controller = Path(__file__).resolve(strict=True)
-    token = PILOT_TOKEN_FILE.resolve(strict=True)
+    token = PILOT_TOKEN_FILE
     digest = preflight(repo, args.controller_sha, args.target_sha, args.expected_host, controller, token)
     state = Path("/var/lib/nura-tg-pilot")
     lock_path = Path("/run/lock/nura-tg-deploy.lock")
@@ -329,7 +329,7 @@ def main() -> int:
         if args.command == "preflight":
             preflight(args.repo.resolve(strict=True), args.controller_sha, args.target_sha,
                       args.expected_host, Path(__file__).resolve(strict=True),
-                      PILOT_TOKEN_FILE.resolve(strict=True))
+                      PILOT_TOKEN_FILE)
         else:
             deploy(args)
     except PilotError as exc:

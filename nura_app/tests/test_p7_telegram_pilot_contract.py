@@ -84,3 +84,11 @@ def test_polling_receipt_requires_runtime_marker_and_verified_rollback() -> None
     assert source.index('write_state(state, "pilot_polling_active"') < source.index('write_state(state, "pilot_verified"')
     assert "pilot_rollback_runtime_unverified" in source
     assert "polling_marker_key" in bot
+
+
+def test_authoritative_secret_paths_are_checked_before_symlink_resolution() -> None:
+    source = CONTROLLER.read_text(encoding="utf-8")
+    assert "PILOT_TOKEN_FILE.resolve" not in source
+    assert "PILOT_DATABASE_URL_FILE.resolve" not in source
+    assert "regular(token, 0o600)" in source
+    assert "regular(database_url, 0o600)" in source
