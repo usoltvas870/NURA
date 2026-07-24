@@ -1291,7 +1291,10 @@ def bootstrap(settings: Settings, runner: Runner) -> None:
                 str(settings.baseline_override(baseline_sha)),
             ],
             "volumes": volume_ids,
-            "data_containers": data_containers,
+            # Redis is intentionally recreated in Stage 1 and compensation.
+            # PostgreSQL is never recreated by P7B, so only its container
+            # identity is durable across the transaction.
+            "data_containers": {"postgres": data_containers["postgres"]},
             "canonical_digest": hashlib.sha256(
                 settings.canonical_state.read_bytes()
             ).hexdigest(),
@@ -1339,7 +1342,11 @@ def verify_volumes(
     )
     recorded = payload.get("data_containers")
     if recorded is not None:
-        if not isinstance(recorded, dict) or recorded != identities:
+        if (
+            not isinstance(recorded, dict)
+            or set(recorded) != {"postgres"}
+            or recorded["postgres"] != identities["postgres"]
+        ):
             fail("data_container_identity_changed")
     return identities
 

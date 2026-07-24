@@ -62,6 +62,7 @@ class FakeRunner:
         ambiguous_postgres_containers: bool = False,
         wrong_postgres_lineage: bool = False,
         unhealthy_postgres: bool = False,
+        redis_container_id: str = "current-container-redis",
         redis_health_failures: int = 0,
         redis_health_timeout_failures: int = 0,
         redis_health_lowercase_pong: bool = False,
@@ -82,6 +83,7 @@ class FakeRunner:
         self.ambiguous_postgres_containers = ambiguous_postgres_containers
         self.wrong_postgres_lineage = wrong_postgres_lineage
         self.unhealthy_postgres = unhealthy_postgres
+        self.redis_container_id = redis_container_id
         self.redis_health_failures = redis_health_failures
         self.redis_health_timeout_failures = redis_health_timeout_failures
         self.redis_health_lowercase_pong = redis_health_lowercase_pong
@@ -113,7 +115,12 @@ class FakeRunner:
                 return p7b.CommandResult(0)
             if service == "postgres" and self.ambiguous_postgres_containers:
                 return p7b.CommandResult(0, "current-container-postgres-a\ncurrent-container-postgres-b\n")
-            return p7b.CommandResult(0, f"current-container-{service}\n")
+            container = (
+                self.redis_container_id
+                if service == "redis"
+                else f"current-container-{service}"
+            )
+            return p7b.CommandResult(0, f"{container}\n")
         if call[:2] == ("docker", "inspect") and any("{{json .Mounts}}" in item for item in call):
             service = "postgres" if "postgres" in call[-1] else "redis"
             name = (
@@ -843,12 +850,12 @@ def test_bootstrap_discovers_current_postgres_without_target_compose_container(
     runner = FakeRunner()
     p7b.bootstrap(settings, runner)
     saved = p7b.read_record(settings.baseline_file, "baseline")
-    assert saved["data_containers"]["postgres"] == {
+    assert saved["data_containers"] == {"postgres": {
         "container": "current-container-postgres",
         "compose_project": "nura_app",
         "compose_service": "postgres",
         "volume": "nura_app_postgres_data",
-    }
+    }}
     assert not any(" ps -q --all postgres" in " ".join(call) for call in runner.calls)
 
 
@@ -871,6 +878,26 @@ def test_bootstrap_fails_closed_for_invalid_current_postgres_identity(
     with pytest.raises(SystemExit, match=f"verification_failed:volume_container:postgres:{detail}"):
         p7b.bootstrap(settings, runner)
     assert not any(" up " in f" {' '.join(call)} " for call in runner.calls)
+
+
+def test_volume_verification_preserves_postgres_identity_but_allows_redis_recreate(
+    settings: p7b.Settings,
+) -> None:
+    payload = baseline(settings)
+    payload["data_containers"] = {
+        "postgres": {
+            "container": "current-container-postgres",
+            "compose_project": "nura_app",
+            "compose_service": "postgres",
+            "volume": "nura_app_postgres_data",
+        }
+    }
+    identities = p7b.verify_volumes(
+        FakeRunner(redis_container_id="replacement-container-redis"),
+        payload,
+        payload["volumes"],
+    )
+    assert identities["redis"]["container"] == "replacement-container-redis"
 
 
 def test_stage1_orders_intent_before_single_mutation_and_verification(
