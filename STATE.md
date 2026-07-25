@@ -1507,3 +1507,15 @@ docker compose restart bot celery-worker
 - Graphify 0.9.7: hooks отключены, `check-update .` завершился успешно без generated diff; обновление Graphify не требуется, так как изменения остаются внутри существующих model/repository/service/task/migration связей.
 - Telegram не предоставляет application idempotency key: между успешным provider ACK и durable receipt остаётся узкое crash-window, поэтому абсолютная exactly-once delivery не заявляется.
 - «Мои разборы» и пользовательская repeated delivery пока не реализованы. Следующий этап после отдельного commit: MY REPORTS AND REPEATED DELIVERY.
+
+## My Reports and Repeated Delivery — 25.07.2026
+
+- В Telegram main menu добавлен раздел «Мои разборы» для завершённых mini reports текущего активного пользователя; выдача отсортирована по дате создания, ограничена восемью элементами на страницу и не раскрывает токены, UUID или дату рождения.
+- `MyReportsService` выполняет ownership и supported/completed filtering в repository query. Чужой и отсутствующий report возвращаются одинаково нейтрально; full reports пока не подключены.
+- Повторная выдача использует сохранённые `Report` и `MiniReportGeneration`, без Matrix, AI или `MiniReportApplicationService`. Каждый Telegram callback создаёт отдельную logical delivery; повтор того же callback переиспользует её через стабильный short hash request key в существующем delivery `purpose`.
+- Initial delivery uniqueness, claim/fencing и partial resume сохранены; delivery worker повторно проверяет active user, ownership и completed mini linkage перед отправкой. Public-link `expires_at` по-прежнему относится только к HTTP access и не удаляет payload.
+- Миграция не требуется: схема `telegram_report_deliveries` уже содержит unique `(mini_report_generation_id, user_id, purpose)`, а `purpose` имеет достаточную длину для short request fingerprint.
+- Exact-path allowlist worktree-контракта дополнен только файлами этапа My Reports; отдельная регрессия подтверждает отказ для unrelated, migration, dependency, frontend, deployment, Graphify-generated и temporary paths.
+- Расширенный targeted-набор: 251 passed. Safe-suite принят в 12 file-shards: 943 passed, 18 skipped, 0 failed; 54/54 включённых test-файла покрыты ровно один раз, missing 0, duplicates 0, единственный разрешённый Tarot node deselection сохранён.
+- Graphify 0.9.7 `check-update .`: PASS; hooks не заданы, `graphify-out` не изменён, Graphify update is not required.
+- MY REPORTS AND REPEATED DELIVERY принят. Следующий этап после отдельного commit: FREE CHAT WITH LIFETIME FIVE-MESSAGE LIMIT.

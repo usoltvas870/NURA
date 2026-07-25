@@ -1,10 +1,17 @@
 import logging
+import uuid
 
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from bot.keyboards.main_menu import profile_keyboard, reports_keyboard, subscription_keyboard
+from bot.keyboards.main_menu import (
+    my_report_detail_keyboard,
+    my_reports_keyboard,
+    profile_keyboard,
+    reports_keyboard,
+    subscription_keyboard,
+)
 from bot.texts.profile import (
     profile_full_text,
     profile_mini_text,
@@ -19,6 +26,8 @@ from core.database import get_async_sessionmaker
 from core.models import User
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
+from core.services.my_reports import MyReportsService
+from core.tasks import deliver_repeated_mini_report
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +136,84 @@ async def view_reports(callback: CallbackQuery) -> None:
 
     text = reports_list_text(report_list)
     await callback.message.edit_text(text, reply_markup=reports_keyboard(report_list))
+
+
+def _callback_report_id(value: str) -> uuid.UUID | None:
+    try:
+        return uuid.UUID(hex=value)
+    except ValueError:
+        return None
+
+
+async def _my_reports_user_id(callback: CallbackQuery) -> uuid.UUID | None:
+    user = await UserRepository(get_async_sessionmaker()).get_by_telegram_id(callback.from_user.id)
+    if user is None or user.account_status != "active":
+        return None
+    return user.id
+
+
+@router.callback_query(F.data.startswith("reports:list:"))
+async def my_reports_list(callback: CallbackQuery) -> None:
+    await callback.answer()
+    try:
+        page = max(int((callback.data or "").rsplit(":", 1)[1]), 0)
+    except (IndexError, ValueError):
+        page = 0
+    user_id = await _my_reports_user_id(callback)
+    if user_id is None:
+        await callback.message.edit_text("Пользователь не найден. Начни с /start")
+        return
+    result = await MyReportsService(get_async_sessionmaker()).list_user_reports(user_id, page)
+    if not result.items:
+        await callback.message.edit_text(
+            "У тебя пока нет сохранённых разборов",
+            reply_markup=my_reports_keyboard([], 0, 0),
+        )
+        return
+    await callback.message.edit_text(
+        "<b>Мои разборы</b>\n\nВыбери сохранённый мини-разбор.",
+        reply_markup=my_reports_keyboard(list(result.items), result.page, result.total_pages),
+    )
+
+
+@router.callback_query(F.data.startswith("reports:view:"))
+async def my_report_detail(callback: CallbackQuery) -> None:
+    await callback.answer()
+    report_id = _callback_report_id((callback.data or "").rsplit(":", 1)[-1])
+    user_id = await _my_reports_user_id(callback)
+    item = (
+        await MyReportsService(get_async_sessionmaker()).get_user_report(user_id, report_id)
+        if user_id is not None and report_id is not None
+        else None
+    )
+    if item is None:
+        await callback.message.edit_text("Этот разбор недоступен.")
+        return
+    await callback.message.edit_text(
+        f"<b>{item.display_label}</b>\n\n"
+        "Сохранённый результат можно отправить снова текстом и PDF.",
+        reply_markup=my_report_detail_keyboard(item.report_id.hex, 0),
+    )
+
+
+@router.callback_query(F.data.startswith("reports:send:"))
+async def my_report_send_again(callback: CallbackQuery) -> None:
+    await callback.answer("Готовим повторную отправку")
+    report_id = _callback_report_id((callback.data or "").rsplit(":", 1)[-1])
+    user_id = await _my_reports_user_id(callback)
+    request = (
+        await MyReportsService(get_async_sessionmaker()).prepare_repeated_delivery(
+            user_id, report_id, callback.id
+        )
+        if user_id is not None and report_id is not None
+        else None
+    )
+    if request is None:
+        await callback.message.edit_text("Этот разбор недоступен.")
+        return
+    deliver_repeated_mini_report.delay(
+        str(user_id), str(request.report_id), str(request.generation_id), request.purpose
+    )
 
 
 @router.callback_query(F.data == "subscription")

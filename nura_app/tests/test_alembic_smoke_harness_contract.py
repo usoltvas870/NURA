@@ -20,48 +20,17 @@ RUNNER_PATH = TOOLS_ROOT / "run_alembic_postgres_smoke.py"
 HARNESS_PATHS = (BOOTSTRAP_PATH, FK_PATH, RECONCILIATION_PATH, DELIVERY_PATH)
 ALLOWLIST = {
     "STATE.md",
-    "nura_app/alembic/versions/a1b2c3d4e5f6_add_attribution_foundation.py",
-    "nura_app/alembic/versions/d1e2f3a4b5c6_reconcile_legacy_server_defaults.py",
-    "nura_app/bot/handlers/start.py",
-    "nura_app/core/models.py",
-    "nura_app/core/repositories/attribution.py",
-    "nura_app/core/repositories/user.py",
-    "nura_app/core/services/attribution.py",
-    "nura_app/scripts/__init__.py",
-    "nura_app/scripts/attribution_links.py",
-    "nura_app/tools/alembic_postgres_bootstrap_smoke.py",
-    "nura_app/tools/alembic_fk_normalization_smoke.py",
-    "nura_app/tools/alembic_production_reconciliation_smoke.py",
-    "nura_app/tools/run_alembic_postgres_smoke.py",
-    "nura_app/tools/telegram_report_delivery_postgres_smoke.py",
-    "nura_app/tests/test_alembic_bootstrap_contract.py",
-    "nura_app/tests/test_alembic_default_reconciliation_contract.py",
-    "nura_app/tests/test_alembic_fk_normalization_contract.py",
-    "nura_app/tests/test_report_lifecycle_schema_foundation.py",
-    "nura_app/tests/test_alembic_smoke_harness_contract.py",
-    "nura_app/tests/test_attribution.py",
-    "nura_app/tests/test_attribution_cli.py",
-    "nura_app/tests/test_attribution_migration_contract.py",
-    "nura_app/tests/test_report_lifecycle_schema_foundation.py",
-    "nura_app/alembic/versions/c1d2e3f4a5b6_add_mini_report_generation_foundation.py",
-    "nura_app/alembic/versions/d2e3f4a5b6c7_add_telegram_mini_report_delivery.py",
-    "nura_app/core/config.py",
-    "nura_app/core/repositories/__init__.py",
+    "nura_app/bot/handlers/profile.py",
+    "nura_app/bot/keyboards/main_menu.py",
     "nura_app/core/repositories/mini_report_generation.py",
+    "nura_app/core/repositories/report.py",
     "nura_app/core/repositories/telegram_report_delivery.py",
-    "nura_app/core/services/mini_report_generation.py",
+    "nura_app/core/services/my_reports.py",
     "nura_app/core/services/telegram_report_delivery.py",
-    "nura_app/tests/test_mini_report_generation_foundation.py",
-    "nura_app/tests/test_mini_report_generation_migration_contract.py",
-    "nura_app/tests/test_mini_report_telegram_delivery.py",
-    "nura_app/api/routes/web.py",
-    "nura_app/bot/handlers/onboarding.py",
-    "nura_app/core/repositories/guest.py",
-    "nura_app/core/services/mini_report_application.py",
     "nura_app/core/tasks.py",
-    "nura_app/tests/test_mini_report_application.py",
-    "nura_app/tests/test_tasks.py",
+    "nura_app/tests/test_alembic_smoke_harness_contract.py",
     "nura_app/tests/test_celery_async_task_contract.py",
+    "nura_app/tests/test_my_reports.py",
 }
 
 
@@ -272,18 +241,62 @@ def test_no_production_stamp_guidance() -> None:
         assert "production stamp" not in source
 
 
+def _paths_outside_allowlist(paths: set[str]) -> set[str]:
+    return paths - ALLOWLIST
+
+
+def _parse_porcelain_paths(output: str) -> set[str]:
+    records = output.split("\0")
+    paths: set[str] = set()
+    index = 0
+    while index < len(records):
+        record = records[index]
+        if not record:
+            break
+        status = record[:2]
+        paths.add(record[3:].replace("\\", "/"))
+        if "R" in status or "C" in status:
+            index += 1
+            paths.add(records[index].replace("\\", "/"))
+        index += 1
+    return paths
+
+
 def test_worktree_diff_stays_inside_allowlist() -> None:
     result = subprocess.run(
-        ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+        ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         check=True,
     )
-    changed = set()
-    for line in result.stdout.splitlines():
-        path = line[3:]
-        if " -> " in path:
-            path = path.split(" -> ", 1)[1]
-        changed.add(path.replace("\\", "/").strip('"'))
-    assert changed <= ALLOWLIST
+    assert _parse_porcelain_paths(result.stdout) == ALLOWLIST
+
+
+def test_worktree_allowlist_rejects_unrelated_sensitive_scopes() -> None:
+    unrelated_paths = {
+        "README.md",
+        "nura_app/alembic/versions/d2e3f4a5b6c7_add_telegram_mini_report_delivery.py",
+        "nura_app/alembic/versions/unauthorized_revision.py",
+        "nura_app/core/config.py",
+        "nura_app/requirements.txt",
+        "nura_app/api/routes/web.py",
+        "frontend/pwa/app/app.js",
+        "nura_app/deploy/deploy.sh",
+        "graphify-out/graph.json",
+        "nura_app/tests/shard-result.log",
+    }
+
+    assert _paths_outside_allowlist(unrelated_paths) == unrelated_paths
+
+
+def test_worktree_parser_keeps_both_sides_of_rename() -> None:
+    output = (
+        "R  nura_app/core/services/my_reports.py\0"
+        "nura_app/alembic/versions/unauthorized_revision.py\0"
+    )
+
+    assert _parse_porcelain_paths(output) == {
+        "nura_app/core/services/my_reports.py",
+        "nura_app/alembic/versions/unauthorized_revision.py",
+    }

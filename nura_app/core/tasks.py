@@ -301,6 +301,38 @@ def deliver_mini_report(self, user_id: str, report_id: str, generation_id: str) 
     return _run_async(_run_delivery())
 
 
+@celery_app.task(
+    bind=True,
+    name="core.tasks.deliver_repeated_mini_report",
+    max_retries=3,
+    acks_late=True,
+    reject_on_worker_lost=True,
+)
+def deliver_repeated_mini_report(
+    self, user_id: str, report_id: str, generation_id: str, purpose: str
+) -> None:
+    async def _run_delivery() -> None:
+        try:
+            await MiniReportTelegramDeliveryService(get_async_sessionmaker()).deliver(
+                generation_id=uuid.UUID(generation_id),
+                user_id=uuid.UUID(user_id),
+                report_id=uuid.UUID(report_id),
+                purpose=purpose,
+            )
+        except TelegramDeliveryError as error:
+            if error.retryable:
+                raise self.retry(
+                    exc=ConnectionError(error.code),
+                    countdown=error.retry_after or 20,
+                ) from error
+        except OperationalError as error:
+            raise self.retry(
+                exc=ConnectionError("delivery_database_unavailable"),
+                countdown=settings.telegram_delivery_claim_timeout_seconds,
+            ) from error
+    return _run_async(_run_delivery())
+
+
 async def _process_full_report(
     user_id: str, birth_date: str, report_token: str
 ) -> dict:

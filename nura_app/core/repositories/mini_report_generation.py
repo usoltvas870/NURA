@@ -24,6 +24,19 @@ class MiniReportGenerationRepository:
         async with self._session_factory() as session:
             return await session.get(MiniReportGeneration, generation_id)
 
+    async def get_completed_for_report_and_user(
+        self, report_id: uuid.UUID, user_id: uuid.UUID
+    ) -> MiniReportGeneration | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(MiniReportGeneration).where(
+                    MiniReportGeneration.report_id == report_id,
+                    MiniReportGeneration.user_id == user_id,
+                    MiniReportGeneration.status == MiniReportGenerationState.COMPLETED,
+                )
+            )
+            return result.scalar_one_or_none()
+
     async def get_or_create(
         self,
         *,

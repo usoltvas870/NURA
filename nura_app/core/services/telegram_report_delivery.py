@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 
 from bot.utils.formatting import escape_telegram_html, split_telegram_html_message
 from core.config import settings
-from core.models import ReportType
+from core.models import MiniReportGenerationState, ReportType
 from core.repositories.report import ReportRepository
 from core.repositories.mini_report_generation import MiniReportGenerationRepository
 from core.repositories.telegram_report_delivery import TelegramReportDeliveryRepository
@@ -96,20 +96,43 @@ class MiniReportTelegramDeliveryService:
         self._deliveries = TelegramReportDeliveryRepository(session_factory)
         self._adapter = adapter or TelegramDocumentAdapter()
 
-    async def deliver(self, *, generation_id: uuid.UUID, user_id: uuid.UUID, report_id: uuid.UUID) -> None:
+    async def deliver(
+        self,
+        *,
+        generation_id: uuid.UUID,
+        user_id: uuid.UUID,
+        report_id: uuid.UUID,
+        purpose: str = "mini_initial",
+    ) -> None:
         generation = await self._generations.get(generation_id)
-        if generation is None or generation.user_id != user_id or generation.report_id != report_id:
+        if (
+            generation is None
+            or generation.user_id != user_id
+            or generation.report_id != report_id
+            or generation.status != MiniReportGenerationState.COMPLETED
+        ):
             raise TelegramDeliveryError("delivery_subject_mismatch", retryable=False)
-        delivery = await self._deliveries.get_or_create(generation_id=generation_id, user_id=user_id, report_id=report_id)
+        delivery = await self._deliveries.get_or_create(
+            generation_id=generation_id,
+            user_id=user_id,
+            report_id=report_id,
+            purpose=purpose,
+        )
         attempt = await self._deliveries.claim(delivery.id, now=datetime.now(timezone.utc))
         if attempt is None:
             return
         delivery = await self._deliveries.get(delivery.id)
         if delivery is None:
             raise TelegramDeliveryError("delivery_missing_after_claim", retryable=True)
-        report = await self._reports.get(report_id)
+        report = await self._reports.get_completed_mini_for_user(user_id, report_id)
         user = await self._users.get(user_id)
-        if report is None or report.user_id != user_id or report.report_type != ReportType.MINI.value or user is None or not user.telegram_id:
+        if (
+            report is None
+            or report.report_type != ReportType.MINI.value
+            or user is None
+            or user.account_status != "active"
+            or not user.telegram_id
+        ):
             await self._deliveries.fail(
                 delivery.id,
                 attempt,

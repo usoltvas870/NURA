@@ -2,11 +2,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import delete, desc, select
+from sqlalchemy import delete, desc, func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.config import settings
-from core.models import Report, ReportType
+from core.models import MiniReportGeneration, MiniReportGenerationState, Report, ReportType
 from core.repositories.base import SQLAlchemyRepository
 
 
@@ -27,6 +27,51 @@ class ReportRepository(SQLAlchemyRepository[Report]):
                 select(Report).where(Report.user_id == user_id)
             )
             return list(result.scalars().all())
+
+    async def list_completed_mini_for_user(
+        self, user_id: uuid.UUID, *, offset: int, limit: int
+    ) -> tuple[list[Report], int]:
+        """Return only mini reports that have a completed durable generation."""
+        filters = (
+            Report.user_id == user_id,
+            Report.report_type == ReportType.MINI.value,
+            MiniReportGeneration.user_id == user_id,
+            MiniReportGeneration.status == MiniReportGenerationState.COMPLETED,
+            MiniReportGeneration.report_id == Report.id,
+        )
+        async with self._session_factory() as session:
+            rows = await session.execute(
+                select(Report)
+                .join(MiniReportGeneration, MiniReportGeneration.report_id == Report.id)
+                .where(*filters)
+                .order_by(desc(Report.created_at))
+                .offset(offset)
+                .limit(limit)
+            )
+            total = await session.execute(
+                select(func.count())
+                .select_from(Report)
+                .join(MiniReportGeneration, MiniReportGeneration.report_id == Report.id)
+                .where(*filters)
+            )
+            return list(rows.scalars().all()), int(total.scalar_one())
+
+    async def get_completed_mini_for_user(
+        self, user_id: uuid.UUID, report_id: uuid.UUID
+    ) -> Report | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(Report)
+                .join(MiniReportGeneration, MiniReportGeneration.report_id == Report.id)
+                .where(
+                    Report.id == report_id,
+                    Report.user_id == user_id,
+                    Report.report_type == ReportType.MINI.value,
+                    MiniReportGeneration.user_id == user_id,
+                    MiniReportGeneration.status == MiniReportGenerationState.COMPLETED,
+                )
+            )
+            return result.scalar_one_or_none()
 
     async def get_by_user_id_and_type(
         self, user_id: uuid.UUID, report_type: ReportType

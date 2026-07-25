@@ -24,7 +24,7 @@ def main_menu_keyboard(
             InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
         ],
         [
-            InlineKeyboardButton(text="📄 Мои отчёты", callback_data="view_reports"),
+            InlineKeyboardButton(text="📄 Мои разборы", callback_data="reports:list:0"),
             InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
         ],
     ]
@@ -122,6 +122,32 @@ def reports_keyboard(reports: list) -> InlineKeyboardMarkup:
         buttons.append(row)
     buttons.append([InlineKeyboardButton(text="👤 Назад в профиль", callback_data="back_to_profile")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def my_reports_keyboard(items: list, page: int, total_pages: int) -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(text=item.display_label, callback_data=f"reports:view:{item.report_id.hex}")]
+        for item in items
+    ]
+    navigation = []
+    if page > 0:
+        navigation.append(InlineKeyboardButton(text="←", callback_data=f"reports:list:{page - 1}"))
+    if page + 1 < total_pages:
+        navigation.append(InlineKeyboardButton(text="→", callback_data=f"reports:list:{page + 1}"))
+    if navigation:
+        rows.append(navigation)
+    rows.append([InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def my_report_detail_keyboard(report_id: str, page: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Отправить отчёт снова", callback_data=f"reports:send:{report_id}")],
+            [InlineKeyboardButton(text="← Назад", callback_data=f"reports:list:{page}")],
+            [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+        ]
+    )
 
 
 def open_pwa_keyboard(url: str = "https://nura-ai.ru/app") -> InlineKeyboardMarkup:

@@ -17,16 +17,23 @@ class TelegramReportDeliveryRepository:
     def __init__(self, session_factory: async_sessionmaker) -> None:
         self._session_factory = session_factory
 
-    async def get_or_create(self, *, generation_id: uuid.UUID, user_id: uuid.UUID, report_id: uuid.UUID) -> TelegramReportDelivery:
+    async def get_or_create(
+        self,
+        *,
+        generation_id: uuid.UUID,
+        user_id: uuid.UUID,
+        report_id: uuid.UUID,
+        purpose: str = "mini_initial",
+    ) -> TelegramReportDelivery:
         async with self._session_factory() as session:
-            delivery = TelegramReportDelivery(id=uuid.uuid4(), mini_report_generation_id=generation_id, user_id=user_id, report_id=report_id, purpose="mini_initial")
+            delivery = TelegramReportDelivery(id=uuid.uuid4(), mini_report_generation_id=generation_id, user_id=user_id, report_id=report_id, purpose=purpose)
             session.add(delivery)
             try:
                 await session.commit()
                 return delivery
             except IntegrityError:
                 await session.rollback()
-                existing = (await session.execute(select(TelegramReportDelivery).where(TelegramReportDelivery.mini_report_generation_id == generation_id, TelegramReportDelivery.user_id == user_id, TelegramReportDelivery.purpose == "mini_initial"))).scalar_one()
+                existing = (await session.execute(select(TelegramReportDelivery).where(TelegramReportDelivery.mini_report_generation_id == generation_id, TelegramReportDelivery.user_id == user_id, TelegramReportDelivery.purpose == purpose))).scalar_one()
                 return existing
 
     async def get(
