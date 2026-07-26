@@ -9,6 +9,7 @@ CAVEMAN PROTOCOL:
   ✓ ~1100 lines of coverage
 """
 
+import inspect
 import uuid
 from datetime import date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -25,6 +26,10 @@ from api.routes.tarot_pwa import (
     SpreadResponse,
 )
 from core.models import User
+from core.services.daily_tarot_application import (
+    DailyTarotApplicationResult,
+    DailyTarotResultKind,
+)
 
 # ═══════════════════════════════════════════════════════════════════
 # Constants — reusable mock data
@@ -240,11 +245,8 @@ def mock_get_user(request):
 
 @pytest.fixture
 def mock_arcana():
-    """Patch personalize_arcana and calculate_daily_arcana to return deterministic value."""
+    """Patch the shared spread arcana helper to return a deterministic value."""
     with patch(
-        "api.routes.tarot_pwa.personalize_arcana",
-        return_value=3,
-    ), patch(
         "api.routes.tarot_pwa.calculate_daily_arcana",
         return_value=3,
     ) as mock:
@@ -352,179 +354,110 @@ def mock_ai_mini_error():
 # ═══════════════════════════════════════════════════════════════════
 
 class TestDailyCard:
-    """GET /api/v1/tarot/daily-card — карта дня."""
+    """PWA daily-card route maps typed application results without AI orchestration."""
 
-    # ── Happy path ────────────────────────────────────────────────
-
-    @pytest.mark.asyncio
-    @pytest.mark.mock_user(_build_mock_user())
-    async def test_daily_card_success(self, client, mock_get_user, mock_arcana, mock_ai_chat):
-        """200 — карта дня успешно возвращается."""
-        # mock_arcana returns 3 → arcana 3 = Императрица
-        response = client.get(
-            "/api/v1/tarot/daily-card",
-            cookies={"nura_session_id": MOCK_SESSION_ID},
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["arcana_number"] == 3
-        assert data["arcana_name"] == "Императрица"
-        assert data["arcana_symbol"] == "🌸"
-        assert data["key_phrase"] == "Изобилие и творчество"
-        assert data["interpretation"]
-        assert data["advice"]
-        assert data["affirmation"]
-        assert data["date_label"]
-
-    @pytest.mark.asyncio
-    @pytest.mark.mock_user(_build_mock_user(birth_date="15.06.1990"))
-    async def test_daily_card_different_birth_date(
-        self, client, mock_get_user, mock_arcana, mock_ai_chat,
-    ):
-        """200 — аркан рассчитывается на основе даты рождения."""
-        # mock_arcana always returns 3 regardless of birth_date
-        response = client.get(
-            "/api/v1/tarot/daily-card",
-            cookies={"nura_session_id": MOCK_SESSION_ID},
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["arcana_number"] == 3
-
-    @pytest.mark.asyncio
-    @pytest.mark.mock_user(_build_mock_user())
-    async def test_daily_card_date_label_format(
-        self, client, mock_get_user, mock_arcana, mock_ai_chat,
-    ):
-        """200 — date_label формируется корректно."""
-        today = date.today()
-        months = [
-            "января", "февраля", "марта", "апреля",
-            "мая", "июня", "июля", "августа",
-            "сентября", "октября", "ноября", "декабря",
-        ]
-        expected = f"{today.day} {months[today.month - 1]}"
-        response = client.get(
-            "/api/v1/tarot/daily-card",
-            cookies={"nura_session_id": MOCK_SESSION_ID},
-        )
-        assert response.status_code == 200
-        assert response.json()["date_label"] == expected
-
-    # ── Error: user not found ─────────────────────────────────────
-
-    @pytest.mark.asyncio
-    @pytest.mark.mock_user(None)
-    async def test_daily_card_user_not_found(self, client, mock_get_user):
-        """401 — сессия не найдена."""
-        response = client.get(
-            "/api/v1/tarot/daily-card",
-            cookies={"nura_session_id": "nonexistent-session"},
-        )
-        assert response.status_code == 401
-        assert "Сессия не найдена" in response.json()["detail"]
-
-    # ── Error: no birth date ──────────────────────────────────────
-
-    @pytest.mark.asyncio
-    @pytest.mark.mock_user(_build_mock_user(birth_date=None))
-    async def test_daily_card_no_birth_date(
-        self, client, mock_get_user,
-    ):
-        """400 — дата рождения не указана."""
-        response = client.get(
-            "/api/v1/tarot/daily-card",
-            cookies={"nura_session_id": MOCK_SESSION_ID},
-        )
-        assert response.status_code == 400
-        assert "Дата рождения не указана" in response.json()["detail"]
-
-    # ── Error: missing cookie ─────────────────────────────────────
-
-    @pytest.mark.asyncio
-    async def test_daily_card_missing_cookie(self, client):
-        """401 — отсутствие cookie возвращает 401."""
-        response = client.get("/api/v1/tarot/daily-card")
-        assert response.status_code == 401
-
-    # ── Response schema ───────────────────────────────────────────
-
-    @pytest.mark.asyncio
-    @pytest.mark.mock_user(_build_mock_user())
-    async def test_daily_card_response_schema(
-        self, client, mock_get_user, mock_arcana, mock_ai_chat,
-    ):
-        """200 — ответ соответствует схеме DailyCardResponse."""
-        response = client.get(
-            "/api/v1/tarot/daily-card",
-            cookies={"nura_session_id": MOCK_SESSION_ID},
-        )
-        assert response.status_code == 200
-        try:
-            DailyCardResponse(**response.json())
-        except ValidationError:
-            pytest.fail("Response does not match DailyCardResponse schema")
-
-    # ── Deterministic arcana value check ──────────────────────────
-
-    @pytest.mark.asyncio
-    @pytest.mark.mock_user(_build_mock_user())
-    async def test_daily_card_arcana_out_of_range_fallback(
-        self, client, mock_get_user, mock_ai_chat,
-    ):
-        """200 — при некорректном аркане используется fallback ARCANA[1]."""
+    @staticmethod
+    def _request(client, result, *, session_id=MOCK_SESSION_ID):
+        service = MagicMock()
+        service.get_daily_card = AsyncMock(return_value=result)
         with patch(
-            "api.routes.tarot_pwa.personalize_arcana",
-            return_value=999,  # out of range
+            "api.routes.tarot_pwa.get_daily_tarot_application_service",
+            return_value=service,
         ):
             response = client.get(
                 "/api/v1/tarot/daily-card",
-                cookies={"nura_session_id": MOCK_SESSION_ID},
+                cookies={"nura_session_id": session_id},
             )
-        assert response.status_code == 200
-        data = response.json()
-        # Should fall back to arcana 1 (Маг)
-        assert data["arcana_number"] == 999  # original number kept
-        assert data["arcana_name"] == "Маг"  # but arcana data from arcana 1
+        return response, service
 
-    @pytest.mark.asyncio
-    @pytest.mark.mock_user(_build_mock_user())
-    async def test_daily_card_arcana_zero(
-        self, client, mock_get_user, mock_ai_chat,
-    ):
-        """200 — аркан 0 тоже падает на ARCANA[1]."""
-        with patch(
-            "api.routes.tarot_pwa.personalize_arcana",
-            return_value=0,
-        ):
-            response = client.get(
-                "/api/v1/tarot/daily-card",
-                cookies={"nura_session_id": MOCK_SESSION_ID},
-            )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["arcana_name"] == "Маг"
-
-    # ── Edge: user with no first_name or name ─────────────────────
-
-    @pytest.mark.asyncio
-    @pytest.mark.mock_user(
-        _build_mock_user(first_name=None, name=None, username=None),
+    @pytest.mark.parametrize(
+        "kind",
+        [DailyTarotResultKind.COMPLETED_NEW, DailyTarotResultKind.COMPLETED_REUSED],
     )
-    async def test_daily_card_minimal_user(
-        self, client, mock_get_user, mock_arcana, mock_ai_chat,
+    @pytest.mark.mock_user(_build_mock_user())
+    def test_first_and_replayed_success_preserve_schema(
+        self, client, mock_get_user, kind
     ):
-        """200 — даже без имени/username не падает."""
-        response = client.get(
-            "/api/v1/tarot/daily-card",
-            cookies={"nura_session_id": MOCK_SESSION_ID},
+        result = DailyTarotApplicationResult(
+            kind=kind,
+            local_date="2026-07-26",
+            timezone_name="Europe/Moscow",
+            arcana_number=3,
+            interpretation=MOCK_AI_CHAT_RESPONSE,
         )
+        response, service = self._request(client, result)
+
         assert response.status_code == 200
+        payload = response.json()
+        DailyCardResponse.model_validate(payload)
+        assert payload["arcana_number"] == 3
+        assert payload["arcana_name"] == "Императрица"
+        assert payload["interpretation"] == MOCK_AI_CHAT_RESPONSE
+        assert payload["date_label"] == "26 июля"
+        service.get_daily_card.assert_awaited_once()
+        assert service.get_daily_card.await_args.args[0].user_id == MOCK_USER_ID
 
+    @pytest.mark.mock_user(_build_mock_user())
+    def test_next_local_day_uses_result_local_date(self, client, mock_get_user):
+        result = DailyTarotApplicationResult(
+            kind=DailyTarotResultKind.COMPLETED_NEW,
+            local_date="2026-07-27",
+            timezone_name="Europe/Moscow",
+            arcana_number=3,
+            interpretation=MOCK_AI_CHAT_RESPONSE,
+        )
+        response, _ = self._request(client, result)
+        assert response.status_code == 200
+        assert response.json()["date_label"] == "27 июля"
 
-# ═══════════════════════════════════════════════════════════════════
-# Test: Spread — Weekly  (POST /api/v1/tarot/spread, weekly)
-# ═══════════════════════════════════════════════════════════════════
+    @pytest.mark.parametrize(
+        ("kind", "status_code", "detail"),
+        [
+            (DailyTarotResultKind.IN_PROGRESS, 409, "daily_card_in_progress"),
+            (DailyTarotResultKind.PROFILE_INCOMPLETE, 400, "profile_incomplete"),
+            (DailyTarotResultKind.USER_UNAVAILABLE, 401, "session_not_found"),
+            (DailyTarotResultKind.FAILED_RETRYABLE, 503, "daily_card_unavailable"),
+            (DailyTarotResultKind.FAILED_NON_RETRYABLE, 503, "daily_card_unavailable"),
+        ],
+    )
+    @pytest.mark.mock_user(_build_mock_user())
+    def test_non_completed_result_mapping(
+        self, client, mock_get_user, kind, status_code, detail
+    ):
+        response, _ = self._request(
+            client,
+            DailyTarotApplicationResult(kind=kind, error_code="safe_error"),
+        )
+        assert response.status_code == status_code
+        assert response.json()["detail"] == detail
+
+    def test_missing_cookie_is_unauthorized_before_service(self, client):
+        service = MagicMock()
+        service.get_daily_card = AsyncMock()
+        with patch(
+            "api.routes.tarot_pwa.get_daily_tarot_application_service",
+            return_value=service,
+        ):
+            response = client.get("/api/v1/tarot/daily-card")
+        assert response.status_code == 401
+        service.get_daily_card.assert_not_awaited()
+
+    def test_route_has_no_direct_ai_or_server_date_or_domain_mutation(self):
+        from api.routes.tarot_pwa import get_daily_card
+
+        source = inspect.getsource(get_daily_card)
+        for forbidden in (
+            "AIService",
+            "generate_tarot",
+            "date.today",
+            "datetime.now",
+            "daily_arcana",
+            "DailyTarotDrawState",
+            "ChatMessageUsage",
+            "MatrixService",
+        ):
+            assert forbidden not in source
+
 
 class TestSpreadWeekly:
     """POST /api/v1/tarot/spread — weekly (расклад недели)."""
@@ -2090,36 +2023,38 @@ class TestDailyCardEdgeCases:
         )
         assert resp.status_code == 401
 
-    @pytest.mark.asyncio
-    async def test_daily_card_extra_query_params(self, client):
+    def test_daily_card_extra_query_params(self, client):
         """200 — лишние query-параметры игнорируются."""
-        with patch(
-            "core.repositories.user.UserRepository.get_by_web_session_id",
-            new_callable=AsyncMock,
-        ) as mock_get:
-            mock_get.return_value = _build_mock_user()
-            with patch(
+        user = _build_mock_user()
+        result = DailyTarotApplicationResult(
+            kind=DailyTarotResultKind.COMPLETED_REUSED,
+            local_date="2026-07-26",
+            arcana_number=3,
+            interpretation=MOCK_AI_CHAT_RESPONSE,
+        )
+        service = MagicMock()
+        service.get_daily_card = AsyncMock(return_value=result)
+        with (
+            patch(
+                "core.repositories.user.UserRepository.get_by_web_session_id",
+                new=AsyncMock(return_value=user),
+            ),
+            patch(
                 "core.repositories.user.UserRepository.renew_session_expiry",
-                new_callable=AsyncMock,
-            ) as mock_renew:
-                mock_renew.return_value = None
-                with patch(
-                    "core.repositories.user.UserRepository.update_last_activity",
-                    new_callable=AsyncMock,
-                ) as mock_activity:
-                    mock_activity.return_value = None
-                    with patch(
-                        "api.routes.tarot_pwa.AIService.chat",
-                        new_callable=AsyncMock,
-                    ) as mock_ai:
-                        mock_ai.return_value = MOCK_AI_CHAT_RESPONSE
-                        with patch(
-                            "api.routes.tarot_pwa.personalize_arcana",
-                            return_value=3,
-                        ):
-                            resp = client.get(
-                                "/api/v1/tarot/daily-card",
-                                cookies={"nura_session_id": MOCK_SESSION_ID},
-                                params={"extra_param": "value"},
-                            )
+                new=AsyncMock(return_value=None),
+            ),
+            patch(
+                "core.repositories.user.UserRepository.update_last_activity",
+                new=AsyncMock(return_value=None),
+            ),
+            patch(
+                "api.routes.tarot_pwa.get_daily_tarot_application_service",
+                return_value=service,
+            ),
+        ):
+            resp = client.get(
+                "/api/v1/tarot/daily-card",
+                cookies={"nura_session_id": MOCK_SESSION_ID},
+                params={"extra_param": "value"},
+            )
         assert resp.status_code == 200

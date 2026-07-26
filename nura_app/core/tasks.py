@@ -55,14 +55,6 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    "send-daily-card": {
-        "task": "core.tasks.send_daily_card",
-        "schedule": crontab(hour=3, minute=0),
-    },
-    "send-daily-tarot-card": {
-        "task": "core.tasks.send_daily_tarot_card",
-        "schedule": crontab(hour=9, minute=15),
-    },
     "send-weekly-tarot-spread": {
         "task": "core.tasks.send_weekly_tarot_spread",
         "schedule": crontab(hour=9, minute=0, day_of_week=1),
@@ -683,6 +675,8 @@ async def _notify_user(
     return push_ok or telegram_ok
 
 
+# Dormant legacy notification producers. Keep registered for a future migration,
+# but do not schedule until notifications use DailyTarotApplicationService.
 @celery_app.task(name="core.tasks.send_daily_card")
 def send_daily_card() -> dict:
     return _run_async(_send_daily_card_async())

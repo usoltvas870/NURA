@@ -1531,3 +1531,41 @@ docker compose restart bot celery-worker
 - Расширенный targeted-набор: 251 passed. Safe-suite принят в 12 file-shards: 943 passed, 18 skipped, 0 failed; 54/54 включённых test-файла покрыты ровно один раз, missing 0, duplicates 0, единственный разрешённый Tarot node deselection сохранён.
 - Graphify 0.9.7 `check-update .`: PASS; hooks не заданы, `graphify-out` не изменён, Graphify update is not required.
 - MY REPORTS AND REPEATED DELIVERY принят. Следующий этап после отдельного commit: FREE CHAT WITH LIFETIME FIVE-MESSAGE LIMIT.
+
+## Free Daily Tarot Card — 26.07.2026
+
+- Реализован бесплатный daily-card use case с durable `DailyTarotDraw`: уникальная пара
+  `(user_id, local_date)`, состояния `pending/generating/completed/failed`, atomic claim,
+  `attempt_count`, stale-claim recovery и terminal fencing. Карта сохраняется до AI-вызова;
+  same-day replay возвращает ту же карту и интерпретацию без повторного AI, failed retry
+  использует ту же карту.
+- Локальная дата вычисляется из timezone-aware UTC clock через `zoneinfo`. При отсутствии
+  timezone у `User` используется `Europe/Moscow`; resolved timezone сохраняется snapshot-ом
+  на draw. Новое timezone-поле в `User` не добавлялось.
+- Доступ к карте не зависит от chat quota, premium или Tarot subscription и не создаёт
+  `ChatMessageUsage`. Telegram и PWA используют channel-neutral
+  `DailyTarotApplicationService`; другие Tarot entitlement-контракты не изменены.
+- Добавлена единственная миграция `d7e8f9a0b1c2` с parent `d6e7f8a9b0c1`, FK
+  `users.id` с `ON DELETE CASCADE`, state-dependent check, bounded error/timezone fields и
+  индексами user/date и status/claimed-at. Existing users не получают draw при upgrade;
+  downgrade удаляет только daily-card objects.
+- Disposable PostgreSQL 16 acceptance полностью прошла: blank/parent upgrade,
+  downgrade/re-upgrade, exact schema, one-row get-or-create race, one-winner claim,
+  canonical card, failed retry, stale attempt fencing, terminal immutability и account
+  deletion cascade. Exact disposable container удалён в `finally`.
+- Основной targeted-набор: 399 passed, 0 failed, 165 warnings; notification-isolation
+  targeted-набор: 346 passed, 0 failed, 111 warnings. Safe-suite принят в 12 file-shards:
+  975 passed, 17 skipped, 1 разрешённый Tarot asset deselection, 0 failed;
+  57/57 включённых test-файлов покрыты ровно один раз, missing 0, duplicates 0.
+- Graphify 0.9.7 `check-update .`: PASS; custom hooks не заданы, generated diff отсутствует,
+  Graphify update не требуется.
+- Legacy `send_daily_card` и `send_daily_tarot_card` сохранены зарегистрированными dormant
+  Celery tasks, но удалены из active Celery Beat schedule. Direct-call audit не обнаружил
+  других runtime dispatch paths; единственные active daily-card entry points в Telegram и
+  PWA используют `DailyTarotApplicationService`.
+- Push notifications отложены до отдельного этапа Notifications and Return; streaks и
+  history/calendar UI не реализованы. Между успешным AI
+  response и durable completion остаётся узкое crash-window; повтор после stale recovery
+  безопасно fenced, но provider-вызов может повториться.
+- FREE DAILY TAROT CARD принят. Следующий этап после отдельного commit:
+  ONE-TIME FULL MATRIX CHECKOUT THROUGH YOOKASSA.

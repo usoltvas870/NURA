@@ -17,32 +17,44 @@ FK_PATH = TOOLS_ROOT / "alembic_fk_normalization_smoke.py"
 RECONCILIATION_PATH = TOOLS_ROOT / "alembic_production_reconciliation_smoke.py"
 DELIVERY_PATH = TOOLS_ROOT / "telegram_report_delivery_postgres_smoke.py"
 LIFETIME_CHAT_PATH = TOOLS_ROOT / "lifetime_chat_postgres_smoke.py"
+DAILY_TAROT_PATH = TOOLS_ROOT / "daily_tarot_postgres_smoke.py"
 RUNNER_PATH = TOOLS_ROOT / "run_alembic_postgres_smoke.py"
-HARNESS_PATHS = (BOOTSTRAP_PATH, FK_PATH, RECONCILIATION_PATH, DELIVERY_PATH, LIFETIME_CHAT_PATH)
+HARNESS_PATHS = (
+    BOOTSTRAP_PATH,
+    FK_PATH,
+    RECONCILIATION_PATH,
+    DELIVERY_PATH,
+    LIFETIME_CHAT_PATH,
+    DAILY_TAROT_PATH,
+)
 ALLOWLIST = {
     "STATE.md",
-    "frontend/pwa/app/chat.html",
-    "nura_app/alembic/versions/d6e7f8a9b0c1_add_lifetime_chat_message_usage.py",
-    "nura_app/api/routes/web.py",
-    "nura_app/bot/handlers/chat.py",
+    "nura_app/alembic/versions/d7e8f9a0b1c2_add_daily_tarot_draws.py",
+    "nura_app/api/routes/tarot_pwa.py",
+    "nura_app/bot/handlers/tarot.py",
     "nura_app/core/config.py",
     "nura_app/core/models.py",
-    "nura_app/core/schemas/chat.py",
-    "nura_app/core/services/chat_application.py",
-    "nura_app/core/services/chat_history.py",
-    "nura_app/core/services/chat_quota.py",
+    "nura_app/core/repositories/__init__.py",
+    "nura_app/core/repositories/daily_tarot_draw.py",
+    "nura_app/core/services/daily_tarot_application.py",
+    "nura_app/core/services/daily_tarot_timezone.py",
+    "nura_app/core/tasks.py",
+    "nura_app/tests/test_alembic_smoke_harness_contract.py",
     "nura_app/tests/test_alembic_bootstrap_contract.py",
     "nura_app/tests/test_alembic_fk_normalization_contract.py",
-    "nura_app/tests/test_alembic_smoke_harness_contract.py",
     "nura_app/tests/test_attribution_migration_contract.py",
-    "nura_app/tests/test_lifetime_chat_contract.py",
+    "nura_app/tests/test_daily_tarot_application.py",
+    "nura_app/tests/test_daily_tarot_migration_contract.py",
     "nura_app/tests/test_mini_report_generation_migration_contract.py",
     "nura_app/tests/test_report_lifecycle_schema_foundation.py",
-    "nura_app/tests/test_security_rendering_gate.py",
-    "nura_app/tests/test_web_chat_quota.py",
+    "nura_app/tests/test_report_generation_beat_schedule.py",
+    "nura_app/tests/test_report_generation_celery_wiring.py",
+    "nura_app/tests/test_tarot_handlers.py",
+    "nura_app/tests/test_tarot_pwa.py",
     "nura_app/tools/alembic_fk_normalization_smoke.py",
     "nura_app/tools/alembic_postgres_bootstrap_smoke.py",
     "nura_app/tools/alembic_production_reconciliation_smoke.py",
+    "nura_app/tools/daily_tarot_postgres_smoke.py",
     "nura_app/tools/lifetime_chat_postgres_smoke.py",
     "nura_app/tools/run_alembic_postgres_smoke.py",
     "nura_app/tools/telegram_report_delivery_postgres_smoke.py",
@@ -124,14 +136,14 @@ def test_revision_constants(bootstrap, fk, reconciliation) -> None:
     assert bootstrap.EXPECTED_BASE == "0001a2b3c4d5e6"
     assert bootstrap.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert bootstrap.PREVIOUS_HEAD == "d1e2f3a4b5c6"
-    assert bootstrap.EXPECTED_HEAD == "d6e7f8a9b0c1"
+    assert bootstrap.EXPECTED_HEAD == "d7e8f9a0b1c2"
     assert fk.PREVIOUS_HEAD == "b9c0d1e2f3a4"
     assert fk.NORMALIZATION_REVISION == "c0d1e2f3a4b5"
-    assert fk.EXPECTED_HEAD == "d6e7f8a9b0c1"
+    assert fk.EXPECTED_HEAD == "d7e8f9a0b1c2"
     assert reconciliation.PRODUCTION_REVISION == "d5e6f7a8b9c0"
     assert reconciliation.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert reconciliation.EXPECTED_HEAD == "d1e2f3a4b5c6"
-    assert reconciliation.GRAPH_HEAD == "d6e7f8a9b0c1"
+    assert reconciliation.GRAPH_HEAD == "d7e8f9a0b1c2"
 
 
 def test_structured_contract_helpers_reject_drift(bootstrap) -> None:
@@ -178,6 +190,7 @@ def test_runner_contract(runner) -> None:
     assert "alembic_fk_normalization_smoke.py" in source
     assert "alembic_production_reconciliation_smoke.py" in source
     assert "lifetime_chat_postgres_smoke.py" in source
+    assert "daily_tarot_postgres_smoke.py" in source
 
 
 def test_runner_masks_credentials(runner) -> None:

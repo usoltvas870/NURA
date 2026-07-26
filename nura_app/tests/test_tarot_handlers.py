@@ -16,10 +16,16 @@ CAVEMAN-ПРОТОКОЛ
 
 from __future__ import annotations
 
+import inspect
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+from core.services.daily_tarot_application import (
+    DailyTarotApplicationResult,
+    DailyTarotResultKind,
+)
 
 # =====================================================================
 # FIXTURES (общие для всех тестов)
@@ -369,213 +375,116 @@ class TestTarotMore:
 
 
 class TestTarotDailyCard:
-    """Тесты show_tarot_daily_card — callback_data == 'tarot_daily_card'."""
+    """Daily-card Telegram adapter consumes only the typed application result."""
+
+    @staticmethod
+    async def _run(mock_callback, user, result):
+        from bot.handlers.tarot import show_tarot_daily_card
+
+        loader = MagicMock()
+        loader.__aenter__ = AsyncMock(return_value=None)
+        loader.__aexit__ = AsyncMock(return_value=False)
+        service = MagicMock()
+        service.get_daily_card = AsyncMock(return_value=result)
+        with (
+            patch("bot.handlers.tarot._get_user", new=AsyncMock(return_value=user)),
+            patch("bot.handlers.tarot._daily_tarot_application_service", return_value=service),
+            patch("bot.handlers.tarot.animated_loading", return_value=loader),
+        ):
+            await show_tarot_daily_card(mock_callback)
+        return service
 
     @pytest.mark.asyncio
-    async def test_shows_daily_card(
-        self, mock_callback, mock_user
-    ):
-        """Базовая карта дня для free-пользователя."""
-        mock_user.main_archetype_number = 1
-        mock_user.main_archetype = "Маг"
-        mock_user.first_name = "Test"
-
-        mock_daily_arcana = MagicMock()
-        mock_daily_arcana.return_value = 5
-
-        with (
-            patch("bot.handlers.tarot.UserRepository") as MockRepo,
-            patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
-            patch("bot.handlers.tarot._daily_arcana_number", mock_daily_arcana),
-            patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
-            patch("bot.handlers.tarot.AIService") as mock_ai,
-            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
-            patch("bot.handlers.tarot.animated_loading") as mock_load,
-            patch("aiogram.types.InlineKeyboardMarkup") as mock_ikm,
-            patch("aiogram.types.InlineKeyboardButton") as mock_ikb,
-            patch("bot.handlers.tarot.ARCANA", {
-                1: {"name": "Маг"},
-                5: {"name": "Иерофант"},
-            }),
-        ):
-            repo_instance = MagicMock()
-            repo_instance.get_by_telegram_id = AsyncMock(return_value=mock_user)
-            MockRepo.return_value = repo_instance
-            mock_gsm.return_value = MagicMock()
-            mock_personal.return_value = 5
-            mock_load.return_value = AsyncMock()
-            mock_load.return_value.__aenter__ = AsyncMock()
-            mock_load.return_value.__aexit__ = AsyncMock()
-            mock_ai._load_prompt.return_value = "prompt template {arcana_number}"
-            mock_ai.chat = AsyncMock(return_value="Твоя карта дня — Иерофант. Время учиться новому.")
-            mock_loop_ai.chat = AsyncMock(return_value="Твоя карта дня — Иерофант. Время учиться новому.")
-            mock_ikm.return_value = MagicMock()
-            mock_ikb.return_value = MagicMock()
-
-            from bot.handlers.tarot import show_tarot_daily_card
-
-            await show_tarot_daily_card(mock_callback)
-
-        mock_callback.answer.assert_awaited_once()
-        mock_callback.message.edit_text.assert_awaited_once()
-        text = mock_callback.message.edit_text.await_args[0][0]
+    @pytest.mark.parametrize(
+        "kind",
+        [DailyTarotResultKind.COMPLETED_NEW, DailyTarotResultKind.COMPLETED_REUSED],
+    )
+    async def test_free_same_day_results_are_rendered(self, mock_callback, mock_user, kind):
+        result = DailyTarotApplicationResult(
+            kind=kind,
+            local_date="2026-07-26",
+            timezone_name="Europe/Moscow",
+            arcana_number=5,
+            interpretation="Спокойный личный фокус на сегодня.",
+        )
+        service = await self._run(mock_callback, mock_user, result)
+        service.get_daily_card.assert_awaited_once()
+        request = service.get_daily_card.await_args.args[0]
+        assert request.user_id == mock_user.id
+        assert request.allow_retry is True
+        text = mock_callback.message.edit_text.await_args.args[0]
         assert "Карта дня" in text
-        assert "Test" in text or "Иерофант" in text or "учиться" in text
+        assert "26.07.2026" in text
+        assert "Спокойный личный фокус" in text
 
     @pytest.mark.asyncio
-    async def test_no_user_shows_start_prompt(
-        self, mock_callback, mock_state
+    @pytest.mark.parametrize(
+        ("subscription_status", "tarot_subscription"),
+        [("free", False), ("premium", False), ("premium", True)],
+    )
+    async def test_entitlement_does_not_block_daily_card(
+        self, mock_callback, mock_user, subscription_status, tarot_subscription
     ):
-        """Пользователь не найден."""
-        with (
-            patch("bot.handlers.tarot.UserRepository") as MockRepo,
-            patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
-            patch("bot.handlers.tarot.main_menu_keyboard") as mock_mm,
-        ):
-            repo_instance = MagicMock()
-            repo_instance.get_by_telegram_id = AsyncMock(return_value=None)
-            MockRepo.return_value = repo_instance
-            mock_gsm.return_value = MagicMock()
-            mock_mm.return_value = MagicMock()
-
-            from bot.handlers.tarot import show_tarot_daily_card
-
-            await show_tarot_daily_card(mock_callback)
-
-        text = mock_callback.message.edit_text.await_args[0][0]
-        assert "Пользователь не найден" in text
+        mock_user.subscription_status = subscription_status
+        mock_user.tarot_subscription = tarot_subscription
+        result = DailyTarotApplicationResult(
+            kind=DailyTarotResultKind.COMPLETED_REUSED,
+            local_date="2026-07-26",
+            arcana_number=5,
+            interpretation="Доступно независимо от тарифа.",
+        )
+        await self._run(mock_callback, mock_user, result)
+        assert "Доступно независимо" in mock_callback.message.edit_text.await_args.args[0]
 
     @pytest.mark.asyncio
-    async def test_user_archetype_fallback(
-        self, mock_callback, mock_user
-    ):
-        """Если у пользователя нет main_archetype_number — используется _daily_arcana_number."""
-        mock_user.main_archetype_number = None
-        mock_user.main_archetype = None
-
-        with (
-            patch("bot.handlers.tarot.UserRepository") as MockRepo,
-            patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
-            patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
-            patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
-            patch("bot.handlers.tarot.AIService") as mock_ai,
-            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
-            patch("bot.handlers.tarot.animated_loading") as mock_load,
-            patch("aiogram.types.InlineKeyboardMarkup") as mock_ikm,
-            patch("aiogram.types.InlineKeyboardButton") as mock_ikb,
-            patch("bot.handlers.tarot.ARCANA", {
-                1: {"name": "Маг"},
-                3: {"name": "Императрица"},
-            }),
-        ):
-            repo_instance = MagicMock()
-            repo_instance.get_by_telegram_id = AsyncMock(return_value=mock_user)
-            MockRepo.return_value = repo_instance
-            mock_gsm.return_value = MagicMock()
-            # daily возвращает 1, personal 3
-            mock_daily.return_value = 1
-            mock_personal.return_value = 3
-            mock_load.return_value = AsyncMock()
-            mock_load.return_value.__aenter__ = AsyncMock()
-            mock_load.return_value.__aexit__ = AsyncMock()
-            mock_ai._load_prompt.return_value = "prompt"
-            mock_ai.chat = AsyncMock(return_value="Карта дня для тебя.")
-            mock_loop_ai.chat = AsyncMock(return_value="Карта дня для тебя.")
-            mock_ikm.return_value = MagicMock()
-            mock_ikb.return_value = MagicMock()
-
-            from bot.handlers.tarot import show_tarot_daily_card
-
-            await show_tarot_daily_card(mock_callback)
-
-        mock_callback.message.edit_text.assert_awaited_once()
-        text = mock_callback.message.edit_text.await_args[0][0]
-        assert "Карта дня" in text
+    @pytest.mark.parametrize(
+        ("kind", "expected"),
+        [
+            (DailyTarotResultKind.IN_PROGRESS, "уже готовится"),
+            (DailyTarotResultKind.PROFILE_INCOMPLETE, "заверши текущий onboarding"),
+            (DailyTarotResultKind.FAILED_RETRYABLE, "Не удалось подготовить"),
+            (DailyTarotResultKind.FAILED_NON_RETRYABLE, "Не удалось подготовить"),
+        ],
+    )
+    async def test_non_completed_result_mapping(self, mock_callback, mock_user, kind, expected):
+        await self._run(
+            mock_callback,
+            mock_user,
+            DailyTarotApplicationResult(kind=kind, error_code="safe_error"),
+        )
+        assert expected in mock_callback.message.edit_text.await_args.args[0]
 
     @pytest.mark.asyncio
-    async def test_ai_failure_fallback(
-        self, mock_callback, mock_user
-    ):
-        """При ошибке AI показываем 'Карты молчат сегодня'."""
-        with (
-            patch("bot.handlers.tarot.UserRepository") as MockRepo,
-            patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
-            patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
-            patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
-            patch("bot.handlers.tarot.AIService") as mock_ai,
-            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
-            patch("bot.handlers.tarot.animated_loading") as mock_load,
-            patch("aiogram.types.InlineKeyboardMarkup") as mock_ikm,
-            patch("aiogram.types.InlineKeyboardButton") as mock_ikb,
-            patch("bot.handlers.tarot.ARCANA", {
-                1: {"name": "Маг"},
-                5: {"name": "Иерофант"},
-            }),
+    async def test_escaping_and_splitting_are_preserved(self, mock_callback, mock_user):
+        mock_user.first_name = "<Admin>"
+        result = DailyTarotApplicationResult(
+            kind=DailyTarotResultKind.COMPLETED_NEW,
+            local_date="2026-07-26",
+            arcana_number=5,
+            interpretation="<script>" + "слово " * 1200,
+        )
+        await self._run(mock_callback, mock_user, result)
+        first = mock_callback.message.edit_text.await_args.args[0]
+        assert "&lt;Admin&gt;" in first
+        assert "<script>" not in first
+        assert mock_callback.message.answer.await_count >= 1
+        chunks = [first] + [call.args[0] for call in mock_callback.message.answer.await_args_list]
+        assert all(len(chunk) <= 4096 for chunk in chunks)
+
+    def test_handler_has_no_domain_or_provider_or_quota_calls(self):
+        from bot.handlers.tarot import show_tarot_daily_card
+
+        source = inspect.getsource(show_tarot_daily_card)
+        for forbidden in (
+            "AIService",
+            "generate_tarot_text",
+            "_daily_arcana_number",
+            "MatrixService",
+            "ChatMessageUsage",
+            "DailyTarotDrawState",
+            "send_photo",
         ):
-            repo_instance = MagicMock()
-            repo_instance.get_by_telegram_id = AsyncMock(return_value=mock_user)
-            MockRepo.return_value = repo_instance
-            mock_gsm.return_value = MagicMock()
-            mock_daily.return_value = 1
-            mock_personal.return_value = 5
-            mock_load.return_value = AsyncMock()
-            mock_load.return_value.__aenter__ = AsyncMock()
-            mock_load.return_value.__aexit__ = AsyncMock()
-            mock_ai._load_prompt.return_value = "prompt"
-            mock_ai.chat = AsyncMock(side_effect=Exception("API error"))
-            mock_loop_ai.chat = AsyncMock(side_effect=Exception("API error"))
-            mock_ikm.return_value = MagicMock()
-            mock_ikb.return_value = MagicMock()
-
-            from bot.handlers.tarot import show_tarot_daily_card
-
-            await show_tarot_daily_card(mock_callback)
-
-        mock_callback.message.edit_text.assert_awaited_once()
-        text = mock_callback.message.edit_text.await_args[0][0]
-        assert "Карты молчат" in text or "Карта дня" in text
-
-    @pytest.mark.asyncio
-    async def test_tarot_user_sees_result_keyboard(
-        self, mock_callback, mock_tarot_user
-    ):
-        """Пользователь с таро видит tarot_result_keyboard."""
-        with (
-            patch("bot.handlers.tarot.UserRepository") as MockRepo,
-            patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
-            patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
-            patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
-            patch("bot.handlers.tarot.AIService") as mock_ai,
-            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
-            patch("bot.handlers.tarot.animated_loading") as mock_load,
-            patch("bot.handlers.tarot.tarot_result_keyboard") as mock_trk,
-            patch("bot.handlers.tarot.ARCANA", {
-                1: {"name": "Маг"},
-                5: {"name": "Иерофант"},
-            }),
-        ):
-            repo_instance = MagicMock()
-            repo_instance.get_by_telegram_id = AsyncMock(
-                return_value=mock_tarot_user
-            )
-            MockRepo.return_value = repo_instance
-            mock_gsm.return_value = MagicMock()
-            mock_daily.return_value = 1
-            mock_personal.return_value = 5
-            mock_load.return_value = AsyncMock()
-            mock_load.return_value.__aenter__ = AsyncMock()
-            mock_load.return_value.__aexit__ = AsyncMock()
-            mock_ai._load_prompt.return_value = "prompt"
-            mock_ai.chat = AsyncMock(return_value="Карта дня готова.")
-            mock_loop_ai.chat = AsyncMock(return_value="Карта дня готова.")
-            mock_trk.return_value = MagicMock()
-
-            from bot.handlers.tarot import show_tarot_daily_card
-
-            await show_tarot_daily_card(mock_callback)
-
-        # Должен быть вызван tarot_result_keyboard, не InlineKeyboardMarkup
-        mock_trk.assert_called_once()
+            assert forbidden not in source
 
 
 class TestTarotWeekly:
@@ -3406,42 +3315,11 @@ class TestTarotEdgeCases:
         self, mock_callback, mock_user
     ):
         """Проверка корректных ключей ARCANA в карте дня."""
-        mock_user.main_archetype_number = 8
-
-        with (
-            patch("bot.handlers.tarot.UserRepository") as MockRepo,
-            patch("bot.handlers.tarot.get_async_sessionmaker") as mock_gsm,
-            patch("bot.handlers.tarot._daily_arcana_number") as mock_daily,
-            patch("bot.handlers.tarot._personal_arcana_number") as mock_personal,
-            patch("bot.handlers.tarot.AIService") as mock_ai,
-            patch("core.loop_specs.tarot_loop.AIService") as mock_loop_ai,
-            patch("bot.handlers.tarot.animated_loading") as mock_load,
-            patch("aiogram.types.InlineKeyboardMarkup") as mock_ikm,
-            patch("aiogram.types.InlineKeyboardButton") as mock_ikb,
-            patch("bot.handlers.tarot.ARCANA", {
-                8: {"name": "Сила"},
-                10: {"name": "Колесо Фортуны"},
-            }),
-        ):
-            repo_instance = MagicMock()
-            repo_instance.get_by_telegram_id = AsyncMock(return_value=mock_user)
-            MockRepo.return_value = repo_instance
-            mock_gsm.return_value = MagicMock()
-            mock_daily.return_value = 8
-            mock_personal.return_value = 10
-            mock_load.return_value = AsyncMock()
-            mock_load.return_value.__aenter__ = AsyncMock()
-            mock_load.return_value.__aexit__ = AsyncMock()
-            mock_ai._load_prompt.return_value = "prompt {arcana_number}"
-            mock_ai.chat = AsyncMock(return_value="Твоя сила — внутри.")
-            mock_loop_ai.chat = AsyncMock(return_value="Твоя сила — внутри.")
-            mock_ikm.return_value = MagicMock()
-            mock_ikb.return_value = MagicMock()
-
-            from bot.handlers.tarot import show_tarot_daily_card
-
-            await show_tarot_daily_card(mock_callback)
-
-        mock_callback.message.edit_text.assert_awaited_once()
-        text = mock_callback.message.edit_text.await_args[0][0]
-        assert "Карта дня" in text
+        result = DailyTarotApplicationResult(
+            kind=DailyTarotResultKind.COMPLETED_NEW,
+            local_date="2026-07-26",
+            arcana_number=10,
+            interpretation="Твоя сила — внутри.",
+        )
+        await TestTarotDailyCard._run(mock_callback, mock_user, result)
+        assert "Твоя сила" in mock_callback.message.edit_text.await_args.args[0]

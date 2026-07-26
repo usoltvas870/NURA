@@ -29,6 +29,7 @@ HARNESS_PATHS = (
     NURA_APP_ROOT / "tools" / "alembic_production_reconciliation_smoke.py",
     NURA_APP_ROOT / "tools" / "telegram_report_delivery_postgres_smoke.py",
     NURA_APP_ROOT / "tools" / "lifetime_chat_postgres_smoke.py",
+    NURA_APP_ROOT / "tools" / "daily_tarot_postgres_smoke.py",
 )
 READY_TIMEOUT_SECONDS = 45
 _EXECUTION_ENV_KEYS = (
@@ -124,6 +125,7 @@ def _database_evidence(database_url: str) -> tuple[str, list[dict[str, object]],
         "mini_report_generations",
         "telegram_report_deliveries",
         "chat_message_usages",
+        "daily_tarot_draws",
         "guest_profiles",
         "referral_rewards",
         "alembic_version",
@@ -327,6 +329,7 @@ def main() -> int:
                         "python tools/alembic_production_reconciliation_smoke.py",
                         "python tools/telegram_report_delivery_postgres_smoke.py",
                         "python tools/lifetime_chat_postgres_smoke.py",
+                        "python tools/daily_tarot_postgres_smoke.py",
                         "alembic heads",
                         "alembic history",
                         f"docker rm -f -v {container_name}",

@@ -309,7 +309,6 @@ class TestExistingBeatPreservation:
 
         schedule = celery_app.conf.beat_schedule
         required = [
-            "send-daily-card", "send-daily-tarot-card",
             "send-weekly-tarot-spread", "send-monthly-tarot-portal",
             "check-inactive-users", "check-expiring-subscriptions",
             "downgrade-expired-subscriptions", "charge-recurring-subscriptions",
@@ -318,6 +317,19 @@ class TestExistingBeatPreservation:
         ]
         for name in required:
             assert name in schedule, f"missing: {name}"
+
+    def test_legacy_daily_card_producers_are_registered_but_not_scheduled(self):
+        from core.tasks import celery_app
+
+        schedule = celery_app.conf.beat_schedule
+        active_targets = {entry["task"] for entry in schedule.values()}
+
+        assert "send-daily-card" not in schedule
+        assert "send-daily-tarot-card" not in schedule
+        assert "core.tasks.send_daily_card" not in active_targets
+        assert "core.tasks.send_daily_tarot_card" not in active_targets
+        assert "core.tasks.send_daily_card" in celery_app.tasks
+        assert "core.tasks.send_daily_tarot_card" in celery_app.tasks
 
 
 class TestOverlapSafety:

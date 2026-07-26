@@ -7,13 +7,30 @@ from api.deps import limiter
 from api.dependencies import get_current_web_user
 from core.models import User
 from core.services.ai import AIService
+from core.database import get_async_sessionmaker
+from core.repositories.daily_tarot_draw import DailyTarotDrawRepository
+from core.repositories.user import UserRepository
+from core.services.daily_tarot_application import (
+    DailyTarotApplicationService,
+    DailyTarotRequest,
+    DailyTarotResultKind,
+)
 from core.loop_specs.tarot_loop import generate_tarot_text
 from core.arcana_data import ARCANA
-from core.services.daily_arcana import calculate_daily_arcana, daily_arcana_number, personalize_arcana
+from core.services.daily_arcana import calculate_daily_arcana
 
 router = APIRouter(prefix="/api/v1/tarot")
 
 ARCANA_DATA = ARCANA  # alias from unified source
+
+
+def get_daily_tarot_application_service() -> DailyTarotApplicationService:
+    session_factory = get_async_sessionmaker()
+    return DailyTarotApplicationService(
+        user_repository=UserRepository(session_factory),
+        draw_repository=DailyTarotDrawRepository(session_factory),
+        ai_service=AIService(),
+    )
 
 
 class DailyCardResponse(BaseModel):
@@ -67,37 +84,33 @@ async def get_daily_card(
     request: Request,
     user: User = Depends(get_current_web_user),
 ):
-    if not user.birth_date:
-        raise HTTPException(status_code=400, detail="Дата рождения не указана")
-
-    today = date.today()
-    center = user.main_archetype_number or 0
-    arcana_num = (
-        personalize_arcana(today, center)
-        if center else daily_arcana_number(today)
+    result = await get_daily_tarot_application_service().get_daily_card(
+        DailyTarotRequest(user_id=user.id, allow_retry=True)
     )
+    if result.kind == DailyTarotResultKind.PROFILE_INCOMPLETE:
+        raise HTTPException(status_code=400, detail="profile_incomplete")
+    if result.kind == DailyTarotResultKind.USER_UNAVAILABLE:
+        raise HTTPException(status_code=401, detail="session_not_found")
+    if result.kind == DailyTarotResultKind.IN_PROGRESS:
+        raise HTTPException(status_code=409, detail="daily_card_in_progress")
+    if result.kind in {
+        DailyTarotResultKind.FAILED_RETRYABLE,
+        DailyTarotResultKind.FAILED_NON_RETRYABLE,
+    }:
+        raise HTTPException(status_code=503, detail="daily_card_unavailable")
+    if result.arcana_number is None or result.interpretation is None or result.local_date is None:
+        raise HTTPException(status_code=503, detail="daily_card_unavailable")
+    return _daily_card_response(user, result.arcana_number, result.interpretation, result.local_date)
+
+
+def _daily_card_response(
+    user: User, arcana_num: int, card_text: str, local_date: str
+) -> DailyCardResponse:
     arcana = ARCANA_DATA.get(arcana_num, ARCANA_DATA[1])
-    user_name = user.first_name or user.name or "пользователь"
-
-    try:
-        card_text = await AIService().generate_tarot_daily_card(
-            arcana_number=arcana_num,
-            arcana_name=arcana["name"],
-            date_str=today.strftime("%d.%m.%Y"),
-            user_name=user_name,
-            user_archetype_number=center or arcana_num,
-            user_archetype_name=user.main_archetype or arcana["name"],
-        )
-    except Exception:
-        raise HTTPException(status_code=503, detail="AI временно недоступен")
-
     paragraphs = [p.strip() for p in card_text.split("\n\n") if p.strip()]
     advice = paragraphs[-1] if len(paragraphs) >= 3 else card_text
-
-    months = ["января","февраля","марта","апреля","мая","июня",
-              "июля","августа","сентября","октября","ноября","декабря"]
-    date_label = f"{today.day} {months[today.month - 1]}"
-
+    today = date.fromisoformat(local_date)
+    months = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
     return DailyCardResponse(
         arcana_number=arcana_num,
         arcana_name=arcana["name"],
@@ -106,7 +119,7 @@ async def get_daily_card(
         interpretation=card_text,
         advice=advice,
         affirmation=arcana.get("affirmation", ""),
-        date_label=date_label,
+        date_label=f"{today.day} {months[today.month - 1]}",
         user_archetype_name=user.main_archetype,
         user_archetype_number=user.main_archetype_number,
     )

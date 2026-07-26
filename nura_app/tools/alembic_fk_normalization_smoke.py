@@ -31,7 +31,7 @@ NURA_APP_ROOT = REPO_ROOT / "nura_app"
 
 PREVIOUS_HEAD = "b9c0d1e2f3a4"
 NORMALIZATION_REVISION = "c0d1e2f3a4b5"
-EXPECTED_HEAD = "d6e7f8a9b0c1"
+EXPECTED_HEAD = "d7e8f9a0b1c2"
 
 _URL = ""
 _ALL_OK = True
@@ -301,6 +301,7 @@ def _create_all_schema(connection) -> None:
             "mini_report_generations",
             "telegram_report_deliveries",
             "chat_message_usages",
+            "daily_tarot_draws",
         }
     ]
     Base.metadata.create_all(connection, tables=pre_attribution_tables)

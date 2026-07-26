@@ -1,5 +1,6 @@
 from pathlib import Path
 from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
@@ -112,6 +113,8 @@ class Settings(BaseSettings):
 
     # Chat
     chat_free_message_limit: int = Field(default=5, ge=1, le=100)
+    default_daily_tarot_timezone: str = "Europe/Moscow"
+    daily_tarot_claim_timeout_seconds: int = Field(default=900, ge=60, le=3600)
 
     # Telegram
     telegram_bot_token: str | None = None
@@ -198,6 +201,15 @@ class Settings(BaseSettings):
         if not isinstance(value, str) or value not in SUPPORTED_APP_ENVIRONMENTS:
             supported = ",".join(sorted(SUPPORTED_APP_ENVIRONMENTS))
             raise ValueError(f"app_env_must_be_one_of:{supported}")
+        return value
+
+    @field_validator("default_daily_tarot_timezone")
+    @classmethod
+    def _validate_daily_tarot_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (TypeError, ZoneInfoNotFoundError) as error:
+            raise ValueError("invalid_default_daily_tarot_timezone") from error
         return value
 
     @property

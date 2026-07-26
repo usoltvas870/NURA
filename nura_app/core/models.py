@@ -1,6 +1,6 @@
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     BigInteger,
@@ -56,6 +56,13 @@ class ReportGenerationJobState:
 
 
 class MiniReportGenerationState:
+    PENDING = "pending"
+    GENERATING = "generating"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class DailyTarotDrawState:
     PENDING = "pending"
     GENERATING = "generating"
     COMPLETED = "completed"
@@ -148,6 +155,71 @@ class User(Base):
     )
     account_status: Mapped[str] = mapped_column(
         String(20), default="active", nullable=False, server_default="active"
+    )
+
+
+class DailyTarotDraw(Base):
+    """One durable, user-local daily Tarot result."""
+
+    __tablename__ = "daily_tarot_draws"
+    __table_args__ = (
+        UniqueConstraint("user_id", "local_date", name="uq_daily_tarot_draws_user_local_date"),
+        CheckConstraint(
+            "status IN ('pending', 'generating', 'completed', 'failed')",
+            name="ck_daily_tarot_draws_status",
+        ),
+        CheckConstraint("attempt_count >= 0", name="ck_daily_tarot_draws_attempt_count"),
+        CheckConstraint(
+            "arcana_number IS NULL OR arcana_number BETWEEN 1 AND 22",
+            name="ck_daily_tarot_draws_arcana_number",
+        ),
+        CheckConstraint(
+            "(status = 'pending' AND interpretation IS NULL AND claimed_at IS NULL "
+            "AND completed_at IS NULL AND failed_at IS NULL AND error_code IS NULL "
+            "AND error_detail IS NULL AND attempt_count = 0) OR "
+            "(status = 'generating' AND arcana_number IS NOT NULL "
+            "AND interpretation IS NULL AND claimed_at IS NOT NULL "
+            "AND completed_at IS NULL AND failed_at IS NULL AND error_code IS NULL "
+            "AND error_detail IS NULL AND attempt_count >= 1) OR "
+            "(status = 'completed' AND arcana_number IS NOT NULL "
+            "AND interpretation IS NOT NULL AND length(trim(interpretation)) > 0 "
+            "AND claimed_at IS NOT NULL AND completed_at IS NOT NULL "
+            "AND failed_at IS NULL AND error_code IS NULL AND error_detail IS NULL "
+            "AND attempt_count >= 1) OR "
+            "(status = 'failed' AND arcana_number IS NOT NULL "
+            "AND interpretation IS NULL AND claimed_at IS NOT NULL "
+            "AND completed_at IS NULL AND failed_at IS NOT NULL "
+            "AND error_code IS NOT NULL AND attempt_count >= 1)",
+            name="ck_daily_tarot_draws_state",
+        ),
+        Index("ix_daily_tarot_draws_user_local_date", "user_id", "local_date"),
+        Index("ix_daily_tarot_draws_status_claimed_at", "status", "claimed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    local_date: Mapped[date] = mapped_column(nullable=False)
+    timezone_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default=DailyTarotDrawState.PENDING
+    )
+    arcana_number: Mapped[int | None] = mapped_column(Integer)
+    interpretation: Mapped[str | None] = mapped_column(Text)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    error_detail: Mapped[str | None] = mapped_column(String(256))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
 

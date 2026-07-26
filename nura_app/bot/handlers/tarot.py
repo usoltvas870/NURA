@@ -15,7 +15,7 @@ from bot.keyboards.tarot_keyboard import (
     tarot_result_keyboard,
 )
 from bot.states.tarot_state import TarotStates
-from bot.utils.arcana import _daily_arcana_number, _personal_arcana_number
+from bot.utils.arcana import _daily_arcana_number
 from bot.utils.formatting import (
     TELEGRAM_INPUT_MAX_LENGTH,
     escape_telegram_html,
@@ -26,7 +26,13 @@ from core.arcana_data import ARCANA
 from core.config import settings
 from core.database import get_async_sessionmaker
 from core.repositories.user import UserRepository
+from core.repositories.daily_tarot_draw import DailyTarotDrawRepository
 from core.services.ai import AIService
+from core.services.daily_tarot_application import (
+    DailyTarotApplicationService,
+    DailyTarotRequest,
+    DailyTarotResultKind,
+)
 from core.loop_specs.tarot_loop import generate_tarot_text
 
 logger = logging.getLogger(__name__)
@@ -47,6 +53,15 @@ async def _get_user(telegram_id: int):
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
     return await user_repo.get_by_telegram_id(telegram_id)
+
+
+def _daily_tarot_application_service() -> DailyTarotApplicationService:
+    session_factory = get_async_sessionmaker()
+    return DailyTarotApplicationService(
+        user_repository=UserRepository(session_factory),
+        draw_repository=DailyTarotDrawRepository(session_factory),
+        ai_service=AIService(),
+    )
 
 
 def _paywall_text(spread_name: str) -> str:
@@ -117,61 +132,49 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
         )
         return
 
-    today = date.today()
-    center_arcana = user.main_archetype_number or _daily_arcana_number(today)
-    arcana_num = _personal_arcana_number(today, center_arcana)
-    arcana_name = ARCANA[arcana_num]["name"]
-
+    result = None
     async with animated_loading(callback.message, "🃏 Вытягиваю карту дня"):
-        try:
-            user_name = user.first_name or user.username or "друг"
-            prompt = AIService._load_prompt("tarot_daily_card.txt")
-            filled = prompt.format(
-                arcana_number=arcana_num,
-                arcana_name=arcana_name,
-                user_archetype_number=user.main_archetype_number or arcana_num,
-                user_archetype_name=user.main_archetype or arcana_name,
-                user_name=user_name,
-                date=today.strftime("%d.%m.%Y"),
-            )
-            result_text = await generate_tarot_text(
-                messages=[
-                    {"role": "system", "content": (
-                        "Ты — NURA, персональный психологический проводник. "
-                        "Обращайся к пользователю по имени. "
-                        "Никогда не называй арканы, карты и их номера. "
-                        "Пиши живым личным языком — не как гороскоп, а как персональный инсайт."
-                    )},
-                    {"role": "user", "content": filled},
-                ],
-                api_params={"max_tokens": 400, "temperature": 0.7},
-                max_words=180,
-                user_name=user_name,
-            )
-        except Exception:
-            logger.exception("tarot daily_card AI failed")
-            result_text = f"🌒 Энергия дня — {arcana_name}\n\nКарты молчат сегодня. Дай им время сложиться в узор."
-
-    has_tarot = bool(user.tarot_subscription)
+        result = await _daily_tarot_application_service().get_daily_card(
+            DailyTarotRequest(user_id=user.id, allow_retry=True)
+        )
+    if result is None:
+        await callback.message.edit_text("Не удалось подготовить карту дня. Попробуй ещё раз позже.")
+        return
+    if result.kind == DailyTarotResultKind.PROFILE_INCOMPLETE:
+        await callback.message.edit_text("Чтобы открыть карту дня, заверши текущий onboarding.")
+        return
+    if result.kind == DailyTarotResultKind.IN_PROGRESS:
+        await callback.message.edit_text("Карта дня уже готовится. Попробуй открыть её чуть позже.")
+        return
+    if result.kind not in {DailyTarotResultKind.COMPLETED_NEW, DailyTarotResultKind.COMPLETED_REUSED}:
+        await callback.message.edit_text("Не удалось подготовить карту дня. Попробуй ещё раз позже.")
+        return
+    if result.interpretation is None or result.local_date is None:
+        await callback.message.edit_text("Не удалось подготовить карту дня. Попробуй ещё раз позже.")
+        return
     user_name_display = user.first_name or user.username or "друг"
     text = (
         f"🌒 <b>Карта дня для {escape_telegram_html(user_name_display)}</b>\n"
-        f"<i>{today.strftime('%d.%m.%Y')}</i>\n"
-        f"{'─' * 20}\n\n"
-        f"{escape_telegram_html(result_text)}"
+        f"<i>{date.fromisoformat(result.local_date).strftime('%d.%m.%Y')}</i>\n"
+        f"{'─' * 20}\n\n{escape_telegram_html(result.interpretation)}"
     )
-
-    if has_tarot:
-        kb = tarot_result_keyboard()
+    if user.tarot_subscription:
+        keyboard = tarot_result_keyboard()
     else:
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-        kb = InlineKeyboardMarkup(inline_keyboard=[
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="✨ Открыть практику — 390 ₽/мес", callback_data="buy_tarot_subscription")],
             [InlineKeyboardButton(text="← К раскладам", callback_data="tarot_menu")],
         ])
-
-    await callback.message.edit_text(text, reply_markup=kb)
-
+    chunks = split_telegram_html_message(text)
+    await callback.message.edit_text(
+        chunks[0], reply_markup=keyboard if len(chunks) == 1 else None
+    )
+    for index, chunk in enumerate(chunks[1:], start=1):
+        await callback.message.answer(
+            chunk,
+            reply_markup=keyboard if index == len(chunks) - 1 else None,
+        )
 
 @router.callback_query(F.data == "tarot_weekly")
 async def show_tarot_weekly(callback: CallbackQuery) -> None:

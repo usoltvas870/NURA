@@ -465,4 +465,7 @@ class TestBeatScheduleUnchanged:
         schedule = celery_app.conf.beat_schedule
         assert "dispatch-report-generation-jobs" in schedule
         assert "reconcile-report-generation-jobs" in schedule
-        assert "send-daily-card" in schedule
+        assert "send-weekly-tarot-spread" in schedule
+        assert "send-monthly-tarot-portal" in schedule
+        assert "send-daily-card" not in schedule
+        assert "send-daily-tarot-card" not in schedule
