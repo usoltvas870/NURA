@@ -23,8 +23,8 @@ class ChatQuotaState(BaseModel):
     daily_limit: int | None
     used: int | None
     messages_left: int | None
-    reset_at: datetime | None
-    timezone: str
+    reset_at: datetime | None = None
+    timezone: str | None = None
     code: str | None = None
 
 

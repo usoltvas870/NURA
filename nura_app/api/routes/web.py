@@ -32,11 +32,12 @@ from core.services.mini_report_application import (
     UserMiniReportSubject,
 )
 from core.services.mini_report_generation import MiniReportGenerationService
-from core.services.ai import AIService
 from core.services.payment import PaymentService, PromoCheckoutError
 from core.services.report_lifecycle import ReportLifecycleCoordinator
 
-from core.services.chat_quota import ChatQuotaService
+from core.services.chat_application import ChatApplicationService, ChatResultKind
+from core.services.chat_history import finalize_chat_history_once
+from core.services.chat_quota import ChatChannel, ChatQuotaService
 from core.services.auth import (
     TelegramConfirmationInvalidError,
     TelegramConfirmationNotFoundError,
@@ -540,12 +541,30 @@ async def subscribe_tarot(
     return SubscribeResponse(payment_url=payment_url)
 
 
-_WEB_CHAT_HISTORY_TTL = 7 * 86400
-_WEB_CHAT_HISTORY_MAX = 20
-
-
 def _web_history_key(uid) -> str:
     return f"chat:history:{uid}"
+
+
+def _web_chat_request_key(user_id: object, raw_request_key: str) -> str:
+    return hashlib.sha256(
+        f"nura.web-chat.v1|{user_id}|{raw_request_key}".encode()
+    ).hexdigest()
+
+
+def _safe_chat_history(value: object) -> list[dict[str, str]]:
+    """Accept only bounded conversational turns; never forward client system roles."""
+    if not isinstance(value, list):
+        return []
+    safe: list[dict[str, str]] = []
+    for item in value[-10:]:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        content = item.get("content")
+        if role not in {"user", "assistant"} or not isinstance(content, str):
+            continue
+        safe.append({"role": role, "content": content[:2000]})
+    return safe
 
 
 def _chat_subscriber(user: User) -> bool:
@@ -563,7 +582,7 @@ async def web_chat_state(
     request: Request,
     user: User = Depends(get_current_web_user),
 ):
-    quota = ChatQuotaService(get_redis())
+    quota = ChatQuotaService(get_async_sessionmaker())
     return await quota.state(user.id, subscriber=_chat_subscriber(user))
 
 
@@ -574,29 +593,23 @@ async def web_chat(
     body: ChatRequest,
     user: User = Depends(get_current_web_user),
 ):
+    raw_request_key = _parse_idempotency_key(request)
     session_factory = get_async_sessionmaker()
     report_repo = ReportRepository(session_factory)
 
     has_unlimited = _chat_subscriber(user)
     redis = get_redis()
-    quota_service = ChatQuotaService(redis)
+    quota_service = ChatQuotaService(session_factory)
 
     history_key = _web_history_key(user.id)
     raw_history = await redis.get(history_key)
     if raw_history:
         try:
-            server_history: list[dict] = json.loads(raw_history)
+            server_history: list[dict] = _safe_chat_history(json.loads(raw_history))
         except (json.JSONDecodeError, TypeError):
-            server_history = body.history[-10:]
+            server_history = _safe_chat_history(body.history)
     else:
-        server_history = body.history[-10:]
-
-    reservation = await quota_service.reserve(user.id, subscriber=has_unlimited)
-    if reservation.token is None and not has_unlimited:
-        return JSONResponse(
-            status_code=402,
-            content=reservation.state.model_dump(mode="json"),
-        )
+        server_history = _safe_chat_history(body.history)
 
     matrix_data: dict = {}
     user_name = user.first_name or user.name or "пользователь"
@@ -609,41 +622,28 @@ async def web_chat(
     except Exception:
         pass
 
-    try:
-        reply = await AIService.chat_response(
+    request_key = _web_chat_request_key(user.id, raw_request_key)
+    result = await ChatApplicationService(quota_service).respond(
+        user_id=user.id,
+        request_key=request_key,
+        channel=ChatChannel.WEB,
+        subscriber=has_unlimited,
+        message=body.message,
+        history=server_history,
+        matrix_data=matrix_data,
+        user_name=user_name,
+        history_finalizer=lambda reply: finalize_chat_history_once(
+            redis, user_id=user.id,
+            request_key=request_key,
             user_message=body.message,
-            chat_history=server_history[-10:],
-            matrix_data=matrix_data,
-            user_name=user_name,
-        )
-    except Exception:
-        await quota_service.refund(user.id, reservation.token, subscriber=has_unlimited)
-        raise HTTPException(status_code=503, detail="AI временно недоступен")
-
-    try:
-        quota_state = await quota_service.commit(
-            user.id, reservation.token, subscriber=has_unlimited,
-        )
-    except Exception:
-        await quota_service.refund(user.id, reservation.token, subscriber=has_unlimited)
-        raise HTTPException(status_code=503, detail="AI временно недоступен")
-
-    server_history.append({"role": "user", "content": body.message})
-    server_history.append({"role": "assistant", "content": reply})
-    if len(server_history) > _WEB_CHAT_HISTORY_MAX:
-        server_history = server_history[-_WEB_CHAT_HISTORY_MAX:]
-
-    try:
-        await redis.setex(
-            history_key,
-            _WEB_CHAT_HISTORY_TTL,
-            json.dumps(server_history, ensure_ascii=False),
-        )
-    except Exception:
-        pass
-
-    return ChatResponse(reply=reply, quota=quota_state)
-
+            assistant_response=reply,
+        ),
+    )
+    if result.kind == ChatResultKind.QUOTA_EXHAUSTED:
+        return JSONResponse(status_code=402, content=result.quota.model_dump(mode="json"))
+    if result.kind not in {ChatResultKind.COMPLETED_NEW, ChatResultKind.COMPLETED_REPLAYED}:
+        raise HTTPException(status_code=503, detail="chat_unavailable")
+    return ChatResponse(reply=result.reply or "", quota=result.quota)
 
 class TestSubscribeResponse(BaseModel):
     ok: bool

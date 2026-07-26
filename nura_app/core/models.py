@@ -151,6 +151,58 @@ class User(Base):
     )
 
 
+class ChatMessageUsage(Base):
+    """Durable reservation ledger for the shared free-chat allowance."""
+
+    __tablename__ = "chat_message_usages"
+    __table_args__ = (
+        UniqueConstraint("user_id", "request_key", name="uq_chat_message_usages_user_request"),
+        CheckConstraint(
+            "channel IN ('telegram', 'web')", name="ck_chat_message_usages_channel"
+        ),
+        CheckConstraint(
+            "status IN ('reserved', 'result_ready', 'consumed', 'released')",
+            name="ck_chat_message_usages_status",
+        ),
+        CheckConstraint(
+            "(status IN ('reserved', 'released') AND response_text IS NULL) OR "
+            "(status IN ('result_ready', 'consumed') AND response_text IS NOT NULL)",
+            name="ck_chat_message_usages_response_state",
+        ),
+        CheckConstraint(
+            "(status = 'reserved' AND consumed_at IS NULL AND released_at IS NULL AND result_ready_at IS NULL) OR "
+            "(status = 'result_ready' AND consumed_at IS NULL AND released_at IS NULL AND result_ready_at IS NOT NULL) OR "
+            "(status = 'consumed' AND consumed_at IS NOT NULL AND released_at IS NULL AND result_ready_at IS NOT NULL) OR "
+            "(status = 'released' AND consumed_at IS NULL AND released_at IS NOT NULL AND result_ready_at IS NULL)",
+            name="ck_chat_message_usages_timestamps_state",
+        ),
+        Index("ix_chat_message_usages_user_status", "user_id", "status"),
+        Index("ix_chat_message_usages_stale_reserved", "status", "reserved_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    request_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    channel: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="reserved")
+    billable: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    reserved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    release_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    response_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    result_ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
 class AttributionLink(Base):
     __tablename__ = "attribution_links"
 

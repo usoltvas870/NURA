@@ -1,15 +1,27 @@
 # NURA — State
 
+## Session 91 — 26.07.2026
+
+- FREE CHAT WITH LIFETIME FIVE-MESSAGE LIMIT accepted: free users have one durable lifetime allowance of 5 successful messages shared by Telegram and Web; subscribers use durable non-billable requests. The previous runtime daily Redis quota path is no longer used.
+- `ChatMessageUsage` is the PostgreSQL source of truth with `reserved`, `result_ready`, `consumed`, and `released` states, durable `response_text` replay, state-dependent database checks, user/request uniqueness, stale-reservation recovery, and account-delete cascade. Migration `d6e7f8a9b0c1` is linear after `d2e3f4a5b6c7`.
+- Telegram derives a deterministic opaque request key from chat/message identifiers. Web requires one canonical UUIDv4 `Idempotency-Key`; PWA creates one UUID per submit, reuses it for retry, and clears it after terminal completion. Telegram and Web resolve the same internal `User` ledger.
+- Redis history finalization is an atomic request-aware Lua operation: one user/assistant pair, maximum 20 messages, 7-day history and finalized-key TTLs. Redis restart may lose context/history but does not lose the PostgreSQL response or quota state.
+- Honest crash limitation: there remains a narrow window after the AI provider returns and before `result_ready` is committed; exactly-once provider execution is guaranteed only after that durable PostgreSQL save. Retries after `result_ready`, Redis history failure, or Redis restart replay the durable response without a new AI call.
+- Disposable PostgreSQL 16 runner: all bootstrap, FK-normalization, reconciliation, Telegram-delivery, lifetime migration round-trip, exact schema, concurrency, state, durable-replay, stale-recovery, and cascade proofs passed; the exact temporary container was removed.
+- Acceptance results: expanded targeted suite 242 passed; Security Rendering Gate 10 passed; full safe suite 949 passed, 17 skipped, 0 failed in 12 file-shards, with 55 included files, 14 approved exclusions, missing=0, duplicates=0, and one approved Tarot asset deselection. PWA visual QA passed at 360×800, 390×844, and 430×932 in light/dark themes without horizontal overflow or browser-console errors.
+- Graphify 0.9.7: `graphify check-update .` exited 0 with no generated churn; post-commit/post-checkout hooks are not installed. No dependency, production migration, deploy, external API call, commit, push, or PR was performed.
+- Next stage after a separate commit: FREE DAILY TAROT CARD.
+
+> Последнее обновление: **26.07.2026 — Сессия 91** — GPT-5 Codex
+
+---
+
 ## Session 90 — 24.07.2026
 
 - MINI-REPORT APPLICATION USE CASE added: a channel-neutral application service now owns input normalization, idempotency lifecycle, Matrix/AI orchestration, result persistence and safe result contracts.
 - Web and Celery mini-report adapters call the use case. Fenced completion and user/guest result persistence are atomic; no migration or dependency was added.
 - Targeted application/foundation/Celery tests: 29 passed. The deterministic safe suite completed in 11 file shards: 921 passed, 17 skipped, 0 failed; one approved Tarot asset node was deselected. Ruff, `git diff --check`, Alembic head `c1d2e3f4a5b6`, and `graphify check-update .`: PASS.
 - Next stage after a separate commit: MINI-REPORT TELEGRAM DELIVERY.
-
-> Последнее обновление: **24.07.2026 — Сессия 89** — GPT-5 Codex
-
----
 
 ## Сессия 89 — 24.07.2026
 - Модель: GPT-5 Codex

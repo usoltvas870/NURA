@@ -21,7 +21,7 @@ def test_attribution_revision_is_the_single_linear_head():
     heads = script.get_heads()
     revision = script.get_revision("b1c2d3e4f5a6")
 
-    assert heads == ["d2e3f4a5b6c7"]
+    assert heads == ["d6e7f8a9b0c1"]
     assert revision is not None
     assert revision.down_revision == "d1e2f3a4b5c6"
 

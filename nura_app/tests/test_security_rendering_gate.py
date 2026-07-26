@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -184,6 +185,27 @@ async def test_chat_accepts_limit_and_escapes_ai_response() -> None:
         "user_name": "Аня",
         "chat_messages_left": -1,
     }
+    user = SimpleNamespace(
+        id="user-42", tarot_subscription=False, tarot_subscription_until=None,
+        subscription_status="premium", subscription_until=datetime.now(timezone.utc) + timedelta(days=1),
+    )
+    repo = MagicMock()
+    repo.get_by_telegram_id = AsyncMock(return_value=user)
+    quota = MagicMock(messages_left=None)
+    from core.services.chat_application import ChatApplicationResult, ChatResultKind
+
+    completed = ChatApplicationResult(
+        ChatResultKind.COMPLETED_NEW, "<broken>& response", quota, []
+    )
+    with patch("bot.handlers.chat.UserRepository", return_value=repo), patch(
+        "bot.handlers.chat.ChatApplicationService.respond",
+        new=AsyncMock(return_value=completed),
+    ) as respond:
+        await chat_message(message, state)
+
+    assert respond.await_args.kwargs["message"] == message.text
+    assert message.answer.await_args.args[0] == "&lt;broken&gt;&amp; response"
+    return
 
     with patch(
         "bot.handlers.chat.AIService.chat_response",

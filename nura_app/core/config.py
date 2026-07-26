@@ -110,6 +110,9 @@ class Settings(BaseSettings):
     deepseek_base_url: str = "https://api.deepseek.com/v1"
     deepseek_model: str = "deepseek-chat"
 
+    # Chat
+    chat_free_message_limit: int = Field(default=5, ge=1, le=100)
+
     # Telegram
     telegram_bot_token: str | None = None
     bot_username: str | None = None

@@ -1,8 +1,8 @@
+import hashlib
 import json
 import logging
 
 from aiogram import F, Router
-from aiogram.enums import ChatAction
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -27,19 +27,21 @@ from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
-from core.services.ai import AIService
+from core.services.ai import AIService  # noqa: F401
+from core.services.chat_application import ChatApplicationService, ChatResultKind
+from core.services.chat_history import finalize_chat_history_once
+from core.services.chat_quota import ChatChannel, ChatQuotaService
 
 logger = logging.getLogger(__name__)
 
 router = Router()
 
-FREE_MESSAGES_LIMIT = 5
-CHAT_HISTORY_TTL = 7 * 86400
-CHAT_HISTORY_MAX_MESSAGES = 20
-
-
-def _history_key(uid: int) -> str:
+def _history_key(uid: object) -> str:
     return f"chat:history:{uid}"
+
+
+def _telegram_request_key(chat_id: int, message_id: int) -> str:
+    return hashlib.sha256(f"telegram:{chat_id}:{message_id}".encode()).hexdigest()
 
 
 async def _get_user_matrix_data(telegram_id: int):
@@ -95,7 +97,7 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
     archetype_name = user.main_archetype or "Неизвестный"
 
     redis = get_redis()
-    history_key = _history_key(callback.from_user.id)
+    history_key = _history_key(user.id)
     raw_history = await redis.get(history_key)
     chat_history: list[dict] = []
     if raw_history:
@@ -111,15 +113,20 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(matrix_data=matrix_report.matrix_data)
     await state.update_data(user_name=name)
 
-    if _has_unlimited_chat(user, reports):
+    subscriber = ChatQuotaService.is_subscriber(
+        tarot_subscription=bool(user.tarot_subscription),
+        tarot_subscription_until=user.tarot_subscription_until,
+        subscription_status=user.subscription_status,
+        subscription_until=user.subscription_until,
+    )
+    quota_state = await ChatQuotaService(get_async_sessionmaker()).state(
+        user.id, subscriber=subscriber
+    )
+    if subscriber:
         await state.update_data(chat_messages_left=-1)
         text = greeting_text_unlimited(name, archetype_name)
     else:
-        redis = get_redis()
-        counter_key = f"bot_chat_count:{callback.from_user.id}"
-        raw = await redis.get(counter_key)
-        used = int(raw) if raw else 0
-        messages_left = max(0, FREE_MESSAGES_LIMIT - used)
+        messages_left = quota_state.messages_left or 0
         await state.update_data(chat_messages_left=messages_left)
         text = greeting_text_free(name, archetype_name)
 
@@ -157,7 +164,6 @@ async def chat_message(message: Message, state: FSMContext) -> None:
     chat_history = state_data.get("chat_history", [])
     matrix_data = state_data.get("matrix_data")
     user_name = state_data.get("user_name", message.from_user.first_name or "пользователь")
-    messages_left = state_data.get("chat_messages_left", 0)
 
     if not matrix_data:
         session_factory = get_async_sessionmaker()
@@ -172,59 +178,59 @@ async def chat_message(message: Message, state: FSMContext) -> None:
                     await state.update_data(matrix_data=matrix_data)
                     break
 
-    await message.bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
-
-    chat_history.append({"role": "user", "content": user_message})
-
-    response = await AIService.chat_response(
-        user_message=user_message,
-        chat_history=chat_history,
+    session_factory = get_async_sessionmaker()
+    user_repo = UserRepository(session_factory)
+    user = await user_repo.get_by_telegram_id(message.from_user.id)
+    if user is None:
+        await message.answer("Пользователь не найден. Начни с /start")
+        return
+    subscriber = ChatQuotaService.is_subscriber(
+        tarot_subscription=bool(user.tarot_subscription),
+        tarot_subscription_until=user.tarot_subscription_until,
+        subscription_status=user.subscription_status,
+        subscription_until=user.subscription_until,
+    )
+    request_key = _telegram_request_key(message.chat.id, message.message_id)
+    result = await ChatApplicationService(ChatQuotaService(session_factory)).respond(
+        user_id=user.id,
+        request_key=request_key,
+        channel=ChatChannel.TELEGRAM,
+        subscriber=subscriber,
+        message=user_message,
+        history=chat_history,
         matrix_data=matrix_data or {},
         user_name=user_name,
+        history_finalizer=lambda reply: finalize_chat_history_once(
+            get_redis(),
+            user_id=user.id,
+            request_key=request_key,
+            user_message=user_message,
+            assistant_response=reply,
+        ),
     )
-
-    chat_history.append({"role": "assistant", "content": response})
-    if len(chat_history) > CHAT_HISTORY_MAX_MESSAGES:
-        chat_history = chat_history[-CHAT_HISTORY_MAX_MESSAGES:]
-    await state.update_data(chat_history=chat_history)
-
-    try:
-        redis = get_redis()
-        await redis.setex(
-            _history_key(message.from_user.id),
-            CHAT_HISTORY_TTL,
-            json.dumps(chat_history, ensure_ascii=False),
-        )
-    except Exception:
-        pass
-
-    if messages_left > 0:
-        redis = get_redis()
-        counter_key = f"bot_chat_count:{message.from_user.id}"
-        new_count = await redis.incr(counter_key)
-        if new_count == 1:
-            await redis.expire(counter_key, 86400)
-        messages_left = max(0, FREE_MESSAGES_LIMIT - new_count)
-        await state.update_data(chat_messages_left=messages_left)
-
-    suffix = ""
-    if messages_left == 0:
-        suffix = messages_remaining_text(0)
-    elif messages_left > 0:
-        suffix = messages_remaining_text(messages_left)
-
+    if result.kind == ChatResultKind.QUOTA_EXHAUSTED:
+        await message.answer(paywall_text(), reply_markup=pwa_cta_keyboard())
+        await state.clear()
+        return
+    if result.kind == ChatResultKind.IN_PROGRESS:
+        await message.answer("Это сообщение уже обрабатывается. Попробуй немного позже.")
+        return
+    if result.kind not in {ChatResultKind.COMPLETED_NEW, ChatResultKind.COMPLETED_REPLAYED}:
+        await message.answer("Сервис временно недоступен. Сообщение не списано.")
+        return
+    chat_history = result.history
+    await state.update_data(chat_history=chat_history, chat_user_id=str(user.id))
+    suffix = "" if subscriber else messages_remaining_text(result.quota.messages_left or 0)
     response_chunks = split_telegram_html_text(
-        response,
-        max_length=TELEGRAM_MESSAGE_MAX_LENGTH - len(suffix),
+        result.reply or "", max_length=TELEGRAM_MESSAGE_MAX_LENGTH - len(suffix),
     )
     response_chunks[-1] += suffix
     for response_chunk in response_chunks:
         await message.answer(response_chunk)
-
-    if messages_left == 0:
+    if not subscriber and result.quota.messages_left == 0:
         await message.answer(paywall_text(), reply_markup=pwa_cta_keyboard())
         await state.clear()
-        return
+    return
 
 
 @router.callback_query(F.data == "chat_exit")
@@ -255,7 +261,10 @@ async def clear_chat(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(chat_history=[])
     try:
         redis = get_redis()
-        await redis.delete(_history_key(callback.from_user.id))
+        session_factory = get_async_sessionmaker()
+        user = await UserRepository(session_factory).get_by_telegram_id(callback.from_user.id)
+        if user is not None:
+            await redis.delete(_history_key(user.id))
     except Exception:
         pass
     await callback.message.answer(history_cleared_text())

@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 NURA_APP_ROOT = Path(__file__).resolve().parents[1]
 PARENT = "c1d2e3f4a5b6"
 HEAD = "d2e3f4a5b6c7"
+GRAPH_HEAD = "d6e7f8a9b0c1"
 _URL = os.environ.get("DATABASE_URL", "")
 ALEMBIC_LAUNCHER = (
     "from pydantic_settings.sources import DotEnvSettingsSource;"
@@ -367,7 +368,7 @@ def main() -> int:
         _check("blank upgrade succeeds", _alembic("upgrade", "head").returncode == 0)
         _check(
             "blank upgrade reaches head",
-            _query("SELECT version_num FROM alembic_version") == [(HEAD,)],
+            _query("SELECT version_num FROM alembic_version") == [(GRAPH_HEAD,)],
         )
 
         print("--- TELEGRAM-DELIVERY-02: parent round trip ---")

@@ -120,6 +120,7 @@
     var access = document.getElementById('chat-access');
     var chatLog = [];
     var state = null;
+    var pendingRequestKey = null;
     var user = null;
     var sending = false;
 
@@ -143,11 +144,11 @@
         setService('Нужен вход', 'Авторизуйся, чтобы NURA могла учитывать твой личный контекст.', 'Войти', auth);
         return;
       }
-      if (!state.can_send) { var hasHistory = chatLog.length > 0; showOnly(hasHistory ? conversation : limit); setQuotaBanner(hasHistory); setComposer(false); setNote('Вопросы на сегодня закончились', true); if (!hasHistory) setService('Лимит вопросов исчерпан', 'История сохранена. Продолжить можно с Premium.', 'Premium', openPremium); return; }
+      if (!state.can_send) { var hasHistory = chatLog.length > 0; showOnly(hasHistory ? conversation : limit); setQuotaBanner(hasHistory); setComposer(false); setNote('Бесплатные вопросы закончились', true); if (!hasHistory) setService('Лимит вопросов исчерпан', 'История сохранена. Продолжить можно с Premium.', 'Premium', openPremium); return; }
       showOnly(chatLog.length ? conversation : empty);
       setComposer(!sending);
       if (sending) { setNote('NURA формирует ответ', false); return; }
-      setNote(state.access === 'subscriber' ? 'Безлимитный диалог' : 'Осталось ' + state.messages_left + ' вопросов сегодня', state.messages_left === 1);
+      setNote(state.access === 'subscriber' ? 'Безлимитный диалог' : 'Осталось ' + state.messages_left + ' бесплатных вопросов', state.messages_left === 1);
     }
 
     function messageTime() { return N.now(); }
@@ -231,11 +232,13 @@
       if (!retry) { input.value = ''; input.style.height = 'auto'; var time = messageTime(); bubble('user', text, time); save('user', text, time); }
       showOnly(conversation); typing(true);
       try {
-        var response = await fetch(BASE + '/web/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ message: text, history: chatLog.slice(-10).map(function (item) { return { role: item.role === 'nura' ? 'assistant' : 'user', content: item.text }; }) }) });
+        var requestKey = retry && pendingRequestKey ? pendingRequestKey : crypto.randomUUID();
+        pendingRequestKey = requestKey;
+        var response = await fetch(BASE + '/web/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': requestKey }, credentials: 'same-origin', body: JSON.stringify({ message: text, history: chatLog.slice(-10).map(function (item) { return { role: item.role === 'nura' ? 'assistant' : 'user', content: item.text }; }) }) });
         var data = await response.json().catch(function () { return {}; });
         typing(false);
-        if (!response.ok) { if (data.code === 'daily_limit_reached') { state = data; return; } throw new Error('chat'); }
-        state = data.quota; var replyTime = messageTime(); bubble('nura', data.reply, replyTime); save('nura', data.reply, replyTime); addFollowups();
+        if (!response.ok) { if (data.code === 'lifetime_limit_reached') { pendingRequestKey = null; state = data; return; } throw new Error('chat'); }
+        state = data.quota; pendingRequestKey = null; var replyTime = messageTime(); bubble('nura', data.reply, replyTime); save('nura', data.reply, replyTime); addFollowups();
         if (pendingSend) { localStorage.removeItem('nura_pending_question'); history.replaceState(null, '', location.pathname); }
       } catch (_) { typing(false); bubble('nura', 'Не удалось получить ответ. Проверь соединение и попробуй ещё раз.', messageTime(), text); if (pendingSend) localStorage.setItem('nura_pending_question', text); }
       finally { sending = false; renderState(); scroll(); }
