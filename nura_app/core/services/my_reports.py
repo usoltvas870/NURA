@@ -12,6 +12,7 @@ from core.repositories.mini_report_generation import MiniReportGenerationReposit
 from core.repositories.report import ReportRepository
 from core.repositories.telegram_report_delivery import TelegramReportDeliveryRepository
 from core.repositories.user import UserRepository
+from core.services.full_report_telegram_delivery import FullReportTelegramDeliveryService
 
 
 PAGE_SIZE = 8
@@ -47,6 +48,7 @@ class MyReportsService:
     """Queries report ownership in storage; callers never authorize by callback data."""
 
     def __init__(self, session_factory) -> None:
+        self._session_factory = session_factory
         self._users = UserRepository(session_factory)
         self._reports = ReportRepository(session_factory)
         self._generations = MiniReportGenerationRepository(session_factory)
@@ -62,6 +64,9 @@ class MyReportsService:
         reports, total = await self._reports.list_completed_mini_for_user(
             user_id, offset=page * page_size, limit=page_size
         )
+        full_reports = await self._reports.list_completed_full_for_user(user_id)
+        reports = sorted([*reports, *full_reports], key=lambda report: report.created_at, reverse=True)[:page_size]
+        total += len(full_reports)
         return MyReportsPage(
             tuple(
                 MyReportItem(
@@ -86,6 +91,8 @@ class MyReportsService:
             return None
         report = await self._reports.get_completed_mini_for_user(user_id, report_id)
         if report is None:
+            report = await self._reports.get_completed_full_for_user(user_id, report_id)
+        if report is None:
             return None
         return MyReportItem(
             report_id=report.id,
@@ -101,6 +108,12 @@ class MyReportsService:
         if not request_key or not await self._is_active_user(user_id):
             return None
         report = await self._reports.get_completed_mini_for_user(user_id, report_id)
+        if report is None:
+            report = await self._reports.get_completed_full_for_user(user_id, report_id)
+            if report is not None:
+                delivery_id = await FullReportTelegramDeliveryService(self._session_factory).enqueue_manual(user_id, report.id, request_key)
+                if delivery_id is not None:
+                    return RepeatedDeliveryRequest(delivery_id, report.id, report.id, "full_manual")
         generation = await self._generations.get_completed_for_report_and_user(report_id, user_id)
         if report is None or generation is None:
             return None

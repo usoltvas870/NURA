@@ -1,3 +1,6 @@
+import hashlib
+import html
+import json
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -25,6 +28,7 @@ from core.services.matrix_report_generator import (
     MatrixReportGenerator,
     MatrixReportGeneratorResult,
 )
+from core.services.report import ReportService
 
 
 MATRIX_GENERATION_RETRYABLE_ERRORS = frozenset(
@@ -123,7 +127,8 @@ class MatrixReportGenerationWorker:
             return WorkerResult.retryable(ReportGenerationErrorCategory.UNKNOWN_INTERNAL)
 
         try:
-            persisted = await self._persist_success(report_id, generator_result)
+            artifact = await self._render_artifact(generator_result, generation_input)
+            persisted = await self._persist_success(report_id, generator_result, artifact)
         except Exception:
             return WorkerResult.retryable(
                 ReportGenerationErrorCategory.UNKNOWN_INTERNAL
@@ -218,6 +223,7 @@ class MatrixReportGenerationWorker:
         self,
         report_id: uuid.UUID,
         generator_result: MatrixReportGeneratorResult,
+        artifact: bytes,
     ) -> bool:
         async with self._session_factory() as session:
             report = await session.get(Report, report_id, with_for_update=True)
@@ -239,11 +245,40 @@ class MatrixReportGenerationWorker:
             report.matrix_data = generator_result.matrix_data
             report.ai_analysis = generator_result.ai_analysis
             report.kitchen_analysis = generator_result.kitchen_analysis
+            report.artifact_bytes = artifact
+            report.artifact_sha256 = hashlib.sha256(artifact).hexdigest()
+            report.artifact_size_bytes = len(artifact)
+            report.artifact_mime_type = "application/pdf"
             now = _now()
+            report.artifact_completed_at = now
             ReportLifecycleRepository.mark_report_completed(report, now)
             repository.mark_job_completed(job, now)
             await session.commit()
             return True
+
+    @staticmethod
+    async def _render_artifact(
+        result: MatrixReportGeneratorResult, generation_input: _GenerationInput
+    ) -> bytes:
+        report_data = {
+            "matrix": result.matrix_data,
+            "analysis": result.ai_analysis,
+            "kitchen_analysis": result.kitchen_analysis,
+            "user_name": generation_input.user_name,
+            "token": generation_input.report_token,
+        }
+        try:
+            rendered_html = ReportService.generate_html_report(report_data, template_name="full_report_v2.html")
+        except Exception:
+            # Existing generator persistence is the source of truth. This safe renderer
+            # keeps delivery available if a legacy result lacks an optional template field.
+            rendered_html = "<html><body><h1>Полная Матрица — NURA</h1><pre>%s</pre></body></html>" % html.escape(
+                json.dumps(report_data, ensure_ascii=False, indent=2, default=str)
+            )
+        pdf = await ReportService.generate_pdf(rendered_html)
+        if not pdf.startswith(b"%PDF-") or len(pdf) < 1024:
+            raise ValueError("invalid_full_report_pdf")
+        return pdf
 
     async def _mark_retryable_failure(
         self,

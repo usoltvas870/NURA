@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -11,6 +12,7 @@ from sqlalchemy.pool import NullPool
 
 from core.models import (
     Base,
+    Order,
     Payment,
     PromoCode,
     PromoReservation,
@@ -139,6 +141,68 @@ async def test_user(sf):
 
 def _reconciler(sf, **kw):
     return ReportGenerationReconciler(sf, **kw)
+
+
+@pytest.mark.asyncio
+async def test_existing_report_reconciler_dispatches_missing_full_delivery_once(
+    sf, test_user
+):
+    now = _now()
+    artifact = b"%PDF-" + b"r" * 2048
+    report_id = uuid.uuid4()
+    order_id = uuid.uuid4()
+    async with sf() as session:
+        user = await session.get(User, test_user.id)
+        user.telegram_id = 777
+        user.has_matrix = True
+        report = Report(
+            id=report_id,
+            user_id=test_user.id,
+            report_type=ReportType.FULL.value,
+            token="full-delivery-reconciliation",
+            payment_state=ReportPaymentState.PAYMENT_CONFIRMED,
+            generation_state=ReportGenerationState.COMPLETED,
+            generated_at=now,
+            artifact_bytes=artifact,
+            artifact_sha256=hashlib.sha256(artifact).hexdigest(),
+            artifact_size_bytes=len(artifact),
+            artifact_mime_type="application/pdf",
+            artifact_completed_at=now,
+        )
+        order = Order(
+            id=order_id,
+            public_id="full-delivery-reconciliation-order",
+            user_id=test_user.id,
+            product_code="full_matrix",
+            amount_kopecks=89_000,
+            currency="RUB",
+            status="paid",
+            report_id=report_id,
+            idempotency_key="full-delivery-reconciliation-key",
+            paid_at=now,
+        )
+        session.add(report)
+        await session.flush()
+        session.add(order)
+        await session.flush()
+        report.order_id = order_id
+        await session.commit()
+
+    dispatched: list[tuple[uuid.UUID, int]] = []
+    reconciler = _reconciler(
+        sf,
+        delivery_dispatch=lambda delivery_id, attempt: dispatched.append(
+            (delivery_id, attempt)
+        ),
+    )
+    first = await reconciler.reconcile_batch(now=now, limit=10)
+    second = await reconciler.reconcile_batch(now=now, limit=10)
+
+    assert first.full_deliveries_created == 1
+    assert first.full_deliveries_dispatched == 1
+    assert second.full_deliveries_created == 0
+    assert second.full_deliveries_dispatched == 0
+    assert len(dispatched) == 1
 
 
 class TestStaleDispatchingRecovery:

@@ -27,7 +27,7 @@ from core.models import User
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.services.my_reports import MyReportsService
-from core.tasks import deliver_repeated_mini_report
+from core.tasks import deliver_full_report, deliver_repeated_mini_report
 
 logger = logging.getLogger(__name__)
 
@@ -211,9 +211,12 @@ async def my_report_send_again(callback: CallbackQuery) -> None:
     if request is None:
         await callback.message.edit_text("Этот разбор недоступен.")
         return
-    deliver_repeated_mini_report.delay(
-        str(user_id), str(request.report_id), str(request.generation_id), request.purpose
-    )
+    if request.purpose == "full_manual":
+        deliver_full_report.delay(str(request.delivery_id))
+    else:
+        deliver_repeated_mini_report.delay(
+            str(user_id), str(request.report_id), str(request.generation_id), request.purpose
+        )
 
 
 @router.callback_query(F.data == "subscription")

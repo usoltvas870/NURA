@@ -10,8 +10,15 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.config import settings
 from core.models import (
-    Order, Payment, PaymentAttempt, PaymentEvent, ReferralReward, Report,
-    ReportGenerationJob, User,
+    FullReportTelegramDelivery,
+    Order,
+    Payment,
+    PaymentAttempt,
+    PaymentEvent,
+    ReferralReward,
+    Report,
+    ReportGenerationJob,
+    User,
 )
 
 
@@ -57,6 +64,11 @@ class AccountDeletionService:
                         event.anonymized_at = now
                         event.anonymization_reason = "account_deleted"
             report_ids = select(Report.id).where(Report.user_id == user_id)
+            await session.execute(
+                delete(FullReportTelegramDelivery).where(
+                    FullReportTelegramDelivery.user_id == user_id
+                )
+            )
             await session.execute(
                 delete(ReportGenerationJob).where(ReportGenerationJob.report_id.in_(report_ids))
             )

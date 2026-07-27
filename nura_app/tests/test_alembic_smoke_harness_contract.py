@@ -19,6 +19,7 @@ DELIVERY_PATH = TOOLS_ROOT / "telegram_report_delivery_postgres_smoke.py"
 LIFETIME_CHAT_PATH = TOOLS_ROOT / "lifetime_chat_postgres_smoke.py"
 DAILY_TAROT_PATH = TOOLS_ROOT / "daily_tarot_postgres_smoke.py"
 PAYMENT_EVENT_RACE_PATH = TOOLS_ROOT / "full_matrix_payment_event_postgres_race.py"
+FULL_DELIVERY_RACE_PATH = TOOLS_ROOT / "full_report_telegram_delivery_postgres_race.py"
 RUNNER_PATH = TOOLS_ROOT / "run_alembic_postgres_smoke.py"
 HARNESS_PATHS = (
     BOOTSTRAP_PATH,
@@ -28,48 +29,34 @@ HARNESS_PATHS = (
     LIFETIME_CHAT_PATH,
     DAILY_TAROT_PATH,
     PAYMENT_EVENT_RACE_PATH,
+    FULL_DELIVERY_RACE_PATH,
 )
 ALLOWLIST = {
     "STATE.md",
-    "nura_app/alembic/versions/e8f9a0b1c2d3_add_full_matrix_orders.py",
-    "nura_app/api/routes/payment.py",
-    "nura_app/api/routes/web.py",
-    "nura_app/bot/handlers/payment.py",
-    "nura_app/bot/handlers/start.py",
-    "nura_app/.env.example",
-    "nura_app/core/config.py",
+    "nura_app/alembic/versions/f9a0b1c2d3e4_add_full_report_telegram_delivery.py",
+    "nura_app/bot/handlers/profile.py",
     "nura_app/core/models.py",
     "nura_app/core/repositories/__init__.py",
-    "nura_app/core/repositories/full_matrix_order.py",
-    "nura_app/core/repositories/payment_event.py",
-    "nura_app/core/repositories/report_lifecycle.py",
-    "nura_app/core/repositories/user.py",
-    "nura_app/core/services/full_matrix_checkout.py",
-    "nura_app/core/services/account_deletion.py",
+    "nura_app/core/repositories/full_report_telegram_delivery.py",
+    "nura_app/core/repositories/report.py",
     "nura_app/core/services/matrix_report_worker.py",
-    "nura_app/core/services/report_lifecycle.py",
+    "nura_app/core/services/full_report_telegram_delivery.py",
+    "nura_app/core/services/account_deletion.py",
+    "nura_app/core/services/my_reports.py",
+    "nura_app/core/services/report_generation_reconciliation.py",
+    "nura_app/core/services/telegram_report_delivery.py",
     "nura_app/core/tasks.py",
-    "nura_app/tools/run_alembic_postgres_smoke.py",
-    "nura_app/tools/alembic_fk_normalization_smoke.py",
-    "nura_app/tools/alembic_postgres_bootstrap_smoke.py",
-    "nura_app/tools/alembic_production_reconciliation_smoke.py",
-    "nura_app/tools/telegram_report_delivery_postgres_smoke.py",
-    "nura_app/tools/lifetime_chat_postgres_smoke.py",
-    "nura_app/tools/daily_tarot_postgres_smoke.py",
-    "nura_app/tools/full_matrix_payment_event_postgres_race.py",
     "nura_app/tests/test_alembic_smoke_harness_contract.py",
     "nura_app/tests/test_alembic_bootstrap_contract.py",
     "nura_app/tests/test_alembic_fk_normalization_contract.py",
-    "nura_app/tests/test_celery_async_task_contract.py",
     "nura_app/tests/test_attribution_migration_contract.py",
-    "nura_app/tests/test_mini_report_generation_migration_contract.py",
-    "nura_app/tests/test_full_matrix_checkout.py",
+    "nura_app/tests/test_celery_async_task_contract.py",
+    "nura_app/tests/test_full_report_telegram_delivery.py",
     "nura_app/tests/test_full_matrix_account_deletion.py",
-    "nura_app/tests/test_payment_webhook_verification.py",
-    "nura_app/tests/test_payment.py",
-    "nura_app/tests/test_tarot_handlers.py",
-    "nura_app/tests/test_security_configuration_contract.py",
+    "nura_app/tests/test_mini_report_generation_migration_contract.py",
+    "nura_app/tests/test_report_generation_reconciliation.py",
     "nura_app/tests/test_report_lifecycle_schema_foundation.py",
+    "nura_app/tools/full_report_telegram_delivery_postgres_race.py",
 }
 
 
@@ -99,6 +86,11 @@ def reconciliation():
 @pytest.fixture(scope="module")
 def runner():
     return _load(RUNNER_PATH, "portable_smoke_runner")
+
+
+@pytest.fixture(scope="module")
+def full_delivery_race():
+    return _load(FULL_DELIVERY_RACE_PATH, "full_delivery_race")
 
 
 def test_harnesses_have_no_stale_worktree_or_docker_sql() -> None:
@@ -156,6 +148,22 @@ def test_revision_constants(bootstrap, fk, reconciliation) -> None:
     assert reconciliation.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert reconciliation.EXPECTED_HEAD == "d1e2f3a4b5c6"
     assert reconciliation.GRAPH_HEAD == "e8f9a0b1c2d3"
+
+
+def test_full_delivery_race_contract(full_delivery_race) -> None:
+    assert full_delivery_race.PARENT == "e8f9a0b1c2d3"
+    assert full_delivery_race.HEAD == "f9a0b1c2d3e4"
+    assert full_delivery_race.WORKERS == 8
+    full_delivery_race._validate_disposable_database_url(
+        "postgresql://user:pass@127.0.0.1:5432/nura_delivery_disposable"
+    )
+    for url in (
+        "postgresql://user:pass@example.com/nura_delivery_disposable",
+        "postgresql://user:pass@127.0.0.1/nura_production",
+        "sqlite:///nura_delivery_disposable.db",
+    ):
+        with pytest.raises(ValueError):
+            full_delivery_race._validate_disposable_database_url(url)
 
 
 def test_structured_contract_helpers_reject_drift(bootstrap) -> None:

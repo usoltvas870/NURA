@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -18,6 +19,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+_SHA256_HEX_CHECK = "length(artifact_sha256) = 64 AND " + " AND ".join(
+    f"substr(artifact_sha256, {position}, 1) IN "
+    "('0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f')"
+    for position in range(1, 65)
+)
 
 
 class Base(DeclarativeBase):
@@ -84,6 +91,14 @@ class TelegramReportDeliveryState:
     PARTIALLY_DELIVERED = "partially_delivered"
     DELIVERED = "delivered"
     FAILED = "failed"
+
+
+class FullReportTelegramDeliveryState:
+    QUEUED = "queued"
+    SENDING = "sending"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELED = "canceled"
 
 
 class User(Base):
@@ -441,6 +456,11 @@ class Report(Base):
     generation_error_category: Mapped[str | None] = mapped_column(
         String(128), nullable=True
     )
+    artifact_bytes: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    artifact_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    artifact_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    artifact_mime_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    artifact_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class ReportGenerationJob(Base):
@@ -629,6 +649,70 @@ class TelegramReportDelivery(Base):
     text_message_ids: Mapped[list[int] | None] = mapped_column(JSONB, nullable=True)
     document_message_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     last_error_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class FullReportTelegramDelivery(Base):
+    """Durable full-report PDF delivery; independent from mini-report lifecycle."""
+
+    __tablename__ = "full_report_telegram_deliveries"
+    __table_args__ = (
+        UniqueConstraint("report_id", "delivery_reason", "request_key", name="uq_full_report_delivery_request"),
+        CheckConstraint("delivery_reason IN ('automatic', 'manual')", name="ck_full_report_delivery_reason"),
+        CheckConstraint("status IN ('queued', 'sending', 'completed', 'failed', 'canceled')", name="ck_full_report_delivery_status"),
+        CheckConstraint("attempt_count >= 0", name="ck_full_report_delivery_attempt_count"),
+        CheckConstraint("artifact_size_bytes > 0", name="ck_full_report_delivery_artifact_size"),
+        CheckConstraint(
+            _SHA256_HEX_CHECK,
+            name="ck_full_report_delivery_artifact_sha256",
+        ),
+        CheckConstraint(
+            "(status = 'queued' AND claimed_at IS NULL AND sent_at IS NULL AND failed_at IS NULL) OR "
+            "(status = 'sending' AND claimed_at IS NOT NULL AND attempt_count > 0 AND sent_at IS NULL AND failed_at IS NULL) OR "
+            "(status = 'completed' AND claimed_at IS NULL AND sent_at IS NOT NULL AND failed_at IS NULL "
+            "AND telegram_document_message_id IS NOT NULL AND retryable = false) OR "
+            "(status = 'failed' AND claimed_at IS NULL AND failed_at IS NOT NULL AND sent_at IS NULL "
+            "AND error_code IS NOT NULL) OR "
+            "(status = 'canceled' AND claimed_at IS NULL AND sent_at IS NULL AND retryable = false)",
+            name="ck_full_report_delivery_state",
+        ),
+        Index(
+            "uq_full_report_delivery_automatic_report",
+            "report_id",
+            unique=True,
+            postgresql_where=text("delivery_reason = 'automatic'"),
+            sqlite_where=text("delivery_reason = 'automatic'"),
+        ),
+        Index("ix_full_report_delivery_report_id", "report_id"),
+        Index("ix_full_report_delivery_order_id", "order_id"),
+        Index("ix_full_report_delivery_user_id", "user_id"),
+        Index("ix_full_report_delivery_status_claimed_at", "status", "claimed_at"),
+        Index("ix_full_report_delivery_queued_at", "queued_at"),
+        Index("ix_full_report_delivery_request_key", "request_key"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    report_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("reports.id", ondelete="CASCADE"), nullable=False)
+    order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    delivery_reason: Mapped[str] = mapped_column(String(16), nullable=False)
+    request_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default=FullReportTelegramDeliveryState.QUEUED)
+    retryable: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    queued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    telegram_chat_id_snapshot: Mapped[int | None] = mapped_column(BigInteger)
+    telegram_document_message_id: Mapped[int | None] = mapped_column(BigInteger)
+    telegram_caption_message_id: Mapped[int | None] = mapped_column(BigInteger)
+    telegram_file_id: Mapped[str | None] = mapped_column(String(256))
+    artifact_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    artifact_size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    error_detail: Mapped[str | None] = mapped_column(String(256))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

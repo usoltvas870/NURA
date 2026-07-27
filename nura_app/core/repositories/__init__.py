@@ -3,6 +3,7 @@ from core.repositories.guest import GuestProfileRepository
 from core.repositories.mini_report_generation import MiniReportGenerationRepository
 from core.repositories.daily_tarot_draw import DailyTarotDrawRepository
 from core.repositories.telegram_report_delivery import TelegramReportDeliveryRepository
+from core.repositories.full_report_telegram_delivery import FullReportTelegramDeliveryRepository
 from core.repositories.referral import ReferralRepository
 from core.repositories.user import UserRepository
 from core.repositories.report import ReportRepository
@@ -21,6 +22,7 @@ __all__ = [
     "MiniReportGenerationRepository",
     "DailyTarotDrawRepository",
     "TelegramReportDeliveryRepository",
+    "FullReportTelegramDeliveryRepository",
     "ReferralRepository",
     "UserRepository",
     "ReportRepository",

@@ -453,6 +453,10 @@ def process_report_generation_job(self, job_id: str, report_id: str) -> dict:
         result = await worker.process(job_id=job_uuid, report_id=report_uuid)
 
         if result.disposition == GenerationDisposition.COMPLETED:
+            from core.services.full_report_telegram_delivery import FullReportTelegramDeliveryService
+            delivery_id = await FullReportTelegramDeliveryService(session_factory).enqueue_automatic(report_uuid)
+            if delivery_id is not None:
+                deliver_full_report.delay(str(delivery_id))
             return {"ok": True, "disposition": "completed"}
         if result.disposition == GenerationDisposition.IDEMPOTENT_COMPLETED:
             return {"ok": True, "idempotent": True, "disposition": "idempotent_completed"}
@@ -461,6 +465,43 @@ def process_report_generation_job(self, job_id: str, report_id: str) -> dict:
         return {"ok": False, "terminal": True, "error_category": result.error_category}
 
     return _run_async(_run())
+
+
+@celery_app.task(
+    bind=True, name="core.tasks.deliver_full_report", acks_late=True,
+    reject_on_worker_lost=True, max_retries=3, default_retry_delay=30,
+)
+def deliver_full_report(self, delivery_id: str, claimed_attempt: int | None = None) -> None:
+    try:
+        parsed_id = uuid.UUID(delivery_id)
+    except (ValueError, AttributeError):
+        return
+
+    async def _run() -> None:
+        from core.database import get_async_sessionmaker
+        from core.services.full_report_telegram_delivery import FullReportTelegramDeliveryService
+        from core.services.telegram_report_delivery import TelegramDeliveryError
+
+        try:
+            await FullReportTelegramDeliveryService(
+                get_async_sessionmaker()
+            ).deliver(parsed_id, claimed_attempt=claimed_attempt)
+        except TelegramDeliveryError as error:
+            if error.retryable:
+                countdown = min(max(error.retry_after or 20, 1), 300)
+                raise self.retry(
+                    exc=ConnectionError(error.code),
+                    countdown=countdown,
+                    args=(delivery_id,),
+                    kwargs={},
+                ) from error
+        except OperationalError as error:
+            raise self.retry(
+                exc=ConnectionError("delivery_database_unavailable"),
+                countdown=settings.telegram_delivery_claim_timeout_seconds,
+            ) from error
+
+    _run_async(_run())
 
 
 @celery_app.task(
@@ -522,6 +563,10 @@ def reconcile_report_generation_jobs(limit: int = 50) -> dict:
             "terminalized": result.terminalized,
             "missing_jobs_repaired": result.missing_jobs_repaired,
             "completed_pairs_repaired": result.completed_pairs_repaired,
+            "full_deliveries_created": result.full_deliveries_created,
+            "full_deliveries_canceled": result.full_deliveries_canceled,
+            "full_deliveries_claimed": result.full_deliveries_claimed,
+            "full_deliveries_dispatched": result.full_deliveries_dispatched,
             "conflicts": result.conflicts,
             "errors": result.errors,
         }

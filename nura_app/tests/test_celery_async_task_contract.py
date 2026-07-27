@@ -10,6 +10,7 @@ EXPECTED_ASYNC_TASKS = {
     "generate_full_report",
     "notify_full_matrix_payment_confirmed",
     "process_report_generation_job",
+    "deliver_full_report",
     "dispatch_report_generation_jobs",
     "reconcile_report_generation_jobs",
     "generate_compatibility_report",

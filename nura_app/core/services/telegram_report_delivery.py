@@ -35,6 +35,10 @@ class TelegramDeliveryError(Exception):
 @dataclass(frozen=True)
 class TelegramDocument:
     message_id: int
+    file_id: str | None = None
+    transport: str = "artifact_upload"
+    ready_message_id: int | None = None
+    retry_after_seconds: int | None = None
 
 
 class TelegramDocumentAdapter:
@@ -51,14 +55,46 @@ class TelegramDocumentAdapter:
             await bot.session.close()
 
     async def send_document(self, chat_id: int, content: bytes, filename: str, caption: str) -> TelegramDocument:
+        return await self.send_document_from_artifact(chat_id, content, filename, caption)
+
+    async def send_document_from_artifact(
+        self, chat_id: int, content: bytes, filename: str, caption: str
+    ) -> TelegramDocument:
         from aiogram.types import BufferedInputFile
 
         bot = await self._bot()
         try:
             message = await bot.send_document(chat_id=chat_id, document=BufferedInputFile(content, filename=filename), caption=caption)
-            return TelegramDocument(message_id=message.message_id)
+            return TelegramDocument(
+                message_id=message.message_id,
+                file_id=getattr(getattr(message, "document", None), "file_id", None),
+                transport="artifact_upload",
+            )
         except Exception as error:
             raise self._classify(error) from error
+        finally:
+            await bot.session.close()
+
+    async def send_document_by_file_id(
+        self, chat_id: int, file_id: str, caption: str
+    ) -> TelegramDocument:
+        bot = await self._bot()
+        try:
+            message = await bot.send_document(
+                chat_id=chat_id,
+                document=file_id,
+                caption=caption,
+            )
+            returned_file_id = getattr(
+                getattr(message, "document", None), "file_id", None
+            )
+            return TelegramDocument(
+                message_id=message.message_id,
+                file_id=returned_file_id or file_id,
+                transport="file_id",
+            )
+        except Exception as error:
+            raise self._classify(error, file_id_transport=True) from error
         finally:
             await bot.session.close()
 
@@ -74,7 +110,9 @@ class TelegramDocumentAdapter:
         return Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
     @staticmethod
-    def _classify(error: Exception) -> TelegramDeliveryError:
+    def _classify(
+        error: Exception, *, file_id_transport: bool = False
+    ) -> TelegramDeliveryError:
         from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramNetworkError, TelegramRetryAfter
 
         if isinstance(error, TelegramRetryAfter):
@@ -84,6 +122,19 @@ class TelegramDocumentAdapter:
         if isinstance(error, TelegramForbiddenError):
             return TelegramDeliveryError("telegram_forbidden", retryable=False)
         if isinstance(error, TelegramBadRequest):
+            description = str(error).casefold()
+            invalid_file_descriptions = (
+                "wrong file identifier/http url specified",
+                "wrong remote file identifier specified",
+            )
+            if file_id_transport and any(
+                value in description for value in invalid_file_descriptions
+            ):
+                return TelegramDeliveryError("invalid_file_id", retryable=False)
+            if "chat not found" in description:
+                return TelegramDeliveryError(
+                    "telegram_chat_not_found", retryable=False
+                )
             return TelegramDeliveryError("telegram_bad_request", retryable=False)
         return TelegramDeliveryError("telegram_provider_failure", retryable=True)
 
