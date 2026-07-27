@@ -123,13 +123,29 @@ class ReportLifecycleRepository:
         report.payment_confirmed_at = confirmed_at or _now()
         return report
 
+    async def confirm_report_order(
+        self, report_id: uuid.UUID, order_id: uuid.UUID, confirmed_at: datetime | None = None
+    ) -> Report:
+        report = await self._session.get(Report, report_id, with_for_update=True)
+        if report is None:
+            raise ValueError("report_not_found")
+        if report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED:
+            if report.order_id == order_id:
+                return report
+            raise ValueError("report_payment_conflict")
+        if report.payment_state != ReportPaymentState.AWAITING_PAYMENT or report.order_id != order_id:
+            raise ValueError("invalid_report_payment_transition")
+        report.payment_state = ReportPaymentState.PAYMENT_CONFIRMED
+        report.payment_confirmed_at = confirmed_at or _now()
+        return report
+
     @staticmethod
     def mark_report_pending_dispatch(report: Report) -> Report:
         if report.generation_state == ReportGenerationState.PENDING_DISPATCH:
             return report
         if (
             report.payment_state != ReportPaymentState.PAYMENT_CONFIRMED
-            or report.payment_id is None
+            or (report.payment_id is None and report.order_id is None)
             or report.generation_state != ReportGenerationState.NOT_REQUESTED
         ):
             raise ValueError("invalid_report_generation_transition")
@@ -142,7 +158,7 @@ class ReportLifecycleRepository:
             return report
         if (
             report.payment_state != ReportPaymentState.PAYMENT_CONFIRMED
-            or report.payment_id is None
+            or (report.payment_id is None and report.order_id is None)
             or report.generation_state != ReportGenerationState.PENDING_DISPATCH
         ):
             raise ValueError("invalid_report_generation_transition")
@@ -157,7 +173,7 @@ class ReportLifecycleRepository:
             return report
         if (
             report.payment_state != ReportPaymentState.PAYMENT_CONFIRMED
-            or report.payment_id is None
+            or (report.payment_id is None and report.order_id is None)
             or report.generation_state != ReportGenerationState.QUEUED
         ):
             raise ValueError("invalid_report_generation_transition")

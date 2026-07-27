@@ -195,7 +195,7 @@ class MatrixReportGenerationWorker:
             if (
                 report_type != ReportType.FULL.value
                 or payment_state != ReportPaymentState.PAYMENT_CONFIRMED
-                or payment_id is None
+                or (payment_id is None and report.order_id is None)
                 or generation_state != ReportGenerationState.RUNNING
             ):
                 await session.rollback()

@@ -58,6 +58,21 @@ class ReportLifecycleService:
         await self._session.flush()
         return report, job
 
+    async def confirm_order_and_prepare_generation(
+        self, report_id: uuid.UUID, order_id: uuid.UUID, confirmed_at: datetime | None = None
+    ) -> tuple[Report, ReportGenerationJob]:
+        report = await self._reports.confirm_report_order(report_id, order_id, confirmed_at)
+        with self._session.no_autoflush:
+            job = await self._jobs.get_by_report_and_type(report_id)
+        if report.generation_state == ReportGenerationState.NOT_REQUESTED:
+            self._reports.mark_report_pending_dispatch(report)
+            if job is None:
+                job = self._jobs.create_pending_dispatch_job(report.id)
+        if job is None:
+            raise ValueError("report_generation_job_missing")
+        await self._session.flush()
+        return report, job
+
     async def mark_generation_queued(
         self,
         report_id: uuid.UUID,

@@ -36,6 +36,15 @@ class ReportPaymentState:
     LEGACY_UNLINKED = "legacy_unlinked"
 
 
+class OrderStatus:
+    CREATED = "created"
+    PENDING = "pending"
+    PAID = "paid"
+    FAILED = "failed"
+    CANCELED = "canceled"
+    REFUNDED = "refunded"
+
+
 class ReportGenerationState:
     NOT_REQUESTED = "not_requested"
     PENDING_DISPATCH = "pending_dispatch"
@@ -213,6 +222,7 @@ class DailyTarotDraw(Base):
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    retryable: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     error_code: Mapped[str | None] = mapped_column(String(64))
     error_detail: Mapped[str | None] = mapped_column(String(256))
     created_at: Mapped[datetime] = mapped_column(
@@ -393,6 +403,10 @@ class Report(Base):
     )
     payment_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("payments.id"), nullable=True
+    )
+    order_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True, unique=True, index=True,
     )
     payment_state: Mapped[str] = mapped_column(
         String(32),
@@ -653,6 +667,145 @@ class Payment(Base):
         server_default=func.now(),
         nullable=False,
     )
+
+
+class Order(Base):
+    """Canonical one-time full Matrix order, retained after account deletion."""
+
+    __tablename__ = "orders"
+    __table_args__ = (
+        CheckConstraint("amount_kopecks > 0", name="ck_orders_amount_positive"),
+        CheckConstraint("currency = 'RUB'", name="ck_orders_currency_rub"),
+        CheckConstraint("product_code = 'full_matrix'", name="ck_orders_product_full_matrix"),
+        CheckConstraint("status IN ('created', 'pending', 'paid', 'failed', 'canceled', 'refunded')", name="ck_orders_status"),
+        CheckConstraint("(status IN ('paid', 'refunded')) = (paid_at IS NOT NULL)", name="ck_orders_paid_at_status"),
+        CheckConstraint("(status = 'refunded') = (refunded_at IS NOT NULL)", name="ck_orders_refunded_at_status"),
+        CheckConstraint("(status = 'canceled') = (canceled_at IS NOT NULL)", name="ck_orders_canceled_at_status"),
+        Index("ix_orders_user_status", "user_id", "status"),
+        Index("ix_orders_pending", "status", "updated_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    public_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    checkout_token: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True, index=True)
+    checkout_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    telegram_id_snapshot: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    product_code: Mapped[str] = mapped_column(String(32), nullable=False, server_default="full_matrix")
+    amount_kopecks: Mapped[int] = mapped_column(Integer, nullable=False, server_default="89000")
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="RUB")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default=OrderStatus.CREATED)
+    report_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("reports.id", ondelete="SET NULL", use_alter=True, name="fk_orders_report"),
+        unique=True,
+        nullable=True,
+    )
+    active_payment_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("payment_attempts.id", ondelete="SET NULL", use_alter=True, name="fk_orders_active_payment"),
+        nullable=True,
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    payment_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    canceled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activation_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    error_detail: Mapped[str | None] = mapped_column(String(256))
+    customer_reference_hash: Mapped[str | None] = mapped_column(String(128))
+    anonymized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    retain_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    anonymization_reason: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class PaymentAttempt(Base):
+    __tablename__ = "payment_attempts"
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_payment_id", name="uq_payment_attempts_provider_id"),
+        CheckConstraint("amount_kopecks > 0", name="ck_payment_attempts_amount_positive"),
+        CheckConstraint("currency = 'RUB'", name="ck_payment_attempts_currency_rub"),
+        CheckConstraint("status IN ('pending', 'succeeded', 'canceled', 'refunded', 'failed')", name="ck_payment_attempts_status"),
+        CheckConstraint("(status IN ('succeeded', 'refunded')) = (paid_at IS NOT NULL)", name="ck_payment_attempts_paid_at_status"),
+        CheckConstraint("(status = 'refunded') = (refunded_at IS NOT NULL)", name="ck_payment_attempts_refunded_at_status"),
+        CheckConstraint("(status = 'canceled') = (canceled_at IS NOT NULL)", name="ck_payment_attempts_canceled_at_status"),
+        Index("ix_payment_attempts_order_status", "order_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id", ondelete="RESTRICT"), nullable=False)
+    provider: Mapped[str] = mapped_column(String(16), nullable=False, server_default="yookassa")
+    provider_payment_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, server_default="pending")
+    amount_kopecks: Mapped[int] = mapped_column(Integer, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="RUB")
+    confirmation_url: Mapped[str | None] = mapped_column(Text)
+    fiscal_email: Mapped[str | None] = mapped_column(String(320))
+    cancellation_code: Mapped[str | None] = mapped_column(String(64))
+    cancellation_party: Mapped[str | None] = mapped_column(String(32))
+    provider_metadata: Mapped[dict | None] = mapped_column(JSONB)
+    test_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    canceled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    anonymized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    retain_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    customer_reference_hash: Mapped[str | None] = mapped_column(String(128))
+    anonymization_reason: Mapped[str | None] = mapped_column(String(64))
+
+
+class PaymentEvent(Base):
+    __tablename__ = "payment_events"
+    __table_args__ = (
+        UniqueConstraint("dedup_key", name="uq_payment_events_dedup_key"),
+        CheckConstraint("provider = 'yookassa'", name="ck_payment_events_provider"),
+        CheckConstraint("processing_status IN ('received', 'processing', 'processed', 'failed')", name="ck_payment_events_processing_status"),
+        CheckConstraint("attempt_count >= 0", name="ck_payment_events_attempt_count"),
+        CheckConstraint("processing_status != 'processed' OR processed_at IS NOT NULL", name="ck_payment_events_processed_at"),
+        CheckConstraint("processing_status != 'failed' OR (failed_at IS NOT NULL AND error_code IS NOT NULL)", name="ck_payment_events_failed_at"),
+        CheckConstraint("processing_status != 'processed' OR retryable = false", name="ck_payment_events_processed_not_retryable"),
+        CheckConstraint("processing_status NOT IN ('received', 'processing') OR (processed_at IS NULL AND failed_at IS NULL)", name="ck_payment_events_nonterminal_timestamps"),
+        Index("ix_payment_events_attempt_created", "payment_attempt_id", "created_at"),
+        Index("ix_payment_events_provider_object", "provider", "provider_object_id", "provider_event_type"),
+        Index("ix_payment_events_provider_payment", "provider_payment_id"),
+        Index("ix_payment_events_status_claim", "processing_status", "claimed_at"),
+        Index("ix_payment_events_order", "order_id"),
+        Index("ix_payment_events_received", "received_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    provider: Mapped[str] = mapped_column(String(16), nullable=False, server_default="yookassa")
+    provider_event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    provider_object_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    provider_payment_id: Mapped[str | None] = mapped_column(String(100))
+    order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("orders.id", ondelete="RESTRICT"))
+    payment_attempt_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("payment_attempts.id", ondelete="RESTRICT"))
+    dedup_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    provider_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    processing_status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="received")
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    retryable: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    payload_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    error_detail: Mapped[str | None] = mapped_column(String(256))
+    retain_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    anonymized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    anonymization_reason: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
 class ReferralReward(Base):

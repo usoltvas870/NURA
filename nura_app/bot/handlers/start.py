@@ -21,8 +21,7 @@ from bot.texts.onboarding import (
 )
 from bot.texts.start import help_text, welcome_back_text
 from core.database import get_async_sessionmaker, get_redis
-from core.repositories.payment import PaymentRepository
-from core.repositories.report import ReportRepository
+from core.services.account_deletion import AccountDeletionService
 from core.repositories.user import UserRepository
 from core.services.attribution import AttributionService
 from core.services.auth import TelegramLinkConfirmationService
@@ -129,13 +128,9 @@ async def callback_delete_account_confirm(callback: CallbackQuery) -> None:
     await callback.answer()
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
-    report_repo = ReportRepository(session_factory)
-    payment_repo = PaymentRepository(session_factory)
     user = await user_repo.get_by_telegram_id(callback.from_user.id)
     if user:
-        await report_repo.delete_by_user_id(user.id)
-        await payment_repo.delete_by_user_id(user.id)
-        await user_repo.delete(user.id)
+        await AccountDeletionService(session_factory).delete(user.id)
     await callback.message.answer(delete_account_done_text())
 
 

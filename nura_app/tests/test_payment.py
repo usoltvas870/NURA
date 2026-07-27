@@ -17,6 +17,7 @@ from core.models import PromoReservation, Report, ReportGenerationState, ReportP
 from core.repositories.payment import PaymentRepository
 from core.repositories.user import UserRepository
 from core.services.access import can_access_full_report
+from core.services.full_matrix_checkout import FullMatrixCheckoutService
 from core.services.payment import CheckoutAmount, PaymentService
 
 
@@ -640,6 +641,21 @@ class TestPaymentWebhookEndpoint:
 
         assert resp.status_code == 404
         assert resp.json()["detail"] == "Payment not found"
+
+    def test_full_matrix_retryable_failure_requests_provider_redelivery(self, client):
+        with patch.object(
+            FullMatrixCheckoutService, "process_webhook", new_callable=AsyncMock
+        ) as mock:
+            mock.return_value = {"status": "ok", "result": "retryable_failure"}
+            resp = client.post(
+                "/api/v1/payment/webhook",
+                json={
+                    "event": "payment.succeeded",
+                    "object": {"id": "yo-retry", "metadata": {"product_code": "full_matrix"}},
+                },
+            )
+        assert resp.status_code == 503
+        assert resp.json()["detail"] == "payment_verification_unavailable"
 
     def test_webhook_invalid_data_ignored_event(self, client):
         """Валидный JSON, но событие не payment.succeeded → 200 + ignored."""

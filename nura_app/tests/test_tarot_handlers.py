@@ -2370,7 +2370,7 @@ class TestBuyMatrix:
         with (
             patch("bot.handlers.payment.UserRepository") as MockRepo,
             patch("bot.handlers.payment.get_async_sessionmaker") as mock_gsm,
-            patch("bot.handlers.payment.PaymentService") as mock_ps,
+            patch("bot.handlers.payment.FullMatrixCheckoutService") as checkout_service,
             patch("bot.handlers.payment.main_menu_keyboard") as mock_mm,
             patch("bot.handlers.payment.settings") as mock_settings,
             patch("bot.handlers.payment.InlineKeyboardMarkup") as mock_ikm,
@@ -2381,13 +2381,9 @@ class TestBuyMatrix:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_settings.test_mode = False
-            mock_ps.create_matrix_payment = AsyncMock(
-                return_value={
-                    "id": "pm-789",
-                    "payment_url": "https://pay.example.com/890",
-                }
+            checkout_service.return_value.create_or_get_order = AsyncMock(
+                return_value=MagicMock(public_id="opaque-checkout-id")
             )
-            mock_ps.save_matrix_payment = AsyncMock()
             mock_mm.return_value = MagicMock()
             mock_ikm.return_value = MagicMock()
             mock_ikb.return_value = MagicMock()
@@ -2396,8 +2392,9 @@ class TestBuyMatrix:
 
             await buy_matrix(mock_callback)
 
-        mock_ps.create_matrix_payment.assert_awaited_once()
-        mock_ps.save_matrix_payment.assert_awaited_once()
+        checkout_service.return_value.create_or_get_order.assert_awaited_once_with(
+            user_id=mock_user.id
+        )
         mock_callback.message.edit_text.assert_awaited_once()
         text = mock_callback.message.edit_text.await_args[0][0]
         assert "Матрица Судьбы — 890" in text
@@ -2410,7 +2407,7 @@ class TestBuyMatrix:
         with (
             patch("bot.handlers.payment.UserRepository") as MockRepo,
             patch("bot.handlers.payment.get_async_sessionmaker") as mock_gsm,
-            patch("bot.handlers.payment.PaymentService") as mock_ps,
+            patch("bot.handlers.payment.FullMatrixCheckoutService") as checkout_service,
             patch("bot.handlers.payment.main_menu_keyboard") as mock_mm,
             patch("bot.handlers.payment.settings") as mock_settings,
         ):
@@ -2419,7 +2416,7 @@ class TestBuyMatrix:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_settings.test_mode = False
-            mock_ps.create_matrix_payment = AsyncMock(
+            checkout_service.return_value.create_or_get_order = AsyncMock(
                 side_effect=ValueError("Invalid payment")
             )
             mock_mm.return_value = MagicMock()
@@ -3187,7 +3184,7 @@ class TestTarotEdgeCases:
         with (
             patch("bot.handlers.payment.UserRepository") as MockRepo,
             patch("bot.handlers.payment.get_async_sessionmaker") as mock_gsm,
-            patch("bot.handlers.payment.PaymentService") as mock_ps,
+            patch("bot.handlers.payment.FullMatrixCheckoutService") as checkout_service,
             patch("bot.handlers.payment.main_menu_keyboard") as mock_mm,
             patch("bot.handlers.payment.settings") as mock_settings,
         ):
@@ -3196,7 +3193,7 @@ class TestTarotEdgeCases:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_settings.test_mode = False
-            mock_ps.create_matrix_payment = AsyncMock(
+            checkout_service.return_value.create_or_get_order = AsyncMock(
                 side_effect=ValueError("Bad value")
             )
             mock_mm.return_value = MagicMock()

@@ -128,6 +128,9 @@ def _database_evidence(database_url: str) -> tuple[str, list[dict[str, object]],
         "daily_tarot_draws",
         "guest_profiles",
         "referral_rewards",
+        "orders",
+        "payment_attempts",
+        "payment_events",
         "alembic_version",
     ]
     with psycopg2.connect(database_url) as connection:

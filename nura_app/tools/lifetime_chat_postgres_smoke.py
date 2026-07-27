@@ -30,7 +30,7 @@ from core.services.chat_quota import (  # noqa: E402
 
 
 PARENT = "d2e3f4a5b6c7"
-HEAD = "d7e8f9a0b1c2"
+HEAD = "e8f9a0b1c2d3"
 _URL = ""
 _ALEMBIC_LAUNCHER = (
     "from pydantic_settings.sources import DotEnvSettingsSource;"

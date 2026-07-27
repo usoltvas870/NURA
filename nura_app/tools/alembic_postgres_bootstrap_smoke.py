@@ -25,11 +25,13 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NURA_APP_ROOT = REPO_ROOT / "nura_app"
+if str(NURA_APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(NURA_APP_ROOT))
 
 EXPECTED_BASE = "0001a2b3c4d5e6"
 FK_NORMALIZATION_HEAD = "c0d1e2f3a4b5"
 PREVIOUS_HEAD = "d1e2f3a4b5c6"
-EXPECTED_HEAD = "d7e8f9a0b1c2"
+EXPECTED_HEAD = "e8f9a0b1c2d3"
 
 _URL = ""
 

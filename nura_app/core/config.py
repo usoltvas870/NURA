@@ -131,6 +131,13 @@ class Settings(BaseSettings):
     yookassa_secret_key: str | None = None
     yookassa_verify_on_webhook: bool = True
     yookassa_ip_whitelist: str = ""
+    # Fiscal receipt. Values are deliberately unset until the merchant confirms
+    # its YooKassa / tax configuration; payment creation then fails closed.
+    yookassa_receipt_enabled: bool = False
+    yookassa_receipt_vat_code: str | None = None
+    yookassa_receipt_payment_mode: str | None = None
+    yookassa_receipt_payment_subject: str | None = None
+    payment_event_claim_ttl_seconds: int = Field(default=300, ge=30, le=3600)
 
     @property
     def is_production(self) -> bool:
@@ -148,6 +155,18 @@ class Settings(BaseSettings):
         return None
 
     @property
+    def yookassa_receipt_configuration_error(self) -> str | None:
+        if not self.yookassa_receipt_enabled:
+            return "yookassa_receipt_enabled_required"
+        if not self.yookassa_receipt_vat_code:
+            return "yookassa_receipt_vat_code_required"
+        if not self.yookassa_receipt_payment_mode:
+            return "yookassa_receipt_payment_mode_required"
+        if not self.yookassa_receipt_payment_subject:
+            return "yookassa_receipt_payment_subject_required"
+        return None
+
+    @property
     def production_readiness_errors(self) -> tuple[str, ...]:
         """Return non-sensitive blockers for a controlled production switch."""
         errors: list[str] = []
@@ -161,6 +180,9 @@ class Settings(BaseSettings):
             errors.append("production_payment_webhook_verification_required")
         if not self.yookassa_shop_id or not self.yookassa_secret_key:
             errors.append("production_payment_webhook_credentials_required")
+        receipt_error = self.yookassa_receipt_configuration_error
+        if receipt_error:
+            errors.append(receipt_error)
         if not redis_url_has_credentials(self.redis_url):
             errors.append("production_redis_auth_required")
         if not redis_url_has_credentials(self.celery_broker_url):

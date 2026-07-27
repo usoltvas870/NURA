@@ -82,6 +82,10 @@ def test_production_rejects_disabled_provider_verification_at_settings_load() ->
             yookassa_verify_on_webhook=False,
             yookassa_shop_id="test-shop",
             yookassa_secret_key="test-secret",
+            yookassa_receipt_enabled=True,
+            yookassa_receipt_vat_code="test_vat",
+            yookassa_receipt_payment_mode="test_mode",
+            yookassa_receipt_payment_subject="test_subject",
             redis_url="redis://:test-password@redis:6379/0",
             celery_broker_url="redis://:test-password@redis:6379/1",
             celery_result_backend="redis://:test-password@redis:6379/2",
@@ -99,6 +103,10 @@ def test_production_rejects_disabled_provider_verification_at_settings_load() ->
         yookassa_verify_on_webhook=True,
         yookassa_shop_id="test-shop",
         yookassa_secret_key="test-secret",
+        yookassa_receipt_enabled=True,
+        yookassa_receipt_vat_code="test_vat",
+        yookassa_receipt_payment_mode="test_mode",
+        yookassa_receipt_payment_subject="test_subject",
     ).payment_webhook_configuration_error is None
 
 

@@ -16,7 +16,7 @@ from sqlalchemy.orm import load_only
 from core.config import settings
 from core.celery_async import run_celery_async as _run_async
 from core.database import get_async_sessionmaker, get_redis
-from core.models import ReportType, User
+from core.models import Order, ReportType, User
 from core.repositories import ReportRepository, UserRepository
 from core.repositories.guest import GuestProfileRepository
 from core.repositories.mini_report_generation import MiniReportGenerationRepository
@@ -168,6 +168,26 @@ async def _notify_full_report(telegram_id: int, token: str) -> None:
         ],
     }
     await _send_message(telegram_id, text, keyboard)
+
+
+@celery_app.task(name="core.tasks.notify_full_matrix_payment_confirmed")
+def notify_full_matrix_payment_confirmed(public_order_id: str) -> None:
+    async def _run() -> None:
+        async with get_async_sessionmaker()() as session:
+            order = (
+                await session.execute(select(Order).where(Order.public_id == public_order_id))
+            ).scalar_one_or_none()
+            if order is None or order.user_id is None:
+                return
+            user = await session.get(User, order.user_id)
+            if user is None or user.telegram_id is None:
+                return
+            telegram_id = user.telegram_id
+        await _send_message(
+            telegram_id,
+            "Оплата подтверждена. Готовлю полный разбор.",
+        )
+    _run_async(_run())
 
 
 async def _notify_mini_report(telegram_id: int, token: str) -> None:

@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -7,7 +9,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.orm import load_only
 
 from core.config import settings
-from core.models import Report, ReportType, User
+from core.models import Order, PaymentAttempt, PaymentEvent, Report, ReportType, User
 from core.repositories.base import SQLAlchemyRepository
 
 
@@ -21,6 +23,41 @@ class UserRepository(SQLAlchemyRepository[User]):
                 select(User).where(User.telegram_id == telegram_id)
             )
             return result.scalar_one_or_none()
+
+    async def anonymize_retained_financial_records(self, user_id: uuid.UUID) -> None:
+        """Detach paid financial records before the profile row is removed."""
+        reference = hmac.new(
+            settings.secret_key.encode(), str(user_id).encode(), hashlib.sha256
+        ).hexdigest()
+        now = datetime.now(timezone.utc)
+        async with self._session_factory() as session:
+            orders = (
+                await session.execute(select(Order).where(Order.user_id == user_id).with_for_update())
+            ).scalars().all()
+            for order in orders:
+                order.user_id = None
+                order.telegram_id_snapshot = None
+                order.customer_reference_hash = reference
+                order.anonymized_at = now
+                order.anonymization_reason = "account_deleted"
+                attempts = (
+                    await session.execute(select(PaymentAttempt).where(PaymentAttempt.order_id == order.id).with_for_update())
+                ).scalars().all()
+                for attempt in attempts:
+                    attempt.confirmation_url = None
+                    attempt.provider_metadata = {"product_code": "full_matrix"}
+                    attempt.customer_reference_hash = reference
+                    attempt.anonymized_at = now
+                    attempt.anonymization_reason = "account_deleted"
+                    events = (
+                        await session.execute(
+                            select(PaymentEvent).where(PaymentEvent.payment_attempt_id == attempt.id).with_for_update()
+                        )
+                    ).scalars().all()
+                    for event in events:
+                        event.anonymized_at = now
+                        event.anonymization_reason = "account_deleted"
+            await session.commit()
 
     async def create(
         self,

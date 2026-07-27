@@ -34,6 +34,7 @@ from core.services.mini_report_application import (
 from core.services.mini_report_generation import MiniReportGenerationService
 from core.services.payment import PaymentService, PromoCheckoutError
 from core.services.report_lifecycle import ReportLifecycleCoordinator
+from core.services.account_deletion import AccountDeletionService
 
 from core.services.chat_application import ChatApplicationService, ChatResultKind
 from core.services.chat_history import finalize_chat_history_once
@@ -789,13 +790,7 @@ async def delete_account(
     user: User = Depends(get_current_web_user),
 ):
     session_factory = get_async_sessionmaker()
-    report_repo = ReportRepository(session_factory)
-    payment_repo = PaymentRepository(session_factory)
-    user_repo = UserRepository(session_factory)
-
-    await report_repo.delete_by_user_id(user.id)
-    await payment_repo.delete_by_user_id(user.id)
-    await user_repo.delete(user.id)
+    await AccountDeletionService(session_factory).delete(user.id)
 
     clear_session_cookie(response)
     return {"ok": True}

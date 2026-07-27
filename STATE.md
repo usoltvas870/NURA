@@ -1569,3 +1569,23 @@ docker compose restart bot celery-worker
   безопасно fenced, но provider-вызов может повториться.
 - FREE DAILY TAROT CARD принят. Следующий этап после отдельного commit:
   ONE-TIME FULL MATRIX CHECKOUT THROUGH YOOKASSA.
+## One-Time Full Matrix Checkout through YooKassa — 26.07.2026
+
+- Добавлен выделенный lifecycle `Order`, `PaymentAttempt` и `PaymentEvent` для `full_matrix`: серверная цена 890.00 RUB, только YooKassa и `save_payment_method=False`.
+- Telegram callback создаёт opaque checkout URL; return-навигация информационная. Только повторно проверенный YooKassa webhook переводит заказ в paid, создаёт один full Report placeholder и ставит существующий durable lifecycle отчёта. AI и PDF delivery из webhook не вызываются.
+- Миграция `e8f9a0b1c2d3` (parent `d7e8f9a0b1c2`) добавляет retained financial tables, связь один Report на Order и five-year retention metadata.
+- Удаление аккаунта удаляет profile/report data, а retained financial rows анонимизируются HMAC customer reference, отвязываются от User/Telegram и очищаются от checkout URL/provider PII.
+- Receipt-контракт: checkout собирает обязательный нормализованный email только для фискального snapshot в `PaymentAttempt`; YooKassa payload содержит один server-side item «Полная Матрица судьбы» на 890.00 RUB. Без email или любого обязательного receipt Setting provider не вызывается; повтор с другим email возвращает конфликт.
+- Целевые migration/webhook/lifecycle/security proofs проходят; до отдельного PostgreSQL concurrency proof техническая приёмка checkout остаётся незавершённой. Реальные provider request, production migration, deploy, commit, push и PR не выполнялись.
+- Production payments remain disabled until real YooKassa fiscal settings are confirmed: `YOOKASSA_RECEIPT_VAT_CODE`, `YOOKASSA_RECEIPT_PAYMENT_MODE`, `YOOKASSA_RECEIPT_PAYMENT_SUBJECT`.
+- Full PDF Telegram delivery и repeated access ещё не реализованы; следующий этап после отдельного commit: FULL MATRIX TELEGRAM DELIVERY AND REPEATED ACCESS.
+- Graphify 0.9.7 `check-update .` прошёл. Update output оказался repository-wide и неожиданным, поэтому точный baseline `graphify-out` восстановлен; Graphify update deferred из-за scope risk.
+- Full PDF Telegram delivery и repeated access остаются вне scope. Следующий этап: FULL MATRIX TELEGRAM DELIVERY AND REPEATED ACCESS.
+-
+## One-Time Full Matrix Checkout through YooKassa — final technical acceptance, 27.07.2026
+
+- Technical PASS: one-time `full_matrix` is server-priced at 890 RUB and uses only YooKassa; Telegram Stars and recurring payments are excluded, and `save_payment_method=False` is fixed server-side.
+- Checkout requires a receipt-only email and fiscal configuration is fail-closed. Production payments remain disabled until `YOOKASSA_RECEIPT_VAT_CODE`, `YOOKASSA_RECEIPT_PAYMENT_MODE`, and `YOOKASSA_RECEIPT_PAYMENT_SUBJECT` are confirmed for the actual store.
+- PostgreSQL proofs cover concurrent Order and PaymentAttempt creation, pre-provider PaymentEvent claim, one provider lookup under eight concurrent webhooks, one paid Order, one Report, one generation job, and account-deletion financial retention/anonymization.
+- Migration `e8f9a0b1c2d3` passed disposable PostgreSQL bootstrap, upgrade, downgrade, and repeat-upgrade proofs. Final deterministic safe-suite: 12 file-shards, 982 passed, 17 skipped, one approved Tarot asset deselection, missing=0, duplicates=0. `graphify check-update .` passed without generated output.
+- Full PDF Telegram delivery and repeated access are not implemented in this stage. After an explicit commit, the next stage is FULL MATRIX TELEGRAM DELIVERY AND REPEATED ACCESS.

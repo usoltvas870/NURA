@@ -16,6 +16,7 @@ from core.models import ReportType
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.services.payment import PaymentService
+from core.services.full_matrix_checkout import FullMatrixCheckoutService
 
 logger = logging.getLogger(__name__)
 
@@ -244,13 +245,20 @@ async def buy_matrix(callback: CallbackQuery) -> None:
         return
 
     try:
-        payment = await PaymentService.create_matrix_payment(
-            telegram_id=callback.from_user.id
-        )
-        await PaymentService.save_matrix_payment(
-            session_factory=get_async_sessionmaker(),
-            user_id=user.id,
-            yookassa_payment_id=payment["id"],
+        checkout = await FullMatrixCheckoutService(
+            get_async_sessionmaker()
+        ).create_or_get_order(user_id=user.id)
+        if checkout.status == "paid":
+            await callback.message.edit_text(
+                "◈ Матрица уже куплена.",
+                reply_markup=main_menu_keyboard(purchased_matrix=True),
+            )
+            return
+        if checkout.checkout_token is None:
+            raise ValueError("checkout_token_missing")
+        checkout_url = (
+            f"{settings.report_base_url}/api/v1/payment/full-matrix/checkout/"
+            f"{checkout.checkout_token}"
         )
 
         await callback.message.edit_text(
@@ -264,7 +272,7 @@ async def buy_matrix(callback: CallbackQuery) -> None:
                 inline_keyboard=[
                     [InlineKeyboardButton(
                         text="💳 Оплатить 890₽",
-                        url=payment["payment_url"]
+                        url=checkout_url
                     )],
                     [InlineKeyboardButton(
                         text="← Назад",
