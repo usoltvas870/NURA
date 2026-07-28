@@ -1,5 +1,9 @@
 # NURA Telegram Bot — Полная функциональная спецификация
 
+> **STATUS: MIXED — TEMPORARY, NOT AUTHORITATIVE**
+>
+> Документ смешивает current Telegram behavior, legacy 390/PWA и target-функции. До Stage 2B product scope берите из [canonical spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md), реализацию — из [current status](implementation/current-status.md).
+
 ## 1. Общая архитектура бота
 
 ### 1.1. Стек
@@ -1438,13 +1442,13 @@ async def payment_webhook(body: dict):
     event = body.get("event")
     if event != "payment.succeeded":
         return {"ok": True}
-    
+
     payment_obj = body["object"]
     payment_id = payment_obj["id"]
     metadata = payment_obj.get("metadata", {})
     telegram_id = metadata.get("telegram_id")
     report_token = metadata.get("report_token")
-    
+
     # 1. Найти Payment в БД по yookassa_id
     # 2. Обновить payment.status = "succeeded"
     # 3. Запустить generate_full_report.delay(telegram_id, report_token)
@@ -1836,7 +1840,7 @@ bot/
 ```python
 class User(Base):
     __tablename__ = "users"
-    
+
     id: UUID (PK)
     telegram_id: int (unique, indexed)
     username: str | None              # NEW — из Telegram

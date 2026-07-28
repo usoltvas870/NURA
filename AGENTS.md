@@ -22,7 +22,7 @@
 ## Repository map
 
 - `nura_app/core/services/` — доменная логика.
-- `nura_app/core/models/` — структура БД.
+- `nura_app/core/models.py` — структура БД.
 - `nura_app/core/repositories/` — доступ к данным.
 - `nura_app/core/schemas/` — Pydantic-схемы.
 - `nura_app/core/prompts/` — единственное место для AI-промптов.
@@ -36,14 +36,15 @@
 - `frontend/pwa/app/` — PWA; применяй nested `AGENTS.md`.
 - `docs/` — продуктовая и техническая документация; применяй nested `AGENTS.md`.
 
-## Source of truth
+## Documentation authority
 
-- Approved product/architecture docs описывают целевое поведение.
-- Текущий код показывает фактически реализованное поведение.
-- `STATE.md` — журнал состояния и решений, но не нормативная спецификация.
-- Prototype/preview не является production contract.
-- При расхождении docs и code зафиксируй его, не меняй поведение молча и запроси решение владельца, если задача явно не задаёт приоритет.
-- `AGENTS_TODO.md` не является автоматически действующей спецификацией. Используй его только после отдельного аудита и подтверждения.
+- Начинай навигацию с `docs/README.md`.
+- Целевой product scope NURA 1.0/1.5 определяет только `docs/product/NURA_1_0_1_5_PRODUCT_SPEC.md`; target не доказывает реализацию. Не редактируй product spec без отдельной явной задачи.
+- Фактическое состояние подтверждают code/migrations/tests/config; `docs/implementation/current-status.md` — только компактное evidence-backed зеркало.
+- `docs/archive/` хранит legacy/superseded history и не является текущим контрактом. `docs/vision/` — future vision, не committed roadmap.
+- `STATE.md` — журнал состояния и решений, но не нормативная спецификация. Prototype/preview также не является production contract.
+- При конфликте code, current status и target product явно сообщи о расхождении и назови implementation gap; не выбирай приоритет молча.
+- Не расширяй scope NURA 1.0 функциями 1.5 без отдельной задачи и owner decision.
 
 ## Architecture boundaries
 

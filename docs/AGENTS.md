@@ -1,22 +1,22 @@
-﻿# NURA Docs вЂ” Agent Rules
+# NURA Docs — Agent Rules
 
-## Documentation roles
+## Authority map
 
-- `docs/README.md` вЂ” РјР°СЂС€СЂСѓС‚РёР·Р°С‚РѕСЂ РґРѕРєСѓРјРµРЅС‚Р°С†РёРё; РЅРѕРІС‹Р№ РєР°РЅРѕРЅРёС‡РµСЃРєРёР№ РґРѕРєСѓРјРµРЅС‚ РґРѕР±Р°РІР»СЏР№ РІ РёРЅРґРµРєСЃ.
-- Approved product/architecture docs РѕРїРёСЃС‹РІР°СЋС‚ target state.
-- РљРѕРґ РїРѕРєР°Р·С‹РІР°РµС‚ current implemented state.
-- `STATE.md` СЏРІР»СЏРµС‚СЃСЏ Р¶СѓСЂРЅР°Р»РѕРј СЃРѕСЃС‚РѕСЏРЅРёСЏ Рё СЂРµС€РµРЅРёР№, Р° РЅРµ РЅРѕСЂРјР°С‚РёРІРЅРѕР№ СЃРїРµС†РёС„РёРєР°С†РёРµР№.
-- Prototype/preview files РЅРµ СЏРІР»СЏСЋС‚СЃСЏ production contract.
-- `AGENTS_TODO.md` РЅРµ СЏРІР»СЏРµС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РґРµР№СЃС‚РІСѓСЋС‰РµР№ СЃРїРµС†РёС„РёРєР°С†РёРµР№ Рё РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ РѕС‚РґРµР»СЊРЅРѕРіРѕ Р°СѓРґРёС‚Р° Рё РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ.
+- `docs/README.md` — главный router авторитетности.
+- `product/NURA_1_0_1_5_PRODUCT_SPEC.md` — canonical target; не гарантия реализации и не редактируется без отдельной задачи.
+- `implementation/current-status.md` — evidence-backed зеркало current code/tests/config, не нормативная спецификация.
+- `decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md` — решения владельца по этой миграции, не замена product spec.
+- `acceptance/` отделяет local, external sandbox и production evidence.
+- `archive/` — legacy/superseded history; не использовать как current contract.
+- `vision/` — future vision, не committed roadmap.
+- `reconciliation/` — dated audit evidence и migration history.
 
-РџСЂРё СЂР°СЃС…РѕР¶РґРµРЅРёРё docs Рё code Р·Р°С„РёРєСЃРёСЂСѓР№ РµРіРѕ, РЅРµ РјРµРЅСЏР№ РїРѕРІРµРґРµРЅРёРµ РјРѕР»С‡Р° Рё Р·Р°РїСЂРѕСЃРё СЂРµС€РµРЅРёРµ РІР»Р°РґРµР»СЊС†Р°, РµСЃР»Рё Р·Р°РґР°С‡Р° СЏРІРЅРѕ РЅРµ Р·Р°РґР°С‘С‚ РїСЂРёРѕСЂРёС‚РµС‚.
+При расхождении target, current-status и code сообщи о конфликте. Code/tests/config имеют приоритет для implemented state; product spec — для target state. Не расширяй NURA 1.0 функциями 1.5 и не восстанавливай старую PWA/pricing model по архивным документам.
 
-## STATE.md
+## Changes
 
-РџСЂРёРјРµРЅСЏР№ policy РёР· root `AGENTS.md`: РѕР±РЅРѕРІР»СЏР№ `STATE.md` С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ material changes, РїРѕ СЏРІРЅРѕРјСѓ Р·Р°РїСЂРѕСЃСѓ РёР»Рё РїСЂРё Р·Р°РІРµСЂС€РµРЅРёРё СЃРѕРіР»Р°СЃРѕРІР°РЅРЅРѕРіРѕ СЃСѓС‰РµСЃС‚РІРµРЅРЅРѕРіРѕ СЌС‚Р°РїР°. РќРµ РѕР±РЅРѕРІР»СЏР№ РµРіРѕ РїРѕСЃР»Рµ read-only Р°РЅР°Р»РёР·Р°, design discussion, prototype-only СЂР°Р±РѕС‚С‹, РїСЂРѕСЃРјРѕС‚СЂР° С„Р°Р№Р»РѕРІ РёР»Рё РЅРµСѓСЃРїРµС€РЅРѕР№ РїРѕРїС‹С‚РєРё Р±РµР· РёР·РјРµРЅРµРЅРёР№.
+Сохраняй историю и ссылки, не создавай второй canonical product spec. Для mixed-документов не выбирай current/legacy/future молча. `STATE.md` обновляй только по root policy; Stage 2A его не меняет из-за внешнего dirty diff.
 
 ## Graphify
 
-- РќРµ Р·Р°РїСѓСЃРєР°Р№ `graphify update` Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё.
-- Graphify СЂР°Р·СЂРµС€С‘РЅ С‚РѕР»СЊРєРѕ РїРѕСЃР»Рµ tool health check Рё РІ СЂР°РјРєР°С… РѕС‚РґРµР»СЊРЅРѕРіРѕ СЃРѕРіР»Р°СЃРѕРІР°РЅРЅРѕРіРѕ workflow.
-- РќРµ РІРєР»СЋС‡Р°Р№ generated graph output РІ РЅРµСЃРІСЏР·Р°РЅРЅС‹Р№ diff.
+Документационная реорганизация без production architecture change не требует `graphify update`. Generated graph output не включай в несвязанный diff.

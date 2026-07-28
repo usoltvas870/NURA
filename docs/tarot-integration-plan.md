@@ -1,5 +1,9 @@
 # План интеграции Таро в NURA
 
+> **STATUS: MIXED — HISTORICAL PLAN + EARLY 1.5 IMPLEMENTATION**
+>
+> Не расширяет scope NURA 1.0. Accepted 1.5 target находится в [canonical spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md), фактическое состояние — в [current status](implementation/current-status.md).
+
 > Статус: план. Не входит в `report-upgrade-sessions.md` (тот — только про страницу отчёта).
 
 ---

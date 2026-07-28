@@ -1,5 +1,9 @@
 # NURA — Отраслевой стандарт объёма отчёта Матрицы Судьбы
 
+> **STATUS: DUPLICATE/MIXED DATED RESEARCH — CONSOLIDATION DEFERRED TO STAGE 2B**
+>
+> Не является product authority. Repository research copy: [docs/research/report-benchmarks/industry-standard-analysis.md](docs/research/report-benchmarks/industry-standard-analysis.md).
+
 > Создано: 30.06.2026
 > Источник: анализ конкурентов (matrica-sudby.ru, matrix-profi.ru)
 

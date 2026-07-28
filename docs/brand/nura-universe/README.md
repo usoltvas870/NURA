@@ -9,6 +9,10 @@ asset_manifest: "./assets-manifest.json"
 
 # Вселенная NURA
 
+> **STATUS: MIXED — CURRENT BRAND ASSETS + EXTENDED FUTURE VISION**
+>
+> Используйте утверждённые tokens/assets только в пределах текущего design workflow. Расширенная world-building часть не расширяет [product roadmap](../../product/NURA_1_0_1_5_PRODUCT_SPEC.md).
+
 > **Статус:** утверждённая визуально-смысловая основа v1  
 > **Назначение:** бренд, контент, сценарии, генерация изображений и видеопроизводство LOOPRA  
 > **Базовый формат среды:** вертикальный 9:16  

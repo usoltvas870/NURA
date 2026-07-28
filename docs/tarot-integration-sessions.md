@@ -1,5 +1,9 @@
 # Интеграция Таро в NURA — 9 шагов
 
+> **STATUS: MIXED — SESSION HISTORY, NOT CURRENT STATUS**
+>
+> Сохранено без переписывания на Stage 2A. Для current evidence используйте [implementation status](implementation/current-status.md), для target — [product spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md).
+
 > **Основание:** `docs/tarot-integration-plan.md` — стратегический план.
 > **Цель:** реализовать таро-ритуалы на всех трёх поверхностях (бот, лендинг, отчёт).
 > **Реальность:** кодовая база не содержит таро-логики — `_tarot_card.html` заглушка использует `current_year_arcana` (годовой) как карту дня, бот не имеет кнопок/хендлеров таро, лендинг не упоминает таро, платежи поддерживают только 390₽ подписку.

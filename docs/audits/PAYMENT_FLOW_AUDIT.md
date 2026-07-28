@@ -1,5 +1,9 @@
 # NURA Payment Flow: contract and security audit
 
+> **STATUS: MIXED — CURRENT EVIDENCE + LEGACY 390 HISTORY; NOT A PRODUCT CONTRACT**
+>
+> До Stage 2B используйте current one-time 890 evidence только вместе с [product spec](../product/NURA_1_0_1_5_PRODUCT_SPEC.md) и [current status](../implementation/current-status.md).
+
 Дата аудита: 2026-07-16. Область: текущий незакоммиченный Closed Beta Hardening diff в `C:\tmp\nura-closed-beta-hardening`.
 
 ## Verdict

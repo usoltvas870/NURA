@@ -1,23 +1,24 @@
-﻿# NURA Reports вЂ” Agent Rules
+# NURA Reports — Agent Rules
+
+## Authority
+
+Product target: `docs/product/NURA_1_0_1_5_PRODUCT_SPEC.md`. Current implementation and known text/PDF gaps: `docs/implementation/current-status.md`. Mixed historical report docs не заменяют code/templates/tests.
 
 ## Rendering contract
 
-- РљР°Р¶РґС‹Р№ С€Р°Р±Р»РѕРЅ РѕР±СЏР·Р°РЅ СЂР°Р±РѕС‚Р°С‚СЊ Рё РІ Р±СЂР°СѓР·РµСЂРµ, Рё РІ WeasyPrint.
-- Visual browser QA РЅРµ Р·Р°РјРµРЅСЏРµС‚ PDF render QA.
-- РќРµ РёСЃРїРѕР»СЊР·СѓР№ CSS-С„СѓРЅРєС†РёРё Р±РµР· РїСЂРѕРІРµСЂРєРё РїРѕРґРґРµСЂР¶РєРё WeasyPrint.
-- РџСЂРѕРІРµСЂСЏР№ page breaks, С‚Р°Р±Р»РёС†С‹, РґР»РёРЅРЅС‹Рµ СЃС‚СЂРѕРєРё Рё optional Jinja blocks.
-- РџРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёР№ С‚РµРєСЃС‚ РІСЃРµРіРґР° СЌРєСЂР°РЅРёСЂСѓР№.
-- Р’ РІРёР·СѓР°Р»СЊРЅРѕР№ Р·Р°РґР°С‡Рµ РЅРµ РјРµРЅСЏР№ report data schema.
-- Full report Рё mini report С‚РµСЃС‚РёСЂСѓР№ РѕС‚РґРµР»СЊРЅРѕ.
+- Каждый шаблон обязан работать в браузере и WeasyPrint.
+- Browser QA не заменяет PDF render QA.
+- Проверяй поддержку CSS, page breaks, таблицы, длинные строки и optional Jinja blocks.
+- Пользовательский текст всегда экранируй.
+- В визуальной задаче не меняй report data schema.
+- Full report и mini report тестируй отдельно.
 
 ## Redesign workflow
 
-Р‘РѕР»СЊС€РѕР№ СЂРµРґРёР·Р°Р№РЅ РІС‹РїРѕР»РЅСЏР№ СЌС‚Р°РїР°РјРё:
-
 1. Static preview.
-2. РћРґРЅР° РєРѕРЅС‚СЂРѕР»СЊРЅР°СЏ РіР»Р°РІР°.
+2. Одна контрольная глава.
 3. Browser render.
 4. WeasyPrint render.
-5. РўРѕР»СЊРєРѕ РїРѕСЃР»Рµ РїСЂРѕРІРµСЂРѕРє вЂ” РїРѕР»РЅС‹Р№ С€Р°Р±Р»РѕРЅ.
+5. После проверок — полный шаблон.
 
-РЎРІРµС‚Р»С‹Р№ Variant B вЂ” С†РµР»РµРІРѕРµ РЅР°РїСЂР°РІР»РµРЅРёРµ РЅРѕРІРѕРіРѕ full-report design. Production redesign РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РїРѕ РѕС‚РґРµР»СЊРЅРѕР№ СЏРІРЅРѕ Р·Р°РґР°РЅРЅРѕР№ Р·Р°РґР°С‡Рµ.
+Светлый Variant B остаётся approved visual direction. Production redesign выполняется только по отдельной явно заданной задаче.

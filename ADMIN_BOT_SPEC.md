@@ -1,5 +1,9 @@
 # Admin Bot — спецификация
 
+> **STATUS: CURRENT TECHNICAL DOCUMENTATION — PRODUCT SCOPE NON-NORMATIVE**
+>
+> Stage 2B должен сверить и перенести документ в architecture/operations. До этого код и tests имеют приоритет для implemented status.
+
 ## Концепция
 
 Отдельный Telegram-бот для наблюдения и ограниченных оперативных действий через чат.

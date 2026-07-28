@@ -1,5 +1,9 @@
 # Спецификация AI-промптов NURA
 
+> **STATUS: MIXED — CURRENT REGISTRY + STALE PATHS/TARGET EXAMPLES**
+>
+> Runtime prompts находятся только в `nura_app/core/prompts/`. Документ временно не является точным loader contract; сверяйте [current status](implementation/current-status.md) и код.
+
 > Все промпты подчиняются tone-of-voice.md. Тон — тёплый проводник, без эзотерики.
 
 ---

@@ -1,5 +1,9 @@
 # NURA — Report Spec
 
+> **STATUS: MIXED — CURRENT RENDERING + LEGACY WEB DELIVERY + TARGET**
+>
+> До Stage 2B не трактуйте web-link delivery как target. Product format задаёт [canonical spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md), текущий gap — [current status](implementation/current-status.md).
+
 > Актуально на 26.05.2026. Версия шаблона: V2 (`full_report_v2.html`).
 > Источники истины: `nura_app/templates/reports/full_report_v2.html`, `nura_app/core/services/report.py`, `nura_app/core/schemas/__init__.py`.
 

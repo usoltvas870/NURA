@@ -1,5 +1,9 @@
 # NURA — Тарифы и ценообразование
 
+> **STATUS: MIXED — LEGACY 390 MODEL; NOT CURRENT PRODUCT AUTHORITY**
+>
+> Текущий target: полный отчёт 890 ₽ через YooKassa; в NURA 1.0 нет подписки, а 399 ₽ / 30 дней относится только к 1.5. См. [canonical spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md) и [current implementation gap](implementation/current-status.md).
+
 > Утверждено: 24 мая 2026. Модель: матрица (разово) + таро-ритуалы (подписка).
 
 ---

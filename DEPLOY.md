@@ -1,5 +1,9 @@
 # NURA — coordinated production release contract
 
+> **STATUS: CURRENT OPERATIONS CONTRACT — EXTERNAL ACTIONS REQUIRE CURRENT AUTHORIZATION**
+>
+> Сохранено в стабильном root path на Stage 2A, чтобы не ломать release tooling/references. Не является production evidence и не разрешает deploy.
+
 > **DO NOT DEPLOY.** Merge P4.2B2 сам по себе не разрешает host transition или production activation. До первого запуска обязательны P4.1B, migration/API compatibility review, отдельный dry-run перехода, финальный deploy-readiness audit и новое явное approval владельца.
 
 ## Разрешённые entrypoints

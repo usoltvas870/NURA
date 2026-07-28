@@ -1,5 +1,9 @@
 # Auth System — оставшиеся задачи
 
+> **STATUS: MIXED — LEGACY PWA PLAN + PARTIALLY IMPLEMENTED COMPATIBILITY**
+>
+> Stage 2A сохраняет файл на месте из-за смешанного содержания и исторических ссылок в externally modified `STATE.md`. Не использовать как current backlog; фактическое состояние: [current status](docs/implementation/current-status.md).
+
 **Версия:** 1.1 (обновлён 01.07.2026)  
 **Дата:** 02.07.2026  
 **Откуда:** реализация `docs/auth_system_implementation_plan.md` (Фазы 1+2 завершены, 3 реализована)

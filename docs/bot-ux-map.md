@@ -1,5 +1,9 @@
 # NURA Telegram Bot — Карта пользовательских экранов
 
+> **STATUS: MIXED — TEMPORARY, NOT AUTHORITATIVE**
+>
+> Карта содержит current, legacy и future UX. До разделения в Stage 2B сверяйте каждый путь с [canonical spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md) и [current status](implementation/current-status.md).
+
 **Легенда:**
 ```
 →  переход по кнопке / callback
@@ -75,8 +79,8 @@
 │   📄 Мои отчёты   │  👤 Профиль     │
 └─────────────────────────────────────┘
 ```
-  
- 
+
+
 ## Путь 2: Главное меню (возвращающийся пользователь)
 
 ```

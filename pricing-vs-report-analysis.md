@@ -1,5 +1,9 @@
 # NURA — Сравнение прайс-листа и наполнения отчёта
 
+> **STATUS: DUPLICATE/MIXED DATED RESEARCH — CONSOLIDATION DEFERRED TO STAGE 2B**
+>
+> Старые цены не являются текущим контрактом. См. [canonical spec](docs/product/NURA_1_0_1_5_PRODUCT_SPEC.md) и repository copy `docs/pricing-vs-report-analysis.md`.
+
 > Создано: 30.06.2026
 > Цель: анализ соответствия текущего наполнения отчёта заявленному в прайс-листе
 

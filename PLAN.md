@@ -1,7 +1,11 @@
 # NURA — Plan
 
+> **STATUS: MIXED HISTORICAL PLAN — NOT AUTHORITATIVE**
+>
+> Сохранено без содержательного разделения до Stage 2B. Product target: [canonical spec](docs/product/NURA_1_0_1_5_PRODUCT_SPEC.md); реализация: [current status](docs/implementation/current-status.md).
+
 > Бэклог и приоритеты. Смотрит вперёд.
-> История сделанного: [STATE.md](STATE.md). Контекст для агента: [AGENTS.md](nura_app/AGENTS.md).
+> История сделанного: [STATE.md](STATE.md). Контекст для агента: [AGENTS.md](AGENTS.md).
 
 ---
 
