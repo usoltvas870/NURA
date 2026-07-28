@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 
 from api.admin import setup_admin
 from api.deps import limiter
+from api.logging import configure_uvicorn_access_redaction, scrub_sentry_event
 from api.middleware import RequestCorrelationMiddleware
 from api.routes.reports import router as reports_router
 from api.routes.web import router as web_router
@@ -23,6 +24,9 @@ from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
 
 
+configure_uvicorn_access_redaction()
+
+
 def payment_webhook_readiness_status() -> str:
     """Expose only a safe category for payment webhook configuration."""
     return "ok" if settings.payment_webhook_configuration_error is None else "missing_configuration"
@@ -33,6 +37,7 @@ if settings.sentry_dsn:
         traces_sample_rate=0.3,
         environment=settings.app_env,
         send_default_pii=False,
+        before_send=scrub_sentry_event,
     )
 
 app = FastAPI(title="NURA API", version="1.0.0", docs_url=None, redoc_url=None)

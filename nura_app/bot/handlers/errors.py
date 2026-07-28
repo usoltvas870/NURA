@@ -8,7 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 async def global_error_handler(event: ErrorEvent) -> bool:
-    logger.exception("Global bot error", exc_info=event.exception)
+    logger.error(
+        "telegram_update_failed category=unhandled_exception exception_type=%s",
+        type(event.exception).__name__,
+    )
     try:
         if event.update.message:
             await event.update.message.answer(global_error_text())

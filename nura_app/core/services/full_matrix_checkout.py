@@ -33,12 +33,16 @@ from core.models import (
     User,
 )
 from core.repositories.payment_event import PaymentEventRepository
+from core.repositories.report_lifecycle import ReportLifecycleRepository
 from core.services.report_lifecycle import ReportLifecycleService
 
 
 FULL_MATRIX_PRODUCT_CODE = "full_matrix"
 FULL_MATRIX_AMOUNT_KOPECKS = 89_000
 FULL_MATRIX_CURRENCY = "RUB"
+FULL_MATRIX_WEBHOOK_EVENTS = frozenset(
+    {"payment.succeeded", "payment.canceled", "refund.succeeded"}
+)
 FULL_MATRIX_PRODUCT_NAME = "Полная Матрица судьбы"
 FULL_MATRIX_AMOUNT_VALUE = "890.00"
 CHECKOUT_TOKEN_TTL = timedelta(minutes=30)
@@ -50,6 +54,8 @@ class YooKassaProvider(Protocol):
     async def create_payment(self, *, idempotency_key: str, payload: dict) -> dict: ...
 
     async def get_payment(self, provider_payment_id: str) -> dict: ...
+
+    async def get_refund(self, provider_refund_id: str) -> dict: ...
 
 
 class ProductionYooKassaProvider:
@@ -71,6 +77,14 @@ class ProductionYooKassaProvider:
         payment = await asyncio.to_thread(YooPayment.find_one, provider_payment_id)
         return payment.json()
 
+    async def get_refund(self, provider_refund_id: str) -> dict:
+        from yookassa import Configuration, Refund as YooRefund
+
+        Configuration.account_id = settings.yookassa_shop_id
+        Configuration.secret_key = settings.yookassa_secret_key
+        refund = await asyncio.to_thread(YooRefund.find_one, provider_refund_id)
+        return refund.json()
+
 
 @dataclass(frozen=True)
 class CheckoutOrderResult:
@@ -84,6 +98,7 @@ class EventIntake:
     outcome: str
     expected_attempt_count: int | None
     provider_id: str
+    provider_object_id: str
     event_type: str
 
 
@@ -138,6 +153,7 @@ def _notification_fingerprint(body: dict, provider_id: str, event_type: str) -> 
         "event": event_type,
         "object_id": provider_id,
         "object_status": obj.get("status") if isinstance(obj.get("status"), str) else None,
+        "payment_id": obj.get("payment_id") if isinstance(obj.get("payment_id"), str) else None,
     }
     return hashlib.sha256(json.dumps(projection, sort_keys=True).encode()).hexdigest()
 
@@ -199,6 +215,19 @@ class FullMatrixCheckoutService:
             session.add(order)
             await session.commit()
             return CheckoutOrderResult(order.checkout_token, order.status)
+
+    async def checkout_page_is_available(self, checkout_token: str) -> bool:
+        """Resolve the opaque browser capability before rendering checkout."""
+        async with self._session_factory() as session:
+            order = await self._get_order_by_checkout_token(
+                session, checkout_token, lock=False
+            )
+            return bool(
+                order is not None
+                and order.user_id is not None
+                and order.status in {OrderStatus.CREATED, OrderStatus.PENDING}
+                and not _is_expired(order.checkout_expires_at)
+            )
 
     async def start_checkout(self, checkout_token: str, fiscal_email: str) -> str:
         """Create/reuse a YooKassa attempt.  Client controls neither product nor amount."""
@@ -270,21 +299,40 @@ class FullMatrixCheckoutService:
 
     async def process_webhook(self, body: dict) -> dict:
         """Claim the durable event before exactly one worker reads the provider."""
-        obj = body.get("object") if isinstance(body, dict) else None
-        provider_id = obj.get("id") if isinstance(obj, dict) else None
-        if not isinstance(provider_id, str) or not provider_id:
-            raise ValueError("invalid_webhook_payload")
         event_type = body.get("event") if isinstance(body.get("event"), str) else "unknown"
-        intake = await self._intake_event(provider_id, event_type, body)
+        if event_type not in FULL_MATRIX_WEBHOOK_EVENTS:
+            return {"status": "ok", "result": "unsupported_event"}
+        obj = body.get("object") if isinstance(body, dict) else None
+        provider_object_id = obj.get("id") if isinstance(obj, dict) else None
+        provider_id = (
+            obj.get("payment_id")
+            if event_type == "refund.succeeded" and isinstance(obj, dict)
+            else provider_object_id
+        )
+        if (
+            not isinstance(provider_object_id, str)
+            or not provider_object_id
+            or len(provider_object_id) > 100
+            or not isinstance(provider_id, str)
+            or not provider_id
+            or len(provider_id) > 100
+        ):
+            raise ValueError("invalid_webhook_payload")
+        intake = await self._intake_event(
+            provider_object_id, provider_id, event_type, body
+        )
         if intake.outcome != "claimed":
             return {"status": "ok", "result": intake.outcome}
         try:
+            refund = None
+            if event_type == "refund.succeeded":
+                refund = await self._provider.get_refund(provider_object_id)
             remote = await self._provider.get_payment(provider_id)
         except Exception:
             await self._mark_event_failed(intake, "provider_lookup_failed", retryable=True)
             return {"status": "ok", "result": "retryable_failure"}
         try:
-            return await self._complete_claimed_event(intake, remote)
+            return await self._complete_claimed_event(intake, remote, refund=refund)
         except ValueError as exc:
             await self._mark_event_failed(intake, str(exc), retryable=False)
             return {"status": "ok", "result": "verification_failed"}
@@ -292,23 +340,40 @@ class FullMatrixCheckoutService:
             await self._mark_event_failed(intake, "completion_failed", retryable=True)
             return {"status": "ok", "result": "retryable_failure"}
 
-    async def _intake_event(self, provider_id: str, event_type: str, body: dict) -> EventIntake:
-        dedup_key = hashlib.sha256(f"yookassa|{provider_id}|{event_type}".encode()).hexdigest()
+    async def _intake_event(
+        self,
+        provider_object_id: str,
+        provider_id: str,
+        event_type: str,
+        body: dict,
+    ) -> EventIntake:
+        dedup_key = hashlib.sha256(
+            f"yookassa|{provider_object_id}|{event_type}".encode()
+        ).hexdigest()
         now = _now()
         async with self._session_factory() as session:
             events = PaymentEventRepository(session)
             event, _, mismatch = await events.get_or_create_event(
                 provider="yookassa", provider_event_type=event_type,
-                provider_object_id=provider_id, provider_payment_id=provider_id,
+                provider_object_id=provider_object_id, provider_payment_id=provider_id,
                 order_id=None, payment_attempt_id=None, dedup_key=dedup_key,
                 provider_status="unverified", verified=False, processing_status="received",
                 attempt_count=0, retryable=False,
-                payload_fingerprint=_notification_fingerprint(body, provider_id, event_type),
+                payload_fingerprint=_notification_fingerprint(
+                    body, provider_object_id, event_type
+                ),
                 retain_until=_retain_until(now),
             )
             if mismatch:
                 await session.commit()
-                return EventIntake(event.id, "payload_mismatch", None, provider_id, event_type)
+                return EventIntake(
+                    event.id,
+                    "payload_mismatch",
+                    None,
+                    provider_id,
+                    provider_object_id,
+                    event_type,
+                )
             claim = await events.claim_event(event.id, now=now, claim_ttl=timedelta(seconds=settings.payment_event_claim_ttl_seconds))
             if claim is not None:
                 outcome = "claimed"
@@ -319,7 +384,14 @@ class FullMatrixCheckoutService:
             else:
                 outcome = "in_progress"
             await session.commit()
-            return EventIntake(event.id, outcome, claim.attempt_count if claim else None, provider_id, event_type)
+            return EventIntake(
+                event.id,
+                outcome,
+                claim.attempt_count if claim else None,
+                provider_id,
+                provider_object_id,
+                event_type,
+            )
 
     async def _mark_event_failed(self, intake: EventIntake, error_code: str, *, retryable: bool) -> None:
         async with self._session_factory() as session:
@@ -329,8 +401,14 @@ class FullMatrixCheckoutService:
             )
             await session.commit()
 
-    async def _complete_claimed_event(self, intake: EventIntake, remote: dict) -> dict:
+    async def _complete_claimed_event(
+        self, intake: EventIntake, remote: dict, *, refund: dict | None = None
+    ) -> dict:
         self._validate_remote(remote, intake.provider_id)
+        if intake.event_type == "refund.succeeded":
+            self._validate_refund(
+                refund, intake.provider_object_id, intake.provider_id
+            )
         metadata = remote.get("metadata")
         if not isinstance(metadata, dict) or metadata.get("product_code") != FULL_MATRIX_PRODUCT_CODE:
             raise ValueError("not_full_matrix_payment")
@@ -338,6 +416,13 @@ class FullMatrixCheckoutService:
         if not isinstance(public_id, str):
             raise ValueError("invalid_payment_metadata")
         async with self._session_factory() as session:
+            preliminary_order = await self._get_order(session, public_id, lock=False)
+            locked_user = (
+                await session.get(User, preliminary_order.user_id, with_for_update=True)
+                if preliminary_order is not None
+                and preliminary_order.user_id is not None
+                else None
+            )
             order = await self._get_order(session, public_id, lock=True)
             attempt = (await session.execute(select(PaymentAttempt).where(PaymentAttempt.provider_payment_id == intake.provider_id).with_for_update())).scalar_one_or_none()
             if order is None or attempt is None or attempt.order_id != order.id:
@@ -349,36 +434,65 @@ class FullMatrixCheckoutService:
             if event is None or event.processing_status != "processing" or event.attempt_count != intake.expected_attempt_count:
                 return {"status": "ok", "result": "fenced"}
             event.order_id, event.payment_attempt_id = order.id, attempt.id
-            event.provider_status, event.verified = str(remote.get("status")), True
+            event.verified = True
+            if event.anonymized_at is None:
+                anonymized_source = (
+                    attempt if attempt.anonymized_at is not None else order
+                )
+                if anonymized_source.anonymized_at is not None:
+                    event.anonymized_at = anonymized_source.anonymized_at
+                    event.anonymization_reason = (
+                        anonymized_source.anonymization_reason
+                    )
             status = str(remote.get("status"))
-            if status == "succeeded" and remote.get("paid") is True:
+            if intake.event_type == "refund.succeeded":
+                status = "refunded"
+            event.provider_status = status
+            if (
+                intake.event_type == "payment.succeeded"
+                and status == "succeeded"
+                and remote.get("paid") is True
+            ):
                 if order.status not in {OrderStatus.CREATED, OrderStatus.PENDING}:
                     await PaymentEventRepository(session).mark_processed(event.id, expected_attempt_count=intake.expected_attempt_count or 0, now=now)
                     await session.commit()
                     return {"status": "ok", "result": "idempotent"}
                 report = await self._create_or_get_paid_report(session, order, now)
-                user = await session.get(User, order.user_id, with_for_update=True)
-                if user is None:
+                if locked_user is None or locked_user.id != order.user_id:
                     raise ValueError("order_user_not_found")
                 attempt.status, attempt.paid_at = "succeeded", now
                 order.status, order.paid_at = OrderStatus.PAID, now
                 order.checkout_token, order.checkout_expires_at = None, None
                 order.activation_started_at = now
                 await ReportLifecycleService(session).confirm_order_and_prepare_generation(report.id, order.id, now)
-                user.has_matrix, order.activated_at = True, now
+                locked_user.has_matrix, order.activated_at = True, now
                 await PaymentEventRepository(session).mark_processed(event.id, expected_attempt_count=intake.expected_attempt_count or 0, now=now)
                 await session.commit()
                 return {"status": "ok", "result": "activated", "order_id": order.public_id}
             if status == "canceled" and order.status in {OrderStatus.CREATED, OrderStatus.PENDING}:
                 attempt.status, attempt.canceled_at = "canceled", now
                 order.status, order.canceled_at = OrderStatus.CANCELED, now
-            elif status == "refunded" and order.status == OrderStatus.PAID:
-                attempt.status, attempt.refunded_at = "refunded", now
-                order.status, order.refunded_at = OrderStatus.REFUNDED, now
-                if order.user_id is not None:
-                    user = await session.get(User, order.user_id, with_for_update=True)
-                    if user is not None:
-                        user.has_matrix = False
+            elif status == "refunded" and order.status in {
+                OrderStatus.CREATED,
+                OrderStatus.PENDING,
+                OrderStatus.PAID,
+            }:
+                attempt.status = "refunded"
+                attempt.paid_at = attempt.paid_at or now
+                attempt.refunded_at = now
+                attempt.canceled_at = None
+                order.status = OrderStatus.REFUNDED
+                order.paid_at = order.paid_at or now
+                order.refunded_at = now
+                order.canceled_at = None
+                order.checkout_token = None
+                order.checkout_expires_at = None
+                if order.report_id is not None:
+                    await ReportLifecycleRepository(
+                        session
+                    ).revoke_unfinished_order_report(order.report_id, now)
+                if locked_user is not None and locked_user.id == order.user_id:
+                    locked_user.has_matrix = False
             await PaymentEventRepository(session).mark_processed(event.id, expected_attempt_count=intake.expected_attempt_count or 0, now=now)
             await session.commit()
             return {"status": "ok", "result": status}
@@ -402,6 +516,54 @@ class FullMatrixCheckoutService:
             or amount.get("currency") != FULL_MATRIX_CURRENCY
         ):
             raise ValueError("provider_payment_mismatch")
+
+    @staticmethod
+    def _validate_refund(
+        refund: dict | None, provider_refund_id: str, provider_payment_id: str
+    ) -> None:
+        amount = refund.get("amount") if isinstance(refund, dict) else None
+        if (
+            not isinstance(refund, dict)
+            or refund.get("id") != provider_refund_id
+            or refund.get("payment_id") != provider_payment_id
+            or refund.get("status") != "succeeded"
+            or not isinstance(amount, dict)
+            or amount.get("value") != FULL_MATRIX_AMOUNT_VALUE
+            or amount.get("currency") != FULL_MATRIX_CURRENCY
+        ):
+            raise ValueError("provider_refund_mismatch")
+
+    async def handles_webhook(self, body: dict) -> bool:
+        """Route production-shaped full-Matrix notifications without trusting metadata."""
+        event_type = body.get("event") if isinstance(body, dict) else None
+        obj = body.get("object") if isinstance(body, dict) else None
+        if event_type == "refund.succeeded":
+            provider_object_id = obj.get("id") if isinstance(obj, dict) else None
+            payment_id = obj.get("payment_id") if isinstance(obj, dict) else None
+            if (
+                not isinstance(provider_object_id, str)
+                or not provider_object_id
+                or len(provider_object_id) > 100
+                or not isinstance(payment_id, str)
+                or not payment_id
+                or len(payment_id) > 100
+            ):
+                return True
+            async with self._session_factory() as session:
+                attempt_id = (
+                    await session.execute(
+                        select(PaymentAttempt.id).where(
+                            PaymentAttempt.provider == "yookassa",
+                            PaymentAttempt.provider_payment_id == payment_id,
+                        )
+                    )
+                ).scalar_one_or_none()
+                return attempt_id is not None
+        metadata = obj.get("metadata") if isinstance(obj, dict) else None
+        return bool(
+            isinstance(metadata, dict)
+            and metadata.get("product_code") == FULL_MATRIX_PRODUCT_CODE
+        )
 
     @staticmethod
     async def _get_order(session: AsyncSession, public_id: str, lock: bool) -> Order | None:

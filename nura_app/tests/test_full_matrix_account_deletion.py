@@ -150,3 +150,29 @@ async def test_account_deletion_rolls_back_retention_mutations_on_failure(db_eng
             for delivery_id in delivery_ids
         ]
         assert all(delivery is not None for delivery in stored_deliveries)
+
+
+@pytest.mark.asyncio
+async def test_account_deletion_retry_clears_redis_after_post_commit_failure(
+    db_engine, test_user
+):
+    class FailOnceRedis:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.deleted: tuple[str, ...] = ()
+
+        async def delete(self, *keys: str) -> None:
+            self.calls += 1
+            if self.calls == 1:
+                raise RuntimeError("redis_temporarily_unavailable")
+            self.deleted = keys
+
+    factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    redis = FailOnceRedis()
+    service = AccountDeletionService(factory, redis)
+    with pytest.raises(RuntimeError, match="redis_temporarily_unavailable"):
+        await service.delete(test_user.id)
+    async with factory() as session:
+        assert await session.get(User, test_user.id) is None
+    await service.delete(test_user.id)
+    assert redis.calls == 2 and len(redis.deleted) == 2

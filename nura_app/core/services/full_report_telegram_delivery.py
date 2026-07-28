@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import uuid
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
+
+from sqlalchemy import select
 
 from core.config import settings
 from core.models import Order, OrderStatus, Report, ReportGenerationState, ReportType, User
@@ -66,55 +69,48 @@ class FullReportTelegramDeliveryService:
         delivery = await self._deliveries.get(delivery_id)
         if delivery is None:
             return
-        subject = await self._subject(delivery.report_id, delivery.user_id)
-        if subject is None:
-            await self._deliveries.cancel(delivery_id, attempt)
-            return
-        report, user, _order = subject
-        if not user.telegram_id:
-            await self._deliveries.cancel(delivery_id, attempt)
-            return
         caption = (
             "<b>Твоя полная Матрица готова.</b>\n"
             "Я собрала разбор в PDF, чтобы к нему можно было спокойно возвращаться."
         )
         try:
-            canonical_file_id = await self._deliveries.get_canonical_file_id(
-                report.id
-            )
-            if canonical_file_id:
-                refreshed = await self._subject(delivery.report_id, delivery.user_id)
-                if refreshed is None:
+            async with self._locked_subject(
+                delivery.report_id, delivery.user_id
+            ) as subject:
+                if subject is None:
                     await self._deliveries.cancel(delivery_id, attempt)
                     return
-                report, user, _order = refreshed
-                try:
-                    document = await self._adapter.send_document_by_file_id(
-                        user.telegram_id, canonical_file_id, caption
-                    )
-                except TelegramDeliveryError as error:
-                    if error.code != "invalid_file_id":
-                        raise
-                    refreshed = await self._subject(
-                        delivery.report_id, delivery.user_id
-                    )
-                    if refreshed is None:
-                        await self._deliveries.cancel(delivery_id, attempt)
-                        return
-                    report, user, _order = refreshed
+                report, user, _order = subject
+                if not user.telegram_id:
+                    await self._deliveries.cancel(delivery_id, attempt)
+                    return
+                canonical_file_id = await self._deliveries.get_canonical_file_id(
+                    report.id
+                )
+                if canonical_file_id:
+                    try:
+                        document = await self._adapter.send_document_by_file_id(
+                            user.telegram_id, canonical_file_id, caption
+                        )
+                    except TelegramDeliveryError as error:
+                        if error.code != "invalid_file_id":
+                            raise
+                        document = await self._upload_artifact(
+                            report, report.artifact_bytes, user.telegram_id, caption
+                        )
+                else:
                     document = await self._upload_artifact(
                         report, report.artifact_bytes, user.telegram_id, caption
                     )
-            else:
-                refreshed = await self._subject(delivery.report_id, delivery.user_id)
-                if refreshed is None:
-                    await self._deliveries.cancel(delivery_id, attempt)
-                    return
-                report, user, _order = refreshed
-                document = await self._upload_artifact(
-                    report, report.artifact_bytes, user.telegram_id, caption
+                # Keep the paid-order lock until both the external send and durable
+                # completion are done. Refunds therefore linearize strictly before
+                # or after the delivery, never between entitlement check and send.
+                await self._deliveries.complete(
+                    delivery_id,
+                    attempt,
+                    message_id=document.message_id,
+                    file_id=document.file_id,
                 )
-            await self._deliveries.complete(delivery_id, attempt, message_id=document.message_id, file_id=document.file_id)
         except TelegramDeliveryError as error:
             await self._deliveries.fail(delivery_id, attempt, error.code, retryable=error.retryable)
             raise
@@ -152,6 +148,39 @@ class FullReportTelegramDeliveryService:
             if order is None or order.status != OrderStatus.PAID:
                 return None
             return report, user, order
+
+    @asynccontextmanager
+    async def _locked_subject(
+        self, report_id: uuid.UUID, user_id: uuid.UUID | None = None
+    ) -> AsyncIterator[tuple[Report, User, Order] | None]:
+        """Hold the paid order lock across the Telegram send linearization point."""
+        async with self._session_factory() as session:
+            order_id = await session.scalar(
+                select(Report.order_id).where(Report.id == report_id)
+            )
+            order = (
+                await session.execute(
+                    select(Order).where(Order.id == order_id).with_for_update()
+                )
+            ).scalar_one_or_none()
+            report = await session.get(Report, report_id)
+            user = await session.get(User, report.user_id) if report else None
+            eligible = bool(
+                report
+                and report.report_type == ReportType.FULL.value
+                and report.generation_state == ReportGenerationState.COMPLETED
+                and (user_id is None or report.user_id == user_id)
+                and user
+                and user.account_status == "active"
+                and user.has_matrix
+                and order
+                and order.report_id == report.id
+                and order.status == OrderStatus.PAID
+            )
+            if not eligible:
+                yield None
+                return
+            yield report, user, order
 
     @staticmethod
     def _valid_artifact(report: Report, artifact: bytes | None) -> bool:

@@ -237,7 +237,6 @@ class DailyTarotDraw(Base):
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    retryable: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     error_code: Mapped[str | None] = mapped_column(String(64))
     error_detail: Mapped[str | None] = mapped_column(String(256))
     created_at: Mapped[datetime] = mapped_column(

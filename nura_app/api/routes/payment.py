@@ -67,10 +67,9 @@ async def payment_webhook(request: Request):
     if not isinstance(data, dict):
         raise HTTPException(status_code=400, detail="invalid_webhook_payload")
     try:
-        raw_object = data.get("object")
-        raw_metadata = raw_object.get("metadata") if isinstance(raw_object, dict) else None
-        if isinstance(raw_metadata, dict) and raw_metadata.get("product_code") == "full_matrix":
-            result = await FullMatrixCheckoutService(get_async_sessionmaker()).process_webhook(data)
+        full_matrix_service = FullMatrixCheckoutService(get_async_sessionmaker())
+        if await full_matrix_service.handles_webhook(data):
+            result = await full_matrix_service.process_webhook(data)
             if result.get("result") == "retryable_failure":
                 raise HTTPException(
                     status_code=503,
@@ -98,6 +97,10 @@ async def payment_webhook(request: Request):
 async def full_matrix_checkout_page(request: Request, public_id: str) -> HTMLResponse:
     # The opaque id is an authorization capability; never expose user or payment data.
     if len(public_id) < 40 or len(public_id) > 64:
+        raise HTTPException(status_code=404, detail="checkout_not_found")
+    if not await FullMatrixCheckoutService(
+        get_async_sessionmaker()
+    ).checkout_page_is_available(public_id):
         raise HTTPException(status_code=404, detail="checkout_not_found")
     body = (
         "<!doctype html><html lang='ru'><meta charset='utf-8'><meta name='robots' content='noindex'>"

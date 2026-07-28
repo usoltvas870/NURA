@@ -5,7 +5,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from core.config import settings
-from core.models import Order, OrderStatus, PaymentAttempt, PaymentEvent, Report, ReportGenerationJob, User
+from core.models import (
+    Order,
+    OrderStatus,
+    PaymentAttempt,
+    PaymentEvent,
+    Report,
+    ReportGenerationJob,
+    ReportGenerationJobState,
+    ReportGenerationState,
+    User,
+)
+from core.repositories.report_lifecycle import ReportGenerationErrorCategory
 from core.services.full_matrix_checkout import FullMatrixCheckoutService
 
 
@@ -22,6 +33,8 @@ class FakeYooKassa:
         self.created: list[tuple[str, dict]] = []
         self.remote: dict = {}
         self.get_calls = 0
+        self.refund: dict = {}
+        self.refund_calls = 0
 
     async def create_payment(self, *, idempotency_key: str, payload: dict) -> dict:
         self.created.append((idempotency_key, payload))
@@ -40,6 +53,11 @@ class FakeYooKassa:
         self.get_calls += 1
         assert provider_payment_id == self.remote["id"]
         return self.remote
+
+    async def get_refund(self, provider_refund_id: str) -> dict:
+        self.refund_calls += 1
+        assert provider_refund_id == self.refund["id"]
+        return self.refund
 
 
 @pytest.mark.asyncio
@@ -136,3 +154,180 @@ async def test_pending_checkout_rejects_a_different_fiscal_email(db_engine, test
     with pytest.raises(ValueError, match="checkout_email_conflict"):
         await service.start_checkout(order.checkout_token, "other@example.test")
     assert len(provider.created) == 1
+
+
+@pytest.mark.asyncio
+async def test_unsupported_webhook_event_never_activates_order(
+    db_engine, test_user
+):
+    """Only explicitly supported provider events may reach activation logic."""
+    factory = async_sessionmaker(
+        db_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    provider = FakeYooKassa()
+    service = FullMatrixCheckoutService(factory, provider)
+    order = await service.create_or_get_order(user_id=test_user.id)
+    await service.start_checkout(order.checkout_token, "buyer@example.test")
+    provider.remote.update({"status": "succeeded", "paid": True})
+
+    result = await service.process_webhook(
+        {"event": "payment.unsupported", "object": {"id": provider.remote["id"]}}
+    )
+
+    assert result == {"status": "ok", "result": "unsupported_event"}
+    assert provider.get_calls == 0
+    async with factory() as session:
+        stored_order = (await session.execute(select(Order))).scalar_one()
+        stored_user = await session.get(User, test_user.id)
+        assert stored_order.status == OrderStatus.PENDING
+        assert stored_order.report_id is None
+        assert stored_user is not None and stored_user.has_matrix is False
+        assert (await session.execute(select(Report))).scalars().all() == []
+        assert (
+            await session.execute(select(ReportGenerationJob))
+        ).scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_production_shaped_full_refund_revokes_entitlement(
+    db_engine, test_user
+):
+    factory = async_sessionmaker(
+        db_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    provider = FakeYooKassa()
+    service = FullMatrixCheckoutService(factory, provider)
+    order = await service.create_or_get_order(user_id=test_user.id)
+    await service.start_checkout(order.checkout_token, "buyer@example.test")
+    provider.remote.update({"status": "succeeded", "paid": True})
+    await service.process_webhook(
+        {"event": "payment.succeeded", "object": {"id": provider.remote["id"]}}
+    )
+    provider.refund = {
+        "id": "fake-refund-1",
+        "payment_id": provider.remote["id"],
+        "status": "succeeded",
+        "amount": {"value": "890.00", "currency": "RUB"},
+    }
+
+    payload = {
+        "event": "refund.succeeded",
+        "object": {
+            "id": provider.refund["id"],
+            "payment_id": provider.remote["id"],
+        },
+    }
+    assert await service.handles_webhook(payload) is True
+    assert (await service.process_webhook(payload))["result"] == "refunded"
+    assert (await service.process_webhook(payload))["result"] == "already_processed"
+    assert provider.refund_calls == 1
+
+    async with factory() as session:
+        stored_order = (await session.execute(select(Order))).scalar_one()
+        stored_attempt = (await session.execute(select(PaymentAttempt))).scalar_one()
+        stored_report = (await session.execute(select(Report))).scalar_one()
+        stored_job = (await session.execute(select(ReportGenerationJob))).scalar_one()
+        stored_user = await session.get(User, test_user.id)
+        events = (await session.execute(select(PaymentEvent))).scalars().all()
+        assert stored_order.status == OrderStatus.REFUNDED
+        assert stored_attempt.status == "refunded"
+        assert stored_report.generation_state == ReportGenerationState.FAILED_TERMINAL
+        assert (
+            stored_report.generation_error_category
+            == ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+        )
+        assert stored_report.artifact_bytes is None
+        assert stored_job.state == ReportGenerationJobState.FAILED_TERMINAL
+        assert (
+            stored_job.last_error_category
+            == ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+        )
+        assert stored_user is not None and stored_user.has_matrix is False
+        assert {event.provider_event_type for event in events} == {
+            "payment.succeeded",
+            "refund.succeeded",
+        }
+        assert events[1].provider_object_id == provider.refund["id"]
+        assert events[1].provider_payment_id == provider.remote["id"]
+        assert events[1].provider_status == "refunded"
+        assert len(events) == 2
+
+
+@pytest.mark.asyncio
+async def test_refund_before_payment_webhook_permanently_blocks_activation(
+    db_engine, test_user
+):
+    factory = async_sessionmaker(
+        db_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    provider = FakeYooKassa()
+    service = FullMatrixCheckoutService(factory, provider)
+    order = await service.create_or_get_order(user_id=test_user.id)
+    await service.start_checkout(order.checkout_token, "buyer@example.test")
+    provider.remote.update({"status": "succeeded", "paid": True})
+    provider.refund = {
+        "id": "fake-refund-before-payment-event",
+        "payment_id": provider.remote["id"],
+        "status": "succeeded",
+        "amount": {"value": "890.00", "currency": "RUB"},
+    }
+    refund_payload = {
+        "event": "refund.succeeded",
+        "object": {
+            "id": provider.refund["id"],
+            "payment_id": provider.remote["id"],
+        },
+    }
+
+    assert (await service.process_webhook(refund_payload))["result"] == "refunded"
+    assert (
+        await service.process_webhook(
+            {
+                "event": "payment.succeeded",
+                "object": {"id": provider.remote["id"]},
+            }
+        )
+    )["result"] == "idempotent"
+    assert (await service.process_webhook(refund_payload))["result"] == "already_processed"
+
+    async with factory() as session:
+        stored_order = (await session.execute(select(Order))).scalar_one()
+        stored_attempt = (await session.execute(select(PaymentAttempt))).scalar_one()
+        stored_user = await session.get(User, test_user.id)
+        assert stored_order.status == OrderStatus.REFUNDED
+        assert stored_order.paid_at is not None and stored_order.refunded_at is not None
+        assert stored_order.report_id is None
+        assert stored_attempt.status == "refunded"
+        assert stored_attempt.paid_at is not None and stored_attempt.refunded_at is not None
+        assert stored_user is not None and stored_user.has_matrix is False
+        assert (await session.execute(select(Report))).scalars().all() == []
+        assert (
+            await session.execute(select(ReportGenerationJob))
+        ).scalars().all() == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("refund_id", "payment_id"),
+    [
+        ("refund-id", {"bad": "id"}),
+        ("refund-id", ["bad-id"]),
+        ("refund-id", "x" * 101),
+        ("x" * 101, "payment-id"),
+    ],
+)
+async def test_malformed_refund_ids_are_rejected_before_sql(
+    db_engine, refund_id, payment_id
+):
+    factory = async_sessionmaker(
+        db_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    service = FullMatrixCheckoutService(factory, FakeYooKassa())
+    payload = {
+        "event": "refund.succeeded",
+        "object": {"id": refund_id, "payment_id": payment_id},
+    }
+
+    assert await service.handles_webhook(payload) is True
+    with pytest.raises(ValueError, match="invalid_webhook_payload"):
+        await service.process_webhook(payload)

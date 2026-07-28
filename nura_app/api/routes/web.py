@@ -790,7 +790,7 @@ async def delete_account(
     user: User = Depends(get_current_web_user),
 ):
     session_factory = get_async_sessionmaker()
-    await AccountDeletionService(session_factory).delete(user.id)
+    await AccountDeletionService(session_factory, get_redis()).delete(user.id)
 
     clear_session_cookie(response)
     return {"ok": True}

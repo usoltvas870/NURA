@@ -12,6 +12,8 @@ from sqlalchemy.pool import NullPool
 
 from core.models import (
     Base,
+    Order,
+    OrderStatus,
     Payment,
     Report,
     ReportGenerationJob,
@@ -128,6 +130,36 @@ async def _create_paid_queued_report(
     return report, job, payment
 
 
+async def _create_order_confirmed_queued_report(
+    session: AsyncSession,
+    *,
+    user_id: uuid.UUID,
+    token: str,
+    order_status: str = OrderStatus.PAID,
+) -> tuple[Report, ReportGenerationJob]:
+    report = Report(
+        id=uuid.uuid4(), user_id=user_id, report_type=ReportType.FULL.value,
+        token=token, payment_state=ReportPaymentState.PAYMENT_CONFIRMED,
+        payment_confirmed_at=_now(), generation_state=ReportGenerationState.QUEUED,
+    )
+    session.add(report)
+    await session.flush()
+    order = Order(
+        id=uuid.uuid4(), public_id=f"worker-order-{uuid.uuid4().hex}", user_id=user_id,
+        amount_kopecks=89000,
+        status=order_status,
+        paid_at=_now(),
+        refunded_at=_now() if order_status == OrderStatus.REFUNDED else None,
+        report_id=report.id, idempotency_key=uuid.uuid4().hex,
+    )
+    report.order_id = order.id
+    job = ReportGenerationJob(id=uuid.uuid4(), report_id=report.id, job_type="full_report",
+                              state=ReportGenerationJobState.QUEUED)
+    session.add_all([order, job])
+    await session.commit()
+    return report, job
+
+
 async def _snapshots(
     session_factory: async_sessionmaker, report_id: uuid.UUID, job_id: uuid.UUID
 ) -> tuple[Report, ReportGenerationJob]:
@@ -175,6 +207,94 @@ async def test_user(sf):
 
 
 class TestWorkerClaim:
+    @pytest.mark.asyncio
+    async def test_order_confirmed_report_without_legacy_payment_is_claimed(self, sf, test_user):
+        async with sf() as s:
+            report, job = await _create_order_confirmed_queued_report(
+                s, user_id=test_user.id, token="worker-order-confirmed"
+            )
+        generator = FakeGenerator([_sample_generator_result()])
+
+        result = await MatrixReportGenerationWorker(sf, generator).process(
+            job_id=job.id, report_id=report.id
+        )
+
+        assert result.disposition.value == "completed"
+        assert generator.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_refunded_order_is_not_claimed(self, sf, test_user):
+        async with sf() as s:
+            report, job = await _create_order_confirmed_queued_report(
+                s,
+                user_id=test_user.id,
+                token="worker-order-refunded-before-claim",
+                order_status=OrderStatus.REFUNDED,
+            )
+        generator = FakeGenerator([_sample_generator_result()])
+
+        result = await MatrixReportGenerationWorker(sf, generator).process(
+            job_id=job.id, report_id=report.id
+        )
+
+        assert result.disposition.value == "terminal_failure"
+        assert result.error_category == ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+        assert generator.call_count == 0
+        stored_report, stored_job = await _snapshots(sf, report.id, job.id)
+        assert stored_report.generation_state == ReportGenerationState.QUEUED
+        assert stored_report.artifact_bytes is None
+        assert stored_job.state == ReportGenerationJobState.QUEUED
+
+    @pytest.mark.asyncio
+    async def test_refund_immediately_before_persist_discards_artifact(
+        self, sf, test_user
+    ):
+        async with sf() as s:
+            report, job = await _create_order_confirmed_queued_report(
+                s, user_id=test_user.id, token="worker-refund-before-persist"
+            )
+
+        persist_ready = asyncio.Event()
+        persist_release = asyncio.Event()
+
+        class PersistFenceWorker(MatrixReportGenerationWorker):
+            async def _persist_success(
+                self,
+                report_id: uuid.UUID,
+                generator_result: MatrixReportGeneratorResult,
+                artifact: bytes,
+            ) -> str:
+                persist_ready.set()
+                await persist_release.wait()
+                return await super()._persist_success(
+                    report_id, generator_result, artifact
+                )
+
+        worker = PersistFenceWorker(sf, FakeGenerator([_sample_generator_result()]))
+        task = asyncio.create_task(worker.process(job_id=job.id, report_id=report.id))
+        await asyncio.wait_for(persist_ready.wait(), timeout=10)
+        async with sf() as s:
+            order = (
+                await s.execute(select(Order).where(Order.report_id == report.id))
+            ).scalar_one()
+            order.status = OrderStatus.REFUNDED
+            order.refunded_at = _now()
+            await s.commit()
+        persist_release.set()
+        result = await asyncio.wait_for(task, timeout=10)
+
+        assert result.disposition.value == "terminal_failure"
+        assert result.error_category == ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+        stored_report, stored_job = await _snapshots(sf, report.id, job.id)
+        assert stored_report.generation_state == ReportGenerationState.FAILED_TERMINAL
+        assert (
+            stored_report.generation_error_category
+            == ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+        )
+        assert stored_report.artifact_bytes is None
+        assert stored_report.ai_analysis is None
+        assert stored_job.state == ReportGenerationJobState.FAILED_TERMINAL
+
     @pytest.mark.asyncio
     async def test_paid_queued_report_is_claimed(self, sf, test_user):
         async with sf() as s:

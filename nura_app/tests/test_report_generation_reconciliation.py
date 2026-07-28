@@ -13,6 +13,7 @@ from sqlalchemy.pool import NullPool
 from core.models import (
     Base,
     Order,
+    OrderStatus,
     Payment,
     PromoCode,
     PromoReservation,
@@ -391,6 +392,44 @@ class TestDueRetryPromotion:
         assert stored_job.attempts == 1
 
     @pytest.mark.asyncio
+    async def test_refunded_order_retry_is_not_promoted(self, sf, test_user):
+        now = _now()
+        async with sf() as s:
+            report, job = await _create_report_and_job(
+                s,
+                user_id=test_user.id,
+                token="rec-refunded-retry",
+                generation_state=ReportGenerationState.FAILED_RETRYABLE,
+                job_state=ReportGenerationJobState.FAILED_RETRYABLE,
+                next_attempt_at=now - timedelta(seconds=1),
+            )
+            report.payment_id = None
+            order = Order(
+                id=uuid.uuid4(),
+                public_id=f"rec-refunded-{uuid.uuid4().hex}",
+                user_id=test_user.id,
+                amount_kopecks=89000,
+                status=OrderStatus.REFUNDED,
+                paid_at=now,
+                refunded_at=now,
+                report_id=report.id,
+                idempotency_key=uuid.uuid4().hex,
+            )
+            report.order_id = order.id
+            s.add(order)
+            await s.commit()
+
+        result = await _reconciler(sf).reconcile_batch(now=now, limit=10)
+
+        assert result.retries_promoted == 0
+        assert result.terminalized == 0
+        async with sf() as s:
+            stored_report = await s.get(Report, report.id)
+            stored_job = await s.get(ReportGenerationJob, job.id)
+        assert stored_report.generation_state == ReportGenerationState.FAILED_RETRYABLE
+        assert stored_job.state == ReportGenerationJobState.FAILED_RETRYABLE
+
+    @pytest.mark.asyncio
     async def test_future_retry_pair_is_not_promoted(self, sf, test_user):
         now = _now()
         async with sf() as s:
@@ -505,6 +544,34 @@ class TestMissingJobRepair:
         assert len(jobs) == 1
         assert jobs[0].job_type == "full_report"
         assert jobs[0].state == ReportGenerationJobState.PENDING_DISPATCH
+
+    @pytest.mark.asyncio
+    async def test_missing_job_for_order_confirmed_report_is_created(self, sf, test_user):
+        async with sf() as s:
+            report = Report(
+                id=uuid.uuid4(), user_id=test_user.id, report_type="full",
+                token="rec-missing-order-job", payment_state=ReportPaymentState.PAYMENT_CONFIRMED,
+                payment_confirmed_at=_now(), generation_state=ReportGenerationState.PENDING_DISPATCH,
+            )
+            s.add(report)
+            await s.flush()
+            order = Order(
+                id=uuid.uuid4(), public_id=f"rec-order-{uuid.uuid4().hex}", user_id=test_user.id,
+                amount_kopecks=89000, status="paid", paid_at=_now(), report_id=report.id,
+                idempotency_key=uuid.uuid4().hex,
+            )
+            report.order_id = order.id
+            s.add(order)
+            await s.commit()
+
+        result = await _reconciler(sf).reconcile_batch(now=_now(), limit=10)
+
+        assert result.missing_jobs_repaired == 1
+        async with sf() as s:
+            job = (await s.execute(select(ReportGenerationJob).where(
+                ReportGenerationJob.report_id == report.id
+            ))).scalar_one()
+        assert job.state == ReportGenerationJobState.PENDING_DISPATCH
 
     @pytest.mark.asyncio
     async def test_missing_job_for_unpaid_report_not_created(self, sf, test_user):

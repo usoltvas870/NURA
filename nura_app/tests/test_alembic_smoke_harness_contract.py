@@ -21,6 +21,7 @@ DAILY_TAROT_PATH = TOOLS_ROOT / "daily_tarot_postgres_smoke.py"
 PAYMENT_EVENT_RACE_PATH = TOOLS_ROOT / "full_matrix_payment_event_postgres_race.py"
 FULL_DELIVERY_RACE_PATH = TOOLS_ROOT / "full_report_telegram_delivery_postgres_race.py"
 RUNNER_PATH = TOOLS_ROOT / "run_alembic_postgres_smoke.py"
+SOURCE_BASELINE_HEAD = "61977175ef3b88fad618674fca2554db60aae379"
 HARNESS_PATHS = (
     BOOTSTRAP_PATH,
     FK_PATH,
@@ -31,32 +32,84 @@ HARNESS_PATHS = (
     PAYMENT_EVENT_RACE_PATH,
     FULL_DELIVERY_RACE_PATH,
 )
-ALLOWLIST = {
-    "STATE.md",
-    "nura_app/alembic/versions/f9a0b1c2d3e4_add_full_report_telegram_delivery.py",
-    "nura_app/bot/handlers/profile.py",
+PRODUCTION_BASELINE_PATHS = (
+    "nura_app/api/logging.py",
+    "nura_app/api/main.py",
+    "nura_app/api/routes/payment.py",
+    "nura_app/api/routes/reports.py",
+    "nura_app/api/routes/web.py",
+    "nura_app/bot/handlers/errors.py",
+    "nura_app/bot/handlers/start.py",
+    "nura_app/bot/main.py",
+    "nura_app/core/config.py",
     "nura_app/core/models.py",
-    "nura_app/core/repositories/__init__.py",
-    "nura_app/core/repositories/full_report_telegram_delivery.py",
     "nura_app/core/repositories/report.py",
-    "nura_app/core/services/matrix_report_worker.py",
-    "nura_app/core/services/full_report_telegram_delivery.py",
+    "nura_app/core/repositories/report_lifecycle.py",
     "nura_app/core/services/account_deletion.py",
-    "nura_app/core/services/my_reports.py",
-    "nura_app/core/services/report_generation_reconciliation.py",
+    "nura_app/core/services/full_matrix_checkout.py",
+    "nura_app/core/services/full_report_telegram_delivery.py",
+    "nura_app/core/services/matrix_report_worker.py",
     "nura_app/core/services/telegram_report_delivery.py",
-    "nura_app/core/tasks.py",
+)
+TEST_BASELINE_PATHS = (
+    "nura_app/tests/conftest.py",
     "nura_app/tests/test_alembic_smoke_harness_contract.py",
-    "nura_app/tests/test_alembic_bootstrap_contract.py",
-    "nura_app/tests/test_alembic_fk_normalization_contract.py",
-    "nura_app/tests/test_attribution_migration_contract.py",
-    "nura_app/tests/test_celery_async_task_contract.py",
-    "nura_app/tests/test_full_report_telegram_delivery.py",
+    "nura_app/tests/test_daily_tarot_migration_contract.py",
     "nura_app/tests/test_full_matrix_account_deletion.py",
-    "nura_app/tests/test_mini_report_generation_migration_contract.py",
+    "nura_app/tests/test_full_matrix_checkout.py",
+    "nura_app/tests/test_full_report_telegram_delivery.py",
+    "nura_app/tests/test_matrix_report_worker_lifecycle.py",
+    "nura_app/tests/test_mini_report_telegram_delivery.py",
     "nura_app/tests/test_report_generation_reconciliation.py",
-    "nura_app/tests/test_report_lifecycle_schema_foundation.py",
-    "nura_app/tools/full_report_telegram_delivery_postgres_race.py",
+    "nura_app/tests/test_sandbox_settings_isolation.py",
+    "nura_app/tests/test_security_rendering_gate.py",
+    "nura_app/tests/test_telegram_first_postgres_failure_retry.py",
+    "nura_app/tests/test_telegram_first_postgres_golden_path.py",
+    "nura_app/tests/test_telegram_first_safe_suite_contract.py",
+    "nura_app/tests/test_telegram_first_security_acceptance.py",
+    "nura_app/tests/test_telegram_first_service_boot.py",
+)
+TOOLING_BASELINE_PATHS = (
+    "nura_app/tools/sitecustomize.py",
+    "nura_app/tools/telegram_first_bot_boot_probe.py",
+    "nura_app/tools/telegram_first_safe_suite.py",
+    "nura_app/tools/telegram_first_sandbox_acceptance.py",
+    "nura_app/tools/telegram_first_security_context.py",
+    "nura_app/tools/telegram_first_security_guard.py",
+    "nura_app/tools/telegram_first_sentry_probe.py",
+    "nura_app/tools/telegram_first_service_boot.py",
+)
+CODE_BASELINE_PATHS = frozenset(
+    (*PRODUCTION_BASELINE_PATHS, *TEST_BASELINE_PATHS, *TOOLING_BASELINE_PATHS)
+)
+CRITICAL_TELEGRAM_FIRST_ARTIFACTS = {
+    "nura_app/api/logging.py",
+    "nura_app/bot/main.py",
+    "nura_app/tests/test_alembic_smoke_harness_contract.py",
+    "nura_app/tests/test_telegram_first_postgres_failure_retry.py",
+    "nura_app/tests/test_telegram_first_postgres_golden_path.py",
+    "nura_app/tests/test_telegram_first_safe_suite_contract.py",
+    "nura_app/tests/test_telegram_first_security_acceptance.py",
+    "nura_app/tests/test_telegram_first_service_boot.py",
+    "nura_app/tools/telegram_first_safe_suite.py",
+    "nura_app/tools/telegram_first_sandbox_acceptance.py",
+    "nura_app/tools/telegram_first_security_guard.py",
+    "nura_app/tools/telegram_first_service_boot.py",
+}
+ROOT_DOCUMENTATION_PATHS = {
+    "ADMIN_BOT_SPEC.md",
+    "AGENTS.md",
+    "AGENTS_TODO.md",
+    "AUTH_REMAINING_TASKS.md",
+    "DEPLOY.md",
+    "NURA_SITE_QA_AUDIT_2026-07-06.md",
+    "PLAN.md",
+    "industry-standard-analysis.md",
+    "pricing-vs-report-analysis.md",
+}
+NESTED_DOCUMENTATION_PATHS = {
+    "frontend/pwa/app/AGENTS.md",
+    "nura_app/templates/reports/AGENTS.md",
 }
 
 
@@ -290,8 +343,11 @@ def test_no_production_stamp_guidance() -> None:
         assert "production stamp" not in source
 
 
-def _paths_outside_allowlist(paths: set[str]) -> set[str]:
-    return paths - ALLOWLIST
+def _normalize_repo_path(path: str) -> str:
+    normalized = path.replace("\\", "/")
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return normalized
 
 
 def _parse_porcelain_paths(output: str) -> set[str]:
@@ -303,38 +359,261 @@ def _parse_porcelain_paths(output: str) -> set[str]:
         if not record:
             break
         status = record[:2]
-        paths.add(record[3:].replace("\\", "/"))
+        paths.add(_normalize_repo_path(record[3:]))
         if "R" in status or "C" in status:
             index += 1
-            paths.add(records[index].replace("\\", "/"))
+            paths.add(_normalize_repo_path(records[index]))
         index += 1
     return paths
 
 
-def test_worktree_diff_stays_inside_allowlist() -> None:
-    result = subprocess.run(
-        ["git", "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+def _parse_nul_path_list(output: str) -> set[str]:
+    return {
+        _normalize_repo_path(path)
+        for path in output.split("\0")
+        if path
+    }
+
+
+def _is_separate_documentation_or_state_path(path: str) -> bool:
+    normalized = _normalize_repo_path(path)
+    if normalized == "STATE.md":
+        return True
+    if normalized in ROOT_DOCUMENTATION_PATHS | NESTED_DOCUMENTATION_PATHS:
+        return True
+    return normalized.startswith("docs/") and Path(normalized).suffix.lower() in {
+        ".md",
+        ".txt",
+    }
+
+
+def _assert_code_baseline(paths: set[str]) -> None:
+    normalized = {_normalize_repo_path(path) for path in paths}
+    missing = sorted(CODE_BASELINE_PATHS - normalized)
+    unexpected = sorted(normalized - CODE_BASELINE_PATHS)
+    if missing or unexpected:
+        raise AssertionError(
+            "Telegram-first code baseline drift: "
+            f"missing={missing}; unexpected={unexpected}"
+        )
+
+
+def _code_paths(paths: set[str]) -> set[str]:
+    return {
+        _normalize_repo_path(path)
+        for path in paths
+        if not _is_separate_documentation_or_state_path(path)
+    }
+
+
+def _assert_stage_code_scope(
+    head: str,
+    parent: str | None,
+    *,
+    committed_paths: set[str],
+    staged_paths: set[str],
+    worktree_paths: set[str],
+) -> None:
+    if head == SOURCE_BASELINE_HEAD:
+        if staged_paths:
+            _assert_code_baseline(staged_paths)
+            unexpected_worktree_code = sorted(_code_paths(worktree_paths))
+            if unexpected_worktree_code:
+                raise AssertionError(
+                    "Telegram-first unstaged code drift: "
+                    f"unexpected={unexpected_worktree_code}"
+                )
+        else:
+            _assert_code_baseline(_code_paths(worktree_paths))
+        return
+    if parent == SOURCE_BASELINE_HEAD:
+        _assert_code_baseline(committed_paths)
+
+
+def test_code_baseline_manifest_is_scoped_and_present() -> None:
+    assert len(CODE_BASELINE_PATHS) == 41
+    assert len(PRODUCTION_BASELINE_PATHS) == 17
+    assert len(TEST_BASELINE_PATHS) == 16
+    assert len(TOOLING_BASELINE_PATHS) == 8
+    assert len(CODE_BASELINE_PATHS) == (
+        len(PRODUCTION_BASELINE_PATHS)
+        + len(TEST_BASELINE_PATHS)
+        + len(TOOLING_BASELINE_PATHS)
+    )
+    assert all(path == _normalize_repo_path(path) for path in CODE_BASELINE_PATHS)
+    assert all(
+        path.startswith(("nura_app/api/", "nura_app/bot/", "nura_app/core/"))
+        for path in PRODUCTION_BASELINE_PATHS
+    )
+    assert all(path.startswith("nura_app/tests/") for path in TEST_BASELINE_PATHS)
+    assert all(path.startswith("nura_app/tools/") for path in TOOLING_BASELINE_PATHS)
+    assert CRITICAL_TELEGRAM_FIRST_ARTIFACTS <= CODE_BASELINE_PATHS
+    assert "STATE.md" not in CODE_BASELINE_PATHS
+    assert not any(path.startswith("docs/") for path in CODE_BASELINE_PATHS)
+
+    missing_files = sorted(
+        path for path in CODE_BASELINE_PATHS if not (REPO_ROOT / path).is_file()
+    )
+    assert not missing_files, f"Missing Telegram-first baseline files: {missing_files}"
+
+
+def test_source_baseline_and_direct_child_code_scope() -> None:
+    revision = subprocess.run(
+        ["git", "rev-list", "--parents", "-n", "1", "HEAD"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    head = revision[0]
+    parent = revision[1] if len(revision) > 1 else None
+    if head != SOURCE_BASELINE_HEAD and parent != SOURCE_BASELINE_HEAD:
+        return
+
+    staged = subprocess.run(
+        ["git", "diff", "--cached", "--name-only", "--no-renames", "-z"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         check=True,
     )
-    assert _parse_porcelain_paths(result.stdout) == ALLOWLIST
+    unstaged = subprocess.run(
+        ["git", "diff", "--name-only", "--no-renames", "-z"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    untracked = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard", "-z"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    committed_paths: set[str] = set()
+    if parent == SOURCE_BASELINE_HEAD:
+        committed = subprocess.run(
+            [
+                "git",
+                "diff",
+                "--name-only",
+                "--no-renames",
+                "-z",
+                f"{SOURCE_BASELINE_HEAD}..{head}",
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        committed_paths = _parse_nul_path_list(committed.stdout)
+    _assert_stage_code_scope(
+        head,
+        parent,
+        committed_paths=committed_paths,
+        staged_paths=_parse_nul_path_list(staged.stdout),
+        worktree_paths=(
+            _parse_nul_path_list(unstaged.stdout)
+            | _parse_nul_path_list(untracked.stdout)
+        ),
+    )
 
 
-def test_worktree_allowlist_rejects_unrelated_sensitive_scopes() -> None:
-    unrelated_paths = {
-        "README.md",
-        "nura_app/alembic/versions/d2e3f4a5b6c7_add_telegram_mini_report_delivery.py",
-        "nura_app/alembic/versions/unauthorized_revision.py",
-        "nura_app/requirements.txt",
-        "frontend/pwa/app/app.js",
-        "nura_app/deploy/deploy.sh",
-        "graphify-out/graph.json",
-        "nura_app/tests/shard-result.log",
+def test_code_baseline_comparison_normalizes_order_and_windows_separators() -> None:
+    windows_paths = {
+        path.replace("/", "\\") for path in reversed(sorted(CODE_BASELINE_PATHS))
     }
 
-    assert _paths_outside_allowlist(unrelated_paths) == unrelated_paths
+    _assert_code_baseline(windows_paths)
+
+
+def test_code_baseline_comparison_reports_missing_and_unexpected_paths() -> None:
+    paths = set(CODE_BASELINE_PATHS)
+    paths.remove("nura_app/tests/test_telegram_first_postgres_golden_path.py")
+    paths.add("nura_app/alembic/versions/unauthorized_revision.py")
+
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_code_baseline(paths)
+
+    message = str(exc_info.value)
+    assert (
+        "missing=['nura_app/tests/test_telegram_first_postgres_golden_path.py']"
+        in message
+    )
+    assert (
+        "unexpected=['nura_app/alembic/versions/unauthorized_revision.py']"
+        in message
+    )
+
+
+def test_direct_child_requires_exact_committed_code_scope() -> None:
+    direct_child = "a" * 40
+    _assert_stage_code_scope(
+        direct_child,
+        SOURCE_BASELINE_HEAD,
+        committed_paths=set(CODE_BASELINE_PATHS),
+        staged_paths=set(),
+        worktree_paths=set(),
+    )
+    with pytest.raises(AssertionError, match="code baseline drift"):
+        _assert_stage_code_scope(
+            direct_child,
+            SOURCE_BASELINE_HEAD,
+            committed_paths=set(),
+            staged_paths=set(),
+            worktree_paths=set(),
+        )
+
+    _assert_stage_code_scope(
+        "b" * 40,
+        direct_child,
+        committed_paths={"unrelated/future.py"},
+        staged_paths=set(),
+        worktree_paths=set(),
+    )
+
+
+@pytest.mark.parametrize("forbidden_path", ["docs/README.md", "STATE.md"])
+def test_direct_child_rejects_mixed_code_commit(forbidden_path: str) -> None:
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_stage_code_scope(
+            "a" * 40,
+            SOURCE_BASELINE_HEAD,
+            committed_paths={*CODE_BASELINE_PATHS, forbidden_path},
+            staged_paths=set(),
+            worktree_paths=set(),
+        )
+
+    assert f"unexpected=['{forbidden_path}']" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("forbidden_path", ["docs/README.md", "STATE.md"])
+def test_staged_scope_rejects_mixed_code_commit(forbidden_path: str) -> None:
+    with pytest.raises(AssertionError) as exc_info:
+        _assert_stage_code_scope(
+            SOURCE_BASELINE_HEAD,
+            None,
+            committed_paths=set(),
+            staged_paths={*CODE_BASELINE_PATHS, forbidden_path},
+            worktree_paths=set(),
+        )
+
+    assert f"unexpected=['{forbidden_path}']" in str(exc_info.value)
+
+
+def test_separate_scope_classification_normalizes_windows_paths() -> None:
+    assert _is_separate_documentation_or_state_path(r".\STATE.md")
+    assert _is_separate_documentation_or_state_path(r"docs\README.md")
+    assert _is_separate_documentation_or_state_path(
+        r"frontend\pwa\app\AGENTS.md"
+    )
+    assert not _is_separate_documentation_or_state_path(
+        r"docs\acceptance\unauthorized.py"
+    )
+    assert not _is_separate_documentation_or_state_path(
+        r"nura_app\alembic\versions\unauthorized_revision.py"
+    )
 
 
 def test_worktree_parser_keeps_both_sides_of_rename() -> None:
@@ -346,4 +625,18 @@ def test_worktree_parser_keeps_both_sides_of_rename() -> None:
     assert _parse_porcelain_paths(output) == {
         "nura_app/core/services/my_reports.py",
         "nura_app/alembic/versions/unauthorized_revision.py",
+    }
+
+
+def test_committed_diff_parser_normalizes_nul_separated_paths() -> None:
+    output = (
+        "nura_app/tests/test_telegram_first_postgres_golden_path.py\0"
+        "docs\\NURA FORMS SYSTEM.txt\0"
+        "nura_app/tools/telegram_first_safe_suite.py\0"
+    )
+
+    assert _parse_nul_path_list(output) == {
+        "docs/NURA FORMS SYSTEM.txt",
+        "nura_app/tests/test_telegram_first_postgres_golden_path.py",
+        "nura_app/tools/telegram_first_safe_suite.py",
     }

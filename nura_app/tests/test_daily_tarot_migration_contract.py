@@ -14,6 +14,7 @@ def test_daily_tarot_draw_model_has_user_local_date_identity_and_cascade() -> No
     foreign_keys = list(DailyTarotDraw.__table__.foreign_keys)
     assert len(foreign_keys) == 1
     assert foreign_keys[0].ondelete == "CASCADE"
+    assert "retryable" not in DailyTarotDraw.__table__.columns
 
 
 def test_daily_tarot_draw_migration_is_linear_and_has_state_guards() -> None:

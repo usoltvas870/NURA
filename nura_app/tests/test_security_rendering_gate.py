@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from weasyprint import HTML
+from weasyprint import HTML, default_url_fetcher
 from bot.handlers.chat import chat_message
 from bot.handlers.tarot import handle_question_input
 from bot.texts.chat import greeting_text_free
@@ -45,6 +45,13 @@ def _analysis() -> dict[str, str]:
         "karmic_tail_analysis": "<img src=x onerror=alert(1)>",
         "strengths": "Сила\n• первый пункт\n• второй пункт",
     }
+
+
+def _security_url_fetcher(url: str, *args, **kwargs) -> dict:
+    """Keep the rendering security gate deterministic and network-free."""
+    if url.startswith(("https://fonts.googleapis.com/", "https://mc.yandex.ru/")):
+        return {"string": b"", "mime_type": "text/css", "encoding": "utf-8"}
+    return default_url_fetcher(url, *args, **kwargs)
 
 
 def _render_report_pair() -> tuple[str, str]:
@@ -91,9 +98,16 @@ def test_report_html_autoescapes_user_and_ai_content() -> None:
 @pytest.mark.parametrize("report_index", [0, 1], ids=["mini", "full"])
 async def test_report_pdf_is_generated(
     report_index: int,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     html = _render_report_pair()[report_index]
-    document = HTML(string=html).render()
+    document = HTML(string=html, url_fetcher=_security_url_fetcher).render()
+    monkeypatch.setattr(
+        "weasyprint.HTML",
+        lambda *args, **kwargs: HTML(
+            *args, **kwargs, url_fetcher=_security_url_fetcher
+        ),
+    )
     page_texts = [
         "".join(
             getattr(box, "text", "")
@@ -159,8 +173,19 @@ def _telegram_message(text: str) -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_chat_rejects_over_limit_before_ai_history_and_quota() -> None:
-    message = _telegram_message("x" * (TELEGRAM_INPUT_MAX_LENGTH + 1))
+@pytest.mark.parametrize(
+    "text",
+    (
+        "x" * (TELEGRAM_INPUT_MAX_LENGTH + 1),
+        "\n" * (TELEGRAM_INPUT_MAX_LENGTH + 1),
+        "🧿\u200d♀️" * (TELEGRAM_INPUT_MAX_LENGTH + 1),
+    ),
+    ids=("plain", "line-break-flood", "unicode-grapheme"),
+)
+async def test_chat_rejects_over_limit_before_ai_history_and_quota(
+    text: str,
+) -> None:
+    message = _telegram_message(text)
     state = AsyncMock()
 
     with patch(
@@ -172,7 +197,12 @@ async def test_chat_rejects_over_limit_before_ai_history_and_quota() -> None:
     state.get_data.assert_not_awaited()
     state.update_data.assert_not_awaited()
     message.bot.send_chat_action.assert_not_awaited()
-    assert "Максимум" in message.answer.await_args.args[0]
+    response = message.answer.await_args.args[0]
+    if text.strip():
+        assert "Максимум" in response
+    else:
+        assert response == "Напиши сообщение текстом."
+    assert len(response) <= TELEGRAM_MESSAGE_MAX_LENGTH
 
 
 @pytest.mark.asyncio

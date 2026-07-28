@@ -130,7 +130,7 @@ async def callback_delete_account_confirm(callback: CallbackQuery) -> None:
     user_repo = UserRepository(session_factory)
     user = await user_repo.get_by_telegram_id(callback.from_user.id)
     if user:
-        await AccountDeletionService(session_factory).delete(user.id)
+        await AccountDeletionService(session_factory, get_redis()).delete(user.id)
     await callback.message.answer(delete_account_done_text())
 
 

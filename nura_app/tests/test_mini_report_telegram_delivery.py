@@ -164,6 +164,49 @@ async def test_delivery_sends_saved_report_once(db_factory) -> None:
 
 
 @pytest.mark.asyncio
+async def test_manual_delivery_reuses_canonical_mini_pdf(db_factory) -> None:
+    user_id, report_id, generation_id = await _seed_delivery_subject(db_factory)
+    initial_adapter = FakeAdapter()
+    manual_adapter = FakeAdapter()
+    pdf = b"%PDF-" + b"x" * 2000
+
+    with patch.object(
+        ReportService,
+        "generate_pdf",
+        new_callable=AsyncMock,
+        return_value=pdf,
+    ) as generate_pdf:
+        await MiniReportTelegramDeliveryService(
+            db_factory, initial_adapter
+        ).deliver(
+            generation_id=generation_id,
+            user_id=user_id,
+            report_id=report_id,
+        )
+        await MiniReportTelegramDeliveryService(
+            db_factory, manual_adapter
+        ).deliver(
+            generation_id=generation_id,
+            user_id=user_id,
+            report_id=report_id,
+            purpose="manual_test",
+        )
+
+    generate_pdf.assert_awaited_once()
+    assert initial_adapter.documents == 1
+    assert manual_adapter.documents == 1
+    async with db_factory() as session:
+        report = await session.get(Report, report_id)
+        assert report.artifact_bytes == pdf
+        assert report.artifact_mime_type == "application/pdf"
+        deliveries = (
+            await session.execute(select(TelegramReportDelivery))
+        ).scalars().all()
+        assert len(deliveries) == 2
+        assert all(delivery.status == "delivered" for delivery in deliveries)
+
+
+@pytest.mark.asyncio
 async def test_partial_text_retry_resumes_after_confirmed_chunk(db_factory) -> None:
     long_analysis = {**ANALYSIS, "core_strength": "А" * 5000}
     user_id, report_id, generation_id = await _seed_delivery_subject(

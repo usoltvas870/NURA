@@ -24,7 +24,11 @@ from bot.middlewares import (
 )
 from bot.middlewares.registration import LegacyTelegramAuthRetirementMiddleware
 from core.config import settings
-from core.database import create_engine
+from core.database import (
+    create_engine,
+    dispose_async_database_state,
+    get_redis,
+)
 from sqlalchemy import text
 
 logging.basicConfig(
@@ -35,8 +39,32 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def _verify_database_ready() -> None:
+    """Verify the runtime database dependency before polling begins."""
+    engine = create_engine()
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    finally:
+        await engine.dispose()
+
+
+async def _on_startup(**_: object) -> None:
+    await _verify_database_ready()
+    await get_redis().ping()
+    logger.info("Bot runtime dependencies ready")
+
+
+async def _on_shutdown(**_: object) -> None:
+    await get_redis().aclose()
+    await dispose_async_database_state()
+    logger.info("Bot runtime shutdown complete")
+
+
 def configure_dispatcher(dp: Dispatcher) -> None:
     dp.errors.register(global_error_handler)
+    dp.startup.register(_on_startup)
+    dp.shutdown.register(_on_shutdown)
 
     dp.message.middleware(LegacyTelegramAuthRetirementMiddleware())
     dp.message.middleware(UserRegistrationMiddleware())
@@ -57,15 +85,11 @@ def configure_dispatcher(dp: Dispatcher) -> None:
     dp.include_router(fallback_router)
 
 
-async def main():
+def create_runtime() -> tuple[Bot, Dispatcher]:
+    """Construct the production Bot and Dispatcher without performing Telegram I/O."""
     token = settings.telegram_bot_token
-    if not token or token.startswith("change-me"):
-        logger.error(
-            "TELEGRAM_BOT_TOKEN is not configured. "
-            "Bot will not start. Set a real token in .env"
-        )
-        while True:
-            await asyncio.sleep(3600)
+    if not token or not token.strip() or token.startswith("change-me"):
+        raise RuntimeError("telegram_bot_token_not_configured")
 
     bot = Bot(
         token=token,
@@ -75,14 +99,20 @@ async def main():
     storage = RedisStorage.from_url(settings.redis_url)
     dp = Dispatcher(storage=storage)
     configure_dispatcher(dp)
+    return bot, dp
+
+
+async def main() -> None:
+    try:
+        bot, dp = create_runtime()
+    except RuntimeError as error:
+        logger.error("Telegram runtime cannot start: %s", error)
+        raise SystemExit(1) from None
 
     max_db_retries = 10
     for attempt in range(max_db_retries):
-        engine = create_engine()
         try:
-            async with engine.connect() as conn:
-                await conn.execute(text("SELECT 1"))
-            await engine.dispose()
+            await _verify_database_ready()
             logger.info("Database ready")
             break
         except Exception as e:
@@ -90,10 +120,6 @@ async def main():
                 "DB init attempt %d/%d failed: %s",
                 attempt + 1, max_db_retries, e,
             )
-            try:
-                await engine.dispose()
-            except Exception:
-                pass
             if attempt < max_db_retries - 1:
                 await asyncio.sleep(3)
             else:

@@ -20,11 +20,13 @@ from core.models import (
     ReportGenerationJob,
     User,
 )
+from core.services.chat_history import chat_history_key, chat_history_marker_key
 
 
 class AccountDeletionService:
-    def __init__(self, session_factory: async_sessionmaker):
+    def __init__(self, session_factory: async_sessionmaker, redis=None):
         self._session_factory = session_factory
+        self._redis = redis
 
     async def delete(self, user_id: uuid.UUID) -> None:
         reference = hmac.new(
@@ -35,45 +37,43 @@ class AccountDeletionService:
             user = await session.get(User, user_id, with_for_update=True)
             if user is None:
                 await session.rollback()
-                return
-            orders = (
-                await session.execute(select(Order).where(Order.user_id == user_id).with_for_update())
-            ).scalars().all()
-            for order in orders:
-                order.user_id = None
-                order.telegram_id_snapshot = None
-                order.report_id = None
-                order.checkout_token = None
-                order.checkout_expires_at = None
-                order.customer_reference_hash = reference
-                order.anonymized_at = now
-                order.anonymization_reason = "account_deleted"
-                attempts = (
-                    await session.execute(select(PaymentAttempt).where(PaymentAttempt.order_id == order.id).with_for_update())
+            else:
+                orders = (
+                    await session.execute(select(Order).where(Order.user_id == user_id).with_for_update())
                 ).scalars().all()
-                for attempt in attempts:
-                    attempt.confirmation_url = None
-                    attempt.provider_metadata = {"product_code": "full_matrix"}
-                    attempt.customer_reference_hash = reference
-                    attempt.anonymized_at = now
-                    attempt.anonymization_reason = "account_deleted"
-                    events = (
-                        await session.execute(select(PaymentEvent).where(PaymentEvent.payment_attempt_id == attempt.id).with_for_update())
+                for order in orders:
+                    order.user_id = None
+                    order.telegram_id_snapshot = None
+                    order.report_id = None
+                    order.checkout_token = None
+                    order.checkout_expires_at = None
+                    order.customer_reference_hash = reference
+                    order.anonymized_at = now
+                    order.anonymization_reason = "account_deleted"
+                    attempts = (
+                        await session.execute(select(PaymentAttempt).where(PaymentAttempt.order_id == order.id).with_for_update())
                     ).scalars().all()
-                    for event in events:
-                        event.anonymized_at = now
-                        event.anonymization_reason = "account_deleted"
-            report_ids = select(Report.id).where(Report.user_id == user_id)
-            await session.execute(
-                delete(FullReportTelegramDelivery).where(
-                    FullReportTelegramDelivery.user_id == user_id
-                )
+                    for attempt in attempts:
+                        attempt.confirmation_url = None
+                        attempt.provider_metadata = {"product_code": "full_matrix"}
+                        attempt.customer_reference_hash = reference
+                        attempt.anonymized_at = now
+                        attempt.anonymization_reason = "account_deleted"
+                        events = (
+                            await session.execute(select(PaymentEvent).where(PaymentEvent.payment_attempt_id == attempt.id).with_for_update())
+                        ).scalars().all()
+                        for event in events:
+                            event.anonymized_at = now
+                            event.anonymization_reason = "account_deleted"
+                report_ids = select(Report.id).where(Report.user_id == user_id)
+                await session.execute(delete(FullReportTelegramDelivery).where(FullReportTelegramDelivery.user_id == user_id))
+                await session.execute(delete(ReportGenerationJob).where(ReportGenerationJob.report_id.in_(report_ids)))
+                await session.execute(delete(Report).where(Report.user_id == user_id))
+                await session.execute(delete(Payment).where(Payment.user_id == user_id))
+                await session.execute(delete(ReferralReward).where((ReferralReward.referrer_id == user_id) | (ReferralReward.referred_id == user_id)))
+                await session.delete(user)
+                await session.commit()
+        if self._redis is not None:
+            await self._redis.delete(
+                chat_history_key(user_id), chat_history_marker_key(user_id)
             )
-            await session.execute(
-                delete(ReportGenerationJob).where(ReportGenerationJob.report_id.in_(report_ids))
-            )
-            await session.execute(delete(Report).where(Report.user_id == user_id))
-            await session.execute(delete(Payment).where(Payment.user_id == user_id))
-            await session.execute(delete(ReferralReward).where((ReferralReward.referrer_id == user_id) | (ReferralReward.referred_id == user_id)))
-            await session.delete(user)
-            await session.commit()

@@ -608,7 +608,7 @@ async def test_refund_and_missing_telegram_identity_block_send(db_factory) -> No
 
 
 @pytest.mark.asyncio
-async def test_refund_after_claim_is_rechecked_before_first_telegram_call(
+async def test_delivery_keeps_claimed_entitlement_through_first_telegram_call(
     db_factory,
 ) -> None:
     _user_id, report_id = await _seed(db_factory)
@@ -633,14 +633,14 @@ async def test_refund_after_claim_is_rechecked_before_first_telegram_call(
     service._deliveries.get_canonical_file_id = refund_then_read
     await service.deliver(delivery_id)
 
-    assert sender.calls == []
+    assert sender.calls == ["file_id"]
     async with db_factory() as session:
         delivery = await session.get(FullReportTelegramDelivery, delivery_id)
-        assert delivery.status == "canceled"
+        assert delivery.status == "completed"
 
 
 @pytest.mark.asyncio
-async def test_refund_during_invalid_file_id_flow_blocks_artifact_fallback(
+async def test_delivery_keeps_claimed_entitlement_through_artifact_fallback(
     db_factory,
 ) -> None:
     user_id, report_id = await _seed(db_factory)
@@ -668,12 +668,12 @@ async def test_refund_during_invalid_file_id_flow_blocks_artifact_fallback(
     delivery_id = await service.enqueue_manual(user_id, report_id, "refund-race")
     await service.deliver(delivery_id)
 
-    assert sender.calls == ["file_id"]
-    assert sender.send_by_artifact_calls == 0
+    assert sender.calls == ["file_id", "artifact"]
+    assert sender.send_by_artifact_calls == 1
     async with db_factory() as session:
         delivery = await session.get(FullReportTelegramDelivery, delivery_id)
         report = await session.get(Report, report_id)
-        assert delivery.status == "canceled"
+        assert delivery.status == "completed"
         assert report.generation_state == "completed"
 
 

@@ -1,12 +1,21 @@
+import hashlib
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import delete, desc, func, select
+from sqlalchemy import delete, desc, func, or_, select, update
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.config import settings
-from core.models import MiniReportGeneration, MiniReportGenerationState, Report, ReportGenerationState, ReportType
+from core.models import (
+    MiniReportGeneration,
+    MiniReportGenerationState,
+    Order,
+    OrderStatus,
+    Report,
+    ReportGenerationState,
+    ReportType,
+)
 from core.repositories.base import SQLAlchemyRepository
 
 
@@ -73,21 +82,57 @@ class ReportRepository(SQLAlchemyRepository[Report]):
             )
             return result.scalar_one_or_none()
 
+    async def store_mini_pdf_if_absent(
+        self, report_id: uuid.UUID, user_id: uuid.UUID, artifact: bytes
+    ) -> Report | None:
+        """Persist one canonical mini PDF and return the winning report snapshot."""
+        async with self._session_factory() as session:
+            await session.execute(
+                update(Report)
+                .where(
+                    Report.id == report_id,
+                    Report.user_id == user_id,
+                    Report.report_type == ReportType.MINI.value,
+                    Report.artifact_bytes.is_(None),
+                )
+                .values(
+                    artifact_bytes=artifact,
+                    artifact_sha256=hashlib.sha256(artifact).hexdigest(),
+                    artifact_size_bytes=len(artifact),
+                    artifact_mime_type="application/pdf",
+                    artifact_completed_at=datetime.now(timezone.utc),
+                )
+            )
+            await session.commit()
+            return await session.get(Report, report_id)
+
     async def list_completed_full_for_user(self, user_id: uuid.UUID) -> list[Report]:
         async with self._session_factory() as session:
-            result = await session.execute(select(Report).where(
+            result = await session.execute(
+                select(Report).outerjoin(Order, Report.order_id == Order.id).where(
                 Report.user_id == user_id, Report.report_type == ReportType.FULL.value,
                 Report.generation_state == ReportGenerationState.COMPLETED,
                 Report.artifact_bytes.is_not(None),
-            ))
+                or_(
+                    (Order.user_id == user_id) & (Order.status == OrderStatus.PAID),
+                    Report.order_id.is_(None),
+                ),
+                )
+            )
             return list(result.scalars().all())
 
     async def get_completed_full_for_user(self, user_id: uuid.UUID, report_id: uuid.UUID) -> Report | None:
         async with self._session_factory() as session:
-            result = await session.execute(select(Report).where(
+            result = await session.execute(
+                select(Report).outerjoin(Order, Report.order_id == Order.id).where(
                 Report.id == report_id, Report.user_id == user_id, Report.report_type == ReportType.FULL.value,
                 Report.generation_state == ReportGenerationState.COMPLETED, Report.artifact_bytes.is_not(None),
-            ))
+                or_(
+                    (Order.user_id == user_id) & (Order.status == OrderStatus.PAID),
+                    Report.order_id.is_(None),
+                ),
+                )
+            )
             return result.scalar_one_or_none()
 
     async def get_by_user_id_and_type(

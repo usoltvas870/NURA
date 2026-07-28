@@ -8,6 +8,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models import (
+    Order,
+    OrderStatus,
     Payment,
     Report,
     ReportGenerationJob,
@@ -27,6 +29,7 @@ class ReportGenerationErrorCategory:
     WORKER_DELIVERY_EXPIRED = "worker_delivery_expired"
     WORKER_LEASE_EXPIRED = "worker_lease_expired"
     RETRY_BUDGET_EXHAUSTED = "retry_budget_exhausted"
+    ENTITLEMENT_REVOKED = "entitlement_revoked"
     UNKNOWN_INTERNAL = "unknown_internal"
 
 
@@ -41,6 +44,7 @@ REPORT_GENERATION_ERROR_CATEGORIES = frozenset(
         ReportGenerationErrorCategory.WORKER_DELIVERY_EXPIRED,
         ReportGenerationErrorCategory.WORKER_LEASE_EXPIRED,
         ReportGenerationErrorCategory.RETRY_BUDGET_EXHAUSTED,
+        ReportGenerationErrorCategory.ENTITLEMENT_REVOKED,
         ReportGenerationErrorCategory.UNKNOWN_INTERNAL,
     }
 )
@@ -56,6 +60,22 @@ def _safe_error_category(category: str) -> str:
     return category
 
 
+def _report_has_active_paid_entitlement() -> object:
+    paid_order = (
+        select(Order.id)
+        .where(
+            Order.id == Report.order_id,
+            Order.report_id == Report.id,
+            Order.status == OrderStatus.PAID,
+        )
+        .exists()
+    )
+    return or_(
+        and_(Report.order_id.is_(None), Report.payment_id.is_not(None)),
+        paid_order,
+    )
+
+
 def _report_is_dispatchable() -> object:
     return (
         select(Report.id)
@@ -63,6 +83,7 @@ def _report_is_dispatchable() -> object:
             Report.id == ReportGenerationJob.report_id,
             Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
             Report.generation_state == ReportGenerationState.PENDING_DISPATCH,
+            _report_has_active_paid_entitlement(),
         )
         .exists()
     )
@@ -87,6 +108,62 @@ class ReportLifecycleRepository:
 
     async def get_lifecycle_snapshot(self, report_id: uuid.UUID) -> Report | None:
         return await self.get_by_id(report_id)
+
+    async def revoke_unfinished_order_report(
+        self, report_id: uuid.UUID, revoked_at: datetime
+    ) -> bool:
+        """Terminalize unfinished generation while preserving completed artifacts."""
+        report = await self._session.get(Report, report_id, with_for_update=True)
+        if (
+            report is None
+            or report.order_id is None
+            or report.generation_state == ReportGenerationState.COMPLETED
+        ):
+            return False
+
+        changed = (
+            report.generation_state != ReportGenerationState.FAILED_TERMINAL
+            or report.generation_error_category
+            != ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+        )
+        report.generation_state = ReportGenerationState.FAILED_TERMINAL
+        report.generation_failed_at = revoked_at
+        report.generation_error_category = (
+            ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+        )
+        report.matrix_data = None
+        report.ai_analysis = None
+        report.kitchen_analysis = None
+        report.artifact_bytes = None
+        report.artifact_sha256 = None
+        report.artifact_size_bytes = None
+        report.artifact_mime_type = None
+        report.artifact_completed_at = None
+
+        job = (
+            await self._session.execute(
+                select(ReportGenerationJob)
+                .where(
+                    ReportGenerationJob.report_id == report_id,
+                    ReportGenerationJob.job_type == "full_report",
+                )
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        if job is not None and job.state != ReportGenerationJobState.COMPLETED:
+            changed = changed or (
+                job.state != ReportGenerationJobState.FAILED_TERMINAL
+                or job.last_error_category
+                != ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+            )
+            job.state = ReportGenerationJobState.FAILED_TERMINAL
+            job.failed_at = revoked_at
+            job.next_attempt_at = None
+            job.claimed_at = None
+            job.last_error_category = (
+                ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+            )
+        return changed
 
     async def confirm_report_payment(
         self,
@@ -310,6 +387,7 @@ class ReportGenerationJobRepository:
                 ),
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
                 Report.generation_state == ReportGenerationState.PENDING_DISPATCH,
+                _report_has_active_paid_entitlement(),
             )
             .order_by(
                 ReportGenerationJob.next_attempt_at.asc().nullsfirst(),
@@ -504,7 +582,7 @@ class ReportGenerationJobRepository:
                         .where(
                             Report.id == report_id,
                             Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
-                            Report.payment_id.isnot(None),
+                            _report_has_active_paid_entitlement(),
                             Report.generation_state == ReportGenerationState.QUEUED,
                         )
                         .values(
@@ -520,6 +598,10 @@ class ReportGenerationJobRepository:
                     return "report_not_found", None, None
                 if report.payment_state != ReportPaymentState.PAYMENT_CONFIRMED:
                     return "report_not_paid", report, None
+                if report.order_id is not None:
+                    order = await self._session.get(Order, report.order_id)
+                    if order is None or order.status != OrderStatus.PAID:
+                        return "entitlement_revoked", report, None
                 if report.generation_state == ReportGenerationState.RUNNING:
                     return "generation_already_running", report, None
                 if report.generation_state == ReportGenerationState.COMPLETED:
@@ -562,6 +644,7 @@ class ReportGenerationJobRepository:
                 Report.generation_state == ReportGenerationState.RUNNING,
                 Report.generation_started_at <= stale_before,
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
+                _report_has_active_paid_entitlement(),
             )
             .values(
                 generation_state=ReportGenerationState.FAILED_RETRYABLE,
@@ -602,6 +685,7 @@ class ReportGenerationJobRepository:
                 Report.generation_enqueued_at <= stale_before,
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
                 Report.generated_at.is_(None),
+                _report_has_active_paid_entitlement(),
             )
             .values(
                 generation_state=ReportGenerationState.FAILED_RETRYABLE,
@@ -639,6 +723,7 @@ class ReportGenerationJobRepository:
                 Report.id == report_id,
                 Report.generation_state == ReportGenerationState.FAILED_RETRYABLE,
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
+                _report_has_active_paid_entitlement(),
             )
             .values(generation_state=ReportGenerationState.PENDING_DISPATCH)
         )
@@ -666,6 +751,7 @@ class ReportGenerationJobRepository:
                 Report.id == report_id,
                 Report.generation_state == ReportGenerationState.FAILED_RETRYABLE,
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
+                _report_has_active_paid_entitlement(),
             )
             .values(
                 generation_state=ReportGenerationState.FAILED_TERMINAL,
@@ -709,12 +795,16 @@ class ReportGenerationJobRepository:
             return False
         if (
             report.payment_state != ReportPaymentState.PAYMENT_CONFIRMED
-            or report.payment_id is None
+            or (report.payment_id is None and report.order_id is None)
             or report.generation_state != ReportGenerationState.PENDING_DISPATCH
             or report.report_type != "full"
             or report.generated_at is not None
         ):
             return False
+        if report.order_id is not None:
+            order = await self._session.get(Order, report.order_id)
+            if order is None or order.status != OrderStatus.PAID:
+                return False
         job = ReportGenerationJob(
             id=uuid.uuid4(),
             report_id=report_id,
@@ -769,6 +859,7 @@ class ReportGenerationJobRepository:
                 ReportGenerationJob.celery_task_id.is_(None),
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
                 Report.generation_state == ReportGenerationState.PENDING_DISPATCH,
+                _report_has_active_paid_entitlement(),
                 ReportGenerationJob.job_type == "full_report",
             )
             .limit(limit)
@@ -790,6 +881,7 @@ class ReportGenerationJobRepository:
                 Report.generation_enqueued_at <= stale_before,
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
                 Report.generated_at.is_(None),
+                _report_has_active_paid_entitlement(),
                 ReportGenerationJob.completed_at.is_(None),
                 ReportGenerationJob.job_type == "full_report",
             )
@@ -811,6 +903,7 @@ class ReportGenerationJobRepository:
                 Report.generation_started_at <= stale_before,
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
                 ReportGenerationJob.state == ReportGenerationJobState.QUEUED,
+                _report_has_active_paid_entitlement(),
                 ReportGenerationJob.job_type == "full_report",
             )
             .limit(limit)
@@ -839,6 +932,7 @@ class ReportGenerationJobRepository:
                 Report.generation_state == ReportGenerationState.FAILED_RETRYABLE,
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
                 ReportGenerationJob.job_type == "full_report",
+                _report_has_active_paid_entitlement(),
             )
             .limit(limit)
         )
@@ -863,7 +957,7 @@ class ReportGenerationJobRepository:
             select(Report.id)
             .where(
                 Report.payment_state == ReportPaymentState.PAYMENT_CONFIRMED,
-                Report.payment_id.isnot(None),
+                _report_has_active_paid_entitlement(),
                 Report.generation_state == ReportGenerationState.PENDING_DISPATCH,
                 Report.report_type == "full",
                 Report.generated_at.is_(None),

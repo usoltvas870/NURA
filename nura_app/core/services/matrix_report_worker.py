@@ -6,9 +6,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.models import (
+    Order,
+    OrderStatus,
     Report,
     ReportGenerationJob,
     ReportGenerationJobState,
@@ -134,7 +137,11 @@ class MatrixReportGenerationWorker:
                 ReportGenerationErrorCategory.UNKNOWN_INTERNAL
             )
 
-        if not persisted:
+        if persisted == "entitlement_revoked":
+            return WorkerResult.terminal(
+                ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+            )
+        if persisted != "persisted":
             return WorkerResult.retryable(
                 ReportGenerationErrorCategory.UNKNOWN_INTERNAL
             )
@@ -169,8 +176,22 @@ class MatrixReportGenerationWorker:
                 await session.rollback()
                 return WorkerResult.idempotent_completed()
             if outcome == "generation_already_terminal":
+                entitlement_revoked = (
+                    report is not None
+                    and report.generation_error_category
+                    == ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+                )
                 await session.rollback()
+                if entitlement_revoked:
+                    return WorkerResult.terminal(
+                        ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+                    )
                 return WorkerResult.terminal(ReportGenerationErrorCategory.UNKNOWN_INTERNAL)
+            if outcome == "entitlement_revoked":
+                await session.rollback()
+                return WorkerResult.terminal(
+                    ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+                )
             if outcome == "generation_already_running":
                 await session.rollback()
                 return WorkerResult.retryable(
@@ -196,6 +217,12 @@ class MatrixReportGenerationWorker:
             generation_state = report.generation_state
             report_token = report.token
             user_id = report.user_id
+
+            if report.order_id is not None:
+                order = await session.get(Order, report.order_id)
+                if order is None or order.status != OrderStatus.PAID:
+                    await session.rollback()
+                    return None
 
             if (
                 report_type != ReportType.FULL.value
@@ -224,23 +251,38 @@ class MatrixReportGenerationWorker:
         report_id: uuid.UUID,
         generator_result: MatrixReportGeneratorResult,
         artifact: bytes,
-    ) -> bool:
+    ) -> str:
         async with self._session_factory() as session:
+            order_id = await session.scalar(
+                select(Report.order_id).where(Report.id == report_id)
+            )
+            if order_id is not None:
+                order = await session.get(Order, order_id, with_for_update=True)
+                if order is None or order.status != OrderStatus.PAID:
+                    await ReportLifecycleRepository(
+                        session
+                    ).revoke_unfinished_order_report(report_id, _now())
+                    await session.commit()
+                    return "entitlement_revoked"
             report = await session.get(Report, report_id, with_for_update=True)
             if report is None:
                 await session.rollback()
-                return False
+                return "conflict"
             if (
                 report.payment_state != ReportPaymentState.PAYMENT_CONFIRMED
                 or report.generation_state != ReportGenerationState.RUNNING
             ):
+                revoked = (
+                    report.generation_error_category
+                    == ReportGenerationErrorCategory.ENTITLEMENT_REVOKED
+                )
                 await session.rollback()
-                return False
+                return "entitlement_revoked" if revoked else "conflict"
             repository = ReportGenerationJobRepository(session)
             job = await repository.get_by_report_and_type(report_id)
             if job is None or job.state != ReportGenerationJobState.QUEUED:
                 await session.rollback()
-                return False
+                return "conflict"
 
             report.matrix_data = generator_result.matrix_data
             report.ai_analysis = generator_result.ai_analysis
@@ -254,7 +296,7 @@ class MatrixReportGenerationWorker:
             ReportLifecycleRepository.mark_report_completed(report, now)
             repository.mark_job_completed(job, now)
             await session.commit()
-            return True
+            return "persisted"
 
     @staticmethod
     async def _render_artifact(

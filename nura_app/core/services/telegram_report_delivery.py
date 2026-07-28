@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -202,7 +203,17 @@ class MiniReportTelegramDeliveryService:
                 if not await self._deliveries.mark_text_sent(delivery.id, attempt, message_ids):
                     return
             if delivery.document_status != "sent":
-                pdf = await self._mini_pdf(report)
+                pdf = self._stored_mini_pdf(report)
+                if pdf is None:
+                    rendered_pdf = await self._mini_pdf(report)
+                    stored_report = await self._reports.store_mini_pdf_if_absent(
+                        report.id, user_id, rendered_pdf
+                    )
+                    pdf = self._stored_mini_pdf(stored_report)
+                    if pdf is None:
+                        raise TelegramDeliveryError(
+                            "invalid_mini_pdf_artifact", retryable=False
+                        )
                 document = await self._adapter.send_document(user.telegram_id, pdf, "NURA-mini-report.pdf", "<b>Твой мини-разбор в PDF</b>")
                 if not await self._deliveries.mark_document_sent(delivery.id, attempt, document.message_id):
                     return
@@ -229,6 +240,22 @@ class MiniReportTelegramDeliveryService:
         labels = (("Главный архетип", "main_archetype"), ("Сильная сторона", "core_strength"), ("Эмоциональный конфликт", "emotional_conflict"), ("Паттерн отношений", "relationship_pattern"), ("Денежный блок", "financial_block"))
         body = "\n\n".join(f"<b>{title}</b>\n{escape_telegram_html(analysis.get(key, ''))}" for title, key in labels)
         return split_telegram_html_message(f"<b>✨ Твой мини-разбор готов</b>\n\n{body}")
+
+    @staticmethod
+    def _stored_mini_pdf(report) -> bytes | None:
+        if report is None or not isinstance(report.artifact_bytes, bytes):
+            return None
+        artifact = report.artifact_bytes
+        if (
+            report.artifact_mime_type != "application/pdf"
+            or report.artifact_size_bytes != len(artifact)
+            or report.artifact_sha256 != hashlib.sha256(artifact).hexdigest()
+            or not artifact.startswith(b"%PDF-")
+            or len(artifact) < 1024
+            or len(artifact) > settings.telegram_document_max_bytes
+        ):
+            return None
+        return artifact
 
     @staticmethod
     async def _mini_pdf(report) -> bytes:

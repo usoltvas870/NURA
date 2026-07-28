@@ -1,4 +1,20 @@
+import os
+import sys
 import uuid
+
+if any(
+    test_name in argument
+    for argument in sys.argv
+    for test_name in (
+        "test_telegram_first_postgres_golden_path.py",
+        "test_telegram_first_postgres_failure_retry.py",
+        "test_telegram_first_service_boot.py",
+        "test_telegram_first_security_acceptance.py",
+        "test_telegram_first_safe_suite_contract.py",
+    )
+):
+    os.environ["APP_ENV"] = "test"
+    os.environ["NURA_DISABLE_DOTENV"] = "1"
 
 import pytest
 import pytest_asyncio

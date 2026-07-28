@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -299,6 +300,15 @@ class Settings(BaseSettings):
         "hide_input_in_errors": True,
         "populate_by_name": True,
     }
+
+    @classmethod
+    def settings_customise_sources(
+        cls, settings_cls, init_settings, env_settings, dotenv_settings, file_secret_settings,
+    ):
+        """Allow isolated local harnesses to opt out of an ambient dotenv file."""
+        if os.environ.get("NURA_DISABLE_DOTENV") == "1":
+            return init_settings, env_settings, file_secret_settings
+        return init_settings, env_settings, dotenv_settings, file_secret_settings
 
 
 settings = Settings()
