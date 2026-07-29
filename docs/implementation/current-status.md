@@ -13,6 +13,7 @@
 - `PARTIAL` — часть пути реализована, но target contract или обязательная граница неполны.
 - `NOT_IMPLEMENTED` — подтверждающая реализация не найдена.
 - `LEGACY` — код существует для обратной совместимости или прежней продуктовой модели и не управляет текущим roadmap.
+- `NOT_EXECUTED` — требуемая внешняя или операционная проверка известна, но accepted execution evidence отсутствует.
 - `UNKNOWN` — данных недостаточно без внешней или отдельной технической проверки.
 
 ## Матрица функций
@@ -36,12 +37,22 @@
 | Compatibility | `LEGACY` | target 1.5B | `nura_app/bot/handlers/compatibility.py`, compatibility tests | Реализация опережает target; нет принятого 1.5B release/gating и окончательных privacy rules | отдельного flag не найдено | да |
 | Referral | `PARTIAL` | target 1.5B | `nura_app/core/models.py` (`ReferralReward`), referral/start handlers | Foundation существует; reward contract, anti-fraud и release gating не приняты | отдельного flag не найдено | частично |
 | PWA | `LEGACY` | compatibility | `frontend/pwa/app/`, `nura_app/api/routes/web.py`, PWA tests | Не является основным клиентом; срок deprecation и compatibility boundary требуют отдельного решения | нет | да |
-| Email/VK/guest auth | `LEGACY` | compatibility | `nura_app/api/routes/auth.py`, `nura_app/core/services/auth.py`, `nura_app/tests/test_auth.py` | Работает как web compatibility, но не входит в Telegram-first funnel | нет | да через legacy web |
+| Guest auth | `LEGACY` | compatibility | `nura_app/api/routes/auth.py`, `nura_app/core/services/auth.py`, `nura_app/tests/test_auth.py` | Current legacy web compatibility path; не входит в Telegram-first identity funnel | нет | да через legacy web |
+| VK auth | `LEGACY` | compatibility | `nura_app/api/routes/auth.py`, `nura_app/core/services/auth.py`, mocked provider coverage в `nura_app/tests/test_auth.py` | Current legacy web compatibility path; внешний VK provider/configuration отдельно не подтверждён | нет | да через legacy web |
+| Email magic-link auth | `PARTIAL` | compatibility | `AuthService.start_email_auth()`/`verify_magic_link()`, email verification/guest merge foundation и local service tests | Production verify route ставит session cookie на injected `Response`, затем возвращает отдельный `RedirectResponse`; cookie не переносится, поэтому end-to-end email login session имеет active wiring gap | нет | route видим, рабочая session не доказана |
 | Web report links | `LEGACY` | compatibility | `nura_app/api/routes/reports.py`, `nura_app/bot/handlers/payment.py` | Tokenized HTML/PDF routes активны, но target delivery не должен требовать web-ссылку | нет | да |
 | Runtime prompts | `PARTIAL` | 1.0 | `nura_app/core/prompts/system_prompt.txt`, `nura_app/core/prompts/chat_system_prompt.txt`, loaders в `nura_app/core/services/ai.py` | Исполняемые prompts есть; утверждённый раздельный runtime style contract для report/chat не оформлен | нет | опосредованно |
 | Product analytics | `PARTIAL` | 1.0 | `nura_app/core/services/attribution.py`, `AttributionLink`/`AttributionTouch`, attribution tests | Acquisition attribution есть; канонического event registry и KPI queries для funnel/payment/report/chat/broadcast нет | нет | нет |
 | Support/admin | `READY` | operations | `nura_app/api/routes/admin_api.py`, `nura_app/admin_bot/` | Часть операций subscription-centric; production access/permissions отдельно не проверялись | нет | только operator/admin |
-| External sandbox | `UNKNOWN` | release gate | `docs/acceptance/` после миграции, local acceptance tools | Telegram test bot, YooKassa test shop, HTTPS and legal/support evidence отсутствуют | не применимо | нет |
+| External sandbox | `NOT_EXECUTED` | release gate | [acceptance evidence router](../acceptance/README.md), local acceptance tools и [external sandbox runbook](../acceptance/telegram-first-sandbox.md) | Telegram test bot, YooKassa test shop, external AI/provider, HTTPS and legal/support evidence отсутствуют | не применимо | нет |
+
+## Acceptance boundary
+
+- Current committed local code evidence относится к `main` / `b70d6ccf8bbeac49b77015be09295a41060fc9bd`: targeted tests — `147 passed`; focused PostgreSQL race coverage — `3 passed`; safe suite — `1081 passed`, `22 skipped`, `1 deselected`, `0 failed`; Ruff — PASS; independent review — no actionable findings.
+- Более ранний [dated readiness review](../acceptance/evidence/telegram-first-v1-readiness-review.md) сохраняет собственный baseline `1059 passed`, `22 skipped`, `1 deselected`, `0 failed`; это число не обновляется задним числом и не приписывается commit `b70d6cc`.
+- [External sandbox runbook](../acceptance/telegram-first-sandbox.md) — `RUNBOOK — NOT EXECUTION PROOF`. Внешние Telegram, YooKassa и AI/provider sandbox не выполнялись.
+- `READY` означает локально подтверждённый implementation contract для конкретной строки. Он не означает launch approval, external sandbox PASS, production deployment, production availability или legal/policy readiness.
+- Production и legal/policy readiness не доказаны; tracked Compose/deployment instructions не являются production evidence.
 
 ## Ключевые implementation gaps NURA 1.0
 

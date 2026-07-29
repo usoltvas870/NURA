@@ -1,26 +1,110 @@
 ---
-title: "Вселенная NURA"
+title: "NURA Brand Universe — Current Standard and Future Vision"
 document_id: "NURA_UNIVERSE"
-status: "Approved v1"
+status: "Current brand standard + future creative vision"
 language: "ru"
 visual_style: "NURA Cinematic Editorial Realism"
 asset_manifest: "./assets-manifest.json"
 ---
 
-# Вселенная NURA
+# NURA Brand Universe — Current Standard and Future Vision
 
-> **STATUS: MIXED — CURRENT BRAND ASSETS + EXTENDED FUTURE VISION**
+> **STATUS: CURRENT BRAND STANDARD + FUTURE VISION**
 >
-> Используйте утверждённые tokens/assets только в пределах текущего design workflow. Расширенная world-building часть не расширяет [product roadmap](../../product/NURA_1_0_1_5_PRODUCT_SPEC.md).
+> Current visual/content rules and approved assets are separated below from optional world-building. Neither this document nor the phrase «approved» expands the [NURA 1.0/1.5 product roadmap](../../product/NURA_1_0_1_5_PRODUCT_SPEC.md).
 
-> **Статус:** утверждённая визуально-смысловая основа v1  
-> **Назначение:** бренд, контент, сценарии, генерация изображений и видеопроизводство LOOPRA  
-> **Базовый формат среды:** вертикальный 9:16  
-> **Официальный стиль:** **NURA Cinematic Editorial Realism**
+## 1. Authority and scope
+
+This document has two roles:
+
+1. `CURRENT BRAND STANDARD` — visual identity for NURA content production and the existing canonical asset set.
+2. `FUTURE VISION` — narrative geography, characters, experiences and world-building that may inspire content but are not committed product surfaces.
+
+Product scope and version boundaries come only from the canonical product spec. UI tokens and typography come from the [current design-system source map](../../standards/design-system.md), not from illustrative prose in this file. Voice and safety wording come from the [tone-of-voice standard](../../standards/tone-of-voice.md).
+
+## 2. Current approved brand system
+
+`CURRENT BRAND STANDARD`
+
+- Identity: NURA is a calm digital guide for self-observation, not a prophet, goddess, priestess or absolute spiritual authority.
+- Current visual direction for content imagery: **NURA Cinematic Editorial Realism** — warm, light, premium, psychologically safe and editorial rather than occult.
+- Current image palette: warm ivory/light stone, sage/olive nature, white flowers, restrained soft gold; night scenes use deep navy/blue-sage with warm light and never dominant absolute black.
+- Current materials and shape language: light stone, mineral plaster, linen, ceramics, plants, rounded forms, arches, circles and restrained gold inlay.
+- Current repeated motifs: fine gold lines, circles, compass-star, mature trees/olive leaves, white flowers and reflective water, used as orientation/reflection rather than prophecy.
+- Current character rule: preserve the approved NURA face and adult calm body language; no supernatural glow, levitation, hierarchy or certainty about another person's fate.
+- Current typography: this file does not create a second font contract. Product/UI typography follows the approved design system: Playfair Display (or the approved serif) for emotional headings and Manrope (or the approved sans-serif) for body/UI.
+
+Detailed current visual rules remain in references C, D, G and I–L below.
+
+## 3. Current canonical assets
+
+`CURRENT BRAND STANDARD`
+
+- [Asset manifest](./assets-manifest.json) is the canonical registry for this module.
+- The manifest declares 24 stable asset IDs; all 24 referenced preview files are present under [`assets/`](./assets/).
+- Existing day/night location images are approved content-production assets in their recorded form. Their presence does not approve a game, world map, collective mode, new product screen or other narrative product surface.
+- Stable IDs, scene roles, motion suggestions and caption safe zones may be used for editorial briefs without changing product/runtime contracts.
+
+Brand assets were not changed in this consolidation.
+
+## 4. Current usage boundaries
+
+`CURRENT BRAND STANDARD`
+
+Use the current standard for brand/editorial production surfaces: approved illustrations, social content, short videos, carousels, covers and content-production briefs.
+
+Do not use this document as:
+
+- a UI token replacement for `theme.css` or the current design-system source map;
+- an engineering, API, analytics, schema, test or runtime-prompt standard;
+- evidence that a product feature, report section, character or interactive experience is implemented;
+- permission to add new colors, fonts, icons or generated assets to production;
+- a factual claim that LOOPRA or another content-production system is a committed NURA 1.0/1.5 surface.
+
+## 5. Future creative universe
+
+`FUTURE VISION`
+
+The inner-world metaphor, geography, location narratives, extended characters, collective modes, speculative experiences and broader narrative universe are optional creative material. Existing location images may illustrate current content while the larger world-building around them remains future vision.
+
+The detailed future source is preserved in references A, B, E, F and H below. It may inform a separately approved content concept, but it does not schedule or gate product development.
+
+## 6. What is not product roadmap
+
+The following are not committed by this document:
+
+- extended characters or a cast beyond the approved current NURA identity;
+- a navigable world, map, game, collective Lila mode or new interactive surface;
+- new report sections, Tarot products, subscription functions or platform tools;
+- LOOPRA/content-factory runtime integration;
+- product support for every scene, animation or story pattern described below.
+
+Ideas are not declared rejected. They remain `FUTURE VISION` until product authority explicitly adopts them.
+
+## 7. Content Studio relationship
+
+The `NURA_CONTENT_STUDIO_PROJECT_GUIDE` may use this document as an editorial visual reference for content plans, scripts, dialogue, short video, carousel, post, cover and publication-description work.
+
+That relationship is one-way and editorial. Content Studio guidance is not automatic authority for production report/chat prompts, API or engineering documentation, calculations, schemas, safety contracts or acceptance criteria. The accepted [runtime prompt contracts](../../prompt-spec.md#12-content-studio-boundary) define this boundary.
+
+## 8. References
+
+- [Canonical NURA 1.0/1.5 product spec](../../product/NURA_1_0_1_5_PRODUCT_SPEC.md)
+- [Documentation authority router](../../README.md)
+- [Current design-system source map](../../standards/design-system.md)
+- [Tone-of-voice standard](../../standards/tone-of-voice.md)
+- [Runtime prompt contracts — Content Studio boundary](../../prompt-spec.md#12-content-studio-boundary)
+- [Asset manifest](./assets-manifest.json)
+
+## Detailed source reference
+
+The remaining body preserves the complete approved visual reference and the complete future creative source. Each major section now carries an explicit authority classification.
 
 ---
 
-## 1. Что такое вселенная NURA
+## Reference A. Что такое вселенная NURA
+
+`FUTURE VISION — creative framing, not product scope`
 
 Вселенная NURA — это не буквальный фантастический мир и не географическая карта, которую пользователь должен воспринимать как объективную реальность. Это **визуальная форма внутреннего пространства человека**: место, где можно замедлиться, заметить собственное состояние, сформулировать вопрос и посмотреть на опыт без давления и окончательных суждений.
 
@@ -35,7 +119,9 @@ NURA обитает в этом мире как **цифровой провод�
 
 ---
 
-## 2. Центральная метафора
+## Reference B. Центральная метафора
+
+`FUTURE VISION — narrative metaphor; current safety principles remain applicable to editorial content`
 
 > **Человек не получает готовую карту судьбы — он учится внимательнее видеть собственный путь.**
 
@@ -50,7 +136,9 @@ NURA обитает в этом мире как **цифровой провод�
 
 ---
 
-## 3. Официальный визуальный стиль
+## Reference C. Официальный визуальный стиль
+
+`CURRENT BRAND STANDARD — content imagery; not a replacement for UI tokens or typography`
 
 ### NURA Cinematic Editorial Realism
 
@@ -112,7 +200,9 @@ NURA обитает в этом мире как **цифровой провод�
 
 ---
 
-## 4. Повторяющиеся символы
+## Reference D. Повторяющиеся символы
+
+`CURRENT BRAND STANDARD — editorial motif vocabulary`
 
 ### Золотые линии
 
@@ -148,7 +238,9 @@ NURA обитает в этом мире как **цифровой провод�
 
 ---
 
-## 5. География
+## Reference E. География
+
+`FUTURE VISION — world-building, not a navigable product surface`
 
 Мир организован вокруг **Сада тишины**. Внутри или рядом с ним находятся:
 
@@ -169,7 +261,9 @@ NURA обитает в этом мире как **цифровой провод�
 
 ---
 
-## 6. Канонические локации
+## Reference F. Канонические локации
+
+`CURRENT BRAND STANDARD` applies to the 24 existing registered visual assets. Narrative roles, future group modes and implied experiences remain `FUTURE VISION` and do not create product scope.
 
 ## 6.1. Сад тишины
 
@@ -588,7 +682,9 @@ NURA обитает в этом мире как **цифровой провод�
 
 ---
 
-## 7. Правила появления персонажей
+## Reference G. Правила появления персонажей
+
+`CURRENT BRAND STANDARD` for the approved NURA identity and generic user character. Any new named or extended character remains `FUTURE VISION`.
 
 ## NURA
 
@@ -626,7 +722,9 @@ NURA не должна:
 
 ---
 
-## 8. Использование в видео
+## Reference H. Использование в видео
+
+`CURRENT BRAND STANDARD` for editorial production patterns using existing assets. New product/video systems remain `FUTURE VISION`.
 
 ## Формат A — сюжетный ролик
 
@@ -658,7 +756,9 @@ NURA не должна:
 
 ---
 
-## 9. Текст поверх изображения
+## Reference I. Текст поверх изображения
+
+`CURRENT BRAND STANDARD — editorial content only`
 
 - Одна мысль на экран.
 - Не закрывать главный символ локации.
@@ -671,7 +771,9 @@ NURA не должна:
 
 ---
 
-## 10. Музыка и звук
+## Reference J. Музыка и звук
+
+`CURRENT BRAND STANDARD — editorial content only`
 
 ### День
 
@@ -693,7 +795,9 @@ NURA не должна:
 
 ---
 
-## 11. Запреты
+## Reference K. Запреты
+
+`CURRENT BRAND STANDARD — safety and visual exclusions for content production`
 
 Во вселенной NURA не используются:
 
@@ -715,7 +819,9 @@ NURA не должна:
 
 ---
 
-## 12. Каноническая формула будущих генераций
+## Reference L. Формула новых editorial generations
+
+`CURRENT BRAND STANDARD` for proposed content assets. New production assets still require the normal review/approval workflow and do not become product scope automatically.
 
 Для новых изображений необходимо сохранять:
 
@@ -732,7 +838,9 @@ NURA не должна:
 
 ---
 
-## 13. Структура ассетов
+## Reference M. Структура ассетов
+
+`CURRENT BRAND STANDARD — canonical registry and existing preview paths`
 
 Канонический путь документа:
 
@@ -756,7 +864,7 @@ docs/brand/nura-universe/assets/
 
 ---
 
-## Итог
+## Boundary conclusion
 
 Вселенная NURA — это единая визуальная система, где красота не является самостоятельным декором. Каждый объект помогает выразить продуктовую позицию:
 
@@ -771,4 +879,4 @@ docs/brand/nura-universe/assets/
 - **Долина** сохраняет свободу выбора.
 - **Павильон** превращает символы в инструмент самопознания, а не предсказания.
 
-Эта система является основой для визуального контента NURA, сценариев, каруселей, видеороликов и будущего контент-завода LOOPRA.
+Эта система является текущей основой для визуального/editorial контента NURA, сценариев, каруселей и видеороликов в пределах approved content workflow. Расширенная вселенная и возможный контент-завод LOOPRA остаются `FUTURE VISION` и не входят автоматически в NURA 1.0/1.5 roadmap.

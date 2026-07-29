@@ -1,15 +1,24 @@
 # NURA — Сравнение прайс-листа и наполнения отчёта
 
-> **STATUS: MIXED DATED RESEARCH — NON-NORMATIVE**
+> **STATUS: DATED RESEARCH**
 >
-> Старые цены и отсутствующие ссылки не являются product contract. До консолидации в Stage 2B используйте [canonical spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md).
+> **Research date/baseline:** 30.06.2026, repository assumptions recorded by the original analysis. Claims were not re-researched or externally refreshed in Write Session 5.
+>
+> **Purpose:** compare the then-described report content with the then-described offer and preserve the resulting recommendations.
+>
+> This document is research, not a product spec, owner decision, implementation proof, pricing contract or roadmap. Current product target: [canonical spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md). Current implementation: [current status](implementation/current-status.md), [accepted report spec](report-spec.md) and [accepted pricing map](pricing.md).
 
-> Создано: 30.06.2026
-> Цель: анализ соответствия текущего наполнения отчёта заявленному в прайс-листе
+## Research authority boundary
+
+- All «заявлено», «реализовано», «запланировано», page-count, section-count and competitor claims below describe the 30 June research baseline unless explicitly reclassified.
+- The current 890 ₽ target is governed by the canonical product spec and accepted pricing documentation, not by this comparison.
+- Historical recommendations P1–P5, proposed phases and projections are `DATED RESEARCH`; they do not create implementation tasks or future report scope.
+- `image-prompts.md`, referenced by the original analysis, is not present in the current repository. Its alleged readiness is therefore a stale/unsupported source claim, not an existing asset contract.
+- Research conclusions are preserved even where later product direction or implementation changed.
 
 ---
 
-## 1. Заявлено в прайс-листе (docs/pricing.md)
+## 1. Research baseline: заявлено в прайс-листе
 
 ### Матрица Судьбы — 890 ₽ (разово)
 
@@ -23,9 +32,9 @@
 
 ---
 
-## 2. Текущее наполнение отчёта (report-spec.md)
+## 2. Research baseline: наполнение отчёта на 30.06.2026
 
-### Реализовано ✅ (17 секций)
+### Классифицировано исходным исследованием как реализованное (17 секций)
 
 | # | Секция | AI-поле | Статус |
 |---|--------|---------|--------|
@@ -47,7 +56,7 @@
 | R1 | Мои инсайты | — | ✅ |
 | R2 | Что я попробую | — | ✅ |
 
-### Запланировано 📋 (5 секций)
+### Классифицировано исходным исследованием как запланированное (5 секций)
 
 | # | Секция | AI-поле | Приоритет |
 |---|--------|---------|-----------|
@@ -59,9 +68,9 @@
 
 ---
 
-## 3. Анализ соответствия
+## 3. Dated comparison, not current conformity evidence
 
-### ✅ Соответствует
+### Исходный вывод исследования: «соответствует»
 
 | Критерий | Заявлено | Факт | Статус |
 |----------|----------|------|--------|
@@ -71,17 +80,17 @@
 | Доступ навсегда | Да | Токен не истекает | ✅ |
 | Расклад совместимости | 1 навсегда | Реализовано в боте | ✅ |
 
-### ⚠️ Требует внимания
+### Исходный вывод исследования: «требует внимания»
 
 | Проблема | Описание | Рекомендация |
 |----------|----------|--------------|
 | **Объём страниц** | Заявлено 30-50 стр., фактически ~25-35 стр. | Добавить P1, P2 для увеличения объёма |
 | **Kitchen-слой** | Только S3 имеет аккордеон | Расширить на S4-S13 (P3) |
-| **Визуальный контент** | Только SVG матрицы, нет изображений | Сгенерировать фоны по image-prompts.md |
+| **Визуальный контент** | Исходное утверждение: только SVG матрицы, нет изображений | Историческая рекомендация ссылалась на отсутствующий `image-prompts.md`; current asset/visual contract этим не доказан |
 
 ---
 
-## 4. Сравнение с конкурентами (из pricing.md)
+## 4. Competitor snapshot used by the research
 
 ### Рынок Матрицы Судьбы
 
@@ -105,7 +114,7 @@ NURA находится в **верхнем сегменте рынка** по �
 
 ---
 
-## 5. Рекомендации по улучшению
+## 5. Dated research recommendations — not roadmap
 
 ### Приоритет 1: Добавить запланированные секции
 
@@ -131,7 +140,7 @@ NURA находится в **верхнем сегменте рынка** по �
 ### Приоритет 3: Визуальный контент
 
 4. **Фоновые изображения**
-   - Промпты готовы: `image-prompts.md`
+   - Исходное утверждение: промпты готовы в `image-prompts.md`; такого repository file нет
    - **Действие:** сгенерировать 11 изображений для секций
    - **Эффект:** премиальный вид, увеличение объёма на 5-10%
 
@@ -149,7 +158,7 @@ NURA находится в **верхнем сегменте рынка** по �
 
 ---
 
-## 6. Итоговый план действий
+## 6. Historical proposed action plan — not committed roadmap
 
 ### Фаза 1 (1-2 дня)
 - [ ] Добавить P1 (Психологические блоки)
@@ -168,7 +177,7 @@ NURA находится в **верхнем сегменте рынка** по �
 
 ---
 
-## 7. Обновлённое соответствие после реализации
+## 7. Hypothetical projection from the dated study
 
 ### После Фазы 1
 
@@ -187,9 +196,9 @@ NURA находится в **верхнем сегменте рынка** по �
 
 ---
 
-## 8. Вывод
+## 8. Dated research conclusion
 
-**Текущее состояние:** NURA соответствует заявленному в прайс-листе, но есть потенциал для улучшения.
+**Вывод исследования на 30.06.2026:** NURA соответствовала описанному в использованном прайс-листе baseline, но исследование видело потенциал для улучшения. Это не current implementation verdict.
 
 **Ключевые действия:**
 1. Добавить P1 и P2 (быстрая победа, шаблоны готовы)
@@ -200,9 +209,10 @@ NURA находится в **верхнем сегменте рынка** по �
 
 ---
 
-## 9. Примечания
+## 9. Provenance and stale-claim notes
 
-- Все AI-поля уже реализованы в `core/services/report.py`
-- Шаблоны P1 и P2 уже существуют, нужно только подключить
-- Kitchen-данные уже генерируются, нужно только отобразить
-- Визуальный контент — единственный элемент, требующий внешней генерации
+- Исходное исследование утверждало, что все AI-поля уже реализованы в `core/services/report.py`; current implementation следует проверять по accepted report documentation and code.
+- Исходное исследование утверждало, что шаблоны P1 и P2 уже существуют и требуют только подключения; это historical implementation claim, не задача из этого документа.
+- Исходное исследование утверждало, что Kitchen-данные уже генерируются и требуют только отображения; current two-layer contract находится в accepted report/two-layer docs.
+- Исходное исследование называло визуальный контент единственным внешним generation gap. Эта формулировка могла устареть и не является launch-readiness evidence.
+- Отсутствующая ссылка `image-prompts.md` не восстановлена по догадке; visual/content assets governed by current brand/design workflows.

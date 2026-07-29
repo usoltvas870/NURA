@@ -1,153 +1,100 @@
-# Auth System — оставшиеся задачи
+# NURA Authentication — Historical Remaining-Tasks Record
 
-> **STATUS: MIXED — LEGACY PWA PLAN + PARTIALLY IMPLEMENTED COMPATIBILITY**
+> **STATUS: HISTORICAL / SUPERSEDED AUTH CHECKLIST**
 >
-> Stage 2A сохраняет файл на месте из-за смешанного содержания и исторических ссылок в externally modified `STATE.md`. Не использовать как current backlog; фактическое состояние: [current status](docs/implementation/current-status.md).
+> Этот файл сохраняет историю PWA/email/VK auth-работ 1–2 июля 2026 года. Он не является current backlog, auth roadmap, production evidence или основанием для продления legacy-поддержки.
 
-**Версия:** 1.1 (обновлён 01.07.2026)  
-**Дата:** 02.07.2026  
-**Откуда:** реализация `docs/auth_system_implementation_plan.md` (Фазы 1+2 завершены, 3 реализована)
+## 1. Authority and historical scope
 
----
+Текущий продуктовый target задаёт [каноническая спецификация](docs/product/NURA_1_0_1_5_PRODUCT_SPEC.md), а фактическую реализацию подтверждают code/tests и её компактное [current-status mirror](docs/implementation/current-status.md). Telegram — основной identity path; guest/email/VK routes относятся к `LEGACY COMPATIBILITY` существующего web/PWA-клиента.
 
-## 🔴 Срочно (до деплоя)
+Этот документ возник как remaining-tasks checklist к прежнему [PWA auth implementation plan](docs/archive/legacy-pwa/architecture/auth-system-implementation-plan.md). Формулировки «срочно», «до деплоя», «что осталось сделать» и будущие product ideas отражали состояние на дату записи и больше не управляют разработкой.
 
-### 1. Применить миграцию на VPS ✅
+## 2. Original baseline
 
-**Сделано 01.07.2026** — `alembic upgrade head` выполнен внутри контейнера `nura_app-api-1`, миграция `c4d5e6f7a8b9` на head.
+Историческая запись была создана после auth-работ 1 июля 2026 года и затем обновлялась как смешанный список реализации и внешних действий.
 
-Миграция `c4d5e6f7a8b9_add_auth_and_guest.py`:
-- Добавляет колонки `phone`, `auth_method`, `email_verified`, `phone_verified`, `vk_id` в `users`
-- Создаёт partial unique indexes (`uq_user_email_notnull`, `uq_user_phone_notnull`, `uq_user_vk_id_notnull`)
-- Создаёт таблицу `guest_profiles`
+| Исторический блок | Что фиксировал checklist | Как его следует читать сейчас |
+|---|---|---|
+| Guest profile | Создание временного профиля, merge и cleanup | Milestone, позднее подтверждённый current code/tests |
+| Email magic link | Переход от Unisender к SMTP, отправка и verify | Partial milestone: service verify/merge exists, but production redirect cookie wiring has an implementation gap |
+| VK ID | OAuth/provider flow, callback и guest merge | Milestone web compatibility; внешняя настройка VK не доказана этим файлом |
+| SMS | Первоначальный план и последующая отмена | `HISTORICAL / SUPERSEDED`; SMS auth не является current path |
+| Telegram linking | Связь web identity с Telegram | Current compatibility имеет отдельный `link_*` path; прежний `tgauth_*` flow retired |
+| VPS/configuration | Миграция, credentials и deployment notes | Dated operator claims, не current production evidence |
+| Product ideas | Retention email, segmentation, analytics, premium offers | Historical ideas, not part of committed roadmap |
 
-### 2. Прописать API-ключи в `.env` на VPS
+Git chronology preserves the context: `2f753a6` introduced the original auth phases, and `ff9decd` updated this checklist after later VK/email/Celery fixes. Commit presence proves repository history, not deployment or provider acceptance.
 
-Статус:
-- ✅ `VK_CLIENT_ID`, `VK_CLIENT_SECRET`, `VK_SERVICE_TOKEN` — прописаны
-- ❌ `UNISENDER_API_KEY` — **отсутствует**, нужно добавить в `/opt/nura/nura_app/.env`
-- ❌ `SMS_RU_API_ID` — не требуется (SMS-аутентификация удалена из кода)
+## 3. Tasks that were implemented
 
-Без `UNISENDER_API_KEY` задача `send_magic_link_email` логирует warning и не отправляет письма.
+`CURRENT — IMPLEMENTED` below means reachable local code with static test evidence; it does not mean current production availability. Explicit gaps remain gaps even when the underlying service method exists.
 
-### 3. ~~Настроить Unisender~~ — заменён на Beget SMTP ✅
+- Guest creation/fetch/conversion/merge routes are registered under `/api/v1/auth/*`; guest data is stored through the auth service/repositories and cached in Redis.
+- Email magic-link send and verify routes are registered. `AuthService.verify_magic_link()` consumes the token, verifies the user and can merge guest data. The production route then calls `set_session_cookie()` on the injected `Response` but returns a different `RedirectResponse`; static inspection therefore indicates that the session cookie is not carried by the returned redirect. This is an `IMPLEMENTATION GAP`, not a working login claim. Existing email contract coverage exercises a fake E2E endpoint and service behavior, not this production route wiring.
+- VK token authentication is registered at `POST /api/v1/auth/vk`. The service verifies provider identity, creates/reuses or links a user, merges guest data only after identity resolution and rejects conflicting or ambiguous identities. Provider calls are mocked in local tests.
+- The web compatibility API can generate a Telegram `link_*` deep link for an authenticated web user.
+- Auth routes have explicit per-route rate limits.
+- Expired guest cleanup is registered as a daily Celery Beat task.
+- The obsolete Telegram `tgauth_*` web endpoints and bot deep links are guarded as stateless retired flows returning a safe tombstone; tests verify that they do not access Redis or repositories.
+- SMS authentication was removed from the active route contract. Historical Unisender/SMS setup steps therefore are not current work items.
 
-Код переписан (коммит `e2c4b32`): `send_magic_link_email` теперь отправляет письма через SMTP Beget (`smtp.beget.com:465`) вместо Unisender API.
+The accepted [bot specification](docs/bot-spec.md) and [bot UX map](docs/bot-ux-map.md) classify guest/email/VK auth as `LEGACY COMPATIBILITY`, not Telegram-first onboarding.
 
-Что сделано:
-- ✅ SMTP-конфигурация в `core/config.py`
-- ✅ HTML-шаблон письма «Вход в NURA» с text/plain fallback
-- ✅ `aiosmtplib` добавлен в `requirements.txt`
-- ✅ Безопасное логирование (email маскируется, токен не логируется)
-- ✅ `UNISENDER_API_KEY` помечен deprecated
-- ⬜ `SMTP_PASSWORD` — **пользователь внесёт сам** в `.env` на VPS
-- ⬜ Деплой на VPS — ожидается восстановление сервера (SSH недоступен на 01.07.2026)
+## 4. Tasks that remain only as legacy compatibility questions
 
-**Настройки Unisender (SPF/DKIM/DMARC) уже не нужны** — почта идёт напрямую через SMTP Beget, где всё уже настроено.
+The following are not imperative tasks from this checklist:
 
-Старая тема письма: «Ваш персональный отчёт готов». Новая тема: «Вход в NURA».
+- how long the legacy PWA and guest/email/VK identity paths remain supported;
+- what deprecation notice and exit UX those paths require;
+- whether a future compatibility release must re-run VK/email provider acceptance;
+- whether the existing web-to-Telegram `link_*` path remains part of the eventual compatibility boundary.
 
-### 4. ~~Настроить SMS.ru~~ — отменено
+These questions must be resolved against DM-03 and current repository evidence. The historical checklist does not choose a retirement date, provider rollout or support promise.
 
-SMS-аутентификация полностью удалена из кода (коммиты `318ea10`, `013f5bc`, `7ffe479`). Остались только поля-заглушки в `core/config.py`.
+Separately, the email redirect/cookie defect above is a current `IMPLEMENTATION GAP`, not an owner decision or a legacy-support-duration question. Fixing it requires a separately authorized code/test session.
 
----
+## 5. Superseded or unverifiable statements
 
-## 🟡 Фаза 3 — VK ID (OneTap → прямой OAuth redirect)
+- Claims that a migration, SMTP password, VK credentials, Celery Beat or email transport were configured on a VPS were point-in-time operator notes. This session performed no SSH, sandbox or production verification, so those claims are not current evidence.
+- The old requirement to add `UNISENDER_API_KEY` conflicts with the same record's later SMTP transition and is superseded.
+- The SMS.ru setup and Email-vs-SMS experiment were cancelled and do not belong to the current auth contract.
+- The OneTap/callback descriptions mixed multiple integration variants. Current behavior must be read from `api/routes/auth.py`, `core/services/auth.py`, PWA code and tests.
+- Statements such as «работает после настройки приложения», «проверено» or «развёрнуто» are retained only as historical assertions and must not be promoted to production acceptance.
+- Referral rewards, retention mailings, segmentation, premium consultations and analytics were ideas in the old checklist. They are not accepted by this file and are not part of a committed auth roadmap.
 
-**Статус:** OneTap заменён на прямой OAuth redirect + `vk-callback.html`. Работает после настройки VK-приложения.
+## 6. Current authoritative destinations
 
-### Что сделано:
-- ✅ Создан метод `vk_auth` в `AuthService`
-- ✅ Эндпоинт `POST /api/v1/auth/vk` принимает `{access_token, user_id, guest_token?}`
-- ✅ Ключи в `.env` на VPS
-- ✅ OneTap заменён на кнопку «Войти через VK» с прямым OAuth-редиректом
-- ✅ Создан `vk-callback.html` — обрабатывает редирект, обменивает код на токен, логинит
-- ✅ guest_token передаётся через `state` параметр OAuth
+| Question | Authority |
+|---|---|
+| What is the NURA 1.0/1.5 identity and PWA target? | [Canonical product spec](docs/product/NURA_1_0_1_5_PRODUCT_SPEC.md) |
+| What auth/PWA behavior is currently mirrored as implemented? | [Current implementation status](docs/implementation/current-status.md) plus code/tests |
+| Why is PWA compatibility retained without a deadline? | DM-03 in [migration decisions](docs/decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md) |
+| How does current Telegram onboarding differ from web compatibility? | [Bot specification](docs/bot-spec.md) and [bot UX map](docs/bot-ux-map.md) |
+| Where is the original PWA auth plan? | [Legacy PWA auth plan](docs/archive/legacy-pwa/architecture/auth-system-implementation-plan.md) |
+| Where is local/external/production evidence separated? | [Acceptance index](docs/acceptance/README.md) |
 
-### Что осталось сделать:
-1. **Настроить VK-приложение** (https://id.vk.com/accounts/apps/):
-   - Добавить домен `nura-ai.ru` в **Allowed domains**
-   - Добавить `https://nura-ai.ru/vk-callback.html` в **Redirect URLs**
+## 7. Owner decisions still pending
 
-2. **Протестировать flow:**
-   - Открыть `mini.html` → пройти квиз → нажать «Войти через VK» → авторизоваться → редирект в `/app/`
+- `OWNER DECISION PENDING` — duration and retirement policy for legacy PWA plus guest/email/VK auth compatibility.
 
-### Архитектура VK ID интеграции:
-- **Фронтенд:** VK ID SDK (One Tap кнопка) → получает `code` → обменивает на `access_token` через `VKID.Auth.exchangeCode()` → отправляет на бэкенд
-- **Бэкенд:** `POST /api/v1/auth/vk` → вызывает `id.vk.ru/oauth2/user_info` → находит/создаёт пользователя → устанавливает сессию
-- **Callback:** `https://nura-ai.ru/api/v1/auth/vk/callback` — используется VK ID SDK для postMessage (не требует отдельной страницы)
+External provider, sandbox and production availability remain an `EVIDENCE BOUNDARY`, not an owner decision inferred by this file.
 
----
+Telegram-first, retirement of `tgauth_*`, and classification of guest/email/VK as legacy compatibility are not pending in this document.
 
-## 🟢 Улучшения (после деплоя)
+## 8. References
 
-### 10. Celery Beat — cron для `cleanup_expired_guest_profiles` ✅
-
-- ✅ `nura_app-celery-beat-1` работает на VPS
-- ✅ Задача `cleanup-expired-guests` в расписании (раз в сутки)
-
-### 11. Rate limiting — мониторинг
-
-Все эндпоинты `/api/v1/auth/*` уже обёрнуты в slowapi. Через неделю после деплоя:
-- Посмотреть логи на предмет 429 ошибок
-- Если слишком много — ослабить лимиты в `api/routes/auth.py`
-- Если слишком мало — можно закрутить (сейчас лимиты щадящие по плану)
-
-### 12. Мониторинг Sentry
-
-- Убедиться, что ошибки из `AuthService` (логирование через `logger.exception`) попадают в Sentry
-- Проверить, что `send_magic_link_email` логирует ошибки при падении Unisender
-
-### 13. UX — повторная отправка письма
-
-Сейчас пользователь не может запросить письмо повторно, пока не истечёт TTL. Можно добавить кнопку «Отправить ещё раз» с таймером обратного отсчёта (60 секунд) на фронтенде (только Email, SMS удалён).
-
-### 14. ~~A/B тест Email vs SMS~~ — отменено
-
-SMS-аутентификация удалена. A/B тест нерелевантен.
-
----
-
-## 🔵 Фаза 4 — продуктовые (когда будет готова аналитика)
-
-- Реферальная программа через Telegram-бот (в Telegram уже есть реферальная система в `start.py` — донастроить награды)
-- Email-рассылки через Unisender для ретеншна
-- Сегментация пользователей по запросам (данные из `quiz_answers`)
-- Premium-отчёты и персональные консультации
-- Интеграция с аналитикой (Amplitude, Mixpanel)
-
----
-
-## 📋 Чек-лист завершения Фазы 3
-
-- [x] VK-приложение зарегистрировано (ID: 54660807)
-- [x] Креды прописаны в `.env` (`VK_CLIENT_SECRET`, `VK_SERVICE_TOKEN`)
-- [x] `vk_auth` в `AuthService` реализован
-- [x] Эндпоинт `/api/v1/auth/vk` принимает `access_token` + `user_id`
-- [x] Кнопка VK ID One Tap в `mini.html`
-- [x] Rate limit для `/api/v1/auth/vk` (10/minute)
-- [ ] Протестирован flow на staging
-- [ ] Настроен мониторинг Sentry
-- [ ] ~~A/B тест Email vs SMS~~ (отменено — SMS удалён)
-
----
-
-##  Статус на текущий момент
-
-| Компонент | Статус |
-|-----------|--------|
-| Guest profile (создание+кэш) | ✅ |
-| Email magic link (send+verify) | ✅ Beget SMTP (проверено) |
-| ~~SMS code (send+verify)~~ | ❌ Удалён из кода |
-| Merge guest → user | ✅ |
-| Telegram deep link (генерация) | ✅ |
-| VK ID | ✅ Прямой OAuth redirect + `vk-callback.html` (ожидает настройки приложения) |
-| Celery cleanup beat | ✅ |
-| Celery broker_connection_retry | ✅ добавлен |
-| ~~Unisender API~~ | ✅ Заменён на Beget SMTP (`e2c4b32`) |
-| ~~SMS.ru API~~ | ❌ Не требуется |
-| Миграция на VPS | ✅ `c4d5e6f7a8b9` на head |
-| Email transport | ✅ Beget SMTP (развёрнуто и проверено 01.07.2026) |
-| SMTP_PASSWORD | ✅ прописан в .env |
-| Bot duplicate telegram_id | ✅ race condition устранён (`get_or_create_by_telegram_id`)
+- [Documentation authority router](docs/README.md)
+- [Canonical NURA 1.0/1.5 product spec](docs/product/NURA_1_0_1_5_PRODUCT_SPEC.md)
+- [Current implementation status](docs/implementation/current-status.md)
+- [Migration decisions](docs/decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md)
+- [Migration file map](docs/reconciliation/2026-07-28/MIGRATION_FILE_MAP.md)
+- [Current bot specification](docs/bot-spec.md)
+- [Current bot UX map](docs/bot-ux-map.md)
+- [Legacy PWA archive](docs/archive/legacy-pwa/README.md)
+- `nura_app/api/routes/auth.py`
+- `nura_app/core/services/auth.py`
+- `nura_app/tests/test_auth.py`
+- `nura_app/tests/test_email_auth_contract.py`
+- `nura_app/tests/test_vk_auth_contract.py`
+- `nura_app/tests/test_legacy_telegram_auth_retired.py`

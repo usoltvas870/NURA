@@ -1,643 +1,285 @@
-# NURA — Report Spec
+# NURA Report System — Technical Specification
 
-> **STATUS: MIXED — CURRENT RENDERING + LEGACY WEB DELIVERY + TARGET**
->
-> До Stage 2B не трактуйте web-link delivery как target. Product format задаёт [canonical spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md), текущий gap — [current status](implementation/current-status.md).
-
-> Актуально на 26.05.2026. Версия шаблона: V2 (`full_report_v2.html`).
-> Источники истины: `nura_app/templates/reports/full_report_v2.html`, `nura_app/core/services/report.py`, `nura_app/core/schemas/__init__.py`.
+## 1. Authority and scope
 
----
+Документ описывает реализованную систему отчётов и отделяет её от утверждённого target и compatibility-поверхностей.
 
-## 1. Общая архитектура
+Иерархия источников:
 
-### Форматы
-
-| Формат | Реализован | Как генерируется |
-|--------|-----------|-----------------|
-| HTML (онлайн) | ✅ | `ReportService.render_report_v2_html()` |
-| PDF (скачать) | ✅ | `ReportService.generate_pdf(html)` через WeasyPrint |
-| Мини-разбор (бот) | ✅ | `generate_html_report()` → `mini_report.html` |
-| HTML устаревший | 🗑 | `full_report.html` — не используется в продакшене |
+1. Reachable code, модели, миграции, конфигурация, шаблоны и тесты подтверждают текущую реализацию.
+2. [NURA 1.0/1.5 Product Specification](product/NURA_1_0_1_5_PRODUCT_SPEC.md) — единственный canonical target source; он не доказывает реализацию.
+3. [Current implementation status](implementation/current-status.md) — компактное evidence-backed зеркало, а не самостоятельный контракт.
+4. [Documentation migration decisions](decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md) определяют документарную authority и классификацию compatibility.
 
-### URL и доступ
+Scope включает mini/full generation, persistence, rendering, Telegram delivery, saved materials, payment/refund fences, удаление и legacy web/PWA compatibility. Цены и bot navigation остаются в [pricing.md](pricing.md), [bot-spec.md](bot-spec.md) и [bot-ux-map.md](bot-ux-map.md).
 
-```
-/report/{token}          — HTML-рендер (GET)
-/report/{token}/pdf      — PDF-генерация (GET)
-/report/{token}/kitchen  — Kitchen API (JSON, GET)
-```
+## 2. Status legend
 
-`token` — уникальный UUID из таблицы `reports`. Время жизни токена не ограничено.
+- `CURRENT — IMPLEMENTED` — reachable-поведение подтверждено primary repository evidence.
+- `TARGET — NURA 1.0` — утверждённый target canonical product spec; label не доказывает реализацию.
+- `TARGET — NURA 1.5` — более поздняя продуктовая граница, не входящая в acceptance NURA 1.0.
+- `IMPLEMENTATION GAP` — target- или contract-свойство не подтверждено текущими evidence.
+- `LEGACY COMPATIBILITY` — сохранённая рабочая поверхность, не определяющая Telegram-first target.
+- `HISTORICAL / SUPERSEDED` — происхождение или старый план, больше не описывающий нормативную архитектуру.
+- `OWNER DECISION PENDING` — нерешённая policy, требующая authority владельца.
+- `EVIDENCE BOUNDARY` — граница того, что доказывают repository/local-test evidence.
+- `OUT OF SCOPE` — намеренно исключённая тема.
 
-### Рендеринг (диспетчеризация)
-
-`ReportService.render_report_html()` определяет тип по `report.report_type`:
-
-```
-MINI          → mini_report.html
-FULL          → render_report_v2_html() → full_report_v2.html
-COMPATIBILITY → full_report_v2.html (те же данные, другой заголовок)
-FALLBACK_FULL → 202 «отчёт готовится» (детект через _is_fallback_analysis())
-```
-
-`_is_fallback_analysis(analysis)` — ищет маркеры заглушки в тексте (`analysis.main_archetype`).
-
----
-
-## 2. Данные для подстановки
-
-### 2.1 Структурные данные (вычисляются в коде, не через AI)
-
-#### MatrixData (из БД + `MatrixService`)
-
-| Переменная в шаблоне | Источник | Описание |
-|---------------------|---------|----------|
-| `matrix.center` | `MatrixData.center` | Центр матрицы |
-| `matrix.top/bottom/left/right` | `MatrixData` | Четыре угла |
-| `matrix.talent_zone` | `MatrixData.talent_zone` | Зона таланта |
-| `matrix.comfort_zone` | `MatrixData.comfort_zone` | Зона комфорта |
-| `matrix.portrait_zone` | `MatrixData.portrait_zone` | Личностный портрет |
-| `matrix.karmic_tail` | `MatrixData.karmic_tail` | Список [0], [1], [2] — кармический хвост |
-| `arcana_names` | `MatrixData.arcana_names` | Dict `{str(n): name}` для арканов 1–22 |
-
-#### Данные пользователя
-
-| Переменная в шаблоне | Источник |
-|---------------------|---------|
-| `user_name` | `User.full_name` |
-| `birth_date_raw` | `User.birth_date` (строка YYYY-MM-DD) |
-| `birth_date_formatted` | форматированная `DD.MM.YYYY` |
-| `age` | вычисляется из `birth_date` |
-| `report_number` | `Report.id` |
-| `generated_at` | `Report.created_at` (day, month_name, year) |
+## 3. Terminology and artifact lifecycle
 
-#### Архетип
+Термины не взаимозаменяемы:
 
-| Переменная в шаблоне | Источник |
-|---------------------|---------|
-| `archetype_number` | `matrix.center` |
-| `archetype_roman` | roman numeral от `center` |
-| `archetype_name` | `arcana_names[str(center)]` |
-| `archetype_full` | полное название аркана |
-| `archetype_key` | ключевое слово аркана |
+- **Calculated** — deterministic matrix data рассчитаны из валидированного ввода.
+- **Generated** — AI narrative получен и провалидирован runtime result schema.
+- **Persisted** — structured data, narrative, lifecycle state и применимые artifact bytes/metadata закоммичены в БД.
+- **Rendered** — HTML и/или PDF bytes созданы из persisted либо in-flight report data.
+- **Delivered** — Telegram принял соответствующую отправку сообщения или документа.
+- **Durably completed** — прогресс delivery закоммичен в delivery record после transport success.
+- **Available in My Reports** — eligible completed report доступен для listing/resend; это не доказывает initial delivery.
 
-#### Линии матрицы
-
-| Переменная в шаблоне | Источник |
-|---------------------|---------|
-| `sky_line_nums` | `matrix.sky_line` (список арканов) |
-| `earth_line_nums` | `matrix.earth_line` |
-| `karmic_line_nums` | `matrix.karmic_tail` |
-| `money_line_nums` | `matrix.money_line` |
-| `father_line_nums` | `matrix.relationship_line` (отцовская) |
-| `mother_line_nums` | `matrix.relationship_line` (материнская) |
-
-#### Год и прогноз
+Generated HTML не равен Telegram text. Persisted PDF не равен successful Telegram delivery. Если transport success произошёл до сбоя database commit, retry может создать транспортный duplicate: delivery durable, но не exactly-once на внешней границе.
 
-| Переменная в шаблоне | Источник |
-|---------------------|---------|
-| `current_year` | текущий год |
-| `year_arcana_number` | `MatrixService.calculate_year_arcana()` |
-| `year_arcana_roman` | roman numeral |
-| `year_arcana_name` | `arcana_names[year_arcana_number]` |
-| `life_periods` | `MatrixService.calculate_life_periods()` → список nodes с `year`, `arcana`, `label` |
-| `chakra_data` | `MatrixService.calculate_chakras()` → 7 чакр с `name`, `arcana`, `color`, `organs` |
-| `daily_tarot_arcana` | аркан дня для S15 |
-
-#### Кармический хвост (вычисленные тексты)
-
-| Переменная в шаблоне | Источник |
-|---------------------|---------|
-| `karmic_cause` | первый аркан хвоста → название |
-| `karmic_effect` | второй аркан хвоста → название |
-| `karmic_lesson` | третий аркан хвоста → название |
-
-#### SVG матрицы
-
-| Переменная в шаблоне | Источник |
-|---------------------|---------|
-| `matrix_svg_cells` | список ячеек для SVG-сетки в S1 |
-
-### 2.2 AI-поля (FullReportResult)
-
-Все поля — строки, генерируются DeepSeek в Celery-задаче.
-
-| Поле | Тип | Секция V2 | Статус |
-|------|-----|----------|--------|
-| `analysis.main_archetype` | str | S3 | ✅ |
-| `analysis.karmic_tail_analysis` | str | S4 | ✅ |
-| `analysis.ancestral_programs` | str | S5 | ✅ |
-| `analysis.life_purpose` | str | S6 | ✅ |
-| `analysis.strengths` | str | S7 | ✅ |
-| `analysis.shadow_side` | str | S8 | ✅ |
-| `analysis.relationship_dynamics` | str | S9 | ✅ |
-| `analysis.financial_scenario` | str | S10 | ✅ |
-| `analysis.recurring_mistakes` | str | S11 | ✅ |
-| `analysis.internal_conflicts` | str | S12 | ✅ |
-| `analysis.life_forecast` | str | S13 | ✅ |
-| `analysis.ai_recommendations` | str | S14 (parsed) | ✅ |
-| `analysis.life_cycles` | str | — | 🗑 в схеме, не отображается в V2 |
-| `analysis.psychological_blocks` | str | — | 📋 шаблон есть, не интегрирован |
-| `analysis.health_analysis` | str | — | 📋 шаблон есть, не интегрирован |
-
-#### Парсинг AI-полей
-
-**`parse_recommendations(text)`** — получает `analysis.ai_recommendations`:
-- Разбивает по `\n(?=\d+\.)` (7 дней)
-- Возвращает список `[{number, text, category}]`
-- `category` определяется по ключевым словам: Тело / Ум / Дух / Практика
-
-**`parse_psych_blocks(raw_text, arcana_names)`** — получает `analysis.psychological_blocks`:
-- Regex-разбивка по `"Аркан N"`
-- Извлекает: `belief`, `manifestation`, `strategy`
-- Результат → `psych_blocks` (список блоков)
-- [PLANNED] — вызывается в коде, но секция не добавлена в `full_report_v2.html`
+## 4. Current mini-report contract
 
-### 2.3 Kitchen-данные (KitchenReportResult)
+### Registered Telegram mini — `CURRENT — IMPLEMENTED`
 
-Генерируются отдельным AI-вызовом (/kitchen endpoint).
+1. `MiniReportApplicationService` нормализует и валидирует name/date и строит PII-safe HMAC fingerprint с generation version `mini-v1`.
+2. `MiniReportGenerationRepository` получает или создаёт одну generation на owner + fingerprint + version и атомарно claim-ит eligible attempt.
+3. `MatrixService.calculate()` формирует deterministic `MatrixData`; `AIService.generate_mini_analysis()` — `MiniAnalysisResult`.
+4. Application layer считает generic mini fallback ошибкой generation, а не завершённым результатом.
+5. Для registered user finalization создаёт/связывает `Report`, сохраняет matrix JSON и mini narrative JSON, затем завершает generation.
+6. Initial Telegram delivery сначала отправляет пять именованных text sections и сохраняет каждый message id, затем переиспользует либо рендерит и сохраняет canonical mini PDF и отправляет document.
+7. Delivery завершается только после text и PDF. Retry продолжает с сохранённого прогресса; сбой PDF после text не переотправляет успешные text chunks.
+8. Manual resend имеет отдельный idempotent purpose и использует сохранённые report/PDF без повторного calculation или AI call.
 
-| Поле | Секции |
-|------|--------|
-| `kitchen_analysis.main_archetype.positions/energies/logic` | S3 (аккордеон "Почему я так думаю?") |
-| Остальные 13 ключей | [PLANNED] — не отображаются в V2 |
+### Guest web/PWA mini — `LEGACY COMPATIBILITY`
 
-Аккордеон в S3 — единственное место Kitchen-данных в V2.
+Reachable `/mini-analysis` принимает `GuestMiniReportSubject`. Для guest finalization не создаёт `Report`: matrix и narrative сохраняются в `GuestProfile.report_data`, а durable Telegram text/PDF delivery отсутствует. Поэтому гарантии registered Telegram mini нельзя переносить на guest surface.
 
----
+Primary modules: `core/services/mini_report_application.py`, `core/services/mini_report_generation.py`, `core/repositories/mini_report_generation.py`, `core/services/telegram_report_delivery.py`, `core/repositories/telegram_report_delivery.py`.
 
-## 3. CSS Design System
+## 5. Current full-report contract
 
-Все стили инлайново в `full_report_v2.html` (не внешний CSS-файл).
+### `CURRENT — IMPLEMENTED`
 
-### CSS-переменные
+Canonical full-report path — order-backed Telegram flow:
 
-```css
---bg:             #0A0E0C           /* основной фон */
---bg-page:        #0C1310           /* фон полотна */
---bg-soft:        #111613           /* мягкий фон */
---bg-card:        #0E1A14           /* фон карточек */
+1. Verified YooKassa activation связывает active `PAID` order с одним full `Report` и durable generation job.
+2. Dispatcher и worker атомарно claim-ят lifecycle state. Worker требует full report, confirmed payment, корректную payment/order link и active `PAID` order.
+3. Вне claim transaction `MatrixService` рассчитывает deterministic data, а AI layer формирует full narrative и kitchen analysis.
+4. `FullReportResult` и `KitchenReportResult` валидируют narrative structures.
+5. `full_report_v2.html` рендерит HTML; WeasyPrint конвертирует его в PDF. При ошибке V2 template используется минимальный escaped diagnostic HTML fallback, после чего worker ещё может создать безопасный artifact.
+6. Непосредственно перед persistence worker блокирует и повторно проверяет order. Refund/revocation запрещает commit artifact.
+7. Matrix JSON, narrative JSON, kitchen JSON, PDF bytes, SHA-256, size, MIME, completion timestamp и completed lifecycle state сохраняются в одной `Report` row.
+8. Automatic Telegram delivery требует valid canonical PDF, active user/Telegram identity, `has_matrix` и active `PAID` order. Order остаётся заблокированным через send и durable completion, поэтому refund и delivery сериализованы.
+9. Delivery отправляет PDF с caption. Completed Telegram `file_id` переиспользуется; invalid reuse переключается на upload canonical artifact bytes.
 
---ink:            #F2EFE7           /* основной текст */
---ink-soft:       rgba(242,239,231,0.78)  /* secondary */
---ink-mute:       rgba(242,239,231,0.52)  /* muted */
---ink-faint:      rgba(242,239,231,0.32)  /* very muted */
+### Legacy payment-linked full — `LEGACY COMPATIBILITY`
 
---line:           rgba(242,239,231,0.08)  /* тонкие линии */
---line-strong:    rgba(242,239,231,0.16)  /* линии с акцентом */
+Lifecycle repository также допускает claim full `Report` с `payment_id`, но без `order_id`. Для такого report worker не может проверить/заблокировать `Order`, поэтому active `PAID` order fence и pre-persist refund recheck отсутствуют. Completed orderless full может попасть в My Reports, но current full Telegram delivery требует `order_id` и отклоняет resend/send. Это compatibility exception, а не гарантия canonical order-backed contract.
 
---m-bg:           #0E2419           /* фон секций матрицы */
---m-bg-soft:      #143527           /* мягкий фон матрицы */
---m-line:         rgba(151,197,161,0.18)  /* линии матрицы */
---m-accent:       #C9A55C           /* золото матрицы */
---m-accent-soft:  rgba(201,165,92,0.16)   /* золото мягкое */
---m-leaf:         #6BA37A           /* зелёный матрицы */
+### `IMPLEMENTATION GAP`
 
---t-bg:           #0F1830           /* фон секций таро */
---t-accent:       #D8B36A           /* золото таро */
---t-violet:       #7E7AC8           /* фиолетовый таро */
+Текущий full path не отправляет full narrative как Telegram text. NURA 1.0 требует full text + PDF в Telegram. HTML generation и PDF caption target не закрывают.
 
---reading-w:      720px             /* ширина чтения */
---radius-lg:      20px
---radius-md:      14px
---radius-sm:      10px
-```
+## 6. Generation and persistence lifecycle
 
-### Шрифты
+| Boundary | Mini | Full |
+|---|---|---|
+| Idempotency key | Registered/guest owner + normalized-input fingerprint + `mini-v1` | Canonical: одна order-linked report/job; deterministic dispatch task id |
+| Claim | Generation state с attempt fencing | Report/job state с atomic claim |
+| Work вне transaction | Deterministic calculation + AI generation | Deterministic calculation + full/kitchen AI + rendering |
+| Result validation | `MiniAnalysisResult` | `FullReportResult`, `KitchenReportResult`, PDF integrity |
+| Persistence | Registered: matrix/narrative в `Report`, PDF при delivery; guest: `GuestProfile.report_data`, без PDF delivery | Canonical: matrix/narrative/kitchen/PDF и metadata в `Report`; legacy orderless допускается без order fence |
+| Completion | Generation и delivery — разные durable states | Generation/job и delivery — разные durable states |
+| Recovery | Typed retry, stale-claim recovery, attempt fencing | Dispatcher/reconciliation, retryable failure, stale-claim recovery |
 
-Загружаются с Google Fonts:
-- `Cormorant Garamond` — заголовки, архетип
-- `DM Sans` — основной текст
-- `JetBrains Mono` — номера арканов, технические данные
+Generation completion никогда не означает delivery completion. Reconciliation может пересоздать или requeue eligible work, но не доказывает получение пользователем, если transport success не был durably recorded.
 
-### Ключевые компоненты
+## 7. Rendering and PDF pipeline
 
-| Компонент | Класс | Описание |
-|-----------|-------|----------|
-| Сайдбар | `.sidebar` | sticky, 260px, IntersectionObserver scroll tracking |
-| Мобильное меню | `.mobile-nav` | hamburger, открывается по кнопке |
-| Секция | `.section` | padding, border-bottom |
-| Дашборд | `.dashboard-grid` | 5 карточек, 3-колонки desktop / 2-мобайл |
-| Аккордеон kitchen | `.why` / `.why-btn` | только в S3 |
-| Чекбоксы 7 дней | `.day-item` / `.day-check` | S14, JS click handler |
-| Таймлайн | `.timeline` | S13, горизонтальный, узлы с годами |
-| Чакры | `.chakra-row` | [PLANNED] в `_health_map.html` |
+### Registered mini — `CURRENT — IMPLEMENTED`
 
-### @media print (WeasyPrint)
+- Jinja2 рендерит `templates/reports/mini_report.html` с shared partials/styles.
+- WeasyPrint создаёт PDF bytes.
+- Artifact валидируется как PDF и сохраняется с MIME, size и SHA-256 до повторного использования.
 
-- Белый фон, чёрный текст
-- Системные шрифты (Google Fonts не загружаются в WeasyPrint)
-- A4, `page-break-before: always` на каждой секции
-- Скрыты: `.sidebar`, `.mobile-nav`, `.why-btn`, `.section-actions`
-- Показывается: `.print-toc` (оглавление 15+2 секции)
+Guest web/PWA mini не имеет этого PDF/delivery contract и классифицирован как `LEGACY COMPATIBILITY`.
 
----
+### Full — `CURRENT — IMPLEMENTED`
 
-## 4. Структура полного отчёта (V2)
+- Order-backed worker рендерит `templates/reports/full_report_v2.html` с matrix, narrative и kitchen context.
+- WeasyPrint создаёт canonical PDF; worker проверяет PDF signature и non-empty content.
+- V2 template уже включает health/psychological partials. Старое описание kitchen/psychological sections как только planned — `HISTORICAL / SUPERSEDED`.
 
-### S1 — Обложка ✅
+### `EVIDENCE BOUNDARY`
 
-**Шаблон:** inline в `full_report_v2.html`
+Templates содержат web fonts/web-oriented assets. Наличие файлов и local rendering tests не доказывает доступность каждого external asset в sandbox/production. Runtime-reachable image-prompt generation step в mini/full pipeline не найден.
 
-Данные:
-- `user_name`, `birth_date_formatted`, `age`
-- `archetype_number`, `archetype_roman`, `archetype_name`, `archetype_full`, `archetype_key`
-- `matrix_svg_cells` — SVG сетка матрицы
-- `report_number`, `generated_at`
+## 8. Telegram delivery and durable completion
 
-AI-поля: нет.
+### Mini — `CURRENT — IMPLEMENTED`
 
----
+- Surface: text chunks, затем PDF document.
+- States: pending, delivering, partially delivered, delivered, failed.
+- Completion: commit только после успеха обеих surfaces.
+- Retry: продолжает по сохранённым message ids; retryable failures и stale claims восстанавливаются, terminal eligibility/input errors не ретраятся бесконечно.
 
-### S2 — Дашборд «За 30 секунд» ✅
+### Full — `CURRENT — IMPLEMENTED`
 
-**Шаблон:** inline в `full_report_v2.html`
+- Surface: PDF document с caption, без full Telegram text.
+- States: queued, sending, completed, failed, canceled.
+- Eligibility повторно проверяется под order lock; refunded/ineligible deliveries отменяются или отклоняются.
+- Automatic и manual deliveries имеют разные idempotency keys. Reconciliation создаёт отсутствующие automatic deliveries и requeue-ит eligible retryable/stale work.
 
-5 карточек в сетке:
+### `EVIDENCE BOUNDARY`
 
-| Карточка | Данные |
-|---------|--------|
-| Архетип | `archetype_number`, `archetype_roman`, `archetype_name`, `archetype_key` |
-| Зона таланта | `matrix.talent_zone`, `arcana_names[talent_zone]` |
-| Зона сложностей | `matrix.comfort_zone`, `arcana_names[comfort_zone]` |
-| Предназначение | `matrix.portrait_zone`, `arcana_names[portrait_zone]` |
-| Аркан года | `year_arcana_number`, `year_arcana_name`, `current_year` |
+Database protocol предотвращает concurrent claims и сохраняет durable progress, но не превращает Telegram transport и PostgreSQL commit в одну atomic transaction. Crash после send до completion commit может привести к duplicate send при recovery.
 
-AI-поля: нет (полностью структурные).
+## 9. Saved materials and resend
 
----
+### `CURRENT — IMPLEMENTED`
 
-### S3 — Архетип личности ✅
+My Reports перечисляет completed registered mini и paid completed full reports текущего пользователя. Mini resend использует completed generation/report data и stored/canonicalized PDF. Canonical full resend требует paid order и canonical PDF, не повторяет purchase, matrix calculation или AI generation.
 
-**Шаблон:** inline в `full_report_v2.html`
+### `IMPLEMENTATION GAP`
 
-Данные:
-- `analysis.main_archetype` — основной AI-текст
-- `archetype_name`, `archetype_number`, `archetype_roman`
-- Kitchen-аккордеон: `kitchen_analysis.main_archetype.positions`, `.energies`, `.logic`
+Mixed mini/full pagination применяется не к единому объединённому набору: offset/limit сначала ограничивает mini, затем full добавляются и результат снова обрезается. Full entries могут повторяться между страницами или вытеснять mini; обе report types получают label «Мини-разбор». Orderless legacy full может быть listed, но не проходит current Telegram resend eligibility.
 
-Особенность: единственная секция с UI аккордеона "Почему я так думаю?" (`.why` блок).
-Kitchen-аккордеон скрыт если `kitchen_analysis` отсутствует.
+`has_matrix` участвует в full-delivery eligibility/UI gating, но сам по себе не является report entitlement. Authority остаётся у active `PAID` order и report linkage.
 
-AI-поля: `main_archetype`
+### `TARGET — NURA 1.0`
 
----
+Saved materials должны оставаться Telegram-first access surface для eligible mini/full artifacts. Retention/legal rules этим technical document не устанавливаются.
 
-### S4 — Кармический хвост ✅
+## 10. Payment/refund entitlement boundary
 
-**Шаблон:** inline в `full_report_v2.html`
+### `CURRENT — IMPLEMENTED`
 
-Данные:
-- `analysis.karmic_tail_analysis` — AI-текст
-- `karmic_cause`, `karmic_effect`, `karmic_lesson` — названия арканов 3 хвоста
-- `matrix.karmic_tail[0/1/2]` — номера арканов
+- Full report — one-time YooKassa order за 890 ₽; Telegram Stars не являются утверждённым путём.
+- Generation claim требует confirmed payment и active `PAID` order.
+- Worker повторно проверяет entitlement под lock непосредственно перед artifact persistence.
+- Delivery удерживает order lock через send и durable completion, сериализуя refund относительно delivery.
+- Refund reconciliation инвалидирует или отменяет незавершённую generation/delivery. Policy доступа к уже потреблённому контенту не выводится из technical cleanup behavior.
 
-AI-поля: `karmic_tail_analysis`
+Эти refund-fence гарантии относятся к canonical order-backed flow. `LEGACY COMPATIBILITY` допускает payment-linked full без `order_id`: worker может generate/persist его без order lock/recheck, а current Telegram delivery такой report отклоняет.
 
----
+Payment truth определяют [PAYMENT_FLOW_AUDIT.md](audits/PAYMENT_FLOW_AUDIT.md) и [pricing.md](pricing.md); здесь описана только report-system boundary.
 
-### S5 — Родовые программы ✅
+## 11. Account deletion and privacy
 
-**Шаблон:** inline в `full_report_v2.html`
+### `CURRENT — IMPLEMENTED`
 
-Данные:
-- `analysis.ancestral_programs` — AI-текст
-- `father_line_nums`, `mother_line_nums` — линии матрицы
+`AccountDeletionService` удаляет DB-backed `Report` rows вместе с report payloads и canonical in-DB artifact bytes/metadata, dependent generation/job и delivery rows и очищает Redis chat history. Financial records, необходимые для accounting/audit, сохраняются detached/anonymized в payment deletion flow; legacy payment rows обрабатываются отдельно текущей deletion implementation.
 
-AI-поля: `ancestral_programs`
+| Data/artifact | Current account-deletion behavior |
+|---|---|
+| DB `Report` row и stored matrix/narrative payloads | Удаляются |
+| Generation/job и delivery DB rows | Удаляются |
+| Canonical PDF bytes/metadata в `Report` | Удаляются вместе с `Report` row |
+| Legacy filesystem `{token}.html` / `{token}.pdf` | `AccountDeletionService` не удаляет |
+| Уже доставленная Telegram-копия или сохранённая пользователем local copy | Account deletion технически не отзывает |
 
----
+### `IMPLEMENTATION / PRIVACY GAP`
 
-### S6 — Предназначение ✅
+Runtime-reachable legacy token flow записывает personalized HTML/PDF в `templates/reports/output`, но filesystem lifecycle не связан автоматически с удалением DB records. После account deletion эти files могут остаться в output directory; repository-backed cleanup contract для них не найден. Это current cleanup gap, а не retention/legal policy и не доказательство доступности конкретного файла или URL после deletion.
 
-**Шаблон:** inline в `full_report_v2.html`
+Generation fingerprints используют HMAC и не раскрывают normalized name/date как readable idempotency key. Report tokens на legacy web routes остаются bearer capabilities и не являются authenticated ownership.
 
-Данные:
-- `analysis.life_purpose` — AI-текст
-- `matrix.portrait_zone`, `arcana_names[portrait_zone]`
+### `OWNER DECISION PENDING`
 
-AI-поля: `life_purpose`
+Retention duration, legal basis и post-refund access к уже потреблённому контенту требуют owner/legal authority.
 
----
+## 12. Target NURA 1.0 crosswalk
 
-### S7 — Таланты и сила ✅
+| Capability | Current evidence | NURA 1.0 status |
+|---|---|---|
+| Telegram-first mini | Text + PDF с durable delivery | `CURRENT — IMPLEMENTED` |
+| Telegram-first full | Durable PDF + caption | `IMPLEMENTATION GAP`: full Telegram text отсутствует |
+| Защита deterministic facts от prose layer | Matrix рассчитывается вне AI и передаётся как structured input | `CURRENT — IMPLEMENTED`, с ограничениями verifier ниже |
+| Stored artifacts/resend | Registered mini и canonical full artifacts; mixed listing defects | `IMPLEMENTATION GAP`: My Reports pagination/labels и orderless resend |
+| Payment/refund fence | Canonical full: active `PAID` order claim и recheck перед persist/send | `CURRENT — IMPLEMENTED` для order-backed flow; legacy exception остаётся gap |
+| Separate report/chat runtime contracts | Separate files/loaders/consumers | `IMPLEMENTATION GAP`: нет independent version/acceptance lifecycle |
+| Operational acceptance | Есть local/static evidence | `EVIDENCE BOUNDARY`: sandbox/production proof отделён |
 
-**Шаблон:** inline в `full_report_v2.html`
+## 13. Target NURA 1.5 boundary
 
-Данные:
-- `analysis.strengths` — AI-текст
-- `matrix.talent_zone`, `sky_line_nums`
+`TARGET — NURA 1.5` включает later gift, Tarot и compatibility surfaces по canonical product spec и будущим owner decisions. Они не расширяют current mini/full contract автоматически. Future visual/image sections, compatibility rules, expanded Tarot и будущие report prices здесь не объявляются implemented.
 
-AI-поля: `strengths`
+## 14. Legacy web/PWA compatibility
 
----
+### `LEGACY COMPATIBILITY`
 
-### S8 — Теневая сторона ✅
+Token routes для HTML, PDF и kitchen JSON остаются reachable; старый full-report task может записывать filesystem HTML/PDF и отправлять web link. Эти surfaces поддерживают compatibility/history, но не задают Telegram-first NURA 1.0 delivery.
 
-**Шаблон:** inline в `full_report_v2.html`
+Созданные этим legacy path files не удаляются `AccountDeletionService` автоматически; удаление связанного DB account/report state само по себе не является filesystem cleanup.
 
-Данные:
-- `analysis.shadow_side` — AI-текст
-- `matrix.comfort_zone`
+Order-backed full worker использует `full_report_v2.html`. Generic full fallback token route ссылается на `full_report.html`, которого нет среди tracked templates. Поэтому web rendering order-backed full row не доказан без compatible saved output; route presence не равен delivery proof.
 
-AI-поля: `shadow_side`
+Duration/sunset web/PWA compatibility — `OWNER DECISION PENDING` по DM-03.
 
----
+## 15. Implementation and evidence gaps
 
-### S9 — Отношения ✅
+- `IMPLEMENTATION GAP` — full доставляется как PDF + caption, а не full Telegram text + PDF.
+- `IMPLEMENTATION GAP` — separate report/chat prompt files и consumers не имеют independently accepted/versioned rollout/rollback contract.
+- `IMPLEMENTATION GAP` — semantic verifier проверяет selected genericness, length, dashboard и arcana consistency, но не является complete formal acceptance suite всех content invariants.
+- `IMPLEMENTATION GAP` — legacy token fallback ссылается на отсутствующий `full_report.html`; web rendering current order-backed full rows не гарантирован.
+- `IMPLEMENTATION GAP` — legacy payment-linked full без `order_id` может generate/persist без active-order refund fence, попасть в listing и затем не пройти Telegram delivery.
+- `IMPLEMENTATION GAP` — My Reports mixed mini/full pagination и labels некорректны для full entries.
+- `IMPLEMENTATION / PRIVACY GAP` — account deletion удаляет DB-backed report/job/delivery state, но не удаляет personalized HTML/PDF, записанные legacy token flow на filesystem.
+- `EVIDENCE BOUNDARY` — static tests/repository inspection не доказывают sandbox provider, Telegram, YooKassa, external assets или production behavior.
 
-**Шаблон:** inline в `full_report_v2.html`
+## 16. Owner decisions
 
-Данные:
-- `analysis.relationship_dynamics` — AI-текст
-- `matrix.relationship_point`, `father_line_nums`, `mother_line_nums`
+`OWNER DECISION PENDING` сохраняется для:
 
-AI-поля: `relationship_dynamics`
+- duration/sunset legacy PWA/web links;
+- policy уже потреблённого content после refund;
+- retention period/legal basis;
+- early-buyer gift, future report pricing, expanded Tarot/compatibility rules;
+- future visual/image report sections;
+- prompt acceptance thresholds, model/provider changes и rollout strategy.
 
----
+Telegram-first, цена full report 890 ₽, YooKassa, no Stars, full text+PDF target, report/chat separation target и утверждённый gating не pending.
 
-### S10 — Деньги и карьера ✅
+## 17. Acceptance boundary
 
-**Шаблон:** inline в `full_report_v2.html`
+Repository tests являются implementation evidence, если assertions соответствуют reachable wiring. Они не доказывают sandbox/production deployment, provider availability, real-user Telegram delivery, YooKassa callbacks, external font loading или operational observability.
 
-Данные:
-- `analysis.financial_scenario` — AI-текст
-- `money_line_nums`, `matrix.comfort_zone`
+Acceptance различает:
 
-AI-поля: `financial_scenario`
+1. deterministic calculation correctness;
+2. AI output schema/semantic checks;
+3. persisted lifecycle/artifact integrity;
+4. HTML/PDF rendering;
+5. Telegram transport success;
+6. durable delivery completion;
+7. external environment proof.
 
----
+Ни одна row, PDF, route, prompt file или local test не объединяет эти границы.
 
-### S11 — Повторяющиеся сценарии ✅
+## 18. References
 
-**Шаблон:** inline в `full_report_v2.html`
+Документация:
 
-Данные:
-- `analysis.recurring_mistakes` — AI-текст
+- [NURA 1.0/1.5 Product Specification](product/NURA_1_0_1_5_PRODUCT_SPEC.md)
+- [Current implementation status](implementation/current-status.md)
+- [Documentation migration decisions](decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md)
+- [Bot specification](bot-spec.md)
+- [Bot UX map](bot-ux-map.md)
+- [Payment flow audit](audits/PAYMENT_FLOW_AUDIT.md)
+- [Pricing](pricing.md)
 
-AI-поля: `recurring_mistakes`
+Primary implementation:
 
----
-
-### S12 — Внутренние конфликты ✅
-
-**Шаблон:** inline в `full_report_v2.html`
-
-Данные:
-- `analysis.internal_conflicts` — AI-текст
-
-AI-поля: `internal_conflicts`
-
----
-
-### S13 — Жизненные циклы и прогноз ✅
-
-**Шаблон:** inline в `full_report_v2.html`
-
-Данные:
-- `analysis.life_forecast` — AI-текст прогноза
-- `life_periods` — список nodes: `{year, arcana, label}` (из `calculate_life_periods()`)
-- `year_arcana_number`, `year_arcana_name`, `current_year`
-
-Отображение: горизонтальный таймлайн (`.timeline`) + AI-текст.
-
-AI-поля: `life_forecast`
-
-Примечание: поле `life_cycles` есть в `FullReportResult` (схеме), но в V2 не используется — заменено вычисленными `life_periods`.
-
----
-
-### S14 — Семь дней ✅
-
-**Шаблон:** inline в `full_report_v2.html`
-
-Данные:
-- `recommendations_parsed` — результат `parse_recommendations(analysis.ai_recommendations)`
-- Каждый элемент: `{number, text, category}` (category: Тело / Ум / Дух / Практика)
-
-Отображение: 7 карточек-дней с чекбоксами (`.day-check`). JS обрабатывает клик.
-
-AI-поля: `ai_recommendations` (через `parse_recommendations`)
-
----
-
-### S15 — Карта дня ✅
-
-**Шаблон:** inline в `full_report_v2.html`
-
-Данные:
-- `daily_tarot_arcana` — аркан текущего дня
-- Ссылка на бот Telegram (`bot_username`)
-
-Отображение: карточка аркана + CTA «Открыть в боте».
-
-AI-поля: нет (структурные данные).
-
----
-
-### R1 — Мои инсайты ✅
-
-**Тип:** рефлексивная страница.
-
-Пустые строки для заполнения вручную (онлайн + print).
-Данных не передаётся.
-
----
-
-### R2 — Что я попробую ✅
-
-**Тип:** рефлексивная страница.
-
-Аналогично R1 — пустые строки для действий.
-
----
-
-## 5. Секции [PLANNED] — не реализованы в V2
-
-### P1 — Психологические блоки 📋
-
-**Шаблон:** `_psychological_blocks.html` — существует, не подключён к V2.
-
-Данные которые уже парсятся:
-- `psych_blocks` — список `{arcana_number, arcana_name, belief, manifestation, strategy}`
-- Fallback: `analysis.psychological_blocks` (сырой текст)
-
-Что нужно сделать: добавить `{% include '_psychological_blocks.html' %}` в `full_report_v2.html` после S12.
-
-AI-поля: `psychological_blocks`
-
----
-
-### P2 — Карта здоровья 📋
-
-**Шаблон:** `_health_map.html` — существует, не подключён к V2.
-
-Данные:
-- `chakra_data` — 7 чакр с `{name, arcana, color, organs}` (уже вычисляется в `_build_v2_report_data`)
-- `analysis.health_analysis` — AI-текст
-
-Отображение: 7 строк чакр (Сахасрара → Муладхара) с цветными индикаторами + AI-текст.
-
-Примечание по тону: "чакра" — единственный допустимый эзотерический термин в этой секции (см. tone-of-voice.md).
-
-AI-поля: `health_analysis`
-
----
-
-### P3 — Kitchen-аккордеон для всех секций 📋
-
-Сейчас: только S3 имеет `.why` аккордеон.
-План: добавить "Почему я так думаю?" для S4–S13.
-
-`KitchenReportResult` уже содержит 14 ключей (по одному на секцию).
-
----
-
-### P4 — Таро-блок 📋
-
-Интеграция Таро-ритуалов в отчёт. После S15 — превью недельного расклада.
-Требует реализации таро-подписки и TarotWeeklySpreadResult.
-
----
-
-### P5 — Практики 📋
-
-Шаблон `_practices.html` — не создан. Упоминается в `report-upgrade-sessions.md`.
-
----
-
-## 6. Мини-разбор
-
-### Структура
-
-Шаблон: `mini_report.html`
-Тип отчёта: `MINI`
-
-| Секция | AI-поле |
-|--------|--------|
-| Главный архетип | `analysis.main_archetype` |
-| Сильная сторона | `analysis.core_strength` |
-| Эмоциональный конфликт | `analysis.emotional_conflict` |
-| Паттерн отношений | `analysis.relationship_pattern` |
-| Финансовый блок | `analysis.financial_block` |
-
-### MiniAnalysisResult (схема)
-
-```python
-class MiniAnalysisResult(BaseModel):
-    main_archetype: str
-    core_strength: str
-    emotional_conflict: str
-    relationship_pattern: str
-    financial_block: str
-```
-
-Генерируется за 1 вызов DeepSeek, max_tokens ≈ 2000.
-Доступен сразу после /start или в бесплатном демо.
-
----
-
-## 7. Шаблоны — файловая структура
-
-```
-nura_app/templates/reports/
-├── full_report_v2.html          ← АКТИВНЫЙ шаблон V2 (2531 строк, самодостаточный)
-├── mini_report.html             ← мини-разбор
-├── full_report.html             ← УСТАРЕВШИЙ, не используется в продакшене
-├── _dashboard.html              ← старый дашборд (для full_report.html)
-├── _section_*.html              ← старые секции (для full_report.html)
-├── _psychological_blocks.html   ← [PLANNED] психоблоки — готов, не подключён
-└── _health_map.html             ← [PLANNED] карта здоровья — готов, не подключён
-```
-
-`full_report_v2.html` не использует `{% include %}`. Все секции S1–S15 + R1–R2 — inline.
-
----
-
-## 8. ReportService
-
-Файл: `nura_app/core/services/report.py`
-
-### Методы
-
-| Метод | Назначение |
-|-------|-----------|
-| `render_report_html(report, session_factory)` | Диспетчер по `report_type` |
-| `render_report_v2_html(report, session_factory)` | Основной рендер V2 |
-| `_build_v2_report_data(report, session)` | Async. Строит dict всех переменных для Jinja2 |
-| `generate_html_report(report_data, template_name)` | Универсальный Jinja2-рендер |
-| `generate_pdf(html)` | WeasyPrint: HTML → bytes |
-| `_is_fallback_analysis(analysis)` | Детектирует заглушку AI |
-| `parse_recommendations(text)` | `ai_recommendations` → `[{number, text, category}]` |
-| `parse_psych_blocks(raw_text, arcana_names)` | `psychological_blocks` → список блоков по арканам |
-
-### Timeout
-
-Для full/kitchen/compat вызовов: `httpx timeout = 300с`.
-
----
-
-## 9. Доставка отчёта
-
-### Флоу доставки
-
-```
-Пользователь оплачивает (YooKassa webhook)
-    ↓
-Celery-задача: генерация AI (FullReportResult)
-    ↓
-Запись в reports (JSONB поле analysis)
-    ↓
-Бот отправляет сообщение с кнопкой «Открыть отчёт»
-    ↓
-/report/{token} → render_report_v2_html()
-    ↓
-Пользователь читает онлайн или скачивает PDF
-```
-
-### Права доступа
-
-| Тип | Отчёт | Доступ |
-|-----|-------|--------|
-| Free | Мини-разбор (2-3 блока в боте) | Бесплатно |
-| Матрица 890₽ | Полный HTML/PDF отчёт | После разовой оплаты |
-| Таро-подписка 390₽/мес | Карта дня, таро-ритуалы в боте | По активной подписке |
-| Kitchen-слой | /kitchen API (JSON) | Встроен в токен отчёта |
-
-### URL продакшена
-
-```
-https://nura-ai.ru/report/{token}
-```
-
-Токен не истекает.
-
----
-
-## 10. Сводная таблица секций
-
-| # | Название | AI-поле | Статус |
-|---|----------|---------|--------|
-| S1 | Обложка | — | ✅ |
-| S2 | Дашборд «За 30 секунд» | — | ✅ |
-| S3 | Архетип личности | `main_archetype` | ✅ |
-| S4 | Кармический хвост | `karmic_tail_analysis` | ✅ |
-| S5 | Родовые программы | `ancestral_programs` | ✅ |
-| S6 | Предназначение | `life_purpose` | ✅ |
-| S7 | Таланты и сила | `strengths` | ✅ |
-| S8 | Теневая сторона | `shadow_side` | ✅ |
-| S9 | Отношения | `relationship_dynamics` | ✅ |
-| S10 | Деньги и карьера | `financial_scenario` | ✅ |
-| S11 | Повторяющиеся сценарии | `recurring_mistakes` | ✅ |
-| S12 | Внутренние конфликты | `internal_conflicts` | ✅ |
-| S13 | Жизненные циклы и прогноз | `life_forecast` | ✅ |
-| S14 | Семь дней | `ai_recommendations` | ✅ |
-| S15 | Карта дня | — | ✅ |
-| R1 | Мои инсайты | — | ✅ |
-| R2 | Что я попробую | — | ✅ |
-| P1 | Психологические блоки | `psychological_blocks` | 📋 |
-| P2 | Карта здоровья | `health_analysis` | 📋 |
-| P3 | Kitchen для всех секций | `kitchen_analysis.*` | 📋 |
-| P4 | Таро-блок | — | 📋 |
-| P5 | Практики | — | 📋 |
+- [Mini application service](../nura_app/core/services/mini_report_application.py)
+- [Mini Telegram delivery](../nura_app/core/services/telegram_report_delivery.py)
+- [Full order activation](../nura_app/core/services/full_matrix_checkout.py)
+- [Full generation worker](../nura_app/core/services/matrix_report_worker.py)
+- [Full Telegram delivery](../nura_app/core/services/full_report_telegram_delivery.py)
+- [Report models](../nura_app/core/models.py)
+- [Runtime result schemas](../nura_app/core/schemas/__init__.py)
+- [Report renderer](../nura_app/core/services/report.py)
+- [Report API routes](../nura_app/api/routes/reports.py)
+- [Mini template](../nura_app/templates/reports/mini_report.html)
+- [Full V2 template](../nura_app/templates/reports/full_report_v2.html)

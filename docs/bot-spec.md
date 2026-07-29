@@ -1,1931 +1,273 @@
-# NURA Telegram Bot — Полная функциональная спецификация
+# NURA Telegram Bot — Technical Specification
 
-> **STATUS: MIXED — TEMPORARY, NOT AUTHORITATIVE**
->
-> Документ смешивает current Telegram behavior, legacy 390/PWA и target-функции. До Stage 2B product scope берите из [canonical spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md), реализацию — из [current status](implementation/current-status.md).
+**Статус документа:** CURRENT TECHNICAL SPECIFICATION WITH TARGET CROSSWALK
+**Проверено:** 2026-07-28
+**Граница evidence:** локальный committed code baseline; external Telegram/YooKassa sandbox и production не подтверждены.
 
-## 1. Общая архитектура бота
+## 1. Authority and scope
 
-### 1.1. Стек
+Этот документ отвечает на вопросы о текущей технической архитектуре Telegram-бота, реализованных путях, implementation gaps до NURA 1.0, границе NURA 1.5 и legacy compatibility. Он не является product specification.
 
-| Компонент | Технология |
-|---|---|
-| Bot framework | aiogram 3.13 |
-| FSM storage | Redis (через `RedisStorage`) |
-| Task queue | Celery (брокер Redis) |
-| API | FastAPI (вебхуки YooKassa, раздача отчётов) |
-| DB | PostgreSQL 16 + asyncpg + SQLAlchemy 2.0 async |
-| AI | DeepSeek API |
+- Target NURA 1.0/1.5 определяет только [canonical product spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md).
+- Current implementation подтверждается code, migrations, config и tests; [current status](implementation/current-status.md) — компактное зеркало evidence.
+- Telegram — основной интерфейс target NURA 1.0/1.5. Landing объясняет продукт и ведёт в бот; отдельный публичный Telegram-канал находится вне scope NURA 1.0/1.5.
+- PWA, email/VK/guest auth и web-report links описываются только как legacy compatibility.
+- Наличие handler, route или кнопки означает runtime reachability в локальном baseline, но не доказывает approved release scope, внешний sandbox или production availability.
 
-### 1.2. Callback_data: полный реестр
+## 2. Status legend
 
-| Callback Data | Назначение | Откуда вызывается |
+- `CURRENT — IMPLEMENTED` — путь подтверждён code/test evidence; это не production proof.
+- `TARGET — NURA 1.0` — обязательный target из canonical spec; не утверждение о реализации.
+- `TARGET — NURA 1.5` — расширение 1.5; не входит в NURA 1.0.
+- `IMPLEMENTATION GAP` — target contract отсутствует или реализован не полностью.
+- `OUT OF SCOPE — NURA 1.0/1.5` — поверхность прямо исключена из canonical target этих версий; это не implementation gap и не future roadmap.
+- `LEGACY COMPATIBILITY` — действующий путь прежней PWA/subscription-модели, не current roadmap.
+- `OWNER DECISION PENDING` — authority sources не содержат решения; документ его не принимает.
+- `SUPERSEDED / HISTORICAL` — прежний план или описание, не current contract.
+
+## 3. Product interface boundary
+
+| Surface | Contract | Status |
 |---|---|---|
-| `main_menu` | Вернуться в главное меню | Все экраны |
-| `calculate_matrix` | Начать расчёт матрицы | Главное меню |
-| `compatibility` | Начать расчёт совместимости | Главное меню |
-| `tarot_menu` | Открыть раздел Таро (все 7 раскладов) | Главное меню |
-| `profile` | Открыть профиль (личный кабинет) | Главное меню |
-| `pay_full_report:{token}` | Купить полный отчёт | После мини-разбора |
-| `buy_matrix` | Купить матрицу (890 ₽ разово) | Главное меню |
-| `subscription` | Информация о подписке | Профиль, главное меню |
-| `buy_tarot_subscription` | Оформить таро-подписку | Раздел Таро / пейволл |
-| `buy_subscription` | Оформить подписку | Экран подписки, профиль |
-| `chat_with_nura` | Начать чат с NURA | Главное меню |
-| `chat_exit` | Выйти из чата | Чат |
-| `chat_clear` | Очистить историю чата | Чат |
-| `back_to_profile` | Вернуться в профиль | Профиль / подписка |
-| `open_report:{token}` | Открыть HTML-отчёт | Профиль / уведомление |
-| `download_pdf:{token}` | Скачать PDF-отчёт | Профиль / уведомление |
-| `view_reports` | Список отчётов | Главное меню |
-| `open_pwa` | Открыть PWA-приложение | Главное меню / профиль |
-| `open_pwa_report:{token}` | Открыть отчёт в PWA | Профиль / уведомление |
-| `manage_subscription` | Управление подпиской (отмена) | Профиль |
-| `cancel_subscription_confirm` | Подтверждение отмены подписки | Управление подпиской |
-| `cancel_subscription_do` | Отменить подписку (флаг cancelling) | Подтверждение отмены |
-| `support` | Экран поддержки (ссылка на Telegram) | Профиль |
-| `tarot_daily_card` | Запросить карту дня | Раздел Таро |
-| `tarot_weekly_spread` | Расклад недели (тело/ум/дух) | Раздел Таро |
-| `tarot_question_spread` | По вопросу — запускает FSM | Раздел Таро |
-| `tarot_spheres_spread` | Расклад «Сферы жизни» — запускает FSM | Раздел Таро |
-| `tarot_doubles_spread` | Расклад «Двойники» | Раздел Таро |
-| `tarot_portal_spread` | Расклад «Портал месяца» | Раздел Таро |
-| `tarot_yes_no_spread` | Расклад «Да / Нет» — запускает FSM | Раздел Таро |
+| Telegram bot | Onboarding, профиль, материалы, checkout entry, delivery, chat, daily card и минимальная messaging surface | `TARGET — NURA 1.0`; значительная часть `CURRENT — IMPLEMENTED` |
+| Landing | Короткий объясняющий вход с CTA/deep link в Telegram | `TARGET — NURA 1.0` |
+| Public Telegram channel | Не входит в обязательные поверхности 1.0/1.5 | `OUT OF SCOPE — NURA 1.0/1.5` |
+| PWA/web | Существующий web client, auth, chat, Tarot, report links и push | `LEGACY COMPATIBILITY` |
+| Expanded Tarot, compatibility, referral | Реализация опережает version boundary; DM-04 требует скрыть эти функции из primary user path до соответствующего release | `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04` |
 
-### 1.3. FSM-состояния (StatesGroup)
+## 4. Current implemented architecture
 
-```
-OnboardingStates:
-  - waiting_for_birth_date    # Ожидание даты для матрицы
+### 4.1. Runtime and persistence
 
-CompatibilityStates:
-  - waiting_partner_date      # Ожидание даты партнёра
+`CURRENT — IMPLEMENTED`
 
-ChatStates:
-  - idle                      # Вне чата (дефолт)
-  - chatting                  # В диалоге с NURA
+- `bot/main.py` создаёт aiogram `Dispatcher` с `RedisStorage`, регистрирует handlers/middlewares и запускает polling.
+- PostgreSQL/SQLAlchemy хранит пользователей, consent timestamp, отчёты, заказы/платёжные события, chat usage, daily Tarot, delivery ledgers, attribution и referral foundation.
+- Redis используется для FSM, chat history и краткоживущего broadcast task status.
+- Celery/Redis выполняет mini/full generation, Telegram delivery, scheduled legacy Tarot/subscription jobs и generic broadcasts.
+- FastAPI обслуживает YooKassa webhook/checkout, tokenized report routes, legacy web/PWA/auth и admin API.
+- DeepSeek consumers загружают prompts только из `nura_app/core/prompts/`.
+- Центральный middleware order для message/callback surfaces: registration → throttling → anti-flood; на message surface перед registration также работает legacy Telegram-auth retirement guard.
+- `ThrottlingMiddleware` ограничивает до одного события в секунду, а `AntiFloodMiddleware` после более чем 10 событий за 60 секунд блокирует обработку на 30 секунд. Оба механизма применяются к messages и callbacks и хранят состояние в памяти процесса, поэтому не являются distributed/global rate limit между несколькими процессами.
 
-TarotStates:
-  - waiting_for_question      # Ожидание вопроса (расклад по вопросу / Да-Нет)
-  - waiting_for_sphere        # Ожидание выбора сферы (Сферы жизни)
-```
+Локальные acceptance tests используют реальные application/repository paths и fake Telegram/YooKassa/AI boundaries. External sandbox и production gates не выполнялись.
 
-### 1.4. Команды
+### 4.2. Identity, onboarding and consent
 
-| Команда | Описание |
-|---|---|
-| `/start` | Приветствие → главное меню |
-| `/menu` | Вернуться в главное меню |
-| `/profile` | Открыть профиль |
-| `/help` | Список команд и возможностей |
-| `/exit` | Выйти из чата с NURA |
+`CURRENT — IMPLEMENTED`
 
-### 1.5. Middleware (порядок применения)
+- `/start` создаёт/обновляет Telegram user, сохраняет normalized attribution touch и обрабатывает legacy/referral deep links.
+- До даты рождения бот запрашивает согласие; принятие сохраняет `pd_consent_at`.
+- После согласия FSM принимает и валидирует дату рождения, сохраняет Matrix archetype и ставит mini generation в Celery.
+- Имя берётся из Telegram `first_name`/`username`; отдельного шага preferred-name нет.
+- Consent timestamp хранится, но versioned consent text не найден.
 
-1. **UserRegistrationMiddleware** — при каждом апдейте проверяет, есть ли пользователь в БД. Если нет — создаёт запись `User` с `telegram_id`, `first_name` (из Telegram), `username` (из Telegram). При первом входе шлёт сообщение "Приятно познакомиться, {имя}!".
+Public wiring подтверждён bot router и локальным golden path; реальный Telegram sandbox не выполнен. Отдельное имя и consent versioning — `IMPLEMENTATION GAP` относительно NURA 1.0.
 
-2. **ThrottlingMiddleware** — ограничение: не более 1 сообщения в секунду. При превышении: "Слишком быстро, подожди немного" без блокировки.
+### 4.3. Navigation and profile
 
-3. **AntiFloodMiddleware** — не более 10 сообщений в минуту. При превышении: блокировка на 30 секунд с сообщением "Ты слишком быстр. Давай сделаем паузу на полминуты ☕".
+`CURRENT — IMPLEMENTED`
 
----
+- `/start`, `/menu`, `/profile`, `/help` и callbacks ведут в inline-menu/profile flows.
+- Main menu содержит Matrix, Tarot, chat, compatibility, «Мои разборы», профиль и 890 ₽ CTA.
+- Menu также показывает PWA/email/VK entry; Tarot/compatibility видимы в local runtime wiring.
+- Profile показывает Telegram name, birth date, Matrix/report state, legacy subscription controls и support contact.
+- Target settings surface, preferred-name edit, consent/legal navigation и полноценная quota state не собраны в единый профиль.
 
-## 2. Главное меню (после /start)
+Legacy PWA buttons — `LEGACY COMPATIBILITY`. Expanded Tarot и compatibility видимы в primary menu, а referral link — в profile; dedicated gating не найден — `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04`.
 
-### 2.1. Текст приветствия
+### 4.4. Mini-report
 
-```
-✨ Добро пожаловать в NURA.
+`CURRENT — IMPLEMENTED`
 
-Я — твой AI-проводник в мир твоей Матрицы Судьбы.
-22 аркана, зашифрованных в твоей дате рождения.
-Они хранят твои сильные стороны, скрытые таланты,
-эмоциональные сценарии и то, что ты повторяешь
-в отношениях снова и снова.
-
-Это — твой личный психологический код.
-
-Выбери, с чего начнём:
-```
-
-*💬 Чат с NURA — задай вопрос своей матрице напрямую*
-
-### 2.2. Клавиатура
-
-```
-┌──────────────────┬──────────────────┐
-│ ◈ Моя матрица     │ 🌒 Таро           │
-├──────────────────┼──────────────────┤
-│ 💬 Чат с NURA     │ ❤️ Совместимость   │
-├──────────────────┴──────────────────┤
-│     💎 Купить разбор 890 ₽          │  ← показывается только если
-├─────────────────────────────────────┤     матрица не куплена
-│   📄 Мои отчёты   │  👤 Профиль     │
-└─────────────────────────────────────┘
-```
+- Matrix calculation запускает durable mini generation; repeated requests не должны создавать дубли.
+- `MiniReportTelegramDeliveryService` отправляет структурированный текст по пяти блокам и PDF document, сохраняет прогресс и поддерживает retry/replay.
+- PDF artifact проверяется по MIME, hash, размеру и `%PDF-` signature.
+- Mini доступен через «Мои разборы» и repeated delivery.
 
-Если у пользователя ещё нет матрицы — вместо `◈ Моя матрица` показывается `✨ Рассчитать матрицу` (callback_data: `calculate_matrix`).
+Внешняя content/safety review и Telegram sandbox остаются release gates, а не доказанной current production availability.
 
-Кнопка «💎 Купить разбор 890 ₽» показывается **только** когда у пользователя:
-- Есть дата рождения (`has_matrix` в логике меню = `True`)
-- И матрица ещё не куплена (`user.has_matrix = False`)
+### 4.5. Full report, payments and delivery
 
-При покупке матрицы — `purchased_matrix = True` → кнопка исчезает.
+`CURRENT — IMPLEMENTED`
 
-**callback_data:** `my_matrix` / `calculate_matrix`, `tarot_menu`, `chat_with_nura`, `compatibility`, `view_reports`, `profile`
+- `buy_matrix` инициирует dedicated one-time Full Matrix checkout 890 ₽.
+- `FullMatrixCheckoutService` создаёт durable order/payment attempt, формирует YooKassa redirect, проверяет provider state/webhook, сумму, валюту и metadata, идемпотентно активирует заказ и поддерживает refund fence.
+- Checkout redirect возвращает браузер на `/api/v1/payment/full-matrix/return/{checkout_token}`. Эта return page всегда информационная («проверяем оплату»): её открытие или повторное открытие не подтверждает платёж, не переводит заказ в `PAID`, не выдаёт entitlement и не запускает trusted delivery.
+- Активация выполняется только после verified YooKassa webhook/provider verification; browser return не является доверенной платёжной границей.
+- После оплаты Celery формирует и сохраняет canonical full PDF, затем создаёт durable automatic delivery.
+- `FullReportTelegramDeliveryService` отправляет PDF document/cached Telegram `file_id`, поддерживает manual resend, retry/reconciliation и блокирует delivery после refund.
+- Отдельная полная текстовая выдача full report в Telegram отсутствует.
+- Tokenized HTML/PDF routes и web CTA продолжают существовать.
 
-### 2.3. Реакция на повторный /start
+Итого: 890 ₽ + YooKassa + durable PDF delivery — `CURRENT — IMPLEMENTED` локально; full Telegram text — `IMPLEMENTATION GAP`; web-report route — `LEGACY COMPATIBILITY`. YooKassa sandbox, receipt и real webhook reachability не подтверждены.
 
-Если пользователь уже есть в БД и матрица рассчитана:
+### 4.6. Saved materials
 
-```
-С возвращением, {имя}.
+- «Мои разборы» перечисляет завершённые mini и full reports с ownership check, detail callback и repeated Telegram delivery.
+- Mini повторно доставляется текстом и PDF; full повторно отправляется PDF через отдельный delivery ledger.
+- Текущая taxonomy и labels неполны: full item может отображаться как «Мини-разбор», а target «Мои материалы» включает более точные типы и metadata.
+- Просмотр/resend не использует chat quota.
 
-Твой архетип — {архетип}. Но матрица — это не раз прочитать и забыть.
-Сегодня ты можешь увидеть то, что не заметил вчера.
+Taxonomy/naming — `IMPLEMENTATION GAP`; сохранение и repeated delivery — `CURRENT — IMPLEMENTED`.
 
-Чем займёмся?
-```
+### 4.7. Chat and quota
 
-(та же клавиатура)
+`CURRENT — IMPLEMENTED`
 
-### 2.4. Реакция на /menu (из любого места)
+- Telegram и web используют общий `ChatMessageUsage` ledger и channel-neutral `ChatApplicationService`.
+- Telegram handler вызывает `_has_chat_access`, но current helper безусловно возвращает `True`: обычный пользователь входит в Telegram chat без `has_matrix` и доходит до quota service.
+- Verified full-matrix payment устанавливает `has_matrix=True`, но этот marker не управляет текущим chat access и не даёт quota bypass. Пользователь с купленной Матрицей остаётся на том же lifetime limit 5, если у него нет активного legacy entitlement.
+- Активная legacy Tarot subscription или premium state с неистёкшим сроком даёт unlimited quota bypass. Отдельный `_has_unlimited_chat` helper с ветками для test mode и `has_matrix` не подключён к фактическому chat flow и не является current production access contract.
+- Free limit берётся из `settings.chat_free_message_limit` (5), но считается за всё время пользователя, без date/window reset.
+- Reservation предотвращает параллельный overspend; consume происходит после generation, сохранения результата и history finalization.
+- Provider/fallback failure освобождает reservation; duplicate request возвращает сохранённый результат без повторного списания.
+- В current greeting нет канонического набора 4–6 guided entry buttons.
 
-Перенаправляет в главное меню. Всегда тот же текст, что и при /start (с проверкой наличия матрицы из п. 2.3).
+Текущая semantics для обычного пользователя — доступный Telegram entry и five lifetime consumed answers в общем Telegram/web ledger. Paywall copy предлагает перейти в PWA «без ограничений», а PWA также использует формулировки о безлимитном или дневном доступе, хотя web использует тот же lifetime ledger; это `IMPLEMENTATION / COPY GAP`. Универсальный бесплатный Telegram entry уже реализован. Daily 5 successful delivered answers, reset `00:00 Europe/Moscow`, delivery-aware cross-channel accounting и guided entries — `TARGET — NURA 1.0` / `IMPLEMENTATION GAP`.
 
-### 2.5. /help
+### 4.8. Daily card and expanded Tarot
 
-```
-NURA — твой проводник в Матрицу Судьбы.
+- Daily card: durable one-result-per-user/local-date application/repository flow, Telegram callback и reuse/retry — `CURRENT — IMPLEMENTED`.
+- Expanded spreads: multiple handlers/prompts, PWA route, scheduled weekly/monthly jobs and 390 ₽ paywall exist; видимый runtime entry должен быть скрыт из primary user path по DM-04 — `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04`.
+- No dedicated feature flag for expanded Tarot was found.
+- Canonical expanded Tarot, accepted set, saved `TarotReading` history, gift/399 entitlement and fair-use model belong to `TARGET — NURA 1.5`.
 
-✨ Матрица — рассчитай свой архетип и получи разбор
-❤️ Совместимость — узнай, как сочетаются ваши энергии
-🌒 Таро — ежедневная карта и расклады (бесплатная карта дня)
-👤 Профиль — управление подпиской и поддержка
+### 4.9. Compatibility and referral
 
-💬 Чат с NURA — задай вопрос своей матрице
-   (доступно при покупке полного отчёта или подписке)
+- Compatibility is linked from main menu, collects partner name/relation/date, generates a result, marks lifetime use and exposes sharing/390 ₽ upsell — `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04`.
+- Referral deep links, `referred_by` and `ReferralReward` registration event exist; profile exposes referral link — `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04`.
+- Dedicated release flags were not found. Canonical compatibility/referral are `TARGET — NURA 1.5B`, not NURA 1.0.
+
+### 4.10. Broadcasts
+
+`CURRENT — IMPLEMENTED` only as a limited transport/admin foundation.
+
+- Admin API can start a Celery task and read task status from Redis.
+- Task selects all/free/premium users and sends Telegram and/or legacy web push; counts sent/failed.
+- No persisted `BroadcastCampaign`/per-user `Delivery`, test-send/approval flow, Telegram opt-out/suppression, duplicate protection, inline CTA registry, click tracking or purchase attribution was found.
+- Blocked Telegram users count as failures; the broadcast path does not persist canonical blocked/suppression state.
 
-Команды:
-/menu — главное меню
-/profile — твой профиль
-/help — эта справка
-/exit — выйти из чата с NURA
-```
+The NURA 1.0 minimal campaign/delivery/opt-out/analytics contour is an `IMPLEMENTATION GAP`. Scheduler, lifecycle chains, quiet hours, frequency caps, attribution windows and A/B tests are `TARGET — NURA 1.5`.
 
----
+### 4.11. Runtime prompts
 
-## 3. Блок "Матрица" ✨
+`CURRENT — IMPLEMENTED` at loader level, but target contract remains partial.
 
-### 3.1. FSM-состояние
+- Report generation loads `system_prompt.txt` plus report-specific templates.
+- Chat loads `chat_system_prompt.txt` through a separate consumer.
+- The target requires two independently approved/versioned runtime style contracts with acceptance evidence. That canonical acceptance was not found.
 
-```python
-class OnboardingStates(StatesGroup):
-    waiting_for_birth_date = State()
-```
+Status: `IMPLEMENTATION GAP` for the accepted/versioned report/chat runtime style layer; existing executable prompts are not moved into documentation.
 
-### 3.2. Flow
+### 4.12. Admin, support and observability
 
-```
-[Пользователь нажимает ✨ Рассчитать матрицу]
-    ↓
-callback: calculate_matrix
-    ↓  state = OnboardingStates.waiting_for_birth_date
-[Бот запрашивает дату рождения]
-    └─── альтернативно: пользователь вводит /start
-    ↓
-[Пользователь вводит дату]
-    ↓
-[Валидация]
-    ├── Неверный формат → ошибка → повторный ввод
-    └── OK
-        ↓  state.clear()
-[Статичное сообщение о загрузке]
-    ↓
-[Мини-разбор (5 блоков)]
-    ↓
-[CTA: купить полный отчёт]
-```
+- Bot support opens configured Telegram contact; account deletion exists.
+- Admin API/admin bot provide user/payment/report operations, stats, health and generic broadcast controls.
+- Durable generation/delivery retries, correlation/audit data, Sentry scrubbing and local backup/restore evidence exist.
+- Some admin/profile/payment operations remain subscription-centric legacy paths.
+- Telegram/YooKassa external sandbox, legal/support process and production infrastructure acceptance remain unexecuted.
 
-### 3.3. Текст — запрос даты
+### 4.13. Account deletion and retained payment records
 
-```
-Для расчёта матрицы мне нужна твоя дата рождения.
+`CURRENT — IMPLEMENTED` at the service/retry boundary, with an `IMPLEMENTATION / LEGAL COPY GAP`.
 
-Введи её в формате ДД.ММ.ГГГГ
+- `/delete_account` removes the user, reports, full-delivery rows, report-generation jobs, legacy `Payment` rows, referral rewards and Redis chat history/marker.
+- Financial audit rows are retained: `Order` is detached from direct user/Telegram/report/checkout identifiers and receives a hashed customer reference; `PaymentAttempt` and `PaymentEvent` remain. Confirmation URL/provider metadata are reduced, but `PaymentAttempt.fiscal_email` remains stored.
+- Repeated deletion is safe when the user row is already absent. Database failure rolls back transactionally; a post-commit Redis failure can be retried to finish cache/history cleanup.
+- Current bot copy promises deletion of «всех данных», which is broader than the retained payment/fiscal evidence. Retention term, legal basis and any further anonymization require owner/legal decision and are not chosen here.
 
-Например: 15.06.1998
+## 5. Target NURA 1.0 crosswalk
 
-Это займёт меньше минуты ✶
-```
+| Capability | Canonical NURA 1.0 target | Current implementation | Status / gap | Governing source |
+|---|---|---|---|---|
+| Telegram onboarding | Telegram-first welcome and resumable onboarding | Telegram identity, `/start`, FSM and return menu exist | `CURRENT — IMPLEMENTED`; external sandbox pending | Product spec §§7, 9; `start.py` |
+| Name/date collection | Preferred name + birth date | Telegram name reused; birth date validated/stored | `IMPLEMENTATION GAP` — no explicit preferred-name step | Product spec §9.1 |
+| Consent | Explain use/safety/legal links; persist version and time | Consent callback and timestamp exist | `IMPLEMENTATION GAP` — versioned consent/legal surface incomplete | Product spec §9.2 |
+| Mini-report | Telegram text + PDF, saved/retryable | Durable text + PDF delivery and resend | `CURRENT — IMPLEMENTED` locally; external/content acceptance pending | Product spec §10; mini delivery service/tests |
+| Saved materials | Mini/full text/PDF persist independently of chat quota | «Мои разборы» lists mini/full and resends | `IMPLEMENTATION GAP` — naming/taxonomy/metadata incomplete | Product spec §12; `my_reports.py` |
+| Full report | One-time 890 ₽ finished product | Durable order/generation/full PDF | `CURRENT — IMPLEMENTED` partially | Product spec §11 |
+| 890 ₽ / YooKassa | YooKassa only; no Stars/manual transfer | Dedicated checkout and verified webhook | `CURRENT — IMPLEMENTED` locally; sandbox/receipt pending | Product spec §§3.4, 11.3 |
+| Telegram text delivery | Mini and full readable in chat | Mini text exists; full text absent | `IMPLEMENTATION GAP` | Product spec §§3.5, 11.6 |
+| Telegram PDF delivery | Mini/full document, repeatable | Durable mini/full PDF and replay/resend | `CURRENT — IMPLEMENTED` locally | Product spec §§10.2, 11.6 |
+| Materials reopening | Open/resend without regeneration/payment | Ownership-checked list and repeated delivery | `CURRENT — IMPLEMENTED`; taxonomy gap | Product spec §12 |
+| Free chat | Universal Telegram access; 5 successful delivered answers each product day | Universal Telegram entry exists; ordinary users share 5 lifetime consumed answers across Telegram/web, `has_matrix` does not change access/quota, active legacy entitlement bypasses quota | Universal entry/shared ledger `CURRENT — IMPLEMENTED`; daily delivery-aware quota `IMPLEMENTATION GAP` | Product spec §13.1; Telegram chat handler/quota tests |
+| Guided questions | 4–6 concrete entry topics | Generic examples in greeting; no canonical guided-button surface | `IMPLEMENTATION GAP` | Product spec §13.3 |
+| Daily card | Free, one stable result per period | Durable per-user/local-date reuse | `CURRENT — IMPLEMENTED` locally | Product spec §14 |
+| Minimal broadcasts | Manual campaign, test send, segment, CTA, idempotency, status | Generic task start/status and all/free/premium transport | `IMPLEMENTATION GAP` | Product spec §16 |
+| Opt-out | Editorial opt-out and suppression | Canonical Telegram opt-out not found | `IMPLEMENTATION GAP` | Product spec §§16.6, 17.1 |
+| Campaign tracking | campaign/delivery/click/conversion data | Only Redis task totals; acquisition attribution separate | `IMPLEMENTATION GAP` | Product spec §§16.8, 19 |
+| Product analytics | Funnel/payment/report/chat/broadcast events and KPI queries | Attribution link/touch foundation; operational rows only | `IMPLEMENTATION GAP` | Product spec §19 |
+| Report/chat prompt contracts | Separate approved/versioned runtime contracts | Separate loaders/files exist | `IMPLEMENTATION GAP` — acceptance/version contract incomplete | Product spec §§3.7, 20 |
+| Retry/support/observability | Recover payments/generation/delivery; support and monitoring | Strong durable/local foundation | `CURRENT — IMPLEMENTED` partially; external/legal/production gates pending | Product spec §§17–22; acceptance index |
 
-**Важно:** Заменить текущее сообщение, а не отправить новое. Использовать `callback.message.edit_text()`.
+## 6. Target NURA 1.5 boundary
 
-### 3.4. Текст — ошибка валидации
+The following categories are `TARGET — NURA 1.5` only. Their full rules remain in the canonical spec:
 
-**Неверный формат:**
-```
-Формат должен быть таким: ДД.ММ.ГГГГ
+- 30-day gift access after full-report purchase, without automatic charge;
+- voluntary 399 ₽ / 30-day access and canonical entitlement resolver;
+- expanded chat with fair-use/cost controls;
+- accepted expanded Tarot set and saved reading history;
+- weekly focus and monthly compass;
+- lifecycle chains, suppression, scheduler, quiet hours and frequency caps;
+- A/B testing and expanded attribution;
+- referral, gift report, compatibility and additional profile as 1.5B growth.
 
-Попробуй ещё раз ↻
-Например: 15.06.1998
-```
+`LEGACY RECURRING 390 ₽ SUBSCRIPTION PATH — NOT TARGET GIFT`: saved payment method and automatic-charge code are not the 30-day gift after full-report purchase and not the voluntary 399 ₽ / 30-day non-auto-renew target. Existing subscriber/saved-method migration remains undecided.
 
-**Невозможная дата:**
-```
-Хм, такой даты не существует.
+## 7. Legacy compatibility
 
-Проверь число и месяц и попробуй ещё раз ↻
-```
+| Legacy path | Current evidence | Constraint |
+|---|---|---|
+| PWA/web client | `frontend/pwa/app/`, web routes and PWA buttons | Compatibility client, not roadmap owner |
+| Email/VK/guest auth | `/api/v1/auth/*` and auth services/tests | Web compatibility, not Telegram-first funnel |
+| Web report links | `/report/{token}` and `/report/{token}/pdf`; bot/web CTA | Must not be required target delivery |
+| Shared PWA chat | Same durable usage ledger as Telegram | Current ledger is lifetime; target daily rule still missing |
+| 390 ₽ subscription | config, Telegram/PWA checkout, saved method and recurring tasks | `LEGACY RECURRING 390 ₽ SUBSCRIPTION PATH — NOT TARGET GIFT`; conflicts with target and is neither NURA 1.0 nor target 1.5 access |
+| Legacy push/lifecycle | PWA push plus inactive/expiry/recurring jobs | Not canonical 1.0 broadcast or 1.5 lifecycle contract |
 
-После исправления — повторная валидация и переход к загрузке.
+`OWNER DECISION PENDING — compatibility support duration` for PWA, email/VK/guest auth and web-report links.
+`OWNER DECISION PENDING — migration/disposition of legacy 390 ₽ subscribers and saved payment methods`.
 
-### 3.5. Loading-сообщение
+No sunset date or migration behavior is introduced here.
 
-Статичное сообщение:
+## 8. Runtime-reachable early features and DM-04 gating gap
 
-```
-✶ Считаю твою матрицу...
+| Feature | Evidence | Classification |
+|---|---|---|
+| Expanded Tarot | Telegram handlers/keyboards, prompts, PWA API, scheduled jobs, 390 paywall; visible Tarot entry | `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04` |
+| Compatibility | Main-menu callback, FSM, generation/share flow, usage flag; visible menu entry | `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04` |
+| Referral | `ref_` deep link, profile link and reward record | `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04` |
+| 390 subscription/recurring | Telegram/PWA checkout, saved payment method, renewal/cancel tasks | `LEGACY COMPATIBILITY`; public migration state unresolved |
 
-Расшифровываю 22 аркана из чисел твоего рождения
-```
+DM-04 already requires functions outside NURA 1.0 to be hidden from the primary user path through existing or new feature flags/gating and not promoted before their release; working implementation may remain. The exact flag design, beta/rollout parameters, migration and possible removal remain undecided and are not prescribed here.
 
-Расчёт матрицы выполняется мгновенно (на клиенте), поэтому анимация не требуется. Сообщение редактируется один раз после завершения расчёта.
+## 9. Implementation gaps
 
-Шаблоны `loading_steps` (4 шага) сохранены в `bot/texts/onboarding.py` для использования в других сценариях (совместимость).
-
-### 3.6. Мини-разбор (5 блоков)
-
-**Формат:** Одно сообщение, каждый блок — отдельный раздел с эмодзи и жирным заголовком. Блоки разделены пустой строкой.
-
-```
-✦ Твоя Матрица Судьбы
-Архетип: {архетип} | Энергия: {число_аркана}
-
-━━━━━━━━━━━━━━━━━━━━
-
-🎭 Главный архетип
-{текст}
-
-💪 Сильная сторона
-{текст}
-
-🌊 Эмоциональный конфликт
-{текст}
-
-🔄 Паттерн отношений
-{текст}
-
-💰 Денежный блок
-{текст}
-
-━━━━━━━━━━━━━━━━━━━━
-
-Хочешь глубже?
-В полном AI-отчёте тебя ждут:
-• Теневые стороны — то, что ты не видишь в себе
-• Жизненные циклы — периоды силы и спада
-• Совместимость — как твой архетип сочетается с другими
-• 7-дневные рекомендации под твой архетип
-
-Полный разбор: 890 ₽ разово
-```
-
-### 3.7. Шаблон блоков мини-разбора (подстановка из AI)
-
-Каждый блок приходит из AI-ответа (см. `prompt-spec.md` §2.3). Формат ответа от `generate_mini_analysis()`:
-
-```python
-{
-    "main_archetype": "...",
-    "core_strength": "...",
-    "emotional_conflict": "...",
-    "relationship_pattern": "...",
-    "financial_block": "...",
-}
-```
-
-Имя и номер архетипа (`archetype_name`, `archetype_number`) берутся из данных матрицы, а не из AI-ответа.
-
-### 3.8. CTA-клавиатура после мини-разбора
-
-```
-┌────────────────────────────────────┐
-│ 💎 Купить разбор 890 ₽             │
-├────────────────────────────────────┤
-│ 🏠 В меню                          │
-└────────────────────────────────────┘
-```
-
-**callback_data:** `pay_full_report:{token}`, `main_menu`
-
----
-
-## 4. Блок "Совместимость" ❤️
-
-### 4.1. FSM-состояние
-
-```python
-class CompatibilityStates(StatesGroup):
-    waiting_partner_date = State()
-```
-
-### 4.2. Логика доступа (лимитная модель)
-
-Совместимость — **не отдельный платный продукт**. Доступ определяется по флагам пользователя:
-
-| Состояние | Действие |
-|-----------|----------|
-| `has_matrix=False` | Пейволл матрицы |
-| `has_matrix=True` AND `compatibility_used=False` | Доступно → после расклада: `compatibility_used=True` |
-| `has_matrix=True` AND `compatibility_used=True` AND `has_tarot=False` | Пейволл таро |
-| `has_tarot=True` | Безлимит |
-
-### 4.3. Flow
-
-```
-[Пользователь нажимает ❤️ Совместимость]
-    ↓
-callback: compatibility
-    ↓
-[Проверка: has_matrix?]
-    ├── НЕТ → пейволл матрицы (§4.10)
-    └── ДА
-        ↓
-    [Проверка: has_tarot OR NOT compatibility_used?]
-        ├── НЕТ (has_tarot=False AND compatibility_used=True) → пейволл таро (§4.11)
-        └── ДА → доступно
-            ↓
-        [Объяснение фичи + запрос даты]
-            ↓  state = CompatibilityStates.waiting_partner_date
-        [Ввод даты партнёра]
-            ↓  валидация (дата пользователя берётся из User.birth_date)
-        [Loading-анимация]
-            ↓
-        [Расклад совместимости]
-            ↓
-        [compatibility_used=True — если не has_tarot]
-            ↓
-        [Клавиатура с переходом в меню]
-```
-
-### 4.4. Текст — объяснение фичи (при наличии доступа)
-
-```
-❤️ Совместимость архетипов
-
-У каждого архетипа есть своя "частота".
-Одни сочетания дают мощный поток энергии.
-Другие — создают напряжённость, которая может
-стать как точкой роста, так и источником боли.
-
-Я покажу:
-• Как сочетаются ваши архетипы 💞
-• Где возникают зоны конфликтов
-• Какие сильные стороны у вашей пары
-
-Введи дату рождения человека, с которым хочешь проверить совместимость, в формате ДД.ММ.ГГГГ
-```
-
-### 4.5. Текст — запрос даты
-
-```
-Введи дату рождения человека
-в формате ДД.ММ.ГГГГ
-
-Например: 15.06.1998
-```
-
-### 4.6. Ошибки валидации (те же, что в матрице)
-
-Ошибка формата даты — общая с матрицей. Проверка на совпадение дат отсутствует (даты разных людей могут совпадать).
-
-### 4.7. Loading-анимация (совместимость)
-
-Те же 4 шага, но контекст про совместимость:
-
-**Шаг 1:**
-```
-✶ Сопоставляю ваши матрицы...
-
-Накладываю энергии двух рождений друг на друга
-```
-
-**Шаг 2:**
-```
-◈ Анализирую зоны контакта...
-
-Ищу точки созвучия и напряжённости между архетипами
-```
-
-**Шаг 3:**
-```
-☯ Вычисляю баланс энергий...
-
-Определяю, что даёт вам сила друг друга
-```
-
-**Шаг 4:**
-```
-✦ Готово!
-
-Карта вашей совместимости готова ↓
-```
-
-### 4.8. Расклад совместимости
-
-```
-✦ Совместимость архетипов
-
-{архетип_1} + {архетип_2}
-
-━━━━━━━━━━━━━━━━━━━━
-
-🎭 Твой портрет
-{текст}
-
-🎭 Портрет партнёра
-{текст}
-
-💞 Эмоциональная совместимость
-{текст}
-
-🔥 Зоны конфликтов
-{текст}
-
-🌟 Сила вашей пары
-{текст}
-
-━━━━━━━━━━━━━━━━━━━━
-
-{если остался 1 бесплатный расклад — добавить:}
-Это твой бесплатный расклад совместимости.
-Безлимитная совместимость — в Таро-подписке.
-```
-
-### 4.9. CTA-клавиатура (после расклада)
-
-```
-┌────────────────────────────────────┐
-│ 📤 Отправить другу                 │  ← всегда, url: telegram share
-├────────────────────────────────────┤
-│ ✨ Подключить Таро — 390 ₽/мес    │  ← только если has_tarot=False
-├────────────────────────────────────┤
-│ 🔄 Новый расклад                   │  ← только если has_tarot=True
-├────────────────────────────────────┤
-│ 🏠 В меню                          │
-└────────────────────────────────────┘
-```
-
-Кнопка «📤 Отправить другу» — `InlineKeyboardButton(url=...)`, не callback:
-```python
-url = f"https://t.me/share/url?url=t.me/ai_nura_bot&text={quote(text)}"
-```
-Текст генерируется через `generate_compat_share_text()` (см. §4.12).
-
-Если `has_tarot=True` — вместо «✨ Подключить Таро» показывается «🔄 Новый расклад».
-
-**url / callback_data:** share (url), `buy_tarot_subscription`, `compatibility`, `main_menu`
-
-### 4.10. Пейволл — нет матрицы
-
-```
-❤️ Совместимость
-
-Введи дату рождения любого человека —
-я разберу вашу совместимость по матрицам.
-
-Доступно с покупкой Матрицы судьбы.
-```
-
-```
-┌────────────────────────────────────┐
-│ 💎 Купить Матрицу — 890 ₽          │
-├────────────────────────────────────┤
-│ 🏠 В меню                          │
-└────────────────────────────────────┘
-```
-
-**callback_data:** `pay_full_report:{token}`, `main_menu`
-
-### 4.11. Пейволл — лимит исчерпан (есть матрица, нет таро)
-
-```
-❤️ Ты уже использовал бесплатный расклад.
-Безлимитная совместимость — в Таро-подписке.
-
-Проверяй совместимость с друзьями, коллегами,
-новыми знакомыми — без ограничений.
-```
-
-```
-┌────────────────────────────────────┐
-│ ✨ Подключить Таро — 390 ₽/мес    │
-├────────────────────────────────────┤
-│ 🏠 В меню                          │
-└────────────────────────────────────┘
-```
-
-**callback_data:** `buy_tarot_subscription`, `main_menu`
-
-### 4.12. Генерация share-текста
-
-```python
-def generate_compat_share_text(
-    sender_name: str,
-    partner_arcana_name: str,
-    partner_arcana_insight: str
-) -> str:
-    """Генерирует текст для пересылки другу после расклада совместимости."""
-```
-
-Параметры:
-- `sender_name` — имя инициатора расклада (из `user.first_name`)
-- `partner_arcana_name` — название аркана партнёра (второй человек в паре)
-- `partner_arcana_insight` — 1-2 предложения про аркан партнёра в контексте пары
-  (генерируется AI в рамках расклада совместимости)
-
-Возвращаемый текст:
-
-```
-{sender_name} проверил нашу совместимость в NURA ✦
-
-Твой аркан в этой паре — {partner_arcana_name}
-{partner_arcana_insight}
-
-Хочешь увидеть полный разбор?
-👉 t.me/ai_nura_bot
-```
-
-Используется как `text` в `url = f"https://t.me/share/url?url=t.me/ai_nura_bot&text={quote(text)}"`.
-
----
-
-## 5. Блок "Таро" 🌒
-
-### 5.1. Flow — бесплатный пользователь
-
-```
-[Пользователь нажимает 🌒 Таро]
-    ↓
-callback: tarot_menu
-    ↓
-[Экран с 7 раскладами: карта дня активна, остальные 🔒]
-    ↓
-    ├── Нажимает 🌒 Карта дня
-    │       ↓ callback: tarot_daily_card
-    │   [Базовая карта дня без матрицы]
-    │       ↓
-    │   [Кнопки: 🏠 В меню | 💎 Открыть все расклады]
-    │
-    └── Нажимает любой 🔒 расклад
-            ↓ callback: tarot_{spread_name}
-        [Пейволл — экран подписки]
-            ↓
-        [Кнопки: 💎 Подписка 390 ₽/мес | 🏠 В меню]
-```
-
-### 5.2. Flow — подписчик
-
-```
-[Пользователь нажимает 🌒 Таро]
-    ↓
-callback: tarot_menu
-    ↓
-[Экран с 7 раскладами — все активны]
-    ↓
-[Выбирает любой расклад → получает результат]
-    │
-    ├── По вопросу / Да-Нет / Сферы жизни
-    │       ↓  state = TarotStates.waiting_for_question / waiting_for_sphere
-    │   [Бот запрашивает вопрос или выбор сферы]
-    │       ↓  state.clear()
-    │   [Расклад готов]
-    │
-    └── Карта дня / Расклад недели / Двойники / Портал месяца
-            ↓  без FSM
-        [Расклад готов]
-```
-
-### 5.3. Текст — экран Таро (бесплатный пользователь)
-
-```
-🌒 Таро-практики
-
-Выбери расклад:
-```
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  🌒 Карта дня                                                       │  ← активна
-├─────────────────────────────────────────────────────────────────────┤
-│  ✦ Расклад недели · Тело · Ум · Дух 🔒                              │
-├─────────────────────────────────────────────────────────────────────┤
-│  ◈ По вопросу · Прошлое / Настоящее / Будущее 🔒                    │
-├─────────────────────────────────────────────────────────────────────┤
-│  ✶ Сферы жизни · Деньги / Отношения / Предназначение 🔒             │
-├─────────────────────────────────────────────────────────────────────┤
-│  ☯ Двойники · Внутренний диалог 🔒                                  │
-├─────────────────────────────────────────────────────────────────────┤
-│  🌅 Портал месяца · Чему научит / Что отпустить / Что усилить 🔒     │
-├─────────────────────────────────────────────────────────────────────┤
-│  👁 Да / Нет · Направление энергии 🔒                                │
-├─────────────────────────────────────────────────────────────────────┤
-│  💎 Открыть полную практику 390 ₽                                  │
-├─────────────────────────────────────────────────────────────────────┤
-│  🏠 В меню                                                          │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**callback_data:** `tarot_daily_card`, `tarot_weekly_spread`, `tarot_question_spread`, `tarot_spheres_spread`, `tarot_doubles_spread`, `tarot_portal_spread`, `tarot_yes_no_spread`, `buy_tarot_subscription`, `main_menu`
-
-### 5.4. Текст — экран Таро (подписчик)
-
-Тот же экран, но без замков и без CTA-кнопки подписки:
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  🌒 Карта дня                                                       │
-├─────────────────────────────────────────────────────────────────────┤
-│  ✦ Расклад недели · Тело · Ум · Дух                                 │
-├─────────────────────────────────────────────────────────────────────┤
-│  ◈ По вопросу · Прошлое / Настоящее / Будущее                       │
-├─────────────────────────────────────────────────────────────────────┤
-│  ✶ Сферы жизни · Деньги / Отношения / Предназначение                │
-├─────────────────────────────────────────────────────────────────────┤
-│  ☯ Двойники · Внутренний диалог                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│  🌅 Портал месяца · Чему научит / Что отпустить / Что усилить        │
-├─────────────────────────────────────────────────────────────────────┤
-│  👁 Да / Нет · Направление энергии                                   │
-├─────────────────────────────────────────────────────────────────────┤
-│  🏠 В меню                                                          │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### 5.5. Карта дня (бесплатно, для всех)
-
-```
-🌒 Карта дня — {день недели}, {дата}
-
-{Номер}. {Название аркана}
-
-━━━━━━━━━━━━━━━━━━━━
-
-{2-3 предложения базовой интерпретации аркана.
- Что несёт этот аркан. Как с ним работать сегодня.}
-
-━━━━━━━━━━━━━━━━━━━━
-
-Хочешь глубже?
-С подпиской доступны 6 раскладов — 390 ₽/мес.
-```
-
-```
-┌─────────────────────────────────────┐
-│  💎 Открыть все расклады 390 ₽/мес  │
-├─────────────────────────────────────┤
-│  🏠 В меню                          │
-└─────────────────────────────────────┘
-```
-
-**callback_data:** `buy_tarot_subscription`, `main_menu`
-
-### 5.6. Пейволл (нажатие на заблокированный расклад)
-
-```
-✶ Этот расклад доступен по подписке.
-
-Таро-ритуалы — 390 ₽/мес:
-• 🌒 Карта дня — каждый день
-• ✦ Расклад недели (тело/ум/дух)
-• ◈ По вопросу — безлимит
-• ✶ Сферы жизни
-• ☯ Двойники
-• 🌅 Портал месяца
-• 👁 Да / Нет
-
-Оформи подписку — и все расклады откроются.
-```
-
-```
-┌─────────────────────────────────────┐
-│  💎 Открыть полную практику 390 ₽  │
-├─────────────────────────────────────┤
-│  🏠 В меню                          │
-└─────────────────────────────────────┘
-```
-
-**callback_data:** `buy_tarot_subscription`, `main_menu`
-
-### 5.7. Расклад недели (подписчик)
-
-```
-✦ Расклад недели
-
-Тело — {Номер}. {Название аркана}
-{1-2 предложения: какая физическая / витальная задача недели}
-
-Ум — {Номер}. {Название аркана}
-{1-2 предложения: какой ментальный вызов или фокус}
-
-Дух — {Номер}. {Название аркана}
-{1-2 предложения: внутренний вектор, смысловой слой недели}
-```
-
-```
-┌─────────────────────────────────────┐
-│  🌒 Таро                            │
-├─────────────────────────────────────┤
-│  🏠 В меню                          │
-└─────────────────────────────────────┘
-```
-
-### 5.8. По вопросу (подписчик, FSM)
-
-**Запрос вопроса:**
-
-```
-◈ По вопросу
-
-Напиши свой вопрос — и я разложу его через три аркана.
-
-Например: «Стоит ли мне менять работу?»
-```
-
-**state = TarotStates.waiting_for_question**
-
-**Результат:**
-
-```
-◈ Расклад по твоему вопросу
-
-Прошлое (что привело):
-{Номер}. {Название аркана}
-→ {2-3 предложения}
-
-Настоящее (что сейчас):
-{Номер}. {Название аркана}
-→ {2-3 предложения}
-
-Будущее (направление):
-{Номер}. {Название аркана}
-→ {2-3 предложения}
-```
-
-### 5.9. Расклад «Сферы жизни» (подписчик, FSM)
-
-**Запрос сферы:**
-
-```
-✶ Сферы жизни
-
-Выбери сферу, которую хочешь рассмотреть:
-```
-
-```
-┌─────────────────────────────────────┐
-│  💎 Деньги и карьера                │
-├─────────────────────────────────────┤
-│  ❤️ Отношения                        │
-├─────────────────────────────────────┤
-│  ◈ Предназначение                   │
-├─────────────────────────────────────┤
-│  🏠 В меню                          │
-└─────────────────────────────────────┘
-```
-
-**callback_data сферы:** `tarot_sphere_money`, `tarot_sphere_relations`, `tarot_sphere_purpose`, `main_menu`
-
-**Результат** — три аркана для выбранной сферы с интерпретацией.
-
-### 5.10. Расклад «Двойники» (подписчик)
-
-```
-☯ Двойники
-
-Сегодня в тебе работают два аркана.
-
-{Номер}. {Название аркана}
-→ Тянет тебя к... {1-2 предложения}
-
-{Номер}. {Название аркана}
-→ Тянет тебя к... {1-2 предложения}
-
-━━━━━━━━━━━━━━━━━━━━
-
-Конфликт этих двух начал — не слабость.
-Это внутренний диалог. Послушай обоих.
-```
-
-### 5.11. Расклад «Портал месяца» (подписчик)
-
-Доступен вручную или автоматически 1-го числа каждого месяца.
-
-```
-🌅 Портал месяца — {месяц} {год}
-
-Этот месяц открывает три урока:
-
-Чему научит:
-{Номер}. {Название аркана}
-→ {1-2 предложения}
-
-Что отпустить:
-{Номер}. {Название аркана}
-→ {1-2 предложения}
-
-Что усилить:
-{Номер}. {Название аркана}
-→ {1-2 предложения}
-```
-
-### 5.12. Расклад «Да / Нет» (подписчик, FSM)
-
-**Запрос вопроса:**
-
-```
-👁 Да / Нет
-
-Задай вопрос, на который ждёшь ответа.
-Один аркан покажет качество его энергии.
-
-Например: «Стоит ли мне принять это предложение?»
-```
-
-**state = TarotStates.waiting_for_question**
-
-**Результат:**
-
-```
-👁 Расклад «Да / Нет»
-
-Твой вопрос: {вопрос пользователя}
-
-{Номер}. {Название аркана}
-
-━━━━━━━━━━━━━━━━━━━━
-
-{2-3 предложения: не «да» или «нет»,
- а качество энергии вопроса и что стоит учесть.}
-```
-
-### 5.13. FSM-состояния Таро
-
-```python
-class TarotStates(StatesGroup):
-    waiting_for_question = State()  # По вопросу и Да / Нет
-    waiting_for_sphere   = State()  # Сферы жизни (выбор через callback)
-```
-
-### 5.14. Callback_data Таро
-
-| Callback | Назначение |
-|----------|-----------|
-| `tarot_menu` | Открыть раздел Таро (экран с 7 раскладами) |
-| `tarot_daily_card` | Карта дня |
-| `tarot_weekly_spread` | Расклад недели |
-| `tarot_question_spread` | По вопросу (запускает FSM) |
-| `tarot_spheres_spread` | Сферы жизни (запускает FSM) |
-| `tarot_sphere_money` | Сфера: деньги и карьера |
-| `tarot_sphere_relations` | Сфера: отношения |
-| `tarot_sphere_purpose` | Сфера: предназначение |
-| `tarot_doubles_spread` | Двойники |
-| `tarot_portal_spread` | Портал месяца |
-| `tarot_yes_no_spread` | Да / Нет (запускает FSM) |
-| `buy_tarot_subscription` | CTA подписки из пейволла |
-
----
-
-## 6. Блок "Личный кабинет" 👤
-
-### 6.1. Flow
-
-```
-[Пользователь нажимает 👤 Профиль или вводит /profile]
-    ↓
-callback: profile
-    ↓
-[Проверить: есть ли матрица?]
-    │
-    ├── НЕТ → кабинет без матрицы
-    │        [✨ Рассчитать матрицу]
-    │        [🆘 Поддержка]
-    │        [🏠 В меню]
-    │
-    ├── ДА, НЕТ подписки → кабинет с матрицей
-    │        [💎 Оформить подписку — 390 ₽/мес]
-    │        [🆘 Поддержка]
-    │        [🏠 В меню]
-    │
-    └── ДА, подписка/таро → кабинет подписчика
-             [💳 Управление подпиской]
-             [🆘 Поддержка]
-             [🏠 В меню]
-```
-
-Профиль — это **личный кабинет**: управление подпиской и поддержка.
-«📄 Мои отчёты» и «💬 Чат с NURA» вынесены в главное меню.
-
-### 6.2. Текст — пользователь без матрицы
-
-```
-👤 {имя}
-
-📅 Дата рождения: {дата}
-Статус: 🌱 исследователь
-Матрица: ещё не рассчитана
-
-Твои 22 аркана пока молчат.
-Нажми кнопку — и узнай, какой архетип
-зашифрован в твоей дате рождения.
-```
-
-```
-┌─────────────────────────────┐
-│ ✨ Рассчитать матрицу        │
-├─────────────────────────────┤
-│ 🆘 Поддержка                │
-├─────────────────────────────┤
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-### 6.3. Текст — пользователь с матрицей, без подписки
-
-Любой вариант матрицы (мини-разбор, полный отчёт, таро-подписчик)
-без активной premium-подписки. Текст варьируется в зависимости от статуса
-(`profile_mini_text`, `profile_full_text`, `profile_tarot_text`).
-
-Клавиатура — единая:
-
-```
-┌─────────────────────────────┐
-│ 💎 Оформить подписку         │
-│    — 390 ₽/мес              │
-├─────────────────────────────┤
-│ 🆘 Поддержка                │
-├─────────────────────────────┤
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-### 6.4. Текст — подписчик
-
-```
-👤 {имя}
-
-🎭 Архетип: {архетип}
-📅 Дата рождения: {дата}
-👑 Статус: подписка активна
-Подписка до: {дата}
-Отчётов: {N}
-
-━━━━━━━━━━━━━━━━━━━━
-
-У тебя полный доступ:
-• Чат с NURA без ограничений
-• Ежедневные инсайты в ЛС
-• Все отчёты без доплат
-```
-
-```
-┌─────────────────────────────┐
-│ 💳 Управление подпиской      │
-├─────────────────────────────┤
-│ 🆘 Поддержка                │
-├─────────────────────────────┤
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-### 6.5. Экран «Управление подпиской»
-
-Открывается по кнопке «💳 Управление подпиской» (`manage_subscription`).
-
-```
-💳 Управление подпиской
-
-Статус: активна
-Действует до: {дата}
-
-После отмены подписка остаётся активной до конца
-оплаченного периода. Отчёты сохраняются навсегда.
-```
-
-```
-┌─────────────────────────────┐
-│ ❌ Отменить подписку         │
-├─────────────────────────────┤
-│ ← Назад                     │
-└─────────────────────────────┘
-```
-
-**Отмена — двухшаговая:**
-1. Экран подтверждения (`cancel_subscription_confirm`):
-   - «Да, отменить» (`cancel_subscription_do`)
-   - «Нет, оставить» (`manage_subscription`)
-2. Фактическая отмена: устанавливает `subscription_status = "cancelling"`
-   (доступ сохраняется до конца оплаченного периода).
-
-### 6.6. Экран «Поддержка»
-
-Открывается по кнопке «🆘 Поддержка» (`support`).
-
-```
-🆘 Поддержка NURA
-
-Напиши нам — @nura_support
-
-Отвечаем в течение 24 часов.
-```
-
-Кнопка «✉️ Написать в поддержку» — ссылка `t.me/{support_username}`.
-
-### 6.7. Экран «Мои отчёты» (главное меню)
-
-Перенесён из профиля в главное меню. Кнопка «📄 Мои отчёты» (`view_reports`).
-
-```
-📋 Твои отчёты
-
-━━━━━━━━━━━━━━━━━━━━
-
-1. 🎭 Матрица — {дата}
-   Тип: мини-разбор / полный
-
-2. ❤️ Совместимость — {дата}
-   Тип: мини-разбор / полный
-```
-
-Если отчёт полный, рядом с ним кнопки:
-```
-┌──────────────────┬──────────────────┐
-│ 👁 Открыть        │ 📄 PDF            │
-└──────────────────┴──────────────────┘
-```
-
-Если отчётов нет:
-```
-У тебя пока нет ни одного отчёта.
-
-Начни с ✨ Расчёта матрицы — это бесплатно.
-```
-
-**callback_data:** `open_report:{token}`, `download_pdf:{token}`, `calculate_matrix`, `back_to_profile`
-
----
-
-## 7. Чат с NURA 💬
-
-### 7.1. Flow
-
-```
-[Пользователь нажимает 💬 Чат с NURA]
-    ↓
-callback: chat_with_nura
-    ↓
-[Проверка: подписка или полный отчёт?]
-    ├── ДА → безлимитный доступ
-    │       ↓
-    │   [Приветствие (безлимит)]
-    │       ↓  state = ChatStates.chatting
-    │   [Диалог без ограничений]
-    │
-    └── НЕТ → бесплатный тариф (5 сообщений)
-            ↓
-        [Приветствие (5 сообщений)]
-            ↓  state = ChatStates.chatting
-            ↓  counter = 5
-        [Диалог — после каждого ответа: counter -= 1]
-            ↓
-        [counter == 0 → пейволл с подпиской]
-            ↓
-        💎 Оформить подписку / 🏠 В меню
-            ↓
-        [При выходе — очистка FSM и сброс лимита]
-            ↓  state = ChatStates.idle
-
-[Пользователь вводит /exit или нажимает "Выйти"]
-    ↓  state = ChatStates.idle
-[Прощание]
-```
-
-### 7.2. Приветствие (бесплатный тариф — 5 сообщений)
-
-```
-💬 Чат с NURA
-
-{имя}, твой архетип — {архетип}.
-Я знаю твою матрицу, и я здесь, чтобы говорить с тобой
-на её языке.
-
-У тебя 5 бесплатных сообщений, чтобы попробовать.
-
-Ты можешь спросить меня о чём угодно:
-о себе, об отношениях, о работе, о сценариях,
-которые повторяются в твоей жизни.
-
-Готов? Просто напиши мне что-нибудь.
-
-━━━━━━━━━━━━━━━━━━━━
-Чтобы выйти, напиши /exit или нажми кнопку ниже.
-```
-
-```
-┌────────────────────┬────────────────────┐
-│ 🚪 Выйти            │ 🗑 Очистить историю │
-└────────────────────┴────────────────────┘
-```
-
-После каждого ответа AI показывать остаток сообщений. Когда остаётся 1 сообщение — добавить предупреждение:
-
-```
-Осталось 1 сообщение. После — чат будет доступен только по подписке.
-```
-
-### 7.3. Пейволл после лимита
-
-```
-✧ Ты использовал все 5 бесплатных сообщений.
-
-Чат с NURA без ограничений — с подпиской Premium.
-
-💎 Premium — 390 ₽/мес:
-• Чат без ограничений
-• Ежедневные AI-инсайты
-• Таро-ритуалы каждый день
-```
-
-```
-┌─────────────────────────────┐
-│ 💎 Оформить 390 ₽/мес      │
-├─────────────────────────────┤
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-**callback_data:** `buy_subscription`, `main_menu`
-
-**Счётчик:** хранить в FSM `chat_messages_left`. При выходе из чата — сбрасывать, при новом входе — выдавать 5 сообщений заново.
-
-### 7.4. Приветствие (безлимитный доступ)
-
-```
-💬 Чат с NURA
-
-{имя}, твой архетип — {архетип}.
-Я знаю твою матрицу, и я здесь, чтобы говорить с тобой
-на её языке.
-
-✧ Полный доступ — без ограничений.
-
-Ты можешь спросить меня о чём угодно:
-о себе, об отношениях, о работе, о сценариях,
-которые повторяются в твоей жизни.
-
-Готов? Просто напиши мне что-нибудь.
-
-━━━━━━━━━━━━━━━━━━━━
-Чтобы выйти, напиши /exit или нажми кнопку ниже.
-```
-
-```
-┌────────────────────┬────────────────────┐
-│ 🚪 Выйти            │ 🗑 Очистить историю │
-└────────────────────┴────────────────────┘
-```
-
-**callback_data:** `chat_exit`, `chat_clear`
-
-### 7.5. Поведение AI
-
-**System prompt (загружается из `core/prompts/chat_system.txt`, см. `prompt-spec.md` §5.1):**
-
-Переменные шаблона:
-- `{user_name}` — имя пользователя
-- `{archetype_name}` — название архетипа (напр. «Император»)
-- `{archetype_number}` — номер архетипа (1–22)
-- `{archetype_key}` — ключевая фраза архетипа
-- `{matrix_json}` — полная матрица пользователя в JSON
-
-```
-Ты — NURA, AI-проводник в Матрицу Судьбы. Ты знаешь пользователя, его архетип и матрицу.
-
-Правила:
-- Обращайся к пользователю на "ты", как мудрый, тёплый друг
-- Отвечай глубоко, но без избыточной метафизики и клише
-- Не притворяйся человеком — ты AI, но ты здесь, чтобы помочь
-- Используй знание архетипа пользователя в ответах: ссылайся на его энергии, сильные стороны, теневые зоны
-- Ответы — 2-4 предложения, не длиннее
-- Не давай медицинских, юридических или финансовых советов
-- Если пользователь в кризисе — мягко предложи обратиться к специалисту
-
-Матрица пользователя:
-{матрица_пользователя_в_json}
-```
-
-**Контекст:** последние 10 сообщений диалога.
-
-Формат `matrix_text` (передаётся в AI-запросы) описан в `prompt-spec.md` §6.
-
-### 7.6. Ограничения чата
-
-Чат обсуждает **только матрицу самого пользователя**. NURA не рассчитывает матрицу для других людей в диалоге.
-
-Если пользователь просит проанализировать другого человека (имя + дата рождения) — NURA отвечает мягким отказом:
-
-```
-Я знаю только тебя и твою матрицу. Хочешь разобраться, как твой архетип влияет на отношения с другими?
-```
-
-NURA не пытается рассчитать матрицу по переданной дате рождения.
-
-### 7.7. Очистка истории
-
-```
-🗑 История диалога очищена.
-
-Мы начинаем заново. Что ты хочешь спросить?
-```
-
-### 7.8. Выход из чата
-
-```
-🚪 Ты вышел из чата.
-
-Но я всегда здесь. Если захочешь поговорить —
-нажми 💬 Чат с NURA в своём профиле.
-
-Береги себя, {имя} ✶
-```
-
-```
-┌─────────────────────────────┐
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-### 7.9. Обработка сообщений вне чата
-
-Если пользователь в состоянии `ChatStates.idle` и вводит текст, не являющийся командой:
-
-```
-Я не совсем поняла. Нажми /menu чтобы увидеть, что я умею.
-```
-
----
-
-## 8. Платёжный флоу 💳
-
-### 8.1. Интеграция YooKassa
-
-**Детали:**
-- Магазин: NURA
-- Способ оплаты: банковская карта (через YooKassa)
-- Webhook URL: `POST /api/v1/payment/webhook`
-- Возврат после оплаты: `{report_base_url}/report/{token}`
-
-### 8.2. Flow — покупка полного отчёта матрицы
-
-**Два входа в платёжный флоу:**
-
-1. **Из мини-разбора:** callback `pay_full_report:{token}` → платёж привязан к конкретному токену отчёта.
-2. **Из главного меню:** callback `buy_matrix` → создаёт матричный платёж через YooKassa, проверяет `user.has_matrix`, в test_mode выдаёт доступ мгновенно.
-
-**Общий флоу (buy_matrix):**
-
-```
-[Пользователь нажимает 💎 Купить разбор 890 ₽]
-    ↓
-callback: buy_matrix
-    ↓
-[Проверка: user.has_matrix?]
-    ├── ДА → "Матрица уже куплена" → main_menu
-    └── НЕТ
-        ↓
-[test_mode?]
-    ├── ДА → user.has_matrix = True → generate_full_report.delay()
-    └── НЕТ
-        ↓
-[Создание платежа через YooKassa API (PaymentService.create_matrix_payment)]
-    ↓
-[Сохранение платежа в БД (PaymentService.save_matrix_payment)]
-    ↓
-[Отправка ссылки на оплату пользователю]
-    ↓
-[Пользователь переходит по ссылке, оплачивает]
-    ↓
-[Пользователь переходит по ссылке, оплачивает]
-    ↓
-[YooKassa шлёт webhook → POST /api/v1/payment/webhook]
-    ↓
-[API проверяет платёж → обновляет Payment.status = "succeeded"]
-    ↓
-[API запускает generate_full_report через Celery]
-    ↓
-[Когда отчёт готов — бот отправляет уведомление пользователю]
-    └── [Пользователь нажимает "Открыть" → HTML-отчёт]
-    └── [Пользователь нажимает "PDF" → PDF-отчёт]
-```
-
-### 8.3. Текст — ссылка на оплату
-
-```
-Почти готово!
-
-Для получения полного AI-разбора
-нужно завершить оплату.
-
-⚠️ Не закрывай это окно, пока платёж не завершится.
-После оплаты отчёт появится здесь автоматически.
-```
-
-```
-┌─────────────────────────────┐
-│ 💳 Оплатить 890 ₽          │  ← InlineKeyboardButton с URL
-├─────────────────────────────┤
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-### 8.4. Текст — платёж отправлен, ждём подтверждения
-
-После нажатия на кнопку оплаты (до webhook):
-
-```
-⏳ Ожидаем подтверждения оплаты...
-
-Как только платёж пройдёт — я начну собирать
-твой полный отчёт. Это займёт 1-2 минуты.
-
-Я сообщу тебе, когда всё будет готово.
-```
-
-### 8.5. Текст — платёж успешен, отчёт генерируется
-
-После получения webhook (оплата подтверждена):
-
-```
-✅ Оплата получена!
-
-🔄 Генерирую твой полный AI-отчёт...
-Это займёт около минуты.
-
-Я пришлю уведомление, как только он будет готов.
-```
-
-### 8.6. Текст — отчёт готов
-
-```
-✨ Твой полный AI-отчёт готов!
-
-В нём:
-• Разбор 9 ключевых зон твоей матрицы
-• Теневые стороны и зоны роста
-• Жизненные циклы
-• 7-дневные рекомендации
-• Совместимость с другими архетипами
-
-Открой и изучи — это твоя карта.
-```
-
-```
-┌────────────────────┬────────────────────┐
-│ 👁 Открыть отчёт    │ 📄 Скачать PDF     │
-├────────────────────┴────────────────────┤
-│ 🏠 В меню                              │
-└─────────────────────────────────────────┘
-```
-
-**callback_data:** `open_report:{token}`, `download_pdf:{token}`, `main_menu`
-
-### 8.7. Текст — ошибка оплаты
-
-```
-Что-то пошло не так с оплатой.
-
-Попробуй ещё раз или напиши в поддержку.
-```
-
-```
-┌─────────────────────────────┐
-│ 🔄 Попробовать снова        │
-├─────────────────────────────┤
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-**callback_data:** `pay_full_report:{token}` (тот же), `main_menu`
-
-### 8.8. Текст — платёж уже был
-
-```
-Этот отчёт уже оплачен. Вот ссылка:
-```
-
-```
-┌────────────────────┬────────────────────┐
-│ 👁 Открыть          │ 📄 PDF             │
-├────────────────────┴────────────────────┤
-│ 🏠 В меню                              │
-└─────────────────────────────────────────┘
-```
-
-### 8.9. Webhook-обработчик (API)
-
-`POST /api/v1/payment/webhook`
-
-```python
-@router.post("/api/v1/payment/webhook")
-async def payment_webhook(body: dict):
-    event = body.get("event")
-    if event != "payment.succeeded":
-        return {"ok": True}
-
-    payment_obj = body["object"]
-    payment_id = payment_obj["id"]
-    metadata = payment_obj.get("metadata", {})
-    telegram_id = metadata.get("telegram_id")
-    report_token = metadata.get("report_token")
-
-    # 1. Найти Payment в БД по yookassa_id
-    # 2. Обновить payment.status = "succeeded"
-    # 3. Запустить generate_full_report.delay(telegram_id, report_token)
-    # 4. Вернуть {"ok": True}
-```
-
-После завершения генерации, Celery-таска отправляет уведомление в Telegram через `bot.send_message()` (используя `Bot` инстанс, полученный через `Bot(token=...)`).
-
-### 8.10. Flow — веб-подписка на Таро (PWA)
-
-Основной флоу оформления таро-подписки работает через веб-приложение:
-
-```
-[Пользователь в боте нажимает «Оформить таро-подписку»]
-    ↓
-callback: buy_tarot_subscription
-    ↓
-[Бот отправляет ссылку на PWA]
-    ↓
-[Пользователь переходит в PWA → нажимает «Оформить подписку»]
-    ↓
-[PWA POST /api/v1/web/subscribe]
-    ↓
-[API создаёт платёж через YooKassa → возвращает confirmation_url]
-    ↓
-[PWA редиректит пользователя на YooKassa]
-    ↓
-[Пользователь оплачивает картой]
-    ↓
-[YooKassa → редирект на /app/success]
-    ↓
-[PWA → редирект на tarot.html?subscribed=1]
-    ↓
-[Webhook YooKassa подтверждает оплату → user.tarot_subscription = True]
-```
-
----
-
-## 9. Продукты и доступ
-
-### 9.1. Что входит
-
-| Возможность | Бесплатно | Матрица (890 ₽ разово) | Таро-подписка (390 ₽/мес) |
+| Gap | Current evidence | Target source | Documentation implication |
 |---|---|---|---|
-| Расчёт матрицы | ✅ | ✅ | ✅ |
-| Мини-разбор (5 блоков) | ✅ | ✅ | ✅ |
-| Полный AI-отчёт (матрица) | ❌ | ✅ | ❌ |
-| Расклад совместимости | ❌ | ✅ (1 раз навсегда) | ✅ (безлимит) |
-| Чат с NURA | ✅ (5 сообщений) | ✅ (безлимит) | ✅ (безлимит) |
-| 🌒 Карта дня (базовая) | ✅ | ✅ | ✅ |
-| 7 таро-раскладов (полная практика) | ❌ | ❌ | ✅ |
-| Пример отчёта | ✅ | ✅ | ✅ |
-
-> **Матрица и Таро независимы.** Покупка матрицы (890 ₽) не открывает таро-расклады, но даёт 1 расклад совместимости. Таро-подписка работает без покупки матрицы и даёт безлимитную совместимость.
-
-### 9.2. Текст — экран таро-подписки
-
-```
-💎 Таро-ритуалы — 390 ₽/месяц
-
-Ежедневная практика:
-
-🌒 Карта дня — каждый день
-✦ Расклад недели (тело/ум/дух) — каждый понедельник
-◈ По вопросу — безлимит
-✶ Сферы жизни — деньги, отношения, предназначение
-☯ Двойники — два аркана, один конфликт
-🌅 Портал месяца — каждое 1-е число
-👁 Да / Нет — один аркан на конкретный вопрос
-❤️ Совместимость — безлимитные расклады
-💬 Чат с NURA без ограничений
-
-Оформи подписку — и каждый день начнётся с практики.
-```
-
-```
-┌─────────────────────────────┐
-│ 💎 Оформить 390 ₽/мес       │
-├─────────────────────────────┤
-│ 👤 Назад в профиль          │
-└─────────────────────────────┘
-```
-
-### 9.3. Текст — подписка оформлена
-
-```
-🎉 Таро-подписка оформлена!
-
-Твой статус: 👑 Premium
-Действительна до: {дата}
-
-Тебе доступно:
-• 🌒 Карта дня — каждый день
-• ✦ Расклад недели — каждый понедельник
-• ◈ По вопросу — безлимит
-• ✶ Сферы жизни, ☯ Двойники, 🌅 Портал месяца, 👁 Да / Нет
-• ❤️ Совместимость — безлимит
-• 💬 Чат с NURA без ограничений
-
-Добро пожаловать на следующий уровень ✶
-```
-
-### 9.4. Текст — напоминание об истечении (за 3 дня)
-
-```
-🌒 NURA
-
-Твоя подписка истекает через 3 дня.
-
-После этого ты потеряешь доступ к чату с NURA
-и всем таро-раскладам.
-
-Продли сейчас, чтобы ничего не прерывать.
-```
-
-```
-┌─────────────────────────────┐
-│ 💎 Продлить подписку        │
-├─────────────────────────────┤
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-**callback_data:** `buy_subscription`, `main_menu`
-
-### 9.5. Текст — подписка истекла
-
-```
-Твоя подписка закончилась.
-
-Но не переживай — твои отчёты остались с тобой.
-Ты всегда можешь открыть их в профиле.
-
-Когда захочешь вернуться — подписка ждёт ✶
-```
-
-```
-┌─────────────────────────────┐
-│ 💎 Возобновить 390 ₽/мес   │
-├─────────────────────────────┤
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-### 9.6. Механика подписки
-
-**YooKassa recurrent payments:**
-- При оформлении подписки создаётся платёж с `save_payment_method = True`
-- YooKassa возвращает `payment_method.id`
-- Сохраняем в `User.payment_method_id`
-- Каждый месяц создаём новый платёж с `payment_method_id`
-
-**Celery-beat задачи:**
-
-| Задача | Расписание | Описание |
-|---|---|---|
-| `send_daily_card` | Каждый день в 06:00 UTC (09:00 МСК) | Карта дня — всем пользователям с birth_date |
-| `send_weekly_spread` | Каждый понедельник в 06:00 UTC | Расклад недели — подписчикам |
-| `send_monthly_portal` | 1-го числа каждого месяца в 06:00 UTC | Портал месяца — подписчикам |
-| `check_expiring_subscriptions` | Каждый день в 12:00 UTC | Проверка подписок, истекающих через 3 дня → уведомление |
-| `downgrade_expired_subscriptions` | Каждый день в 00:00 UTC | Downgrade истекших подписок до "free" |
-
-### 9.7. Mute заблокировавших
-
-Если `send_daily_card` или `send_weekly_spread` ловит `BotBlocked` — установить `User.subscription_status = "blocked"` и отписать от рассылки.
-
----
-
-## 10. Ежедневная карта (Celery-beat)
-
-### 10.1. Задача `send_daily_card`
-
-Заменяет `send_daily_insights`. Отправляет бесплатную карту дня **всем пользователям** с `birth_date` в базе.
-
-```python
-@celery_app.task(name="core.tasks.send_daily_card")
-def send_daily_card():
-    """Send daily tarot card to all users with birth_date."""
-    # 1. Выбрать всех User с birth_date is not None и subscription_status != "blocked"
-    # 2. Определить аркан дня по текущей дате (детерминированный алгоритм)
-    # 3. Сгенерировать базовую интерпретацию через AI (tarot_daily_card.txt)
-    # 4. Отправить в Telegram
-    # 5. Если BotBlocked → subscription_status = "blocked"
-```
-
-### 10.2. Задача `send_weekly_spread`
-
-Отправляет расклад недели подписчикам каждый понедельник.
-
-```python
-@celery_app.task(name="core.tasks.send_weekly_spread")
-def send_weekly_spread():
-    """Send weekly spread to active tarot subscribers every Monday."""
-    # 1. Выбрать User с subscription_status = "premium"
-    # 2. Сгенерировать расклад тело/ум/дух (tarot_weekly_spread.txt)
-    # 3. Отправить в Telegram
-```
-
-### 10.3. Задача `send_monthly_portal`
-
-Отправляет Портал месяца подписчикам 1-го числа каждого месяца.
-
-```python
-@celery_app.task(name="core.tasks.send_monthly_portal")
-def send_monthly_portal():
-    """Send monthly portal spread to active tarot subscribers on the 1st."""
-    # 1. Выбрать User с subscription_status = "premium"
-    # 2. Сгенерировать расклад чему/отпустить/усилить (tarot_portal_spread.txt)
-    # 3. Отправить в Telegram
-```
-
-### 10.4. Текст — утренняя карта дня
-
-```
-🌒 {День недели}, {дата}
-
-Твоя карта дня — {Номер}. {Название аркана}
-
-{Базовая интерпретация, 2-3 предложения}
-```
-
-```
-┌─────────────────────────────┐
-│ 🌒 Открыть в боте           │
-├─────────────────────────────┤
-│ 🏠 В меню                   │
-└─────────────────────────────┘
-```
-
-**callback_data:** `tarot_menu`, `main_menu`
-
-### 10.5. Расписание Celery-beat
-
-| Задача | Расписание | Получатели |
-|--------|-----------|-----------|
-| `send_daily_card` | Каждый день 06:00 UTC | Все с birth_date |
-| `send_weekly_spread` | Каждый понедельник 06:00 UTC | Подписчики |
-| `send_monthly_portal` | 1-го числа 06:00 UTC | Подписчики |
-| `check_expiring_subscriptions` | Каждый день 12:00 UTC | Подписчики (срок − 3 дня) |
-| `downgrade_expired_subscriptions` | Каждый день 00:00 UTC | Истёкшие подписки |
-
----
-
-## 11. Системные сообщения
-
-### 11.1. Глобальная ошибка
-
-```
-Что-то пошло не так.
-
-Попробуй ещё раз через минуту.
-Если ошибка повторится — напиши мне в /help
-```
-
-### 11.2. Rate limit (ThrottlingMiddleware)
-
-```
-Слишком быстро — давай по одной команде за раз ☕
-```
-
-### 11.3. Anti-flood (AntiFloodMiddleware)
-
-```
-Ты слишком быстр. Давай сделаем паузу на полминуты ☕
-```
-
-### 11.4. Регистрация (UserRegistrationMiddleware — первое сообщение)
-
-```
-Приятно познакомиться, {имя}! ✶
-
-NURA — это пространство, где ты можешь
-узнать себя через свою Матрицу Судьбы.
-
-Начни с расчёта — это займёт всего минуту.
-```
-
-Далее — главное меню (как при /start).
-
-### 11.5. Кнопки заблокированы при ожидании ввода
-
-Если пользователь нажимает `calculate_matrix`, `compatibility`, `tarot_menu` или `profile` в состоянии `waiting_birth_date`, `waiting_first_date` или `waiting_second_date`:
-
-```
-Сначала заверши текущее действие.
-Если хочешь начать заново — нажми /menu
-```
-
-(Обработчик на любую callback_data, игнорирующий её и показывающий это сообщение, когда state != idle)
-
----
-
-## 12. Полный реестр callback_data и их обработчики
-
-> Имена обработчиков — рекомендуемые. Фактические имена функций в коде могут отличаться.
-> Соответствие реализации проверяется через `grep` по callback_data.
-
-| Callback | Handler | Состояние FSM | Описание |
-|---|---|---|---|
-| `main_menu` | `cmd_start` | idle | Вернуться в главное меню |
-| `calculate_matrix` | `ask_birth_date` | idle | Начать расчёт матрицы → state = waiting_birth_date |
-| `compatibility` | `ask_compatibility` | idle | Начать расчёт совместимости |
-| `tarot_menu` | `show_tarot_menu` | idle | Открыть раздел Таро (7 раскладов) |
-| `tarot_daily_card` | `show_daily_card` | idle | Карта дня (бесплатно) — AI интерпретация через AIService.chat() |
-| `tarot_weekly_spread` | `tarot_weekly_handler` | idle | Расклад недели (подписка) |
-| `tarot_question_spread` | `tarot_question_start` | idle → waiting_for_question | По вопросу (FSM) |
-| `tarot_spheres_spread` | `tarot_spheres_start` | idle | Сферы жизни — показать выбор |
-| `tarot_sphere_money` | `tarot_spheres_handler` | idle | Сфера: деньги |
-| `tarot_sphere_relations` | `tarot_spheres_handler` | idle | Сфера: отношения |
-| `tarot_sphere_purpose` | `tarot_spheres_handler` | idle | Сфера: предназначение |
-| `tarot_doubles_spread` | `tarot_doubles_handler` | idle | Расклад «Двойники» |
-| `tarot_portal_spread` | `tarot_portal_handler` | idle | Расклад «Портал месяца» |
-| `tarot_yes_no_spread` | `tarot_yes_no_start` | idle → waiting_for_question | Расклад «Да / Нет» (FSM) |
-| `buy_tarot_subscription` | `initiate_tarot_subscription` | idle | Оформить таро-подписку |
-| `sample_report` | `open_sample_report` | idle | Открыть пример отчёта (URL) — **УДАЛЁН**, заменён на `view_reports` в главном меню |
-| `profile` | `show_profile` | idle | Показать личный кабинет |
-| `pay_full_report:{token}` | `initiate_payment` | idle | Создать платёж и отправить ссылку |
-| `buy_matrix` | `buy_matrix` | idle | Купить матрицу (890 ₽) — YooKassa + webhook |
-| `subscription` | `show_subscription_info` | idle | Показать инфо о подписке |
-| `buy_subscription` | `initiate_subscription` | idle | Оформить подписку |
-| `manage_subscription` | `manage_subscription` | idle | Управление подпиской (отмена) |
-| `cancel_subscription_confirm` | `cancel_subscription_confirm` | idle | Подтверждение отмены подписки |
-| `cancel_subscription_do` | `cancel_subscription_do` | idle | Отменить подписку (флаг cancelling) |
-| `support` | `show_support` | idle | Экран поддержки (ссылка на Telegram) |
-| `chat_with_nura` | `enter_chat` | idle → chatting | Войти в чат с NURA |
-| `chat_exit` | `exit_chat` | chatting → idle | Выйти из чата |
-| `chat_clear` | `clear_chat_history` | chatting | Очистить историю чата |
-| `back_to_profile` | `show_profile` | idle | Вернуться в личный кабинет |
-| `open_report:{token}` | `open_report_handler` | idle | Открыть HTML-отчёт |
-| `download_pdf:{token}` | `download_pdf_handler` | idle | Скачать PDF-отчёт |
-| `view_reports` | `show_reports_list` | idle | Список отчётов (из главного меню) |
-
----
-
-## 13. Структура файлов бота (рекомендуемая)
-
-```
-bot/
-├── __init__.py
-├── main.py                          # Entry point
-├── handlers/
-│   ├── __init__.py
-│   ├── start.py                     # /start, /menu, /help
-│   ├── matrix.py                    # Matrix flow
-│   ├── compatibility.py             # Compatibility flow
-│   ├── tarot.py                     # Tarot flow: все 7 раскладов + пейволл (NEW)
-│   ├── profile.py                   # Личный кабинет: подписка, поддержка
-│   ├── chat.py                      # Chat with NURA
-│   ├── payment.py                   # Payment handlers
-│   └── errors.py                    # Global error handler
-├── keyboards/
-│   ├── __init__.py
-│   ├── main_menu.py                 # Main menu keyboard
-│   ├── profile.py                   # Profile keyboards
-│   ├── tarot.py                     # Tarot keyboards: меню + пейволл + расклады (NEW)
-│   ├── chat.py                      # Chat keyboards
-│   └── payment.py                   # Payment keyboards
-├── middlewares/
-│   ├── __init__.py
-│   ├── registration.py              # User registration middleware
-│   ├── throttling.py                # Rate limiting middleware
-│   └── anti_flood.py                # Anti-flood middleware
-├── states/
-│   ├── __init__.py
-│   ├── matrix_state.py
-│   ├── compatibility_state.py
-│   ├── chat_state.py
-│   └── tarot_state.py               # TarotStates (waiting_for_question, waiting_for_sphere) (NEW)
-└── texts/
-    ├── __init__.py
-    ├── matrix.py                    # All matrix texts
-    ├── compatibility.py             # All compatibility texts
-    ├── tarot.py                     # All tarot texts: карта дня, расклады, пейволл (NEW)
-    ├── profile.py                   # All profile texts
-    ├── chat.py                      # All chat texts
-    ├── payment.py                   # All payment texts
-    ├── subscription.py              # All subscription texts
-    └── system.py                    # System/error texts
-```
-
-**Важно:** Вынести все тексты в отдельные файлы `bot/texts/` для удобства редактирования. Хранить их как константы (строки или функции, возвращающие строки с подстановками).
-
----
-
-## 14. Изменения в модели User (дополнительные поля)
-
-> Актуальная модель: `core/models/user.py`. Поля ниже — целевое состояние, сверять с кодом.
-
-```python
-class User(Base):
-    __tablename__ = "users"
-
-    id: UUID (PK)
-    telegram_id: int (unique, indexed)
-    username: str | None              # NEW — из Telegram
-    first_name: str | None            # NEW — из Telegram
-    birth_date: str | None
-    main_archetype: str | None        # NEW — "Императрица" / "Маг" / ...
-    main_archetype_number: int | None # NEW — 3 / 1 / ...
-    subscription_status: str          # "free" | "premium" | "blocked"
-    subscription_until: datetime | None # NEW
-    payment_method_id: str | None     # NEW — для рекуррентных платежей
-    has_matrix: bool = False          # NEW — купил полный отчёт матрицы
-    compatibility_used: bool = False  # NEW — использовал бесплатный расклад совместимости
-    tarot_subscription: bool = False          # NEW — активна ли таро-подписка
-    tarot_subscription_until: datetime | None # NEW — срок окончания таро-подписки
-    created_at: datetime
-```
-
----
-
-## 15. Константы
-
-### 15.1. Цены
-
-| Продукт | Цена |
-|---|---|
-| Матрица судьбы (разово) | 890 ₽ |
-| Таро-подписка (месяц) | 390 ₽ |
-
-### 15.2. Арканы (22 штуки)
-
-```python
-ARCANA: dict[int, dict] = {
-    1:  {"name": "Маг",               "emoji": "✨", "key": "Воля, мастерство, начало"},
-    2:  {"name": "Верховная Жрица",    "emoji": "📿", "key": "Интуиция, тайна, подсознание"},
-    3:  {"name": "Императрица",        "emoji": "👑", "key": "Изобилие, природа, творчество"},
-    4:  {"name": "Император",          "emoji": "🏛️", "key": "Структура, власть, порядок"},
-    5:  {"name": "Иерофант",           "emoji": "📖", "key": "Учение, традиция, наставничество"},
-    6:  {"name": "Влюблённые",         "emoji": "💕", "key": "Выбор, гармония, партнёрство"},
-    7:  {"name": "Колесница",          "emoji": "🚀", "key": "Прорыв, победа, решимость"},
-    8:  {"name": "Сила",               "emoji": "🦁", "key": "Внутренняя сила, смелость"},
-    9:  {"name": "Отшельник",          "emoji": "🏔️", "key": "Мудрость, уединение, поиск"},
-    10: {"name": "Колесо Фортуны",     "emoji": "🎡", "key": "Судьба, циклы, перемены"},
-    11: {"name": "Справедливость",     "emoji": "⚖️", "key": "Карма, баланс, истина"},
-    12: {"name": "Повешенный",         "emoji": "🔄", "key": "Пауза, переосмысление, жертва"},
-    13: {"name": "Смерть",             "emoji": "💀", "key": "Трансформация, обновление"},
-    14: {"name": "Умеренность",        "emoji": "🌊", "key": "Баланс, гармония, равновесие"},
-    15: {"name": "Дьявол",             "emoji": "⛓️", "key": "Тень, зависимость, искушение"},
-    16: {"name": "Башня",              "emoji": "🗼", "key": "Разрушение, прозрение, освобождение"},
-    17: {"name": "Звезда",             "emoji": "⭐", "key": "Надежда, вдохновение, вера"},
-    18: {"name": "Луна",               "emoji": "🌙", "key": "Иллюзии, подсознание, страхи"},
-    19: {"name": "Солнце",             "emoji": "☀️", "key": "Радость, успех, витальность"},
-    20: {"name": "Суд",                "emoji": "📯", "key": "Пробуждение, призвание, переоценка"},
-    21: {"name": "Мир",                "emoji": "🌍", "key": "Завершение, целостность, реализация"},
-    22: {"name": "Шут",                "emoji": "🎭", "key": "Свобода, новое начало, спонтанность"},
-}
-```
-
----
-
-## 16. Приоритет реализации
-
-| Очерёдность | Что делать | Почему |
-|---|---|---|
-| 1 | Middleware (регистрация, throttle, anti-flood) | База — без них всё остальное不安全айно |
-| 2 | Все hanging callback_data обработчики | compat, insights, profile — сейчас падают |
-| 3 | Loading-анимация | Улучшает UX кардинально |
-| 4 | Платёжный флоу (YooKassa + bot handler + webhook) | Монетизация |
-| 5 | Чат с NURA | Ключевая фича |
-| 6 | Ежедневные инсайты | Celery-beat |
-| 7 | Подписка | Recurring revenue |
-| 8 | Profile с отчётами | Хранение + отображение |
-
----
-
-## 17. Виральные механики
-
-### 17.1. Share после совместимости
-
-- **Механика:** share после расклада совместимости
-- **Триггер:** кнопка «📤 Отправить другу» сразу после результата
-- **Конверсия:** друг видит свой аркан → переходит в бота
-- **Реализация:** Telegram share url (не бот API, не требует серверного кода)
-
-Кнопка показывается после каждого расклада совместимости — как для бесплатных пользователей, так и для таро-подписчиков.
-
----
-
-*Документ составлен на основе Nura PRD.txt и анализа текущей кодовой базы. HTML и PDF отчёты не включены — прорабатываются отдельно.*
+| Preferred-name onboarding | Telegram profile name only | Product spec §9.1 | Do not describe name collection as complete |
+| Versioned consent/profile settings | `pd_consent_at`, limited profile | Product spec §§9.2, 9.5, 17 | Consent path exists, target surface incomplete |
+| Full report Telegram text | Full delivery sends PDF only | Product spec §§3.5, 11.6 | Never claim current full text delivery |
+| Daily quota | Lifetime ledger without window | Product spec §13.1 | Always label lifetime current vs daily target |
+| Guided chat entries | No canonical button set | Product spec §13.3 | Do not claim guided journey implemented |
+| Materials taxonomy | «Мои разборы», incomplete labels/metadata | Product spec §12 | Saved access exists; target library incomplete |
+| Broadcast campaign/opt-out/analytics | Generic task + Redis totals only | Product spec §§16, 19 | Transport foundation is not campaign acceptance |
+| Product event registry/KPIs | Attribution foundation only | Product spec §19 | Do not infer funnel analytics from acquisition tracking |
+| Approved report/chat runtime contracts | Separate files/loaders, no accepted version contract | Product spec §§3.7, 20 | Existing prompts are partial implementation |
+| Early-feature visibility | No dedicated flags; primary menu/profile wiring exists | Product spec §§23–32; migration decision DM-04 | Treat current visibility as an implementation gap; do not invent exact gating/rollout mechanics |
+| Account deletion legal copy | Payment/audit rows and fiscal email are retained after user deletion | Current service/tests; owner/legal decision required | Do not promise deletion of all data or invent retention terms/legal basis |
+| External and production acceptance | Local fakes/pass evidence only | Product spec §22 | Local PASS is not sandbox/production proof |
+
+## 10. References
+
+- [Canonical target NURA 1.0/1.5](product/NURA_1_0_1_5_PRODUCT_SPEC.md)
+- [Current implementation mirror](implementation/current-status.md)
+- [Owner migration decisions](decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md)
+- [Telegram UX map](bot-ux-map.md)
+- [Acceptance index](acceptance/README.md)
+- [Local Telegram-first sandbox runbook](acceptance/telegram-first-sandbox.md)
+- [Dated reconciliation evidence](reconciliation/2026-07-28/CURRENT_IMPLEMENTATION_VS_TARGET.md)
+- Payment/pricing details remain in the pending consolidation group: [pricing](pricing.md) and [payment flow audit](audits/PAYMENT_FLOW_AUDIT.md).
+- Report internals remain in the pending consolidation group: [report spec](report-spec.md) and [two-layer architecture](two-layer-architecture.md).

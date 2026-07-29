@@ -1,15 +1,24 @@
-# NURA — Отраслевой стандарт объёма отчёта Матрицы Судьбы
+# NURA — Dated research: отраслевой объём отчёта Матрицы Судьбы
 
-**STATUS: DATED RESEARCH — NON-NORMATIVE**
+> **STATUS: DATED RESEARCH**
+>
+> **Research date/baseline:** 30.06.2026. Sources and market observations named by the original analysis were not rechecked in Write Session 5; no web research was performed.
+>
+> **Purpose:** preserve a comparative report-size/price benchmark and the recommendations derived from that snapshot.
+>
+> This research is not a product spec, owner decision, implementation proof, pricing contract or committed roadmap. Current target: [canonical product spec](../../product/NURA_1_0_1_5_PRODUCT_SPEC.md). Current implementation: [current status](../../implementation/current-status.md), [report spec](../../report-spec.md) and [pricing map](../../pricing.md).
 
-Сохранено как сравнительный материал на дату исходного анализа. Не использовать как product или implementation contract; см. [docs router](../../README.md).
+## Research authority boundary
 
-> Создано: 30.06.2026
-> Источник: анализ конкурентов (matrica-sudby.ru, matrix-profi.ru)
+- Competitor prices, page counts, feature comparisons and source availability are dated observations or estimates from the 30 June baseline.
+- NURA page/section/feature claims below are historical research assumptions, not current-state evidence.
+- The 890 ₽ target remains current only because canonical product authority says so; this research does not set or change the price.
+- Recommendations to expand the report, lower price or add tiers are retained as `DATED RESEARCH`; they are not accepted roadmap or report scope.
+- The former 390 ₽ recurring Tarot model mentioned below is now `LEGACY COMPATIBILITY`, not a current offer.
 
 ---
 
-## 1. Ключевые находки
+## 1. Dated source findings
 
 ### matrix-profi.ru (премиум сегмент, 1400 ₽)
 
@@ -62,7 +71,7 @@
 
 ---
 
-## 2. Сводная таблица конкурентов
+## 2. Dated competitor snapshot
 
 | Конкурент | Цена | Объём | Формат | Особенности |
 |-----------|------|-------|--------|-------------|
@@ -75,7 +84,7 @@
 
 ---
 
-## 3. Анализ ценообразования
+## 3. Dated pricing analysis
 
 ### Цена за страницу
 
@@ -89,7 +98,7 @@
 
 ---
 
-## 4. Отраслевой стандарт объёма
+## 4. Research-derived volume bands
 
 ### Минимальный стандарт (базовый отчёт)
 - **15-25 страниц**
@@ -108,9 +117,9 @@
 
 ---
 
-## 5. Позиционирование NURA
+## 5. NURA baseline recorded by the study
 
-### Текущее состояние
+### Research snapshot as of 30.06.2026
 - **Заявлено:** 30-50 страниц
 - **Фактически:** ~25-35 страниц (17 секций)
 - **Цена:** 890 ₽
@@ -123,7 +132,7 @@ NURA позиционируется между средним и премиум 
 
 ---
 
-## 6. Рекомендации
+## 6. Dated research recommendations — not roadmap
 
 ### Вариант A: Увеличить объём отчёта (рекомендуется)
 
@@ -160,7 +169,7 @@ NURA позиционируется между средним и премиум 
 
 ---
 
-## 7. Конкурентные преимущества NURA
+## 7. Historical feature comparison
 
 Несмотря на меньший объём, NURA имеет **уникальные фичи**:
 
@@ -171,31 +180,31 @@ NURA позиционируется между средним и премиум 
 | Рефлексивные страницы (R1, R2) | ✅ | ❌ |
 | Интерактивный HTML | ✅ | ❌ Только PDF |
 | Интеграция с ботом | ✅ Telegram | ❌ |
-| Таро-подписка | ✅ 390 ₽/мес | ❌ |
+| Таро-подписка | ✅ 390 ₽/мес in the historical baseline; now `LEGACY COMPATIBILITY` | ❌ |
 | Расклад совместимости | ✅ | ✅ (у некоторых) |
 
 ---
 
-## 8. Вывод
+## 8. Dated research conclusion
 
 ### Отраслевой стандарт
 - **Минимум:** 20-25 страниц (базовый отчёт)
 - **Оптимум:** 40-60 страниц (полный отчёт)
 - **Премиум:** 80-120 страниц (расширенный отчёт)
 
-### Текущая позиция NURA
+### Position recorded by the study
 - **Объём:** 30-50 страниц (соответствует среднему сегменту)
 - **Цена:** 890 ₽ (соответствует среднему+ сегменту)
 - **Фичи:** уникальные (AI, Kitchen, интерактив)
 
-### Рекомендация
+### Historical research recommendation
 **Увеличить объём до 60-80 страниц** через добавление запланированных секций (P1, P2, P3) и генерацию визуального контента. Это обоснует цену 890 ₽ и приблизит к премиум сегменту без снижения маржи.
 
 ---
 
-## 9. Примечания
+## 9. Provenance and stale-claim notes
 
-- **matrix-profi.ru** — главный конкурент в премиум сегменте
-- **105-107 страниц** — это ориентир для "полного отчёта" в 2026 году
+- **matrix-profi.ru** — главный premium-segment comparator selected by the original study; current relevance was not rechecked.
+- **105-107 страниц** — research benchmark recorded on 30.06.2026, not a current NURA requirement.
 - NURA может компенсировать меньший объём **уникальными фичами** (AI, интерактив)
-- Важно **честно указывать объём** в marketing-материалах
+- Historical recommendation: **честно указывать объём** в marketing-материалах. Current marketing claims require current evidence.

@@ -1,785 +1,249 @@
-# Интеграция Таро в NURA — 9 шагов
+# NURA Tarot Integration — Historical Implementation Record
 
-> **STATUS: MIXED — SESSION HISTORY, NOT CURRENT STATUS**
->
-> Сохранено без переписывания на Stage 2A. Для current evidence используйте [implementation status](implementation/current-status.md), для target — [product spec](product/NURA_1_0_1_5_PRODUCT_SPEC.md).
-
-> **Основание:** `docs/tarot-integration-plan.md` — стратегический план.
-> **Цель:** реализовать таро-ритуалы на всех трёх поверхностях (бот, лендинг, отчёт).
-> **Реальность:** кодовая база не содержит таро-логики — `_tarot_card.html` заглушка использует `current_year_arcana` (годовой) как карту дня, бот не имеет кнопок/хендлеров таро, лендинг не упоминает таро, платежи поддерживают только 390₽ подписку.
->
-> **ВАЖНО: Все файлы — относительно `nura_app/`.**
-> Рабочая директория: `C:\git\NURA\nura_app\`.
+## 1. Authority and historical scope
 
----
-
-## Что скорректировано относительно tarot-integration-plan.md
-
-| Было в плане | Реальность | Поправка |
-|-------------|-----------|----------|
-| `has_matrix`, `matrix_data` в `User` | `matrix_data` в `Report`, флага `has_matrix` нет | Поля в `User` + чтение `matrix_data` из `Report` при генерации раскладов |
-| Замена `send_daily_insights` на `send_daily_card` | `send_daily_insights` работает и нужен | **Новая** задача `send_daily_card`, обе работают параллельно |
-| Карта дня = `current_year_arcana` | Это аркан **года**, а не дня | Нужен алгоритм дневного аркана (day_of_year + модуляция по DOB) |
-| `payment_type` в `Payment` + разовые платежи | `metadata` содержит только `subscription: true` | Расширить метаданные + `payment_type` в БД |
-| 890₽ матрица как продукт | Нет продукта «матрица» | Создать `create_one_time_payment` в PaymentService |
-| Меню: «Ритуалы дня» вместо «Чат с NURA» | Чат — ключевой функционал | Добавить «Ритуалы» **поверх** существующего меню, не заменяя |
-| Промпты в `core/prompts/` | Основные в `nura_app/core/prompts/`, копия в `C:\git\NURA\core\prompts/` — устаревшая | Писать в `nura_app/core/prompts/`, вторую удалить/синхронизировать |
-
----
-
-## Легенда моделей
-
-| Метка | Модель | Когда |
-|-------|--------|-------|
-| ⚡ Flash | DeepSeek V4 Flash | CRUD, хендлеры, шаблоны, CSS, бот-логика |
-| 🔥 Pro | DeepSeek V4 Pro | Схема БД, платежи, архитектура 2+ модулей |
-| 📝 Kimi | Kimi K2.6 | Промпт-инжиниринг, длинные структурированные тексты |
-
-
----
-
-## ШАГ 1 — Схема БД + платежи + конфиг
-
-**Модель:** 🔥 Pro (архитектура, 2+ модуля: models, payment, api, config)
-
-**Файлы:** `core/config.py`, `core/models.py`, `core/services/payment.py`, `api/routes/payment.py`, `alembic/` (миграция)
-
-**Промпт:**
-```
-Задача: подготовить data layer для таро — модель, платежи, конфиг.
-
---- ЧАСТЬ 1: core/config.py ---
-Добавить поля:
-tarot_subscription_price_rub: int = 390
-matrix_one_time_price_rub: int = 890
-bot_username уже есть.
-
---- ЧАСТЬ 2: core/models.py ---
-User — добавить поля:
-tarot_subscription: bool = False
-tarot_subscription_until: datetime | None = None
-
-Payment — добавить поле:
-payment_type: str = "subscription"  # "subscription" | "matrix" | "tarot"
-
---- ЧАСТЬ 3: core/services/payment.py ---
-Три статических метода:
-1. create_subscription(...) — существующий, без изменений
-2. create_tarot_payment(telegram_id: int) -> dict:
-   - сумма: settings.tarot_subscription_price_rub
-   - metadata: {"telegram_id": telegram_id, "payment_type": "tarot"}
-   - save_payment_method: True
-   - description: "NURA — Таро-ритуалы (подписка)"
-3. create_matrix_payment(telegram_id: int) -> dict:
-   - сумма: settings.matrix_one_time_price_rub
-   - metadata: {"telegram_id": telegram_id, "payment_type": "matrix"}
-   - save_payment_method: False
-   - description: "NURA — Полная матрица судьбы (разовый отчёт)"
-
---- ЧАСТЬ 4: api/routes/payment.py ---
-Обновить webhook:
-- Извлекать payment_type из metadata (по умолчанию "subscription")
-- Если "tarot" → user_repo.update_tarot_subscription(user.id, True, 30 дней)
-- Если "matrix" → user_repo.update_has_matrix(user.id, True)
-- Если "subscription" → существующая логика (premium на 30 дней)
-
---- ЧАСТЬ 5: alembic миграция ---
-Добавить поля в users: tarot_subscription (bool, default false),
-tarot_subscription_until (timestamptz, nullable)
-Добавить в payments: payment_type (varchar 20, default 'subscription')
-
-После выполнения: ruff check core/models.py core/config.py core/services/payment.py api/routes/payment.py --fix
-```
-
----
-
-## ШАГ 2 — AI-промпты для таро (3 файла)
-
-**Модель:** 📝 Kimi (промпт-инжиниринг)
-
-**Файлы:** создать `core/prompts/tarot_daily_card.txt`, `core/prompts/tarot_weekly_spread.txt`, `core/prompts/tarot_question.txt`
-
-**Промпт:**
-```
-Задача: создать 3 промпта для таро-раскладов. Все файлы в core/prompts/.
-Tone-of-voice: ритуальный, метафоричный, на "ты". Запрещено: «гадание», «предсказание», «судьба как рок», «порча», «магия». Разрешено: «аркан», «расклад», «карта», «ритуал», «практика», «энергия».
-
---- Файл 1: tarot_daily_card.txt ---
-Назначение: карта дня на основе даты рождения и текущей даты.
-Вход: {user_name}, {birth_date}, {daily_arcana} (int 1-22), {matrix_context} (если есть — строка с позицией аркана в матрице пользователя).
-
-Структура ответа JSON:
-{
-  "card_number": int,
-  "card_name": str (название аркана),
-  "key_phrase": str (ключевая фраза дня, 1 предложение),
-  "interpretation": str (200-300 символов — как энергия аркана проявляется сегодня),
-  "matrix_link": str (если matrix_context есть — как аркан связан с позицией в матрице),
-  "advice": str (1-2 предложения — практическое действие на день),
-  "affirmation": str (аффирмация дня, 1 фраза)
-}
-
-Требования:
-- Интерпретация должна учитывать daily_arcana и дату рождения
-- Если matrix_context передан — использовать его для углубления
-- Тон: поддержка и любопытство, не запугивание
-
-Верни ПОЛНЫЙ текст tarot_daily_card.txt.
-
---- Файл 2: tarot_weekly_spread.txt ---
-Назначение: расклад на неделю — 3 карты (тело-ум-дух).
-Вход: {user_name}, {birth_date}, {three_arcana: [body, mind, spirit]} (3 int 1-22), {matrix_context} (если есть).
-
-Структура ответа JSON:
-{
-  "body": {"card_number": int, "card_name": str, "energy": str, "interpretation": str, "practice": str},
-  "mind": {"card_number": int, "card_name": str, "energy": str, "interpretation": str, "practice": str},
-  "spirit": {"card_number": int, "card_name": str, "energy": str, "interpretation": str, "practice": str},
-  "overall": str (общий посыл недели, 2-3 предложения)
-}
-
-Каждая интерпретация: 150-200 символов. Практика: 1 предложение — конкретное действие на неделю.
-
-Верни ПОЛНЫЙ текст tarot_weekly_spread.txt.
-
---- Файл 3: tarot_question.txt ---
-Назначение: расклад по вопросу пользователя — 3 карты (прошлое-настоящее-будущее).
-Вход: {user_name}, {birth_date}, {question}, {three_arcana: [past, present, future]} (3 int 1-22), {matrix_context} (если есть).
-
-Структура ответа JSON:
-{
-  "past": {"card_number": int, "card_name": str, "meaning": str, "how_it_relates": str},
-  "present": {"card_number": int, "card_name": str, "meaning": str, "how_it_relates": str},
-  "future": {"card_number": int, "card_name": str, "meaning": str, "how_it_relates": str},
-  "summary": str (сводка, 2-3 предложения),
-  "advice": str (конкретный совет, 1-2 предложения)
-}
-
-Требования:
-- Ответ привязан к вопросу пользователя (how_it_relates: «В контексте твоего вопроса про работу...»)
-- Если matrix_context — указать позицию аркана в матрице
-- Совет должен быть практическим, не эзотерическим
-
-Верни ПОЛНЫЙ текст tarot_question.txt.
-```
-
----
-
-## ШАГ 3 — Бот: меню, навигация, роутер
-
-**Модель:** ⚡ Flash
-
-**Файлы:** `bot/keyboards/main_menu.py`, создать `bot/keyboards/tarot_keyboard.py`, создать `bot/handlers/tarot.py`, создать `bot/states/tarot_state.py`, создать `core/services/daily_arcana.py`
-
-**Промпт:**
-```
-Задача: добавить таро-навигацию в бота — кнопка в главном меню, клавиатура ритуалов, роутер, FSM-состояния, алгоритм дневного аркана.
-
---- ЧАСТЬ 1: bot/keyboards/main_menu.py ---
-В main_menu_keyboard():
-- Добавить аргумент has_tarot: bool = False
-- Если has_tarot — показать кнопку "🃏 Ритуалы дня" вместо тизера
-- Иначе — показать "🃏 Карта дня" (тизер, ведёт на /ritual)
-- Итоговая раскладка:
-  [matrix_btn, insights]
-  [tarot_btn, chat, compatibility]
-  [profile]
-(сохранить все существующие кнопки, добавить таро-строку)
-
---- ЧАСТЬ 2: bot/keyboards/tarot_keyboard.py (НОВЫЙ) ---
-Функции:
-- tarot_menu_keyboard() -> InlineKeyboardMarkup:
-  Кнопки: "🂡 Карта дня", "🂠 Расклад недели", "❓ Задать вопрос", "🏠 В меню"
-- tarot_back_keyboard() -> InlineKeyboardMarkup:
-  Кнопка "🔙 Назад к ритуалам" + "🏠 В меню"
-
---- ЧАСТЬ 3: bot/states/tarot_state.py (НОВЫЙ) ---
-Классы FSM:
-- TarotStates(StatesGroup):
-  - waiting_question = State()  # для расклада по вопросу
-
---- ЧАСТЬ 4: core/services/daily_arcana.py (НОВЫЙ) ---
-Функция calculate_daily_arcana(birth_date: str) -> int:
-- Парсит birth_date (DD.MM.YYYY)
-- Берёт day_of_year от текущей даты
-- Суммирует цифры day_of_year + sum(digits of DD) + sum(digits of MM)
-- Свёртка до 1-22 (если >22 — редуцировать через сумму цифр)
-- Возвращает int 1-22
-
-Функция calculate_spread_arcanas(birth_date: str, count: int = 3) -> list[int]:
-- Берёт daily_arcana как seed
-- Генерирует count арканов: для i от 0 до count-1:
-  arcana = (daily_arcana + i * 7) % 22 + 1 (смещение, чтобы не повторялись)
-- Возвращает list[int]
-
---- ЧАСТЬ 5: bot/handlers/tarot.py (НОВЫЙ) ---
-Роутер tarot_router = Router().
-
-5.1. /ritual command:
-- Ответ: меню ритуалов (tarot_menu_keyboard)
-- Текст: "🃏 Ритуалы дня\n\nВыбери, что хочешь узнать сегодня:"
-
-5.2. Callback "tarot_menu":
-- Показать tarot_menu_keyboard
-
-5.3. Callback "tarot_daily_card":
-- Рассчитать аркан дня по сегодняшней дате (единый для всех)
-- Отправить промежуточное сообщение "🌒 Вычисляю карту дня..."
-- Загрузить prompt `tarot_daily_card_handler.txt`, заполнить {arcana_name}, {arcana_number}, {date}
-- Вызвать AIService.chat() с заполненным промптом
-- При ошибке: fallback "Сегодня карта говорит тише обычного"
-- Отправить результат: `🌒 Карта дня — {name}\n{─*20}\n\n{interpretation}\n\n_Аркан {num} · {date}_`
-- Клавиатура: tarot_back_keyboard()
-
-5.4. Callback "tarot_weekly_spread":
-- Вызвать AIService.generate_tarot_weekly_spread(user.birth_date)
-- Отправить результат
-
-5.5. Callback "tarot_ask_question":
-- Установить TarotStates.waiting_question
-- "Напиши свой вопрос — и я сделаю расклад по ситуации."
-
-5.6. Message handler в TarotStates.waiting_question:
-- Получить текст вопроса
-- Вызвать AIService.generate_tarot_question(user.birth_date, question)
-- Отправить результат
-
-5.7. Проверка подписки:
-- В каждом хендлере проверять user.tarot_subscription
-- Если нет подписки — показывать тизер с кнопкой покупки
-
-Зарегистрировать tarot_router в bot/__init__.py или bot/handlers/__init__.py.
-
-После выполнения: ruff check bot/keyboards/ bot/handlers/tarot.py bot/states/tarot_state.py core/services/daily_arcana.py --fix
-```
-
----
-
-## ШАГ 4 — AI-сервис: таро-методы + интеграция в бота
-
-**Модель:** ⚡ Flash
-
-**Файлы:** `core/services/ai.py`, `core/services/daily_arcana.py`, `core/repositories/user.py`
-
-**Промпт:**
-```
-Задача: добавить таро-методы в AIService, подключить к daily_arcana.
-
---- ЧАСТЬ 1: core/services/ai.py ---
-
-1.1 Тарифные константы:
-Добавить в класс AIService или отдельно:
-TAROT_DAILY_MODEL = settings.deepseek_model
-TAROT_SPREAD_MODEL = settings.deepseek_model
-TAROT_QUESTION_MODEL = settings.deepseek_model
-
-1.2 _get_matrix_context(user) -> str:
-- Принимает объект User
-- Если у пользователя есть полный отчёт (Report с FULL) — читает matrix_data
-- Формирует строку: "В твоей матрице аркан X стоит в позиции Y (название позиции)."
-- Если нет отчёта — возвращает пустую строку
-
-1.3 generate_tarot_daily_card(birth_date: str, user) -> dict:
-- Вычисляет daily_arcana = calculate_daily_arcana(birth_date)
-- Получает matrix_context = _get_matrix_context(user)
-- Загружает промпт tarot_daily_card.txt
-- Форматирует: {user_name}, {birth_date}, {daily_arcana}, {matrix_context}
-- Отправляет запрос к AI, парсит JSON
-- Возвращает dict с card_number, card_name, key_phrase, interpretation, matrix_link, advice, affirmation
-
-1.4 generate_tarot_weekly_spread(birth_date: str, user) -> dict:
-- Вычисляет three_arcana = calculate_spread_arcanas(birth_date, 3)
-- Получает matrix_context
-- Загружает промпт tarot_weekly_spread.txt
-- Форматирует, отправляет, парсит JSON
-- Возвращает dict с body, mind, spirit, overall
-
-1.5 generate_tarot_question(birth_date: str, question: str, user) -> dict:
-- Вычисляет three_arcana = calculate_spread_arcanas(birth_date, 3) — на дату + seed от вопроса
-- Получает matrix_context
-- Загружает промпт tarot_question.txt
-- Форматирует, отправляет, парсит JSON
-- Возвращает dict с past, present, future, summary, advice
-
-1.6 Обработка ошибок:
-- Если AI не вернул валидный JSON — вернуть fallback-текст
-- Если matrix_context пуст — просто опустить секцию в ответе
-
---- ЧАСТЬ 2: core/repositories/user.py ---
-Добавить методы:
-- update_tarot_subscription(user_id, status: bool, until: datetime | None)
-- get_users_with_tarot() -> list[User] (для celery)
-- get_has_matrix(user_id) -> bool (проверка наличия FULL-отчёта)
-
-После выполнения: ruff check core/services/ai.py core/repositories/user.py --fix
-```
-
----
-
-## ШАГ 5 — Celery: ежедневная карта таро
-
-**Модель:** ⚡ Flash
-
-**Файлы:** `core/tasks.py`
-
-**Промпт:**
-```
-Задача: добавить Celery beat-задачу для ежедневной рассылки карты таро.
-Путь: core/tasks.py.
-
---- ЧАСТЬ 1: Расписание ---
-Добавить в celery_app.conf.beat_schedule:
-"send-daily-tarot-card": {
-    "task": "core.tasks.send_daily_tarot_card",
-    "schedule": crontab(hour=9, minute=15),  # на 15 мин позже инсайтов
-}
-
---- ЧАСТЬ 2: Задача send_daily_tarot_card ---
-@celery_app.task(name="core.tasks.send_daily_tarot_card")
-def send_daily_tarot_card() -> dict:
-    return _run_async(_send_daily_tarot_card_async())
-
-async def _send_daily_tarot_card_async() -> dict:
-    session_factory = get_async_sessionmaker()
-    user_repo = UserRepository(session_factory)
-    users = await user_repo.get_users_with_tarot()
-
-    sent = 0
-    blocked = 0
-    for i, user in enumerate(users):
-        if i > 0 and len(users) > 50:
-            await asyncio.sleep(0.5)
-        if not user.birth_date:
-            continue
-
-        try:
-            card = await AIService.generate_tarot_daily_card(user.birth_date, user)
-        except Exception:
-            continue
-
-        text = format_daily_card_message(user.first_name, card)
-        keyboard = {
-            "inline_keyboard": [
-                [{"text": "🂠 Расклад недели", "callback_data": "tarot_weekly_spread"}],
-                [{"text": "🏠 В меню", "callback_data": "main_menu"}],
-            ],
-        }
-        ok = await _send_message(user.telegram_id, text, keyboard)
-        if ok:
-            sent += 1
-        else:
-            async with session_factory() as session:
-                db_user = await session.get(User, user.id)
-                if db_user is not None:
-                    db_user.tarot_subscription = False
-                    await session.commit()
-            blocked += 1
-    return {"sent": sent, "blocked": blocked, "total": len(users)}
-
---- ЧАСТЬ 3: format_daily_card_message ---
-Функция (вне класса, в tasks.py или отдельно):
-def format_daily_card_message(first_name: str, card: dict) -> str:
-    lines = [
-        f"🃏 Твоя карта дня — {card['card_number']}. {card['card_name']}",
-        "",
-        card['key_phrase'],
-        "",
-        card['interpretation'],
-    ]
-    if card.get('matrix_link'):
-        lines += ["", card['matrix_link']]
-    lines += [
-        "",
-        f"💡 {card['advice']}",
-        "",
-        f"✨ {card['affirmation']}",
-        "",
-        "━━━━━━━━━━━━━━━━━━━━",
-        "Хочешь глубже? Загляни в ритуалы дня.",
-    ]
-    return "\n".join(lines)
-
---- ЧАСТЬ 4: НЕ трогать ---
-Не изменять send_daily_insights и _send_daily_insights_async.
-Не изменять существующее расписание.
-
-После выполнения: ruff check core/tasks.py --fix
-```
-
----
-
-## ШАГ 6 — Визуальный скин таро в боте (HTML-сообщения)
-
-**Модель:** ⚡ Flash
-
-**Файлы:** создать (опционально) `bot/helpers/tarot_formatter.py`, обновить `bot/handlers/tarot.py`
-
-**Промпт:**
-```
-Задача: форматировать таро-сообщения в боте с HTML-разметкой.
-Сине-золотой скин: фон #1a2a3a, акцент #c9a96e, рамка золотая.
-
---- bot/helpers/tarot_formatter.py (НОВЫЙ) ---
-
-HTML_TAROT_CARD = '''\
-<blockquote style="background:#1a2a3a;border:1px solid #c9a96e;border-radius:12px;padding:16px;margin:8px 0;">
-  🃏 <b>Твоя карта дня — {number}. {name}</b>
-</blockquote>
-'''
-
-HTML_TAROT_SPREAD = '''\
-<blockquote style="background:#1a2a3a;border:1px solid #c9a96e;border-radius:12px;padding:16px;margin:8px 0;">
-  <b>{title}</b>
-  <i>{arcana_name}</i>
-  {interpretation}
-</blockquote>
-'''
-
-Функция format_tarot_message(card_data: dict, message_type: str = "daily") -> str:
-  - Для daily: использует HTML_TAROT_CARD + интерпретацию + advice + affirmation
-  - Для spread: использует HTML_TAROT_SPREAD × 3 + overall
-  - Для question: HTML_TAROT_SPREAD × 3 (прошлое/настоящее/будущее) + summary + advice
-  - Все сообщение обёрнуто в <b> разделители
-
-Функция format_tarot_paywall() -> str:
-  - "🃏 Таро-ритуалы — это ежедневные расклады на основе твоей матрицы."
-  - CTA с кнопкой подписки
-
---- Обновить bot/handlers/tarot.py ---
-В хендлерах вместо обычного text использовать format_tarot_message.
-ParseMode везде HTML (уже установлен DefaultBotProperties).
-Если у пользователя нет tarot_subscription — показывать paywall вместо расклада.
-
-После выполнения: ruff check bot/helpers/ bot/handlers/tarot.py --fix
-```
-
----
-
-## ШАГ 7 — Лендинг: таро-контент + вёрстка
-
-**Модель:** ⚡ Flash (один файл `index.html`, 1598 строк — стили + копирайтинг встроены)
-
-**Файлы:** `C:\git\NURA\index.html`
-
-**Промпт:**
-```
-Задача: обновить index.html — добавить таро-контент и тариф.
-Текущий лендинг: Hero «Матрица Судьбы + AI-чат», 2 тарифа (бесплатно / 390₽), 4 benefits, 7 FAQ.
-Нужно: два столпа (матрица + таро), 3 тарифа, +1 benefit, +2 FAQ, новый блок #tarot-preview, CTA две кнопки.
-
---- Тексты (встроить в HTML) ---
-
-1. Hero (заголовок + подзаголовок):
-   <h1>Матрица Судьбы + Таро-ритуалы<br>Узнай свой код и управляй энергией дня</h1>
-   <p class="hero-sub">Единственный сервис, где арканы таро работают через твою матрицу — не гадание, а аналитика твоей энергии</p>
-
-2. #benefits — добавить 5-ю карточку (последней):
-   <div class="benefit-card">
-     <div class="benefit-icon">🃏</div>
-     <h3>Ежедневная карта Таро</h3>
-     <p>Каждое утро — новый аркан, интерпретированный через позиции твоей матрицы. Не случайная карта, а энергия дня, привязанная к твоему коду судьбы.</p>
-   </div>
-
-3. #tarot-preview — новый блок перед #pricing:
-   <section id="tarot-preview" style="background:linear-gradient(135deg,#1a2a3a,#0f1a2a);padding:100px 0;margin-top:60px">
-     <div class="container">
-       <h2 style="color:#c9a96e;font-family:'Cormorant Garamond',serif">Как работает таро в NURA</h2>
-       <div class="tarot-steps">
-         <div class="tarot-step"><span class="tarot-step-num">1</span><h4>Анализ твоей матрицы</h4><p>Мы знаем твои 22 аркана и их позиции</p></div>
-         <div class="tarot-step"><span class="tarot-step-num">2</span><h4>Карта дня</h4><p>Каждое утро — новый аркан, связанный с твоей матрицей</p></div>
-         <div class="tarot-step"><span class="tarot-step-num">3</span><h4>Расклады</h4><p>Неделя, вопрос, ситуация — с привязкой к твоим энергиям</p></div>
-       </div>
-       <div class="tarot-card-preview">
-         <div class="tarot-mini-card">VIIII</div>
-         <p class="tarot-hover-text">Наведи на карту ✦</p>
-       </div>
-     </div>
-   </section>
-
-4. #pricing — переделать на 3 колонки:
-   - Бесплатно: мини-матрица + 5 сообщений в чате
-   - Матрица 890 ₽ (разово, featured оранжевый): полный отчёт 15 секций, PDF, навигация
-   - Таро-подписка 390 ₽/мес (сине-золотой): ежедневная карта дня, расклад недели, расклад по вопросу
-
-5. #faq — добавить 2 вопроса в конец списка:
-   <div class="faq-item">
-     <h3>Чем таро-ритуалы отличаются от обычного гадания?</h3>
-     <p>В основе каждого расклада — твоя матрица судьбы. Мы не гадаем, а анализируем энергию арканов в контексте твоих 22 позиций. Это аналитика, а не предсказание.</p>
-   </div>
-   <div class="faq-item">
-     <h3>Нужна ли полная матрица для ритуалов?</h3>
-     <p>Базовая карта дня доступна по дате рождения. Полные расклады с привязкой ко всем позициям матрицы — после покупки полной матрицы.</p>
-   </div>
-
-6. CTA — заменить на две кнопки:
-   <a href="..." class="btn-primary">Купить матрицу 890 ₽</a>
-   <a href="https://t.me/Nura_ai_bot" class="btn-secondary">🃏 Попробовать карту дня</a>
-
---- CSS (добавить в существующий <style>) ---
-
-:root {
-  --tarot-blue: #1a2a3a;
-  --tarot-gold: #c9a96e;
-}
-
-.tarot-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin:40px 0; }
-.tarot-step { padding:24px; background:rgba(255,255,255,0.03); border:1px solid rgba(201,169,110,0.2); border-radius:12px; text-align:center; }
-.tarot-step-num { display:inline-block; width:36px; height:36px; line-height:36px; border-radius:50%; background:var(--tarot-gold); color:#1a2a3a; font-weight:700; margin-bottom:12px; }
-.tarot-step h4 { color:var(--tarot-gold); font-family:'Cormorant Garamond',serif; margin:0 0 8px; }
-.tarot-step p { color:var(--muted); font-size:14px; margin:0; }
-
-.tarot-card-preview { text-align:center; margin-top:40px; }
-.tarot-mini-card { display:inline-block; width:80px; height:112px; background:linear-gradient(135deg,#1a2a3a,#2a3a4a); border:2px solid var(--tarot-gold); border-radius:8px; line-height:112px; font-family:'Cormorant Garamond',serif; font-size:28px; color:var(--tarot-gold); transition:transform .4s ease; margin-bottom:12px; }
-.tarot-mini-card:hover { transform:rotateY(180deg); }
-.tarot-hover-text { font-size:12px; color:rgba(201,169,110,0.5); }
-
-.pricing-tarot { background:linear-gradient(135deg,#1a2a3a,#0f1a2a); border:1px solid var(--tarot-gold); }
-.pricing-tarot .pricing-name { color:var(--tarot-gold); }
-.pricing-tarot .pricing-price { color:#fff; }
-
-@media (max-width:768px) {
-  .tarot-steps { grid-template-columns:1fr; }
-}
-
-Сохранить все существующие секции и стили без изменений. Верни ПОЛНЫЙ обновлённый index.html.
-```
-```
-
----
-
-## ШАГ 8 — Отчёт: исправление таро-блока
-
-**Модель:** ⚡ Flash
-
-**Файлы:** `templates/reports/_tarot_card.html`, `core/services/daily_arcana.py`, `core/services/report.py`, `full_report.html`
-
-**Промпт:**
-```
-Задача: исправить _tarot_card.html — заменить current_year_arcana (годовой) на daily_arcana.
-Текущая заглушка использует аркан года как карту дня — это неверно.
-
---- ЧАСТЬ 1: core/services/daily_arcana.py ---
-Добавить функцию get_today_arcana_with_name(birth_date: str, arcana_names: dict) -> dict:
-- Вычисляет daily_arcana = calculate_daily_arcana(birth_date)
-- Получает название из arcana_names
-- Возвращает {"number": int, "name": str}
-
---- ЧАСТЬ 2: core/tasks.py (_process_full_report) ---
-Добавить в report_data:
-- "daily_tarot_arcana": get_today_arcana_with_name(birth_date, matrix.arcana_names)
-Оставить current_year_arcana — он нужен для других секций отчёта.
-
---- ЧАСТЬ 3: templates/reports/_tarot_card.html ---
-Заменить:
-{% if current_year_arcana %}
-...
-{{ current_year_arcana }}
-{% endif %}
-
-На:
-{% if daily_tarot_arcana %}
-<div class="tarot-card-daily">
-  <div class="tarot-card-visual">
-    <span class="tarot-card-num">{{ daily_tarot_arcana.number }}</span>
-    <span class="tarot-card-name">{{ daily_tarot_arcana.name }}</span>
-  </div>
-  <p class="tarot-card-insight">
-    Сегодня твой день проходит под энергией аркана {{ daily_tarot_arcana.number }} — {{ daily_tarot_arcana.name }}.
-    Это не случайность: энергия этого аркана резонирует с твоей матрицей именно сегодня.
-    Прислушайся: о чём она говорит тебе?
-  </p>
-</div>
-{% endif %}
-
---- ЧАСТЬ 4: templates/reports/full_report.html ---
-Убедиться что _tarot_card.html включается с правильными данными:
-{% include '_tarot_card.html' %}
-(daily_tarot_arcana передаётся через контекст)
-
---- ЧАСТЬ 5 (опционально): _tarot_card.html визуал ---
-Добавить CSS-анимацию: свечение золотом по краям карты, лёгкая пульсация.
-Цвета: --tarot-blue: #1a2a3a, --tarot-gold: #c9a96e (уже есть в _styles.html).
-```
-
----
-
-## ШАГ 9 — Финальная интеграция + тесты
-
-**Модель:** 🔥 Pro (все модули)
-
-**Файлы:** все изменённые
-
-**Промпт:**
-```
-Финальная проверка целостности интеграции таро.
-
-Проверить:
-
-1. core/models.py:
-   - User: tarot_subscription (bool), tarot_subscription_until (datetime | None)
-   - Payment: payment_type (str, default 'subscription')
-
-2. core/services/payment.py:
-   - create_subscription — без изменений
-   - create_tarot_payment — metadata.payment_type = "tarot"
-   - create_matrix_payment — metadata.payment_type = "matrix"
-
-3. api/routes/payment.py:
-   - Извлекает payment_type из metadata
-   - payment_type == "tarot" → update_tarot_subscription
-   - payment_type == "matrix" → update_has_matrix
-   - payment_type == "subscription" → существующая логика
-
-4. core/services/daily_arcana.py:
-   - calculate_daily_arcana(birth_date) -> int 1-22 (алгоритм: day_of_year + DOB модуляция)
-   - calculate_spread_arcanas(birth_date, count) -> list[int]
-   - get_today_arcana_with_name(birth_date, arcana_names) -> dict
-
-5. core/services/ai.py:
-   - generate_tarot_daily_card(birth_date, user) -> dict
-   - generate_tarot_weekly_spread(birth_date, user) -> dict
-   - generate_tarot_question(birth_date, question, user) -> dict
-   - _get_matrix_context(user) -> str
-
-6. core/prompts/:
-   - tarot_daily_card.txt — JSON: card_number, card_name, key_phrase, interpretation, matrix_link, advice, affirmation
-   - tarot_weekly_spread.txt — JSON: body, mind, spirit, overall
-   - tarot_question.txt — JSON: past, present, future, summary, advice
-
-7. core/tasks.py:
-   - send_daily_tarot_card — Celery beat в 9:15
-   - format_daily_card_message — форматирует карту в текст
-   - send_daily_insights — НЕ изменён
-
-8. bot/handlers/tarot.py:
-   - /ritual → меню ритуалов
-   - tarot_daily_card → генерация + отправка
-   - tarot_weekly_spread → генерация + отправка
-   - tarot_ask_question → FSM → генерация + отправка
-   - Проверка подписки перед каждым раскладом
-
-9. bot/keyboards/main_menu.py:
-   - Кнопка таро в главном меню (после/вместо в зависимости от has_tarot)
-   - Все существующие кнопки сохранены
-
-10. bot/keyboards/tarot_keyboard.py:
-    - tarot_menu_keyboard — 4 кнопки
-    - tarot_back_keyboard — 2 кнопки
-
-11. templates/reports/_tarot_card.html:
-    - Использует daily_tarot_arcana вместо current_year_arcana
-    - Визуальная карта с анимацией
-
-12. C:\git\NURA\index.html:
-    - Hero обновлён
-    - #benefits +1 карточка
-    - #tarot-preview новый блок
-    - #pricing 3 продукта
-    - #faq +2 вопроса
-    - CTA две кнопки
-
-Напиши скрипт проверки целостности (Python, без зависимостей от проекта):
-- Проверить все импорты в новых файлах
-- Проверить, что все callback_data уникальны (tarot_daily_card, tarot_weekly_spread, tarot_ask_question, tarot_menu)
-- Проверить, что tarot_router зарегистрирован
-- Вывести отчёт: "✅ OK" или "❌ Проблема: ..."
-
-Запусти ruff check . --fix и pytest (если есть тесты).
-```
-
----
-
-## Таблица зависимостей
-
-| Шаг | Зависит от | Суть |
-|-----|-----------|------|
-| 1 | — | Схема БД + платежи + конфиг |
-| 2 | — | AI-промпты для таро (3 файла) |
-| 3 | 1 | Бот: меню, навигация, роутер, daily_arcana |
-| 4 | 2, 3 | AI-сервис: таро-методы |
-| 5 | 4, 3 | Celery: ежедневная карта таро |
-| 6 | 3, 4 | Визуальный скин в боте |
-| 7 | 1 | Лендинг: контент + вёрстка |
-| 8 | 4 | Отчёт: исправление таро-блока |
-| 9 | все | Финальная интеграция + тесты |
-| 10 | 6 | Переработка AI-промптов (запрет арканов, 3 абзаца, «Как использовать:») |
-| 11 | 6 | Утилита форматирования + HTML-рендеринг (жирный, курсив, parse_mode) |
-| 12 | 6 | Анимация загрузки 🃏 (вращающиеся полукруги, animated_loading) |
-
-**Порядок запуска:**
-(1 + 2 параллельно) → (3 + 7 параллельно) → (4 + 8 параллельно) → 5 → 6 → 9
-
----
-
-## ШАГ 10 — Переработка AI-промптов (задача 6)
-
-**Модель:** ⚡ Flash
-
-**Статус:** ✅ Выполнено (28.05.2026)
-
-**Файлы:**
-- `core/prompts/tarot_doubles.txt` — перезаписан
-- `core/prompts/tarot_spheres.txt` — перезаписан
-- `core/prompts/tarot_yes_no.txt` — перезаписан
-- `core/prompts/tarot_question.txt` — перезаписан
-- `core/prompts/tarot_portal.txt` — перезаписан
-
-**Суть:**
-Все 5 промптов полностью перезаписаны со строгими правилами:
-1. Запрет на названия арканов и их номера в тексте (только психологические качества)
-2. Текст из 3 абзацев с пустыми строками
-3. Первое предложение каждого абзаца — ключевая мысль
-4. Блок «Как использовать:» в конце с конкретным действием
-5. Запрещённые слова: энергия, вибрация, вселенная, карма, аркан, карта, таро, предначертано
-6. Максимум 150-350 слов в зависимости от расклада
-
-**Системный промпт** в `bot/handlers/tarot.py` обновлён во всех 6 вызовах:
-```
-Ты — NURA, психологический проводник.
-Никогда не называй арканы, карты и их номера в тексте ответа.
-Переводи их в психологические качества и состояния.
-Пиши живым человеческим языком без эзотерического жаргона.
-```
-
----
-
-## ШАГ 11 — Утилита форматирования + HTML-рендеринг (задача 6)
-
-**Модель:** ⚡ Flash
-
-**Статус:** ✅ Выполнено (28.05.2026)
-
-**Файлы:**
-- `bot/utils/__init__.py` — создан
-- `bot/utils/formatting.py` — создан
-
-**Функции:**
-- `format_bot_text(text)` — очистка от лишних переносов и HTML-тегов
-- `format_tarot_result(title, body, cards, action)` — структура: `<b>заголовок</b>` + разделитель + абзацы (3 предложения, первое жирное) + разделитель + `<i>карты</i>`
-- `format_compatibility_result(user_name, partner_name, ...)` — формат совместимости с именами
-- `_split_into_paragraphs(text, sentences_per_para=3)` — разбивка на абзацы с bold первого предложения
-
-**Интеграция:**
-Все 6 таро-хендлеров в `tarot.py` используют `format_tarot_result` вместо ручной сборки f-строк.
-Все 6 вызовов `edit_text`/`answer` используют `parse_mode="HTML"` для рендеринга `<b>`/`<i>`.
-
----
-
-## ШАГ 12 — Анимация загрузки (задача 6б)
-
-**Модель:** ⚡ Flash
-
-**Статус:** ✅ Выполнено (28.05.2026)
-
-**Файлы:**
-- `bot/utils/loading.py` — создан
-
-**Контекстный менеджер `animated_loading(message, text)`:**
-- Пока выполняется async-операция (AI-запрос), циклически обновляет текст сообщения
-- Вращающиеся полукруги `◐ ◓ ◑ ◒` каждые 0.5 сек
-- 🃏 эмодзи карты вместо 🌒 луны в сообщениях загрузки
-- При выходе из контекста анимация останавливается
-
-**Интеграция в `tarot.py`:**
-Все 6 раскладов обёрнуты в `async with animated_loading(msg, "🃏 Текст загрузки"):`
-с корректным re-indent try/except блоков (+4 пробела).
+This document preserves how the Tarot implementation plan and its execution notes evolved. It is history/evidence, not a live specification, task queue or current-status source.
+
+Use:
+
+- [NURA 1.0/1.5 Product Specification](product/NURA_1_0_1_5_PRODUCT_SPEC.md) for target scope;
+- [Current implementation status](implementation/current-status.md) and [current Tarot/compatibility/referral map](tarot-integration-plan.md) for current evidence;
+- [Documentation migration decisions](decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md) for DM-03/DM-04;
+- code, migrations and tests for implemented behavior.
+
+The previous document combined executable prompts, proposed product rules and completion notes. Those instructions are not retained as runnable tasks because many paths, signatures and assumptions have been superseded. Their meaningful chronology, decisions, milestones and known limitations are preserved below.
+
+## 2. Baseline chronology
+
+Dates and commits are repository evidence where available. A commit indicates that a change entered Git history; it does not prove external acceptance or production deployment.
+
+| Date / commit | Historical phase | What the historical material said or attempted | Later/current status | Authoritative destination |
+|---|---|---|---|---|
+| 2026-05-24 / `ed4c91a` | Initial Tarot product plan | Proposed four surfaces, seven spreads, 390 ₽ subscription, daily/weekly/monthly delivery, compatibility virality and separate Matrix/Tarot products | Product model is superseded; parts of implementation followed it | Canonical product spec; current domain map |
+| 2026-05-24 / `809bec3`, `dbf8aee` | Data/payment/AI foundation | Tarot entitlement/payment fields and early AI methods appeared | Fields and legacy flows remain; target entitlement differs | Current code; pricing/payment docs |
+| 2026-05-25 / `9b7404a` | First known session-journal snapshot | Opened with “codebase contains no Tarot logic” and nine imperative steps | The statement was already stale relative to 2026-05-24 commits and later became materially false | This historical record; current status |
+| 2026-05-27 / `0490a12`, `1f5d3ec`, `e295b26`, `3253fce` | Bot and prompt expansion | Added Tarot menu/paywalls/FSM, AI daily interpretation, question/yes-no and additional prompts | Much of the runtime surface remains, with later refactors | Current domain map and runtime consumers |
+| 2026-05-27 / `a0dd732`, `33c1d3d` | Compatibility access/virality | Added one-use compatibility marker, legacy subscription bypass and sharing ideas | Compatibility remains reachable and visible, but belongs to 1.5B | Current domain map; canonical §32.3 |
+| 2026-05-28 / `a5520c9`, `a79da26`, `035ecf2`, `47b70d1` | UX/prompt formatting sessions | Refactored menu, rewrote several prompts, added HTML formatting and animated loading | Loading survives; current formatting and prompt consumers have changed | Current code and prompt registry |
+| 2026-05-28 / `e107b1f`, `d2e19e9`, `3e02bc7` | Compatibility V2 | Added names/relation type, two-layer output, new prompt/template and sharing/report refinements | Core flow remains; privacy/product acceptance was not established | Current domain map; report/prompt docs |
+| 2026-05-29 / `eba8bdd`, `b161993` | Personalization/scheduler | Personalized daily text and adjusted scheduler | Later durable daily service replaced the authoritative on-demand lifecycle; old producers are dormant | Daily application service; current domain map |
+| 2026-06-09 / `bb4ab76` | PWA daily card | Added PWA daily API/screen | PWA remains legacy compatibility and now shares durable daily service | DM-03; current domain map |
+| 2026-06-09 / `32c7563` | Referral foundation | Added reward table, `/start ref_*` and profile link | Registration ledger exists; reward economics/activation remain absent | Current domain map; canonical §32.1 |
+| 2026-06-09 / `9b8623a` | Compatibility share card | Added generated share image | Reachable current sharing surface, not 1.5B acceptance | Current compatibility implementation |
+| 2026-06-10 / `644fe8c`, `cc4dc65` | Spread fixes | Fixed keyboard/runtime issues and PWA spread result behavior | Current routes remain, with client access divergence | Current code/tests |
+| 2026-06-29 / `3f9f4d7`, `7d44807` | PWA Tarot expansion/retention work | Unified arcana helpers, added weekly/monthly tasks and expanded PWA UX | Weekly/monthly are scheduled for legacy Tarot users; durable expanded history is still absent | Current domain map; legacy PWA archive |
+| 2026-07-04 / `0d3e39a`, `4635647` | AI loop hardening | Added Tarot verifier/caching/degradation work | Reachable resilience code exists; not external content acceptance | Prompt contracts and current code |
+| 2026-07-13 / `bdf9b09` | Tarot v2.1/mini-spread | Integrated an approved-at-that-time content iteration and PWA mini-spread | “Approved” was local historical context, not canonical 1.5 product acceptance | Current prompt consumers; owner-approved future set required |
+| 2026-07-24 / `501ef3e` | General Telegram attribution | Added durable `a_*` campaign attribution | Separate from `ref_*` referral economics | Attribution service/current bot docs |
+| 2026-07-26 / `ba87e04` | Durable free daily card | Added `DailyTarotDraw`, application/repository/timezone lifecycle and replay behavior | Current authoritative daily-card implementation | Current domain map; local acceptance evidence |
+| 2026-07-28 / `7cc1122` | Documentation authority migration | Marked both Tarot documents mixed and routed target/current authority | Stage 2B now completes semantic separation | This record and current domain map |
+
+## 3. Initial assumptions
+
+### 3.1 The “no Tarot code” opening statement
+
+The first known session-journal snapshot stated that the codebase contained no Tarot logic, the bot had no Tarot handlers/buttons and payments supported only a generic 390 ₽ subscription. This must be preserved as a historical claim because it motivated the step plan.
+
+It must not be repeated as current fact. Git history shows Tarot/payment/AI changes on 2026-05-24, before the first known 2026-05-25 journal commit. Therefore the opening baseline was incomplete or stale even at its first committed snapshot. Subsequent May–July commits added handlers, PWA routes, prompts, tasks, compatibility/referral foundations and durable daily persistence.
+
+### 3.2 Original architecture assumptions
+
+The original plan treated four surfaces as one Tarot launch:
+
+- landing page;
+- Telegram bot;
+- report page;
+- PWA.
+
+It also treated Matrix 890 ₽ and recurring Tarot 390 ₽ as independent products and used compatibility/sharing as a subscription-growth mechanism. These assumptions explain current legacy code, but they no longer govern the roadmap:
+
+- Telegram-first is accepted;
+- PWA is legacy compatibility under DM-03;
+- NURA 1.0 includes only the free daily card from the Tarot domain;
+- expanded Tarot belongs to 1.5A;
+- compatibility and referral belong to 1.5B;
+- target 1.5 uses gift/399 ₽ access without baseline auto-renew, not the old 390 ₽ recurring model.
+
+### 3.3 Nine steps became twelve
+
+The journal title said “9 steps”, then added Steps 10–12 for prompt rewriting, formatting and loading animation. This is retained as evidence of an evolving execution log, not a stable delivery plan.
+
+## 4. Implemented milestones
+
+### 4.1 Step 1 — data, payments and configuration
+
+Historical intent:
+
+- add Tarot subscription fields;
+- add payment type;
+- add 390 ₽ Tarot and 890 ₽ Matrix prices;
+- route payment activation.
+
+Current reconciliation:
+
+- `User.tarot_subscription`, expiry and `Payment.payment_type` exist;
+- `has_matrix` and compatibility fields exist;
+- legacy 390 ₽ checkout/recurring code exists;
+- dedicated 890 ₽ full-matrix checkout was later hardened independently;
+- the legacy model is not the canonical 1.5 entitlement.
+
+### 4.2 Steps 2–4 — prompts, bot navigation and AI consumers
+
+Historical intent:
+
+- create daily, weekly and question prompts;
+- add Tarot menu/FSM/router;
+- calculate daily/spread cards;
+- integrate matrix context and subscription checks.
+
+Implemented milestones:
+
+- Tarot router is registered;
+- daily/weekly/question and additional spread callbacks exist;
+- Telegram and PWA prompt consumers exist;
+- matrix-aware AI helper paths exist;
+- legacy gates and paywalls exist.
+
+Later changes:
+
+- the authoritative daily lifecycle moved to `DailyTarotApplicationService` with durable persistence;
+- the current daily algorithm is date-based and optionally personalized by center archetype, not the journal's original DOB digit algorithm;
+- current question prompt/consumer contracts diverge between Telegram and PWA;
+- current expanded-Tarot access differs between clients.
+
+### 4.3 Step 5 — scheduled daily card
+
+Historical intent was a 09:15 daily Tarot Beat task for Tarot subscribers, alongside existing insights.
+
+Current reconciliation:
+
+- two daily Tarot notification producers are registered but explicitly dormant and absent from Beat;
+- weekly and monthly legacy Tarot tasks are scheduled;
+- on-demand daily card uses the durable application service;
+- dated local acceptance excludes scheduled daily push.
+
+### 4.4 Step 6 and Steps 10–12 — presentation, prompts and loading
+
+The journal later marked prompt rewriting, HTML formatting and animated loading complete on 2026-05-28.
+
+Preserved historical value:
+
+- safety/tone moved away from fatal prediction language;
+- user-facing loading was added;
+- escaping/HTML rendering became an explicit concern;
+- multiple spread prompts were rewritten around psychological qualities and actions.
+
+Current reconciliation:
+
+- `animated_loading` remains used by Tarot handlers;
+- safe Telegram escaping/splitting is current, but the historical `format_tarot_result` API described in the journal is no longer the current formatting contract;
+- not every handler uses the same system instruction or output schema;
+- prompt-file presence and a historical “completed” marker do not prove current acceptance.
+
+### 4.5 Step 7 — landing
+
+The journal contained a large imperative HTML/CSS prompt for a Tarot-first landing with a third 390 ₽ product. That content is preserved here only by classification:
+
+`HISTORICAL / SUPERSEDED — legacy recurring Tarot landing concept`
+
+It is not a current task or target. Landing/product copy must follow the canonical spec and the current design/landing workflow, not this journal.
+
+### 4.6 Step 8 — report Tarot block
+
+The journal planned to replace a yearly-arcana placeholder with daily Tarot data in report rendering. Later code added daily arcana helpers and report integration, but report rendering/current delivery has its own accepted authority.
+
+Current destination: [Report system specification](report-spec.md). The old step does not define current report data, retention or delivery.
+
+### 4.7 Step 9 — “final integration” checklist
+
+The old checklist mixed intended signatures, filenames, callbacks, landing changes, payment behavior and test/autofix instructions. It is not safe to rerun:
+
+- several names/signatures differ from current code;
+- some requested behavior is now legacy or contradicts canonical target;
+- it requested broad autofix and full tests outside the scope of this history record;
+- it treated 390 ₽ subscription and four-surface launch as current product rules.
+
+Its lasting value is the dependency idea—data/prompts before consumers and consumers before system integration—not its commands or acceptance claims.
+
+## 5. Superseded statements
+
+| Old statement or plan | Historical baseline | Current status | Destination |
+|---|---|---|---|
+| “The codebase contains no Tarot logic” | First known journal snapshot, 2026-05-25 | Stale even relative to 2026-05-24 Git history; extensively false now | Current status/domain map |
+| “Telegram has no Tarot button/handler” | Initial assumption | Tarot router and buttons are registered and visible | Current bot code/map |
+| “PWA Tarot is the implemented primary surface” | Old four-surface plan | PWA remains reachable but is legacy compatibility | DM-03; legacy PWA archive |
+| “390 ₽/month Tarot is a current product” | May/June legacy product model | Reachable legacy entitlement; not NURA 1.0 and not target 399 ₽ access | Pricing/payment docs |
+| “Matrix and Tarot are permanently independent products” | Old plan | Not current authority; 1.5 gift/paid access bundles an approved value set after full-report purchase | Canonical §§24–29 |
+| “Seven spreads are the accepted set” | Old plan | Current code has a different/more fragmented set; canonical exact 1.5A set remains pending | Canonical §28 and owner decision |
+| “Daily card changes at 00:00 MSK because plan says so” | Old plan | Current durable service derives a local date and normally falls back to configured Europe/Moscow; code, not plan, proves mechanics | Daily application/timezone service |
+| “Daily scheduler sends every day” | Steps 5/9 | Daily producers are registered but not scheduled; weekly/monthly remain scheduled | Current `core/tasks.py` |
+| “All six handlers use historical formatting helper” | Step 11 completion note | Current handlers use escaping/splitting/loading; historical helper API is no longer current | Current handler/formatting code |
+| “Compatibility/referral virality is ready product behavior” | Old growth ideas | Compatibility is early reachable 1.5B; referral is partial registration foundation | Current domain map/canonical §32 |
+| “Local tests/final checklist prove launch” | Old Step 9 framing | Local tests are not external sandbox or production proof | Acceptance index |
+
+## 6. Current destinations
+
+| Question | Current authority |
+|---|---|
+| What is implemented now? | [Current Tarot, compatibility and referral map](tarot-integration-plan.md), then code/tests |
+| What belongs to NURA 1.0/1.5? | [Canonical product specification](product/NURA_1_0_1_5_PRODUCT_SPEC.md) |
+| Why are early 1.5 features still in code but supposed to be hidden? | DM-04 in [migration decisions](decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md) |
+| What is the current bot visibility? | [Bot UX map](bot-ux-map.md) and current keyboards/handlers |
+| What is legacy 390 ₽ access? | [Pricing map](pricing.md) and [payment audit](audits/PAYMENT_FLOW_AUDIT.md) |
+| What prompt files/consumers are current? | [Runtime prompt contracts](prompt-spec.md) plus the current domain map |
+| What report artifacts/deletion gaps exist? | [Report system specification](report-spec.md) |
+| What local/external acceptance exists? | [Acceptance index](acceptance/README.md) and dated evidence |
+| What was moved/classified in Stage 2A? | [Migration file map](reconciliation/2026-07-28/MIGRATION_FILE_MAP.md) |
+
+## 7. Historical gaps and limitations
+
+### 7.1 What was never established by the journal
+
+- an approved NURA 1.5 spread set;
+- canonical Tarot history retention;
+- a canonical entitlement model;
+- compatibility price/inclusion and consent lifecycle;
+- referral reward economics, activation and anti-fraud;
+- legacy subscriber migration/disposition;
+- external Telegram/AI/YooKassa acceptance;
+- production deployment/usage evidence.
+
+### 7.2 Unique-content retention
+
+| Old content category | Treatment in this consolidation | Evidence / destination |
+|---|---|---|
+| Meaningful chronology | Preserved as dated commit/phase table | §2 |
+| Architectural motivation | Preserved: four surfaces, separate products, dependency order | §§3–4 |
+| Completed implementation milestones | Preserved and reconciled with current code | §4 |
+| Old “no code” baseline | Preserved as an explicitly stale historical claim | §§3.1 and 5 |
+| Imperative code-generation prompts | Correctly removed as runnable instructions; summarized by intent | §4 |
+| Exact old code snippets/signatures | Correctly removed where superseded | Current code is authority |
+| Legacy 390 ₽ commercial rules | Redirected and classified, not retained as target | Pricing/payment docs |
+| PWA-first normative language | Redirected to legacy compatibility | DM-03 and legacy PWA archive |
+| Speculative landing/growth copy | Correctly removed from live guidance | Canonical target/design workflow |
+| Prompt tone/formatting rationale | Preserved as historical milestone | §4.4; prompt contracts |
+| Broad test/autofix commands | Correctly removed from history authority | Project validation rules/current task scope |
+| Current technical details | Redirected to the current domain map | `tarot-integration-plan.md` |
+
+No meaningful implementation chronology is intentionally lost. Verbatim multi-page prompts and stale task commands were removed because they obscured authority and could recreate superseded behavior.
+
+### 7.3 Evidence boundary
+
+This history was reconstructed from Git log, the previous two Tarot documents, current code, static tests and dated documentation evidence. It does not claim that every historical commit was deployed, used by real customers or accepted in an external sandbox.
+
+## 8. References
+
+- [Current Tarot, compatibility and referral map](tarot-integration-plan.md)
+- [NURA 1.0/1.5 Product Specification](product/NURA_1_0_1_5_PRODUCT_SPEC.md)
+- [Current implementation status](implementation/current-status.md)
+- [Documentation migration decisions](decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md)
+- [Documentation router](README.md)
+- [Bot specification](bot-spec.md)
+- [Bot UX map](bot-ux-map.md)
+- [Pricing and access map](pricing.md)
+- [Payment flow audit](audits/PAYMENT_FLOW_AUDIT.md)
+- [Runtime prompt contracts](prompt-spec.md)
+- [Report system specification](report-spec.md)
+- [Acceptance index](acceptance/README.md)
+- [Dated Telegram-first v1 readiness evidence](acceptance/evidence/telegram-first-v1-readiness-review.md)
+- [Stage 2A migration file map](reconciliation/2026-07-28/MIGRATION_FILE_MAP.md)
