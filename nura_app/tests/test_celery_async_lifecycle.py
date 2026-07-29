@@ -176,6 +176,15 @@ def test_worker_signal_init_only_runs_after_prefork(monkeypatch) -> None:
     assert resets == [1]
 
 
+def test_worker_signal_in_same_process_defers_runtime_without_error(caplog) -> None:
+    """Solo workers initialize lazily when their first task needs the loop."""
+    with caplog.at_level(logging.ERROR, logger="core.celery_async"):
+        celery_async._on_worker_process_init()
+
+    assert celery_async._runtime is None
+    assert "runtime initialization" not in caplog.text
+
+
 def test_shutdown_disposes_before_closing_loop_and_is_idempotent(monkeypatch) -> None:
     events: list[str] = []
     celery_async.run_celery_async(asyncio.sleep(0))

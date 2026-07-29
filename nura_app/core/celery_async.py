@@ -225,7 +225,7 @@ def _shutdown_current_runtime() -> None:
 @signals.worker_process_init.connect(weak=False)
 def _on_worker_process_init(**_: object) -> None:
     if os.getpid() == _IMPORT_PID:
-        logger.error("Celery child runtime initialization ignored outside prefork child")
+        logger.debug("Celery async runtime initialization deferred outside prefork child")
         return
     _initialize_runtime()
 
