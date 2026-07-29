@@ -59,6 +59,8 @@ PHASES = {
     "smoke_verified",
     "finalizing",
     "complete",
+    "stale_recovery_intent",
+    "stale_stage2_recovered",
 }
 OPERATIONS = (
     "status",
@@ -75,6 +77,7 @@ OPERATIONS = (
     "activate",
     "finalize",
     "recover",
+    "recover-stale",
 )
 
 
@@ -2314,6 +2317,69 @@ def recover_under_common_lock(settings: Settings, runner: Runner) -> None:
         recover(settings, runner)
 
 
+def recover_stale_stage2(settings: Settings, runner: Runner, expected_baseline: str) -> None:
+    """Restore one durably recorded Stage 2 transaction to its exact baseline."""
+    expected_baseline = require_sha(expected_baseline)
+    with rollout_lock(settings.common_lock_file):
+        state = read_record(settings.transaction_file, "transaction")
+        if state.get("phase") == "stale_stage2_recovered":
+            if state.get("recovery_verified") is not True:
+                fail("stale_recovery_receipt_invalid")
+            print(f"p7b_stale_recovery sha={settings.sha} status=already_verified")
+            return
+        if state.get("phase") not in {"stage2_intent", "stale_recovery_intent"}:
+            fail("stale_recovery_phase_unsupported")
+        incomplete = []
+        for candidate in settings.transaction_file.parent.glob("*.json"):
+            payload = read_record(candidate, "transaction")
+            if payload.get("phase") in {"stage1_intent", "stage1_verified", "stage2_intent", "stage2_verified", "stale_recovery_intent"}:
+                incomplete.append(payload.get("target_sha"))
+        if incomplete != [settings.sha]:
+            fail("stale_recovery_transaction_ambiguous")
+        baseline = read_record(settings.baseline_file, "baseline")
+        if baseline.get("previous_sha") != expected_baseline:
+            fail("stale_recovery_baseline_mismatch")
+        canonical = load_canonical(settings)
+        if canonical.get("sha") != expected_baseline or settings.current_link.resolve(strict=True).name != expected_baseline:
+            fail("stale_recovery_canonical_public_mismatch")
+        before = verify_live_volumes(runner, settings.project, baseline["volumes"])  # type: ignore[arg-type]
+        if state.get("phase") == "stage2_intent":
+            transaction(settings, "stale_recovery_intent", stale_target_sha=settings.sha, baseline_sha=expected_baseline)
+        elif state.get("baseline_sha") != expected_baseline or state.get("stale_target_sha") != settings.sha:
+            fail("stale_recovery_intent_invalid")
+        if not settings.environment_backup.is_file() or settings.environment_backup.is_symlink():
+            fail("stale_recovery_environment_backup_missing")
+        restore_environment(settings)
+        require_environment(settings.environment_file, {"APP_ENV": "development", "TEST_MODE": "true"})
+        lifecycle(baseline, APP_SERVICES, runner)
+        mappings, ids = baseline.get("image_mapping"), baseline.get("image_ids")
+        if not isinstance(mappings, dict) or not isinstance(ids, dict) or set(mappings) != set(APP_SERVICES) or set(ids) != set(APP_SERVICES):
+            fail("stale_recovery_baseline_images_invalid")
+        compose_files = [str(item) for item in baseline["compose_files"]]  # type: ignore[index]
+        for service in APP_SERVICES:
+            inspected = inspect_service(runner, str(baseline["compose_project"]), str(baseline["working_directory"]), compose_files, service)
+            acceptable_refs = {mappings[service], ids[service]}
+            if (
+                inspected["image_ref"] not in acceptable_refs
+                or inspected["image_id"] != ids[service]
+                or inspected["revision"] != expected_baseline
+            ):
+                fail(f"stale_recovery_baseline_identity_mismatch:{service}")
+        status = run_or_fail(
+            runner,
+            compose_command(str(baseline["compose_project"]), str(baseline["working_directory"]), compose_files, "ps", "--format", "json"),
+            "stale_recovery_compose_status",
+        )
+        parse_compose_status(status, (*DATA_SERVICES, *APP_SERVICES), HEALTH_SERVICES)
+        worker = service_container(runner, str(baseline["compose_project"]), str(baseline["working_directory"]), compose_files, "celery-worker")
+        run_or_fail(runner, celery_worker_ping_command(worker), "stale_recovery_celery_ping")
+        after = verify_live_volumes(runner, settings.project, baseline["volumes"])  # type: ignore[arg-type]
+        if before.get("postgres") != after.get("postgres") or before.get("redis") != after.get("redis"):
+            fail("stale_recovery_volume_or_data_container_changed")
+        transaction(settings, "stale_stage2_recovered", recovery_verified=True, baseline_restored=True, postgres_unchanged=True, volumes_preserved=True, redis_rotation_started=False)
+        print(f"p7b_stale_recovery sha={settings.sha} baseline={expected_baseline} status=verified secrets=redacted")
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser()
     result.add_argument("operation", choices=OPERATIONS)
@@ -2427,6 +2493,10 @@ def main(argv: Sequence[str] | None = None, runner: Runner = default_runner) -> 
         )
     elif args.operation == "activate":
         activate(settings, runner, args.webhook_url)
+    elif args.operation == "recover-stale":
+        if args.expected_baseline_sha is None:
+            fail("stale_recovery_baseline_required")
+        recover_stale_stage2(settings, runner, args.expected_baseline_sha)
     else:
         recover_under_common_lock(settings, runner)
 

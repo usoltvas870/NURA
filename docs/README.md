@@ -41,6 +41,7 @@ Telegram-бот — основной интерфейс. NURA 1.0 включае
 - [Backup/restore](operations/backup-restore.md)
 - [Security configuration](operations/p7a-security-configuration.md)
 - [Release handoff](operations/p7b-state-b-handoff.md)
+- [Isolated Telegram pilot](operations/p7-telegram-pilot.md)
 - Root [DEPLOY.md](../DEPLOY.md) сохраняет стабильный release-tooling path; это не production evidence.
 
 ## Standards и research

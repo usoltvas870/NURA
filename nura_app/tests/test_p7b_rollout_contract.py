@@ -1365,6 +1365,71 @@ def test_stage2_failure_restores_environment_and_previous_runtime(
     )
 
 
+def test_stale_stage2_intent_recovers_exact_baseline_once(
+    settings: p7b.Settings,
+) -> None:
+    """Production regression: green target fleet with a canonical baseline."""
+    seed(settings, "stage2_intent")
+    settings.environment_file.write_text(
+        "SECRET=untouched\nAPP_ENV=production\nTEST_MODE=false\n", encoding="utf-8"
+    )
+    settings.environment_backup.parent.mkdir(parents=True, exist_ok=True)
+    settings.environment_backup.write_text(
+        "SECRET=untouched\nAPP_ENV=development\nTEST_MODE=true\n", encoding="utf-8"
+    )
+    runner = FakeRunner()
+
+    p7b.recover_stale_stage2(settings, runner, BASELINE)
+
+    state = p7b.read_record(settings.transaction_file, "transaction")
+    assert state["phase"] == "stale_stage2_recovered"
+    assert state["recovery_verified"] is True
+    assert state["postgres_unchanged"] is True
+    assert settings.environment_file.read_text(encoding="utf-8").endswith("TEST_MODE=true\n")
+    up = [call for call in runner.calls if "up" in call]
+    assert len(up) == 1
+    assert set(p7b.APP_SERVICES).issubset(up[0])
+    p7b.recover_stale_stage2(settings, runner, BASELINE)
+    assert len([call for call in runner.calls if "up" in call]) == 1
+
+
+def test_stale_recovery_intent_is_resumable_after_interruption(settings: p7b.Settings) -> None:
+    seed(settings, "stage2_intent")
+    settings.environment_backup.parent.mkdir(parents=True, exist_ok=True)
+    settings.environment_backup.write_text(
+        "SECRET=untouched\nAPP_ENV=development\nTEST_MODE=true\n", encoding="utf-8"
+    )
+    p7b.transaction(
+        settings, "stale_recovery_intent", stale_target_sha=TARGET, baseline_sha=BASELINE
+    )
+    p7b.recover_stale_stage2(settings, FakeRunner(), BASELINE)
+    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
+        "stale_stage2_recovered"
+    )
+
+
+def test_stale_recovery_accepts_baseline_image_id_override(
+    settings: p7b.Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seed(settings, "stage2_intent")
+    settings.environment_backup.parent.mkdir(parents=True, exist_ok=True)
+    settings.environment_backup.write_text(
+        "SECRET=untouched\nAPP_ENV=development\nTEST_MODE=true\n", encoding="utf-8"
+    )
+    original = p7b.inspect_service
+
+    def id_override(*args: object, **kwargs: object) -> dict[str, str]:
+        value = original(*args, **kwargs)
+        value["image_ref"] = BASELINE_ID
+        return value
+
+    monkeypatch.setattr(p7b, "inspect_service", id_override)
+    p7b.recover_stale_stage2(settings, FakeRunner(), BASELINE)
+    assert p7b.read_record(settings.transaction_file, "transaction")["phase"] == (
+        "stale_stage2_recovered"
+    )
+
+
 def test_stage2_compensates_when_diagnostic_persistence_fails(
     settings: p7b.Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:

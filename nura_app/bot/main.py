@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import socket
 import sys
 
 from aiogram import Bot, Dispatcher
@@ -7,6 +8,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault, MenuButtonCommands
+from redis.asyncio import Redis
 
 from bot.handlers.chat import router as chat_router
 from bot.handlers.compatibility import router as compatibility_router
@@ -134,8 +136,74 @@ async def main() -> None:
     await bot.set_my_commands(commands, BotCommandScopeDefault())
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
     logger.info("Bot commands registered")
+    if not settings.telegram_polling_enabled:
+        logger.info("Bot standby ready without polling")
+        await asyncio.Event().wait()
+
+    lease = Redis.from_url(settings.redis_url)
+    lease_key = "nura_tg:polling_lease"
+    polling_marker_key = "nura_tg:polling_active"
+    # Docker exposes the container instance identity as hostname; this lets the
+    # controller prove that Redis lease ownership matches the running bot.
+    lease_value = socket.gethostname()
+    if not await lease.set(lease_key, lease_value, nx=True, ex=90):
+        await lease.aclose()
+        raise RuntimeError("telegram_polling_lease_unavailable")
+
+    async def renew_lease() -> None:
+        while True:
+            await asyncio.sleep(30)
+            renewed = await lease.eval(
+                "if redis.call('get', KEYS[1]) == ARGV[1] then "
+                "redis.call('expire', KEYS[1], ARGV[2]); "
+                "if redis.call('get', KEYS[2]) == ARGV[1] then "
+                "redis.call('expire', KEYS[2], ARGV[2]) end; return 1 end return 0",
+                2,
+                lease_key,
+                polling_marker_key,
+                lease_value,
+                90,
+            )
+            if not renewed:
+                raise RuntimeError("telegram_polling_lease_lost")
+
+    renewal = asyncio.create_task(renew_lease())
+    polling: asyncio.Task[None] | None = None
+
+    async def mark_polling_started(*_args: object) -> None:
+        await lease.set(polling_marker_key, lease_value, ex=90)
+
+    dp.startup.register(mark_polling_started)
     logger.info("Bot polling started")
-    await dp.start_polling(bot)
+    try:
+        polling = asyncio.create_task(dp.start_polling(bot))
+        await asyncio.sleep(5)
+        if polling.done():
+            polling.result()
+        done, _ = await asyncio.wait(
+            {polling, renewal}, return_when=asyncio.FIRST_COMPLETED
+        )
+        for task in done:
+            task.result()
+    finally:
+        renewal.cancel()
+        if polling is not None:
+            polling.cancel()
+        await lease.eval(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then "
+            "return redis.call('del', KEYS[1]) end return 0",
+            1,
+            lease_key,
+            lease_value,
+        )
+        await lease.eval(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then "
+            "return redis.call('del', KEYS[1]) end return 0",
+            1,
+            polling_marker_key,
+            lease_value,
+        )
+        await lease.aclose()
 
 
 if __name__ == "__main__":
