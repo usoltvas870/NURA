@@ -94,6 +94,69 @@ def test_pilot_verified_requires_authenticated_redis_probe_and_unauth_rejection(
     assert "cwd=app, environment=environment" in source
 
 
+def test_rollback_redis_lookup_uses_configured_auth_without_argv_secret(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    marker = "redis-secret-marker"
+    captured: dict[str, object] = {}
+
+    def fake_run(args: list[str], **kwargs: object):
+        captured["args"] = args
+        captured["environment"] = kwargs["env"]
+        return type(
+            "Result",
+            (),
+            {"returncode": 0, "stdout": "\n\n", "stderr": marker},
+        )()
+
+    monkeypatch.setattr(
+        controller,
+        "read_authoritative_secret",
+        lambda _path: marker.encode("ascii"),
+    )
+    monkeypatch.setattr(controller.subprocess, "run", fake_run)
+
+    assert controller.authenticated_redis_keys_are_clear(tmp_path, {"SAFE": "1"}) is True
+    arguments = captured["args"]
+    assert isinstance(arguments, list)
+    assert arguments[-4:] == [
+        "--no-auth-warning",
+        "mget",
+        "nura_tg:polling_lease",
+        "nura_tg:polling_active",
+    ]
+    assert ["-e", "REDISCLI_AUTH"] == arguments[
+        arguments.index("-e") : arguments.index("-e") + 2
+    ]
+    assert marker not in arguments
+    environment = captured["environment"]
+    assert isinstance(environment, dict)
+    assert environment["REDISCLI_AUTH"] == marker
+
+
+def test_rollback_redis_auth_failure_is_not_a_clear_key_result(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        controller,
+        "read_authoritative_secret",
+        lambda _path: b"wrong-secret",
+    )
+    monkeypatch.setattr(
+        controller.subprocess,
+        "run",
+        lambda *_args, **_kwargs: type(
+            "Result",
+            (),
+            {"returncode": 1, "stdout": "", "stderr": "NOAUTH"},
+        )(),
+    )
+
+    assert controller.authenticated_redis_keys_are_clear(tmp_path, {}) is False
+
+
 def test_authoritative_secret_paths_are_checked_before_symlink_resolution() -> None:
     source = CONTROLLER.read_text(encoding="utf-8")
     assert "PILOT_TOKEN_FILE.resolve" not in source

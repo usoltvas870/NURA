@@ -22,6 +22,7 @@ from core.services.full_matrix_checkout import FullMatrixCheckoutService
 
 @pytest.fixture(autouse=True)
 def receipt_settings(monkeypatch):
+    monkeypatch.setattr(settings, "nura_tg_pilot", False)
     monkeypatch.setattr(settings, "yookassa_receipt_enabled", True)
     monkeypatch.setattr(settings, "yookassa_receipt_vat_code", "test_vat")
     monkeypatch.setattr(settings, "yookassa_receipt_payment_mode", "test_mode")
@@ -58,6 +59,35 @@ class FakeYooKassa:
         self.refund_calls += 1
         assert provider_refund_id == self.refund["id"]
         return self.refund
+
+
+@pytest.mark.asyncio
+async def test_payments_disabled_fences_order_and_provider_side_effects(
+    db_engine,
+    test_user,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    provider = FakeYooKassa()
+    service = FullMatrixCheckoutService(factory, provider)
+
+    monkeypatch.setattr(settings, "nura_tg_pilot", True)
+    with pytest.raises(ValueError, match="payments_disabled_for_telegram_pilot"):
+        await service.create_or_get_order(user_id=test_user.id)
+    async with factory() as session:
+        assert (await session.execute(select(Order))).scalars().all() == []
+
+    monkeypatch.setattr(settings, "nura_tg_pilot", False)
+    order = await service.create_or_get_order(user_id=test_user.id)
+    monkeypatch.setattr(settings, "nura_tg_pilot", True)
+    with pytest.raises(ValueError, match="payments_disabled_for_telegram_pilot"):
+        await service.start_checkout(order.checkout_token, "buyer@example.test")
+
+    assert provider.created == []
+    async with factory() as session:
+        stored = (await session.execute(select(Order))).scalar_one()
+        assert stored.status == OrderStatus.CREATED
+        assert (await session.execute(select(PaymentAttempt))).scalars().all() == []
 
 
 @pytest.mark.asyncio

@@ -2361,6 +2361,29 @@ class TestBuyMatrix:
         assert "Тест-режим" in text
 
     @pytest.mark.asyncio
+    async def test_payments_disabled_returns_safe_response_without_checkout(
+        self,
+        mock_callback,
+    ):
+        with (
+            patch("bot.handlers.payment.settings") as mock_settings,
+            patch("bot.handlers.payment.FullMatrixCheckoutService") as checkout_service,
+            patch("bot.handlers.payment.UserRepository") as user_repository,
+            patch("bot.handlers.payment.main_menu_keyboard") as main_menu,
+        ):
+            mock_settings.payments_enabled = False
+            main_menu.return_value = MagicMock()
+
+            from bot.handlers.payment import buy_matrix
+
+            await buy_matrix(mock_callback)
+
+        checkout_service.assert_not_called()
+        user_repository.assert_not_called()
+        text = mock_callback.message.edit_text.await_args.args[0]
+        assert text == "⚠️ Оплата временно недоступна.\nПопробуй позже."
+
+    @pytest.mark.asyncio
     async def test_creates_matrix_payment(
         self, mock_callback, mock_user
     ):

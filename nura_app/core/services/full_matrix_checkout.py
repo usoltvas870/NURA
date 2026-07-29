@@ -163,8 +163,14 @@ class FullMatrixCheckoutService:
         self._session_factory = session_factory
         self._provider = provider or ProductionYooKassaProvider()
 
+    @staticmethod
+    def _require_payments_enabled() -> None:
+        if not settings.payments_enabled:
+            raise ValueError("payments_disabled_for_telegram_pilot")
+
     async def create_or_get_order(self, *, user_id: uuid.UUID) -> CheckoutOrderResult:
         """Create one active server-priced order for the Telegram identity."""
+        self._require_payments_enabled()
         async with self._session_factory() as session:
             user = await session.get(User, user_id, with_for_update=True)
             if user is None:
@@ -231,6 +237,7 @@ class FullMatrixCheckoutService:
 
     async def start_checkout(self, checkout_token: str, fiscal_email: str) -> str:
         """Create/reuse a YooKassa attempt.  Client controls neither product nor amount."""
+        self._require_payments_enabled()
         fiscal_email = normalize_fiscal_email(fiscal_email)
         receipt_error = settings.yookassa_receipt_configuration_error
         if receipt_error:

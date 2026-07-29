@@ -31,6 +31,7 @@ PHASES = frozenset({
 PROJECT = "nura_tg"
 PILOT_TOKEN_FILE = Path("/opt/nura/secrets/nura_tg/telegram_bot_token")
 PILOT_DATABASE_URL_FILE = Path("/opt/nura/secrets/nura_tg/database_url")
+PILOT_REDIS_PASSWORD_FILE = Path("/var/lib/nura-tg-pilot/secrets/redis_password")
 AUTHORITATIVE_SECRET_OWNER_IDS = frozenset({0})
 
 
@@ -248,6 +249,35 @@ def exec_probe(app: Path, environment: dict[str, str], service: str, *args: str)
     return compose_output(app, environment, "exec", "-T", service, *args)
 
 
+def authenticated_redis_keys_are_clear(
+    app: Path,
+    environment: dict[str, str],
+) -> bool:
+    """Check rollback keys with the configured pilot credential, without logging it."""
+    try:
+        password = read_authoritative_secret(PILOT_REDIS_PASSWORD_FILE).decode("ascii")
+    except UnicodeDecodeError as exc:
+        raise PilotError("pilot_redis_secret_invalid") from exc
+    if not password or any(character in password for character in "\x00\r\n"):
+        fail("pilot_redis_secret_invalid")
+    authenticated_environment = environment.copy()
+    authenticated_environment["REDISCLI_AUTH"] = password
+    result = subprocess.run(
+        [
+            "docker", "compose", "-p", PROJECT, "-f", "docker-compose.nura-tg.yml",
+            "exec", "-T", "-e", "REDISCLI_AUTH", "redis", "redis-cli",
+            "--no-auth-warning", "mget", "nura_tg:polling_lease",
+            "nura_tg:polling_active",
+        ],
+        cwd=app,
+        env=authenticated_environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.returncode == 0 and not result.stdout.strip()
+
+
 def verify_worker(app: Path, environment: dict[str, str]) -> None:
     require_running(app, environment, "celery-worker")
     for secret in ("/run/secrets/telegram_bot_token", "/run/secrets/redis_password"):
@@ -303,7 +333,7 @@ def deploy(args: argparse.Namespace) -> None:
                 fail("target_compose_missing")
             secret_root = Path("/var/lib/nura-tg-pilot/secrets")
             secret_root.mkdir(mode=0o700, parents=True, exist_ok=True)
-            redis_secret = secret_root / "redis_password"
+            redis_secret = PILOT_REDIS_PASSWORD_FILE
             if not redis_secret.exists():
                 redis_secret.write_text(secrets.token_urlsafe(48), encoding="ascii")
                 os.chmod(redis_secret, 0o600)
@@ -356,10 +386,11 @@ def deploy(args: argparse.Namespace) -> None:
                     ["docker", "compose", "-p", PROJECT, "-f", "docker-compose.nura-tg.yml", "stop", "bot", "celery-worker"],
                     cwd=app, env=environment, check=False, capture_output=True,
                 )
-                lease_check = subprocess.run(
-                    ["docker", "compose", "-p", PROJECT, "-f", "docker-compose.nura-tg.yml", "exec", "-T", "redis", "redis-cli", "mget", "nura_tg:polling_lease", "nura_tg:polling_active"],
-                    cwd=app, env=environment, check=False, capture_output=True, text=True,
-                )
+                lease_keys_clear = False
+                try:
+                    lease_keys_clear = authenticated_redis_keys_are_clear(app, environment)
+                except PilotError:
+                    pass
                 redis_stop = subprocess.run(
                     ["docker", "compose", "-p", PROJECT, "-f", "docker-compose.nura-tg.yml", "stop", "redis"],
                     cwd=app, env=environment, check=False, capture_output=True,
@@ -370,7 +401,7 @@ def deploy(args: argparse.Namespace) -> None:
                 )
                 legacy_now = subprocess.run(["docker", "inspect", "-f", "{{.Id}}", "nura_app-bot-1"], capture_output=True, text=True, check=False).stdout.strip()
                 postgres_now = subprocess.run(["docker", "inspect", "-f", "{{.Id}}", "nura_app-postgres-1"], capture_output=True, text=True, check=False).stdout.strip()
-                if stopped.returncode or lease_check.returncode or lease_check.stdout.strip() or redis_stop.returncode or running.returncode or running.stdout.strip() or legacy_now != legacy_id or postgres_now != postgres_id:
+                if stopped.returncode or not lease_keys_clear or redis_stop.returncode or running.returncode or running.stdout.strip() or legacy_now != legacy_id or postgres_now != postgres_id:
                     raise PilotError("pilot_rollback_runtime_unverified") from exc
             write_state(state, "pilot_rollback_verified", args.target_sha, digest)
             raise PilotError("pilot_deploy_rolled_back") from exc

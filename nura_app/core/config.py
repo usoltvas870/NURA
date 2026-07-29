@@ -18,6 +18,8 @@ INSECURE_SECRET_KEYS = frozenset(
 NURA_TG_RUNTIME_PROFILE = "nura_tg"
 NURA_TG_DATABASE_URL_FILE = "/run/secrets/database_url"
 NURA_TG_REDIS_PASSWORD_FILE = "/run/secrets/redis_password"
+SUPPORTED_RUNTIME_PROFILES = frozenset({"legacy", NURA_TG_RUNTIME_PROFILE})
+RUNTIME_PROFILE_ALIASES = {"pilot": NURA_TG_RUNTIME_PROFILE}
 
 
 def _read_secret_fd(path: str, label: str) -> str:
@@ -83,7 +85,14 @@ class Settings(BaseSettings):
     postgres_host: str = "localhost"
     postgres_port: int = 5432
     database_url_file: str | None = None
-    runtime_profile: str = "legacy"
+    runtime_profile: str = Field(
+        default="legacy",
+        validation_alias=AliasChoices(
+            "NURA_RUNTIME_PROFILE",
+            "RUNTIME_PROFILE",
+            "runtime_profile",
+        ),
+    )
 
     @property
     def database_url(self) -> str:
@@ -158,7 +167,14 @@ class Settings(BaseSettings):
     # Telegram
     telegram_bot_token: str | None = None
     telegram_bot_token_file: str | None = None
-    telegram_polling_enabled: bool = True
+    telegram_polling_enabled: bool = Field(
+        default=True,
+        validation_alias=AliasChoices(
+            "NURA_TG_POLLING_ENABLED",
+            "TELEGRAM_POLLING_ENABLED",
+            "telegram_polling_enabled",
+        ),
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -167,6 +183,7 @@ class Settings(BaseSettings):
             return values
         pilot = values.get("nura_tg_pilot", values.get("NURA_TG_PILOT", False))
         profile = values.get("runtime_profile", values.get("NURA_RUNTIME_PROFILE", "legacy"))
+        profile = RUNTIME_PROFILE_ALIASES.get(profile, profile)
         direct = values.get("telegram_bot_token", values.get("TELEGRAM_BOT_TOKEN"))
         database_url = values.get("database_url", values.get("DATABASE_URL"))
         if pilot and direct:
@@ -317,6 +334,17 @@ class Settings(BaseSettings):
             supported = ",".join(sorted(SUPPORTED_APP_ENVIRONMENTS))
             raise ValueError(f"app_env_must_be_one_of:{supported}")
         return value
+
+    @field_validator("runtime_profile", mode="before")
+    @classmethod
+    def _validate_runtime_profile(cls, value: object) -> str:
+        normalized = RUNTIME_PROFILE_ALIASES.get(value, value)
+        if not isinstance(normalized, str) or normalized not in SUPPORTED_RUNTIME_PROFILES:
+            supported = ",".join(
+                sorted(SUPPORTED_RUNTIME_PROFILES | RUNTIME_PROFILE_ALIASES.keys())
+            )
+            raise ValueError(f"runtime_profile_must_be_one_of:{supported}")
+        return normalized
 
     @field_validator("default_daily_tarot_timezone")
     @classmethod

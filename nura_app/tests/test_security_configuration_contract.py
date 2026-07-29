@@ -10,8 +10,8 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from core.config import Settings
 import core.config as config
+from core.config import Settings
 
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -157,6 +157,53 @@ def test_redis_password_file_errors_hide_sensitive_inputs(tmp_path: Path) -> Non
         safe_production_settings(redis_password_file=str(secret_file))
 
     assert marker not in str(exc_info.value)
+
+
+def test_nura_runtime_environment_aliases_control_actual_fields(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database_secret = tmp_path / "database_url"
+    database_secret.write_text(
+        "postgresql+asyncpg://user:password@db/nura",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(config, "NURA_TG_DATABASE_URL_FILE", str(database_secret))
+    monkeypatch.setenv("DATABASE_URL_FILE", str(database_secret))
+    monkeypatch.setenv("NURA_RUNTIME_PROFILE", "pilot")
+    monkeypatch.setenv("NURA_TG_POLLING_ENABLED", "false")
+
+    runtime = Settings(_env_file=None)
+
+    assert runtime.runtime_profile == "nura_tg"
+    assert runtime.telegram_polling_enabled is False
+
+
+def test_runtime_environment_defaults_and_legacy_aliases_remain_compatible(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    aliases = (
+        "NURA_RUNTIME_PROFILE",
+        "RUNTIME_PROFILE",
+        "NURA_TG_POLLING_ENABLED",
+        "TELEGRAM_POLLING_ENABLED",
+    )
+    for alias in aliases:
+        monkeypatch.delenv(alias, raising=False)
+    defaults = Settings(_env_file=None)
+    assert defaults.runtime_profile == "legacy"
+    assert defaults.telegram_polling_enabled is True
+
+    monkeypatch.setenv("RUNTIME_PROFILE", "legacy")
+    monkeypatch.setenv("TELEGRAM_POLLING_ENABLED", "false")
+    legacy = Settings(_env_file=None)
+    assert legacy.runtime_profile == "legacy"
+    assert legacy.telegram_polling_enabled is False
+
+
+def test_unknown_runtime_profile_fails_closed() -> None:
+    with pytest.raises(ValidationError, match="runtime_profile_must_be_one_of"):
+        Settings(_env_file=None, runtime_profile="unknown")
 
 
 def test_nura_tg_settings_require_only_fixed_database_secret_file(

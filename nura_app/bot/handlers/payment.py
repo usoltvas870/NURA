@@ -42,11 +42,24 @@ def _callback_idempotence_key(callback: CallbackQuery) -> str:
     ).hex
 
 
+async def _stop_when_payments_disabled(callback: CallbackQuery) -> bool:
+    if settings.payments_enabled:
+        return False
+    await callback.message.edit_text(
+        "⚠️ Оплата временно недоступна.\nПопробуй позже.",
+        reply_markup=main_menu_keyboard(),
+    )
+    return True
+
+
 
 
 @router.callback_query(F.data == "buy_subscription")
 async def initiate_subscription(callback: CallbackQuery) -> None:
     await callback.answer()
+
+    if await _stop_when_payments_disabled(callback):
+        return
 
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -129,6 +142,9 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
 async def initiate_tarot_subscription(callback: CallbackQuery) -> None:
     await callback.answer()
 
+    if await _stop_when_payments_disabled(callback):
+        return
+
     user = await _get_user(callback.from_user.id)
     if user is None:
         await callback.message.edit_text(
@@ -202,6 +218,9 @@ async def initiate_tarot_subscription(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "buy_matrix")
 async def buy_matrix(callback: CallbackQuery) -> None:
     await callback.answer()
+
+    if await _stop_when_payments_disabled(callback):
+        return
 
     user = await _get_user(callback.from_user.id)
     if user is None:
