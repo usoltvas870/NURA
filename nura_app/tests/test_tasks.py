@@ -4,14 +4,25 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from sqlalchemy.exc import OperationalError
 
+import core.celery_async as celery_async
 from core.services.mini_report_application import MiniReportResultKind
 from core.services.telegram_report_delivery import TelegramDeliveryError
+from core.celery_async import _reset_runtime_for_tests
 from core.tasks import (
     _process_mini_report,
     _send_daily_card_async,
     deliver_mini_report,
     generate_mini_report,
 )
+
+
+@pytest.fixture(autouse=True)
+def reset_celery_runtime_between_task_tests() -> None:
+    """Keep task ``.run()`` unit calls from leaking a process-local worker loop."""
+    try:
+        yield
+    finally:
+        _reset_runtime_for_tests()
 
 
 class TestMiniReport:
@@ -81,6 +92,10 @@ class TestMiniReport:
 
         assert result["kind"] == kind
         enqueue.assert_called_once_with(user_id, report_id, generation_id)
+
+    def test_task_runtime_is_reset_between_task_runs(self) -> None:
+        """A direct task unit test must not reserve a worker loop for later modules."""
+        assert celery_async._runtime is None
 
     def test_delivery_task_retries_transient_database_failure(self) -> None:
         operational_error = OperationalError("SELECT", {}, RuntimeError("down"))

@@ -26,13 +26,23 @@ JOB_SECONDARY = UUID("60000000-0000-0000-0000-000000000002")
 RESERVATION_PRIMARY = UUID("70000000-0000-0000-0000-000000000001")
 
 EXPECTED_ROW_COUNTS = {
+    "attribution_links": 0,
+    "attribution_touches": 0,
+    "chat_message_usages": 0,
+    "daily_tarot_draws": 0,
+    "full_report_telegram_deliveries": 0,
     "guest_profiles": 1,
+    "mini_report_generations": 0,
+    "orders": 0,
+    "payment_attempts": 0,
+    "payment_events": 0,
     "payments": 2,
     "promo_codes": 1,
     "promo_reservations": 1,
     "referral_rewards": 1,
     "report_generation_jobs": 2,
     "reports": 2,
+    "telegram_report_deliveries": 0,
     "users": 2,
 }
 

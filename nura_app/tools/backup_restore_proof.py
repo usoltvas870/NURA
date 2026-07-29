@@ -59,13 +59,23 @@ VERIFY_CEILING_SECONDS = 10 * 60
 TOTAL_CEILING_SECONDS = 30 * 60
 EXPECTED_PUBLIC_TABLES = {
     "alembic_version",
+    "attribution_links",
+    "attribution_touches",
+    "chat_message_usages",
+    "daily_tarot_draws",
+    "full_report_telegram_deliveries",
     "guest_profiles",
+    "mini_report_generations",
+    "orders",
+    "payment_attempts",
+    "payment_events",
     "payments",
     "promo_codes",
     "promo_reservations",
     "referral_rewards",
     "report_generation_jobs",
     "reports",
+    "telegram_report_deliveries",
     "users",
 }
 APPLICATION_TABLES = EXPECTED_PUBLIC_TABLES - {"alembic_version"}
@@ -97,6 +107,10 @@ _IDENTIFIER_PATTERNS = {
     "target_container": re.compile(r"^nura-p5b-target-[0-9a-f]{12}$"),
     "network": re.compile(r"^nura-p5b-network-[0-9a-f]{12}$"),
 }
+_RESTORED_CHECK_ARRAY_LITERAL = re.compile(
+    r"\(('[^']*'::character varying)\)::text"
+)
+_SOURCE_CHECK_ARRAY_CAST = re.compile(r"\(ARRAY\[([^\[\]]*)\]\)::text\[\]")
 _MANIFEST_KEYS = {
     "alembic_revision",
     "archive_filename",
@@ -663,13 +677,45 @@ def _catalog_snapshot(database_url: str) -> dict[str, list[dict[str, object]]]:
     return {name: _rows_as_dicts(database_url, statement) for name, statement in queries.items()}
 
 
+def _canonical_check_definition(definition: object) -> object:
+    """Normalize the one textual CHECK representation changed by pg_restore."""
+    if not isinstance(definition, str):
+        return definition
+    normalized = _RESTORED_CHECK_ARRAY_LITERAL.sub(r"\1", definition)
+    return _SOURCE_CHECK_ARRAY_CAST.sub(r"ARRAY[\1]", normalized)
+
+
+def _catalog_for_comparison(
+    catalog: dict[str, list[dict[str, object]]],
+) -> dict[str, list[dict[str, object]]]:
+    """Compare CHECK constraints without accepting semantic drift.
+
+    ``pg_restore`` can render an equivalent CHECK expression with different
+    array casts. Normalize only that known rendering delta; all other CHECK
+    expression content remains part of the schema fingerprint and comparison.
+    """
+    comparison: dict[str, list[dict[str, object]]] = {}
+    for name, rows in catalog.items():
+        comparison_rows: list[dict[str, object]] = []
+        for row in rows:
+            normalized = dict(row)
+            if name == "constraints" and normalized.get("contype") == "c":
+                normalized["definition"] = _canonical_check_definition(
+                    normalized.get("definition")
+                )
+            comparison_rows.append(normalized)
+        comparison[name] = comparison_rows
+    return comparison
+
+
 def _schema_fingerprint(catalog: dict[str, list[dict[str, object]]]) -> str:
+    comparison_catalog = _catalog_for_comparison(catalog)
     canonical = {
         name: [
             {key: _canonical_value(value) for key, value in sorted(row.items())}
             for row in rows
         ]
-        for name, rows in sorted(catalog.items())
+        for name, rows in sorted(comparison_catalog.items())
     }
     return hashlib.sha256(_canonical_json(canonical).encode("utf-8")).hexdigest()
 
@@ -1249,7 +1295,8 @@ def _compare_snapshots(
     )
     comparisons = {
         "revision": source.revision == target.revision == repository_head,
-        "catalog": source.catalog == target.catalog,
+        "catalog": _catalog_for_comparison(source.catalog)
+        == _catalog_for_comparison(target.catalog),
         "catalog_counts": source.catalog_counts == target.catalog_counts,
         "row_counts": source.row_counts == target.row_counts,
         "data_checksums": source.data_checksums == target.data_checksums,

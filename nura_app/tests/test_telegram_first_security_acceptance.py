@@ -14,6 +14,7 @@ import time
 import urllib.error
 import urllib.request
 import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -83,6 +84,43 @@ def _telegram_id() -> int:
     return 8_000_000_000 + uuid.uuid4().int % 1_000_000_000
 
 
+@contextmanager
+def _capture_logger(
+    caplog: pytest.LogCaptureFixture,
+    logger_name: str,
+    level: int,
+):
+    """Capture a logger despite global logging state from an integration probe."""
+    logger = logging.getLogger(logger_name)
+    previous_disabled = logger.disabled
+    previous_global_disable = logging.root.manager.disable
+    logging.disable(logging.NOTSET)
+    logger.disabled = False
+    logger.addHandler(caplog.handler)
+    try:
+        with caplog.at_level(level, logger=logger_name):
+            yield
+    finally:
+        logger.removeHandler(caplog.handler)
+        logger.disabled = previous_disabled
+        logging.disable(previous_global_disable)
+
+
+def test_capture_logger_isolates_global_logging_disable(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Security log proofs must not inherit a prior test's global mute."""
+    original_global_disable = logging.root.manager.disable
+    logging.disable(logging.CRITICAL)
+    try:
+        with _capture_logger(caplog, "nura.security.capture-test", logging.WARNING):
+            logging.getLogger("nura.security.capture-test").warning("capture-enabled")
+        assert "capture-enabled" in caplog.text
+        assert logging.root.manager.disable == logging.CRITICAL
+    finally:
+        logging.disable(original_global_disable)
+
+
 @pytest_asyncio.fixture
 async def security_factory() -> async_sessionmaker[AsyncSession]:
     database_url = os.environ.get("NURA_SECURITY_DATABASE_URL")
@@ -144,7 +182,7 @@ def test_uvicorn_access_log_redacts_checkout_capability(
 
     capability = SecuritySentinels.from_context().checkout_token
     access_logger = logging.getLogger("uvicorn.access")
-    with caplog.at_level(logging.INFO, logger="uvicorn.access"):
+    with _capture_logger(caplog, "uvicorn.access", logging.INFO):
         access_logger.info(
             '%s - "%s %s HTTP/%s" %d',
             "127.0.0.1:1",
@@ -175,7 +213,7 @@ async def test_unknown_report_type_log_redacts_report_capability(
         "api.routes.reports.ReportService.render_report_html", AsyncMock(return_value="ok")
     )
 
-    with caplog.at_level(logging.WARNING, logger="api.routes.reports"):
+    with _capture_logger(caplog, "api.routes.reports", logging.WARNING):
         assert await _render_report_by_type(report, object()) == "ok"
 
     assert "unknown_report_type_fallback" in caplog.text
@@ -743,7 +781,7 @@ async def test_global_bot_error_log_does_not_expose_exception_payload(
         update=SimpleNamespace(message=None, callback_query=None),
     )
 
-    with caplog.at_level(logging.ERROR, logger="bot.handlers.errors"):
+    with _capture_logger(caplog, "bot.handlers.errors", logging.ERROR):
         assert await global_error_handler(event) is True
 
     assert marker not in caplog.text

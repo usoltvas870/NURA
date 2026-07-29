@@ -18,6 +18,48 @@ if str(NURA_APP_ROOT) not in sys.path:
 from tools import backup_restore_proof as proof  # noqa: E402
 
 
+def test_catalog_comparison_normalizes_only_pg_restore_check_array_casts() -> None:
+    source = {
+        "constraints": [{
+            "table_name": "example",
+            "conname": "ck_example_status",
+            "contype": "c",
+            "definition": "CHECK (((status)::text = ANY ((ARRAY['pending'::character varying])::text[])))",
+        }]
+    }
+    restored = {
+        "constraints": [{
+            "table_name": "example",
+            "conname": "ck_example_status",
+            "contype": "c",
+            "definition": "CHECK (((status)::text = ANY (ARRAY[('pending'::character varying)::text])))",
+        }]
+    }
+
+    assert proof._catalog_for_comparison(source) == proof._catalog_for_comparison(restored)
+
+
+def test_catalog_comparison_rejects_changed_check_semantics() -> None:
+    source = {
+        "constraints": [{
+            "table_name": "example",
+            "conname": "ck_example_amount",
+            "contype": "c",
+            "definition": "CHECK ((amount > 0))",
+        }]
+    }
+    changed = {
+        "constraints": [{
+            "table_name": "example",
+            "conname": "ck_example_amount",
+            "contype": "c",
+            "definition": "CHECK (false)",
+        }]
+    }
+
+    assert proof._catalog_for_comparison(source) != proof._catalog_for_comparison(changed)
+
+
 def test_disposable_identifiers_reject_production_like_values() -> None:
     with pytest.raises(proof.ProofError, match="non-disposable"):
         proof.validate_disposable_identifier("protected-production-target", "target_database")

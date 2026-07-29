@@ -238,3 +238,4 @@ def _on_worker_process_shutdown(**_: object) -> None:
 def _reset_runtime_for_tests() -> None:
     """Reset local runtime state; production task code must not call this hook."""
     _shutdown_current_runtime()
+    reset_async_database_state_after_fork()

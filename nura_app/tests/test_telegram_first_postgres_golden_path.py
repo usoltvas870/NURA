@@ -613,12 +613,7 @@ async def _durability_snapshot(
         }
 
 
-@pytest.fixture(autouse=True)
-def detach_handler_routers() -> Any:
-    """Permit the standalone suite to recreate dispatchers as its process-bound runner does."""
-    yield
-    global _sandbox_redis
-    _sandbox_redis = None
+def _detach_handler_routers() -> None:
     for router in (
         start.router,
         onboarding.router,
@@ -628,6 +623,30 @@ def detach_handler_routers() -> Any:
         chat.router,
     ):
         router._parent_router = None
+
+
+def test_router_detachment_allows_runtime_reconstruction() -> None:
+    """A previous test dispatcher cannot make the next runtime one-shot."""
+    previous = Dispatcher(storage=MemoryStorage())
+    previous.include_router(start.router)
+    _detach_handler_routers()
+    fresh = Dispatcher(storage=MemoryStorage())
+    try:
+        fresh.include_router(start.router)
+    finally:
+        _detach_handler_routers()
+
+
+@pytest.fixture(autouse=True)
+def detach_handler_routers() -> Any:
+    """Isolate reusable handler routers from dispatchers created by other test modules."""
+    _detach_handler_routers()
+    try:
+        yield
+    finally:
+        global _sandbox_redis
+        _sandbox_redis = None
+        _detach_handler_routers()
 
 
 @pytest_asyncio.fixture
