@@ -323,6 +323,19 @@ asyncio.run(main())
     return json.loads(_run([sys.executable, "-c", probe], env, "domain_count"))
 
 
+def _completed_graceful_shutdown(managed: ManagedProcess) -> bool:
+    """Recognize each managed runtime's explicit normal shutdown marker."""
+    output = "".join(managed.lines)
+    if "Application shutdown complete." in output:
+        return True
+    return (
+        managed.name == "celery"
+        and managed.process.returncode in {1, -signal.SIGINT}
+        and "Warm shutdown (MainProcess)" in output
+        and not any(marker in output for marker in ("ERROR/", "CRITICAL/", "Traceback"))
+    )
+
+
 def _stop(managed: ManagedProcess) -> None:
     try:
         if managed.process.poll() is None:
@@ -346,7 +359,7 @@ def _stop(managed: ManagedProcess) -> None:
                 3221225786,
             }
             _drain(managed)
-            completed_shutdown = "Application shutdown complete." in "".join(managed.lines)
+            completed_shutdown = _completed_graceful_shutdown(managed)
             if not interrupted and not completed_shutdown:
                 raise _failure(managed)
     finally:

@@ -14,6 +14,7 @@ from tools.telegram_first_sandbox_acceptance import (
     _environment,
     _run,
 )
+from tools import telegram_first_service_boot as service_boot
 from tools.telegram_first_service_boot import run_service_boot
 
 
@@ -50,6 +51,26 @@ def _docker_available() -> bool:
         capture_output=True,
         check=False,
     ).returncode == 0
+
+
+def test_celery_warm_shutdown_is_a_graceful_boot_cleanup_marker() -> None:
+    managed = type("Managed", (), {
+        "name": "celery",
+        "lines": ["worker: Warm shutdown (MainProcess)\n"],
+        "process": type("Process", (), {"returncode": 1})(),
+    })()
+
+    assert service_boot._completed_graceful_shutdown(managed)
+
+
+def test_celery_warm_shutdown_with_fatal_output_is_not_graceful() -> None:
+    managed = type("Managed", (), {
+        "name": "celery",
+        "lines": ["Warm shutdown (MainProcess)\n", "ERROR/MainProcess fatal\n"],
+        "process": type("Process", (), {"returncode": 1})(),
+    })()
+
+    assert not service_boot._completed_graceful_shutdown(managed)
 
 
 @pytest.mark.parametrize("telegram_token", [None, "", " \t "])
