@@ -6,17 +6,51 @@ line endings (CRLF vs LF) while still reflecting the actual working-tree content
 from __future__ import annotations
 
 import hashlib
+import importlib.util
+import subprocess
 import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
-# The generator lives in the repository root under `scripts/`, while tests run
-# from `nura_app/`. Add the repository root to the import path for this module.
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT))
+GENERATOR_PATH = REPO_ROOT / "scripts" / "build_pwa_release.py"
+GENERATOR_MODULE_NAME = "_nura_root_build_pwa_release"
 
-from scripts.build_pwa_release import ASSETS, _build_metadata, canonical_asset_bytes  # noqa: E402
+
+def _load_generator_module() -> ModuleType:
+    spec = importlib.util.spec_from_file_location(GENERATOR_MODULE_NAME, GENERATOR_PATH)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load PWA release generator from {GENERATOR_PATH}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+generator = _load_generator_module()
+ASSETS = generator.ASSETS
+_build_metadata = generator._build_metadata
+canonical_asset_bytes = generator.canonical_asset_bytes
+
+
+def test_generator_module_loaded_from_repository_root() -> None:
+    assert generator.__name__ == GENERATOR_MODULE_NAME
+    assert generator.__spec__ is not None
+    assert Path(generator.__spec__.origin or "").resolve() == GENERATOR_PATH
+
+
+def test_generator_cli_reports_current_metadata() -> None:
+    result = subprocess.run(
+        [sys.executable, str(GENERATOR_PATH), "--check"],
+        cwd=Path(__file__).parent,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "PWA release metadata is current" in result.stdout
 
 
 @pytest.mark.parametrize(
