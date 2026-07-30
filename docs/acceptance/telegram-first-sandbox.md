@@ -61,7 +61,7 @@ Execute and record each scenario separately:
    blocked before generation, then verify a five-response reset after `00:00 Europe/Moscow`.
    Use only the approved test bot and fake/local providers where the runbook prescribes them.
 7. Open the 890 ₽ Full Matrix checkout CTA and verify that it points only to the test shop.
-8. After verified sandbox payment, receive the full PDF automatically and repeat manual
+8. After verified sandbox payment, receive the full Telegram text followed by PDF automatically and repeat manual
    delivery from My Reports without new Matrix, AI, PDF, order or payment side effects.
 9. Block/unblock the test bot where the provider permits and verify bounded failure handling.
 10. Verify user-facing errors contain no stack trace, secret, provider payload or PII.
@@ -122,8 +122,8 @@ approved sandbox window and produce a separate dated, redacted evidence record.
 - Verify temporary AI/render failure is retryable without another payment.
 - Verify automatic delivery creates one durable receipt and fresh-process replay does not resend.
 - Verify manual resend reuses the stored artifact or Telegram file ID and does not regenerate content.
-- Verify the current implementation boundary honestly: full-report PDF delivery exists,
-  while mandatory full report text in Telegram remains an implementation gap.
+- Verify the current implementation boundary honestly: the persisted full-report
+  text precedes the PDF, while external Telegram sandbox behavior remains unproven.
 - Inspect representative mini/full content for formatting and safety without storing the report body in evidence.
 
 ## 7. Refund and retry scenarios
@@ -283,7 +283,7 @@ This mode applies Alembic head once, prepares the synthetic attribution link
 through the project CLI, and runs the ordered cumulative nodes in fresh pytest
 processes against the same runner-owned PostgreSQL database: start/onboarding,
 mini-report, Daily Tarot, lifetime chat, checkout, verified webhook, and
-full-report generation, automatic full-PDF delivery, and fresh-process
+full-report generation, automatic full-text-then-PDF delivery, and fresh-process
 idempotency replays.
 It uses real aiogram updates, routers, Dispatcher, and MemoryStorage with
 in-memory Telegram transports. The onboarding `.delay(...)` handoff is
@@ -466,7 +466,7 @@ Before that smoke, the operator must confirm:
 
 The browser return page is informational only. The provider-verified webhook
 is the sole activation path. A paid order produces one full report and one
-automatic Telegram PDF delivery; manual resend must reuse that report without
+automatic Telegram text-then-PDF delivery; manual resend must reuse that report without
 AI, Matrix, order, or payment side effects. Refunded orders must not be
 delivered or shown in My Reports. Account deletion removes production-defined
 Redis chat state and retains financial rows; `PaymentAttempt.fiscal_email`
@@ -480,3 +480,12 @@ production is ready. Production remains blocked until the operator validates
 provider credentials, fiscal configuration, HTTPS routing, legal/support URLs,
 monitoring, backups and the external Telegram/YooKassa/AI sandbox, followed by
 separate owner GO decisions.
+
+### A.7. Full-report text + PDF local contract
+
+For a completed, paid full report, local tests must prove persisted text chunks
+are sent before the stored PDF, with fenced progress after every successful
+Telegram call. Retry is at-least-once at the external boundary and must not
+regenerate AI content, Matrix data, checkout, payment or chat quota. Historical
+PDF-only rows are not retro-delivered. This runbook is not external-sandbox
+execution proof.

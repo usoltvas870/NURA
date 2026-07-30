@@ -205,7 +205,7 @@ def test_revision_constants(bootstrap, fk, reconciliation) -> None:
 
 def test_full_delivery_race_contract(full_delivery_race) -> None:
     assert full_delivery_race.PARENT == "e8f9a0b1c2d3"
-    assert full_delivery_race.HEAD == "b4c5d6e7f8a9"
+    assert full_delivery_race.HEAD == "c5d6e7f8a9b0"
     assert full_delivery_race.WORKERS == 8
     full_delivery_race._validate_disposable_database_url(
         "postgresql://user:pass@127.0.0.1:5432/nura_delivery_disposable"

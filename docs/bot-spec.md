@@ -96,16 +96,16 @@ Legacy PWA buttons — `LEGACY COMPATIBILITY`. Expanded Tarot, compatibility и 
 - Checkout redirect возвращает браузер на `/api/v1/payment/full-matrix/return/{checkout_token}`. Эта return page всегда информационная («проверяем оплату»): её открытие или повторное открытие не подтверждает платёж, не переводит заказ в `PAID`, не выдаёт entitlement и не запускает trusted delivery.
 - Активация выполняется только после verified YooKassa webhook/provider verification; browser return не является доверенной платёжной границей.
 - После оплаты Celery формирует и сохраняет canonical full PDF, затем создаёт durable automatic delivery.
-- `FullReportTelegramDeliveryService` отправляет PDF document/cached Telegram `file_id`, поддерживает manual resend, retry/reconciliation и блокирует delivery после refund.
-- Отдельная полная текстовая выдача full report в Telegram отсутствует.
+- `FullReportTelegramDeliveryService` отправляет immutable snapshot полного текста и затем PDF document/cached Telegram `file_id`, поддерживает manual resend, retry/reconciliation и блокирует дальнейшую delivery после refund.
+- Snapshot и каждый sent text message ID сохраняются durable; retry не вызывает AI, Matrix, checkout или chat quota.
 - Tokenized HTML/PDF routes и web CTA продолжают существовать.
 
-Итого: 890 ₽ + YooKassa + durable PDF delivery — `CURRENT — IMPLEMENTED` локально; full Telegram text — `IMPLEMENTATION GAP`; web-report route — `LEGACY COMPATIBILITY`. YooKassa sandbox, receipt и real webhook reachability не подтверждены.
+Итого: 890 ₽ + YooKassa + durable full Telegram text + PDF delivery — `CURRENT — IMPLEMENTED` локально; web-report route — `LEGACY COMPATIBILITY`. YooKassa sandbox, receipt и real webhook reachability не подтверждены.
 
 ### 4.6. Saved materials
 
 - «Мои разборы» перечисляет завершённые mini и full reports с ownership check, detail callback и repeated Telegram delivery.
-- Mini повторно доставляется текстом и PDF; full повторно отправляется PDF через отдельный delivery ledger.
+- Mini и full повторно доставляются сохранённым текстом и PDF через отдельные delivery ledgers.
 - Текущая taxonomy и labels неполны: full item может отображаться как «Мини-разбор», а target «Мои материалы» включает более точные типы и metadata.
 - Просмотр/resend не использует chat quota.
 
@@ -186,9 +186,9 @@ Status: `IMPLEMENTATION GAP` for the accepted/versioned report/chat runtime styl
 | Consent | Explain use/safety/legal links; persist version and time | Consent callback and timestamp exist | `IMPLEMENTATION GAP` — versioned consent/legal surface incomplete | Product spec §9.2 |
 | Mini-report | Telegram text + PDF, saved/retryable | Durable text + PDF delivery and resend | `CURRENT — IMPLEMENTED` locally; external/content acceptance pending | Product spec §10; mini delivery service/tests |
 | Saved materials | Mini/full text/PDF persist independently of chat quota | «Мои разборы» lists mini/full and resends | `IMPLEMENTATION GAP` — naming/taxonomy/metadata incomplete | Product spec §12; `my_reports.py` |
-| Full report | One-time 890 ₽ finished product | Durable order/generation/full PDF | `CURRENT — IMPLEMENTED` partially | Product spec §11 |
+| Full report | One-time 890 ₽ finished product | Durable order/generation/full Telegram text + PDF | `CURRENT — IMPLEMENTED` locally | Product spec §11 |
 | 890 ₽ / YooKassa | YooKassa only; no Stars/manual transfer | Dedicated checkout and verified webhook | `CURRENT — IMPLEMENTED` locally; sandbox/receipt pending | Product spec §§3.4, 11.3 |
-| Telegram text delivery | Mini and full readable in chat | Mini text exists; full text absent | `IMPLEMENTATION GAP` | Product spec §§3.5, 11.6 |
+| Telegram text delivery | Mini and full readable in chat | Durable mini/full text with progress and replay | `CURRENT — IMPLEMENTED` locally | Product spec §§3.5, 11.6 |
 | Telegram PDF delivery | Mini/full document, repeatable | Durable mini/full PDF and replay/resend | `CURRENT — IMPLEMENTED` locally | Product spec §§10.2, 11.6 |
 | Materials reopening | Open/resend without regeneration/payment | Ownership-checked list and repeated delivery | `CURRENT — IMPLEMENTED`; taxonomy gap | Product spec §12 |
 | Free chat | Universal Telegram access; 5 successful delivered answers each product day | Ordinary users share five daily committed answers across Telegram/web; `has_matrix` does not bypass quota; active legacy entitlement remains unlimited | Daily/reset/access `CURRENT — IMPLEMENTED`; durable delivery retry/progress and web client ACK `IMPLEMENTATION GAP` | Product spec §13.1; Telegram chat handler/quota tests |
@@ -253,7 +253,7 @@ DM-04 already requires functions outside NURA 1.0 to be hidden from the primary 
 |---|---|---|---|
 | Preferred-name onboarding | Telegram profile name only | Product spec §9.1 | Do not describe name collection as complete |
 | Versioned consent/profile settings | `pd_consent_at`, limited profile | Product spec §§9.2, 9.5, 17 | Consent path exists, target surface incomplete |
-| Full report Telegram text | Full delivery sends PDF only | Product spec §§3.5, 11.6 | Never claim current full text delivery |
+| Full report Telegram text | Full delivery sends persisted text before PDF | Product spec §§3.5, 11.6 | External sandbox/content acceptance remains outstanding |
 | Daily quota | Lifetime ledger without window | Product spec §13.1 | Always label lifetime current vs daily target |
 | Guided chat entries | No canonical button set | Product spec §13.3 | Do not claim guided journey implemented |
 | Materials taxonomy | «Мои разборы», incomplete labels/metadata | Product spec §12 | Saved access exists; target library incomplete |

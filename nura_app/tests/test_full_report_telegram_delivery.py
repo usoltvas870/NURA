@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -37,6 +38,12 @@ from core.services.telegram_report_delivery import (
 from core.tasks import deliver_full_report
 
 
+FULL_ANALYSIS = {
+    key: f"Тестовый текст раздела {key}."
+    for _title, key in FullReportTelegramDeliveryService._TEXT_SECTIONS
+}
+
+
 class FakeSender:
     def __init__(
         self,
@@ -53,6 +60,11 @@ class FakeSender:
         self.send_by_artifact_calls = 0
         self.requested_file_id: str | None = None
         self.filename: str | None = None
+        self.text_calls: list[str] = []
+
+    async def send_message(self, chat_id: int, text: str) -> int:
+        self.text_calls.append(text)
+        return 1_000 + len(self.text_calls)
 
     async def send_document_from_artifact(
         self, chat_id: int, content: bytes, filename: str, caption: str
@@ -101,8 +113,8 @@ class TransactionSpyRepository:
         delivery_id: uuid.UUID,
         attempt: int,
         *,
-        message_id: int,
-        file_id: str | None,
+        message_id: int | None = None,
+        file_id: str | None = None,
     ) -> bool:
         self._calls.append("terminal_tx_open")
         if self._fail_complete:
@@ -167,6 +179,7 @@ async def _seed(factory: async_sessionmaker, *, order_status: str = "paid") -> t
             report_type=ReportType.FULL.value,
             payment_state=ReportPaymentState.PAYMENT_CONFIRMED,
             generation_state=ReportGenerationState.COMPLETED,
+            ai_analysis=FULL_ANALYSIS.copy(),
             artifact_bytes=artifact, artifact_sha256=hashlib.sha256(artifact).hexdigest(),
             artifact_size_bytes=len(artifact), artifact_mime_type="application/pdf",
         )
@@ -370,7 +383,7 @@ async def test_send_before_commit_crash_window_is_fenced_and_recoverable(
     recovery_sender = FakeSender(returned_file_id="recovered-file-id")
     recovery = FullReportTelegramDeliveryService(db_factory, recovery_sender)
     await recovery.deliver(delivery_id, claimed_attempt=second_attempt)
-    assert recovery_sender.calls == ["artifact"]
+    assert recovery_sender.calls == []
 
 
 async def _seed_canonical_file_id(
@@ -477,10 +490,10 @@ async def test_non_retryable_file_id_error_never_uploads_artifact(
 
 @pytest.mark.asyncio
 async def test_upload_success_without_returned_file_id_is_safe(db_factory) -> None:
-    _user_id, report_id = await _seed(db_factory)
+    user_id, report_id = await _seed(db_factory)
     sender = FakeSender(returned_file_id=None)
     service = FullReportTelegramDeliveryService(db_factory, sender)
-    delivery_id = await service.enqueue_automatic(report_id)
+    delivery_id = await service.enqueue_manual(user_id, report_id, "refund-fence")
     await service.deliver(delivery_id)
     async with db_factory() as session:
         delivery = await session.get(FullReportTelegramDelivery, delivery_id)
@@ -611,11 +624,11 @@ async def test_refund_and_missing_telegram_identity_block_send(db_factory) -> No
 async def test_delivery_keeps_claimed_entitlement_through_first_telegram_call(
     db_factory,
 ) -> None:
-    _user_id, report_id = await _seed(db_factory)
+    user_id, report_id = await _seed(db_factory)
     await _seed_canonical_file_id(db_factory, report_id, "canonical-file-id")
     sender = FakeSender()
     service = FullReportTelegramDeliveryService(db_factory, sender)
-    delivery_id = await service.enqueue_automatic(report_id)
+    delivery_id = await service.enqueue_manual(user_id, report_id, "refund-fence")
     original = service._deliveries.get_canonical_file_id
 
     async def refund_then_read(current_report_id: uuid.UUID) -> str | None:
@@ -636,7 +649,7 @@ async def test_delivery_keeps_claimed_entitlement_through_first_telegram_call(
     assert sender.calls == ["file_id"]
     async with db_factory() as session:
         delivery = await session.get(FullReportTelegramDelivery, delivery_id)
-        assert delivery.status == "completed"
+        assert delivery.status == "canceled"
 
 
 @pytest.mark.asyncio
@@ -673,7 +686,7 @@ async def test_delivery_keeps_claimed_entitlement_through_artifact_fallback(
     async with db_factory() as session:
         delivery = await session.get(FullReportTelegramDelivery, delivery_id)
         report = await session.get(Report, report_id)
-        assert delivery.status == "completed"
+        assert delivery.status == "canceled"
         assert report.generation_state == "completed"
 
 
@@ -816,3 +829,139 @@ def test_full_delivery_task_does_not_retry_non_retryable_error() -> None:
     ):
         deliver_full_report.run(str(uuid.uuid4()))
     retry.assert_not_called()
+
+
+def test_full_text_renderer_uses_canonical_sections_and_escapes_html() -> None:
+    analysis = FULL_ANALYSIS.copy()
+    analysis["main_archetype"] = "<опасный & сохранённый>"
+    analysis["kitchen_analysis"] = "не должен попасть в текст"
+
+    chunks = FullReportTelegramDeliveryService.render_text_chunks(analysis)
+
+    assert chunks[0].startswith("<b>Твой полный разбор готов</b>")
+    assert "&lt;опасный &amp; сохранённый&gt;" in chunks[1]
+    titles = [f"<b>{title}</b>" for title, _key in FullReportTelegramDeliveryService._TEXT_SECTIONS]
+    positions = ["\n".join(chunks).index(title) for title in titles]
+    assert positions == sorted(positions)
+    assert "kitchen_analysis" not in "\n".join(chunks)
+
+
+@pytest.mark.asyncio
+async def test_text_progress_resumes_without_repeating_sent_chunks_or_pdf(db_factory) -> None:
+    _user_id, report_id = await _seed(db_factory)
+    async with db_factory() as session:
+        report = await session.get(Report, report_id)
+        analysis = dict(report.ai_analysis)
+        analysis["main_archetype"] = "длинный текст " * 1_000
+        report.ai_analysis = analysis
+        await session.commit()
+
+    class FailsOnThirdText(FakeSender):
+        async def send_message(self, chat_id: int, text: str) -> int:
+            if len(self.text_calls) == 2:
+                raise TelegramDeliveryError("telegram_network_failure", retryable=True)
+            return await super().send_message(chat_id, text)
+
+    first_sender = FailsOnThirdText()
+    service = FullReportTelegramDeliveryService(db_factory, first_sender)
+    delivery_id = await service.enqueue_automatic(report_id)
+    with pytest.raises(TelegramDeliveryError, match="telegram_network_failure"):
+        await service.deliver(delivery_id)
+    async with db_factory() as session:
+        delivery = await session.get(FullReportTelegramDelivery, delivery_id)
+        persisted_ids = list(delivery.text_message_ids or [])
+        assert delivery.status == "failed" and len(persisted_ids) == 2
+        assert delivery.document_status == "pending"
+
+    second_sender = FakeSender()
+    await FullReportTelegramDeliveryService(db_factory, second_sender).deliver(delivery_id)
+    assert second_sender.calls == ["artifact"]
+    async with db_factory() as session:
+        delivery = await session.get(FullReportTelegramDelivery, delivery_id)
+        assert delivery.status == "completed"
+        assert delivery.text_status == "sent"
+        assert len(delivery.text_message_ids or []) > len(persisted_ids)
+
+
+@pytest.mark.asyncio
+async def test_manual_double_tap_reuses_active_delivery_then_allows_new_completed_resend(
+    db_factory,
+) -> None:
+    user_id, report_id = await _seed(db_factory)
+    service = FullReportTelegramDeliveryService(db_factory, FakeSender())
+
+    first = await service.enqueue_manual(user_id, report_id, "callback-1")
+    second = await service.enqueue_manual(user_id, report_id, "callback-2")
+
+    assert first == second
+    await service.deliver(first)
+    third = await service.enqueue_manual(user_id, report_id, "callback-3")
+    assert third != first
+
+
+@pytest.mark.asyncio
+async def test_manual_resend_reuses_active_automatic_delivery(db_factory) -> None:
+    user_id, report_id = await _seed(db_factory)
+    service = FullReportTelegramDeliveryService(db_factory, FakeSender())
+
+    automatic = await service.enqueue_automatic(report_id)
+    manual = await service.enqueue_manual(user_id, report_id, "callback-while-automatic")
+
+    assert manual == automatic
+
+
+@pytest.mark.asyncio
+async def test_completed_manual_before_automatic_prevents_late_automatic_delivery(
+    db_factory,
+) -> None:
+    user_id, report_id = await _seed(db_factory)
+    sender = FakeSender()
+    service = FullReportTelegramDeliveryService(db_factory, sender)
+
+    manual = await service.enqueue_manual(user_id, report_id, "manual-before-task")
+    await service.deliver(manual)
+    automatic = await service.enqueue_automatic(report_id)
+    reconciled = await FullReportDeliveryReconciler(
+        db_factory, dispatch=lambda *_args: None
+    ).reconcile_batch(now=datetime.now(timezone.utc), limit=10)
+
+    assert automatic == manual
+    assert sender.calls == ["artifact"]
+    assert reconciled.missing_created == 0
+
+
+@pytest.mark.asyncio
+async def test_order_locked_fence_blocks_stale_attempt_before_transport(db_factory) -> None:
+    _user_id, report_id = await _seed(db_factory)
+    repository = FullReportTelegramDeliveryRepository(db_factory)
+    delivery_id = await FullReportTelegramDeliveryService(db_factory).enqueue_automatic(report_id)
+    now = datetime.now(timezone.utc)
+    assert await repository.claim(delivery_id, now) == 1
+    snapshot = ["<b>Сохранённый text snapshot</b>"]
+    assert await repository.ensure_text_snapshot(
+        delivery_id,
+        1,
+        chunks=snapshot,
+        payload_sha256=hashlib.sha256(
+            json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+    )
+    async with db_factory() as session:
+        await session.execute(
+            update(FullReportTelegramDelivery)
+            .where(FullReportTelegramDelivery.id == delivery_id)
+            .values(
+                claimed_at=now - timedelta(
+                    seconds=settings.telegram_delivery_claim_timeout_seconds + 1
+                )
+            )
+        )
+        await session.commit()
+    assert await repository.claim(delivery_id, now) == 2
+
+    sender = FakeSender()
+    service = FullReportTelegramDeliveryService(db_factory, sender)
+    service._deliveries.owns_attempt = AsyncMock(return_value=True)
+    await service.deliver(delivery_id, claimed_attempt=1)
+
+    assert sender.text_calls == [] and sender.calls == []

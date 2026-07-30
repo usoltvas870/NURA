@@ -188,6 +188,7 @@ class RecordingFullDeliveryAdapter:
     instances: list["RecordingFullDeliveryAdapter"] = []
 
     def __init__(self) -> None:
+        self.messages: list[tuple[int, str]] = []
         self.documents: list[tuple[int, bytes, str, str]] = []
         self.file_id_requests: list[tuple[int, str, str]] = []
         type(self).instances.append(self)
@@ -195,6 +196,10 @@ class RecordingFullDeliveryAdapter:
     @classmethod
     def reset(cls) -> None:
         cls.instances = []
+
+    async def send_message(self, chat_id: int, text: str) -> int:
+        self.messages.append((chat_id, text))
+        return 39_000 + len(self.messages)
 
     async def send_document_from_artifact(
         self, chat_id: int, content: bytes, filename: str, caption: str
@@ -2191,6 +2196,8 @@ async def test_automatic_full_report_delivery_uses_queued_registered_task(
     assert len(RecordingFullDeliveryAdapter.instances) == 1
     sender = RecordingFullDeliveryAdapter.instances[0]
     assert sender.file_id_requests == []
+    assert len(sender.messages) > 1
+    assert all(chat_id == TELEGRAM_ID for chat_id, _ in sender.messages)
     assert len(sender.documents) == 1
     chat_id, sent_artifact, filename, caption = sender.documents[0]
     assert chat_id == TELEGRAM_ID and sent_artifact == artifact
@@ -2204,6 +2211,8 @@ async def test_automatic_full_report_delivery_uses_queued_registered_task(
         assert full_report is not None and job is not None and delivery is not None
         assert delivery.status == "completed" and delivery.attempt_count == 1
         assert delivery.claimed_at is None and delivery.sent_at is not None
+        assert delivery.text_status == "sent"
+        assert len(sender.messages) == delivery.total_text_chunks
         assert delivery.telegram_document_message_id == 40_001
         assert delivery.telegram_file_id == "sandbox-full-file-1"
         assert full_report.generation_state == ReportGenerationState.COMPLETED
@@ -2274,7 +2283,7 @@ async def test_automatic_full_report_delivery_fresh_process_replay_has_no_sends(
 
     assert result is None
     assert all(
-        not adapter.documents and not adapter.file_id_requests
+        not adapter.messages and not adapter.documents and not adapter.file_id_requests
         for adapter in RecordingFullDeliveryAdapter.instances
     )
     async with postgres_factory() as session:
@@ -2481,7 +2490,7 @@ async def test_manual_full_report_resend_fresh_process_replay_has_no_sends(
             await _reset_task_runtime(executor)
 
     assert all(
-        not adapter.documents and not adapter.file_id_requests
+        not adapter.messages and not adapter.documents and not adapter.file_id_requests
         for adapter in RecordingFullDeliveryAdapter.instances
     )
     async with postgres_factory() as session:

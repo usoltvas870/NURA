@@ -108,12 +108,12 @@ birth date saved
 |---|---|
 | Entry | 890 ₽ CTA / `buy_matrix` |
 | User action | Открывает YooKassa redirect и оплачивает |
-| Bot response | Checkout link/status; browser return показывает только информационное «проверяем оплату»; после verified webhook/provider verification — generation и PDF delivery |
+| Bot response | Checkout link/status; browser return показывает только информационное «проверяем оплату»; после verified webhook/provider verification — generation и text-then-PDF delivery |
 | Persisted state | Order, payment attempt/event, full report artifact, generation/delivery ledgers |
 | Quota/payment | One-time 890 ₽; verified amount/currency/metadata; idempotent activation |
-| Success | Canonical full PDF доставлен в Telegram и доступен для resend |
+| Success | Canonical full text доставлен в Telegram до PDF и оба артефакта доступны для resend |
 | Failure/retry | Browser return не подтверждает оплату и при повторном открытии остаётся информационным; webhook verification/reconciliation, generation retry, manual/automatic delivery retry; refund blocks delivery |
-| Current limits | Полный текст в Telegram не отправляется; external YooKassa/Telegram sandbox и receipt path не подтверждены |
+| Current limits | External YooKassa/Telegram sandbox и receipt path не подтверждены |
 | Evidence | `core/services/full_matrix_checkout.py`, `api/routes/payment.py`, `core/services/full_report_telegram_delivery.py`, tests/acceptance |
 
 ```text
@@ -123,11 +123,12 @@ birth date saved
   ⇒ verified successful payment
   ⇒ activate order once
   ⇒ generate and persist full PDF
+  ⇒ send persisted Telegram text chunks
   ⇒ send Telegram PDF
   ↺ resend from saved materials if requested
 ```
 
-`IMPLEMENTATION GAP`: NURA 1.0 требует полную текстовую выдачу и PDF непосредственно в Telegram.
+`CURRENT — IMPLEMENTED locally`: NURA 1.0 full delivery отправляет persisted text и затем PDF; external sandbox не выполнялся.
 
 ### 3.5. Saved reports/materials
 
@@ -137,7 +138,7 @@ birth date saved
 |---|---|
 | Entry | Main menu → «Мои разборы» |
 | User action | Выбирает mini/full item и запрашивает повторную доставку |
-| Bot response | Показывает список/detail; mini отправляет текст+PDF, full — PDF |
+| Bot response | Показывает список/detail; mini и full отправляют текст+PDF |
 | Persisted state | Report ownership/status/artifact and delivery records |
 | Quota/payment | Повторный просмотр не расходует chat quota и не требует повторной оплаты |
 | Success | Сохранённый artifact повторно доставлен без regeneration |
@@ -266,7 +267,7 @@ This is a target crosswalk, not a claim that every step exists.
 | 6 | Mini arrives as readable Telegram text + PDF | `CURRENT — IMPLEMENTED` locally; external/content acceptance pending |
 | 7 | User opens «Мои материалы» and can reopen/resend mini | `CURRENT — IMPLEMENTED` foundation; `IMPLEMENTATION GAP` taxonomy/metadata |
 | 8 | User buys one-time full report for 890 ₽ through YooKassa | `CURRENT — IMPLEMENTED` locally; sandbox/receipt pending |
-| 9 | Full report arrives as Telegram text + PDF and remains saved | PDF/resend `CURRENT — IMPLEMENTED`; text `IMPLEMENTATION GAP` |
+| 9 | Full report arrives as Telegram text + PDF and remains saved | `CURRENT — IMPLEMENTED` locally; external sandbox pending |
 | 10 | User asks guided/free questions | Universal free Telegram entry and quota foundation are `CURRENT — IMPLEMENTED`; guided buttons are `IMPLEMENTATION GAP` |
 | 11 | First 5 successfully delivered answers per Moscow product day are free across channels | `IMPLEMENTATION GAP` — current ledger is lifetime |
 | 12 | User receives one stable free daily card | `CURRENT — IMPLEMENTED` locally |
@@ -301,7 +302,7 @@ This is a target crosswalk, not a claim that every step exists.
 |---|---|---|---|---|---|
 | Onboarding | Telegram identity, consent timestamp, birth date | Preferred name, birth date, versioned consent | Refinement only | PWA auth is separate | confirmed current |
 | Mini report | Text + PDF, durable replay | Required finished free artifact | Reused | Tokenized web view may remain | confirmed current |
-| Full report | 890 ₽, durable PDF only | 890 ₽, Telegram text + PDF | Purchase may start 30-day gift access | Tokenized web report remains reachable | confirmed current |
+| Full report | 890 ₽, durable Telegram text + PDF | 890 ₽, Telegram text + PDF | Purchase may start 30-day gift access | Tokenized web report remains reachable | confirmed current |
 | Payments | One-time YooKassa 890 ₽ path | YooKassa one-time 890 ₽; Stars/manual transfers excluded | 30-day gift after full report; then voluntary 399 ₽ / 30 days, no auto-renew | `LEGACY RECURRING 390 ₽ SUBSCRIPTION PATH — NOT TARGET GIFT`; saved method and automatic charges | confirmed current |
 | Materials | «Мои разборы», mini/full resend | Unified «Мои материалы» | Adds Tarot/history/gift artifacts | Web report access | confirmed current |
 | Chat | Universal Telegram entry; ordinary users share five lifetime answers across Telegram/PWA; `has_matrix` has no effect; active legacy subscriber bypasses quota | Universal free Telegram entry; five delivered/day, Moscow reset | Gift/399 access, expanded fair-use | Shared PWA chat ledger and legacy subscriber bypass | daily/delivery-aware quota implementation gap |
@@ -351,7 +352,7 @@ This map does not prescribe the exact gating mechanism, beta/rollout parameters,
 | Invalid onboarding input | Validation and repeated prompt | Consent version/legal surface incomplete |
 | Mini generation/delivery | Durable generation/delivery retry and replay | External Telegram/content acceptance pending |
 | Payment browser return/webhook | Return is informational and repeat-safe; verified webhook activation is idempotent with amount/currency/metadata checks and reconciliation | Real YooKassa sandbox/receipt not executed |
-| Full generation/delivery | Canonical artifact, retry/manual resend, refund fence | Full Telegram text missing |
+| Full generation/delivery | Canonical text + PDF, retry/manual resend, refund fence | External Telegram/content acceptance pending |
 | Chat concurrency/failure | Reservation, release, replay | Daily/delivery-aware semantics missing |
 | Saved material reopen | Ownership/status check and resend | Taxonomy/metadata incomplete |
 | Broadcast failure | Aggregate sent/failed status | Persisted campaign/delivery/suppression/analytics absent |

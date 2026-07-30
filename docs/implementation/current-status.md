@@ -22,9 +22,9 @@
 |---|---|---|---|---|---|---|
 | Telegram onboarding | `PARTIAL` | 1.0 | `nura_app/bot/handlers/start.py`, `nura_app/bot/handlers/onboarding.py`, `nura_app/tests/test_telegram_first_postgres_golden_path.py` | Consent и дата рождения есть; отдельное обязательное имя не собирается, используется Telegram profile | нет | да |
 | Mini-report | `READY` | 1.0 | `nura_app/core/services/mini_report_application.py`, `nura_app/core/services/telegram_report_delivery.py`, `nura_app/tests/test_mini_report_application.py`, `nura_app/tests/test_mini_report_telegram_delivery.py` | Нужны внешний content review и Telegram sandbox, но локальный durable path реализован | нет | да |
-| Полный отчёт | `PARTIAL` | 1.0 | `nura_app/core/services/matrix_report_worker.py`, `nura_app/core/services/full_report_telegram_delivery.py`, `nura_app/tests/test_matrix_report_worker_lifecycle.py`, `nura_app/tests/test_full_report_telegram_delivery.py` | Durable PDF реализован; обязательная текстовая выдача полного отчёта в Telegram отсутствует | нет | да |
+| Полный отчёт | `READY (local)` | 1.0 | `nura_app/core/services/matrix_report_worker.py`, `nura_app/core/services/full_report_telegram_delivery.py`, `nura_app/tests/test_full_report_telegram_delivery.py` | Durable full text + PDF: immutable snapshot, chunk progress, retry and refund fence; external sandbox не выполнялся | нет | да |
 | YooKassa one-time checkout 890 ₽ | `READY` | 1.0 | `nura_app/core/services/full_matrix_checkout.py`, `nura_app/api/routes/payment.py`, `nura_app/tests/test_full_matrix_checkout.py`, `nura_app/tests/test_payment_webhook_verification.py` | Реальный test-shop/webhook/receipt sandbox не выполнялся | нет | да |
-| Текстовая выдача | `PARTIAL` | 1.0 | `nura_app/core/services/telegram_report_delivery.py`, `nura_app/core/services/full_report_telegram_delivery.py` | Mini имеет текст + PDF; full delivery отправляет PDF без обязательного полного текста | нет | да |
+| Текстовая выдача | `READY (local)` | 1.0 | `nura_app/core/services/full_report_telegram_delivery.py` | Full delivery строит только из persisted `ai_analysis`, отправляет canonical sections до PDF и не использует `kitchen_analysis` | нет | да |
 | PDF | `READY` | 1.0 | `nura_app/core/services/pdf.py`, `nura_app/core/services/telegram_report_delivery.py`, `nura_app/core/services/full_report_telegram_delivery.py`, report tests | Production distribution/size и внешний delivery не подтверждены | нет | да |
 | My materials / «Мои разборы» | `PARTIAL` | 1.0 | `nura_app/bot/handlers/profile.py`, `nura_app/core/services/my_reports.py`, `nura_app/tests/test_my_reports.py` | Mini/full list и resend есть; naming и полная target taxonomy материалов не совпадают | нет | да |
 | Free-чат и квота | `PARTIAL` | 1.0 | `nura_app/core/services/chat_quota.py`, `nura_app/core/services/chat_application.py`, `nura_app/tests/test_lifetime_chat_contract.py`, `nura_app/tests/test_web_chat_quota.py` | Общий Telegram/web ledger даёт пять календарных committed-ответов в `Europe/Moscow`; provider/history/send failure не создаёт consumed usage. Не хватает durable transport retry/progress для failed и multipart Telegram delivery, а web HTTP-response не имеет client ACK | нет | да |
@@ -61,7 +61,7 @@
 ## Ключевые implementation gaps NURA 1.0
 
 1. Durable delivery retry/progress для Free-chat и client ACK для web-chat до полного delivery-aware quota contract.
-2. Полный отчёт текстом в Telegram наряду с PDF.
+2. Внешняя Telegram/content acceptance полного отчёта text + PDF.
 3. Минимальный persisted broadcast/campaign delivery, opt-out и analytics contract.
 4. Канонический runtime style layer отдельно для report и chat consumers.
 5. Migration disposition legacy 390/recurring.

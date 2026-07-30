@@ -71,16 +71,16 @@ Canonical full-report path — order-backed Telegram flow:
 5. `full_report_v2.html` рендерит HTML; WeasyPrint конвертирует его в PDF. При ошибке V2 template используется минимальный escaped diagnostic HTML fallback, после чего worker ещё может создать безопасный artifact.
 6. Непосредственно перед persistence worker блокирует и повторно проверяет order. Refund/revocation запрещает commit artifact.
 7. Matrix JSON, narrative JSON, kitchen JSON, PDF bytes, SHA-256, size, MIME, completion timestamp и completed lifecycle state сохраняются в одной `Report` row.
-8. Automatic Telegram delivery требует valid canonical PDF, active user/Telegram identity, `has_matrix` и active `PAID` order. Order остаётся заблокированным через send и durable completion, поэтому refund и delivery сериализованы.
-9. Delivery отправляет PDF с caption. Completed Telegram `file_id` переиспользуется; invalid reuse переключается на upload canonical artifact bytes.
+8. Automatic Telegram delivery требует valid canonical PDF, active user/Telegram identity, `has_matrix` и active `PAID` order. Order блокируется для каждой Telegram boundary call и final completion, поэтому refund и delivery проверяют entitlement перед каждым следующим шагом.
+9. Delivery отправляет immutable text snapshot, затем PDF с caption. Completed Telegram `file_id` переиспользуется; invalid reuse переключается на upload canonical artifact bytes.
 
 ### Legacy payment-linked full — `LEGACY COMPATIBILITY`
 
 Lifecycle repository также допускает claim full `Report` с `payment_id`, но без `order_id`. Для такого report worker не может проверить/заблокировать `Order`, поэтому active `PAID` order fence и pre-persist refund recheck отсутствуют. Completed orderless full может попасть в My Reports, но current full Telegram delivery требует `order_id` и отклоняет resend/send. Это compatibility exception, а не гарантия canonical order-backed contract.
 
-### `IMPLEMENTATION GAP`
+### Full Telegram delivery — `CURRENT — IMPLEMENTED locally`
 
-Текущий full path не отправляет full narrative как Telegram text. NURA 1.0 требует full text + PDF в Telegram. HTML generation и PDF caption target не закрывают.
+Текущий full path отправляет full narrative из persisted `ai_analysis` как immutable Telegram text snapshot, затем PDF. Внешний Telegram sandbox и content acceptance остаются отдельными release gates.
 
 ## 6. Generation and persistence lifecycle
 
@@ -127,7 +127,7 @@ Templates содержат web fonts/web-oriented assets. Наличие фай�
 
 ### Full — `CURRENT — IMPLEMENTED`
 
-- Surface: PDF document с caption, без full Telegram text.
+- Surface: persisted text chunks, затем PDF document с caption.
 - States: queued, sending, completed, failed, canceled.
 - Eligibility повторно проверяется под order lock; refunded/ineligible deliveries отменяются или отклоняются.
 - Automatic и manual deliveries имеют разные idempotency keys. Reconciliation создаёт отсутствующие automatic deliveries и requeue-ит eligible retryable/stale work.
@@ -195,7 +195,7 @@ Retention duration, legal basis и post-refund access к уже потреблё
 | Capability | Current evidence | NURA 1.0 status |
 |---|---|---|
 | Telegram-first mini | Text + PDF с durable delivery | `CURRENT — IMPLEMENTED` |
-| Telegram-first full | Durable PDF + caption | `IMPLEMENTATION GAP`: full Telegram text отсутствует |
+| Telegram-first full | Durable text + PDF with fenced progress | `CURRENT — IMPLEMENTED locally`; external sandbox pending |
 | Защита deterministic facts от prose layer | Matrix рассчитывается вне AI и передаётся как structured input | `CURRENT — IMPLEMENTED`, с ограничениями verifier ниже |
 | Stored artifacts/resend | Registered mini и canonical full artifacts; mixed listing defects | `IMPLEMENTATION GAP`: My Reports pagination/labels и orderless resend |
 | Payment/refund fence | Canonical full: active `PAID` order claim и recheck перед persist/send | `CURRENT — IMPLEMENTED` для order-backed flow; legacy exception остаётся gap |
@@ -220,7 +220,7 @@ Duration/sunset web/PWA compatibility — `OWNER DECISION PENDING` по DM-03.
 
 ## 15. Implementation and evidence gaps
 
-- `IMPLEMENTATION GAP` — full доставляется как PDF + caption, а не full Telegram text + PDF.
+- `IMPLEMENTATION GAP` — external Telegram/content acceptance full text + PDF не выполнен.
 - `IMPLEMENTATION GAP` — separate report/chat prompt files и consumers не имеют independently accepted/versioned rollout/rollback contract.
 - `IMPLEMENTATION GAP` — semantic verifier проверяет selected genericness, length, dashboard и arcana consistency, но не является complete formal acceptance suite всех content invariants.
 - `IMPLEMENTATION GAP` — legacy token fallback ссылается на отсутствующий `full_report.html`; web rendering current order-backed full rows не гарантирован.
@@ -283,3 +283,19 @@ Primary implementation:
 - [Report API routes](../nura_app/api/routes/reports.py)
 - [Mini template](../nura_app/templates/reports/mini_report.html)
 - [Full V2 template](../nura_app/templates/reports/full_report_v2.html)
+
+## Full report Telegram delivery
+
+The canonical full-report delivery is `full-text-pdf-v1`: it renders ordered,
+user-safe Telegram HTML only from persisted `Report.ai_analysis`, snapshots the
+immutable chunks and their SHA-256 before the first send, persists each sent
+message ID, then sends the existing canonical PDF artifact. Completion means
+both text and PDF were durably recorded. `kitchen_analysis` is never rendered.
+Retries resume from the first unsaved text chunk; a PDF retry does not replay
+text. The Telegram/DB boundary is at-least-once: the residual crash window is
+after Telegram accepts one send and before its adjacent progress commit.
+
+Historical completed PDF-only rows remain marked `pdf-only-v0`; no rollout
+creates an unsolicited text resend. A user-initiated resend creates a new
+`full-text-pdf-v1` delivery from saved report data and the canonical PDF, with
+no new Matrix or AI generation.

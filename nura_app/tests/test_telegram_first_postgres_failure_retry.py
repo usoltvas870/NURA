@@ -236,7 +236,12 @@ class Publisher:
 
 class Telegram:
     calls = 0
+    message_calls = 0
     fail = True
+
+    async def send_message(self, chat_id: int, text: str) -> int:
+        type(self).message_calls += 1
+        return 900 + type(self).message_calls
 
     async def send_document_from_artifact(self, chat_id: int, content: bytes, filename: str, caption: str) -> TelegramDocument:
         type(self).calls += 1
@@ -353,7 +358,7 @@ async def test_postgres_webhook_generation_delivery_failure_retry(
         delivery = (await session.execute(select(FullReportTelegramDelivery))).scalar_one()
         assert report.generation_state == "completed" and job.state == "completed" and report.artifact_sha256 == hashlib.sha256(report.artifact_bytes).hexdigest()
         delivery_id, artifact = delivery.id, report.artifact_bytes
-    Telegram.calls, Telegram.fail = 0, True
+    Telegram.calls, Telegram.message_calls, Telegram.fail = 0, 0, True
     monkeypatch.setattr(delivery_module, "TelegramDocumentAdapter", Telegram)
     with ThreadPoolExecutor(max_workers=1) as executor:
         try:
@@ -367,6 +372,7 @@ async def test_postgres_webhook_generation_delivery_failure_retry(
     async with postgres_factory() as session:
         delivery = await session.get(FullReportTelegramDelivery, delivery_id)
         assert delivery.status == "completed" and delivery.telegram_file_id == "failure-retry-file" and Telegram.calls == 2
+        assert Telegram.message_calls == delivery.total_text_chunks
         assert (await session.get(Report, report_id)).artifact_bytes == artifact
         assert await _count(session, PaymentEvent) == 1 and await _count(session, ReportGenerationJob) == 1 and await _count(session, FullReportTelegramDelivery) == 1
 
@@ -688,6 +694,7 @@ async def test_postgres_delivery_and_refund_share_order_linearization_point(
             artifact_size_bytes=len(artifact),
             artifact_mime_type="application/pdf",
             artifact_completed_at=now,
+            ai_analysis={key: "Delivery refund race insight." for key in FALLBACK_FULL},
         )
         session.add(user)
         await session.flush()
@@ -717,6 +724,9 @@ async def test_postgres_delivery_and_refund_share_order_linearization_point(
 
     class BlockingTelegram:
         calls = 0
+
+        async def send_message(self, chat_id: int, text: str) -> int:
+            return 800
 
         async def send_document_from_artifact(
             self, chat_id: int, content: bytes, filename: str, caption: str
@@ -766,7 +776,7 @@ async def test_postgres_delivery_and_refund_share_order_linearization_point(
             FullReportTelegramDelivery, delivery_id
         )
         assert stored_order.status == "refunded"
-        assert stored_delivery.status == "completed"
+        assert stored_delivery.status == "canceled"
         assert stored_delivery.telegram_file_id == "delivery-race-file"
         assert BlockingTelegram.calls == 1
 

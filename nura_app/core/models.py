@@ -669,13 +669,15 @@ class TelegramReportDelivery(Base):
 
 
 class FullReportTelegramDelivery(Base):
-    """Durable full-report PDF delivery; independent from mini-report lifecycle."""
+    """Durable full-report text and PDF delivery; independent from mini-report lifecycle."""
 
     __tablename__ = "full_report_telegram_deliveries"
     __table_args__ = (
         UniqueConstraint("report_id", "delivery_reason", "request_key", name="uq_full_report_delivery_request"),
         CheckConstraint("delivery_reason IN ('automatic', 'manual')", name="ck_full_report_delivery_reason"),
         CheckConstraint("status IN ('queued', 'sending', 'completed', 'failed', 'canceled')", name="ck_full_report_delivery_status"),
+        CheckConstraint("text_status IN ('pending', 'sent', 'legacy_not_delivered')", name="ck_full_report_delivery_text_status"),
+        CheckConstraint("document_status IN ('pending', 'sent')", name="ck_full_report_delivery_document_status"),
         CheckConstraint("attempt_count >= 0", name="ck_full_report_delivery_attempt_count"),
         CheckConstraint("artifact_size_bytes > 0", name="ck_full_report_delivery_artifact_size"),
         CheckConstraint(
@@ -686,7 +688,8 @@ class FullReportTelegramDelivery(Base):
             "(status = 'queued' AND claimed_at IS NULL AND sent_at IS NULL AND failed_at IS NULL) OR "
             "(status = 'sending' AND claimed_at IS NOT NULL AND attempt_count > 0 AND sent_at IS NULL AND failed_at IS NULL) OR "
             "(status = 'completed' AND claimed_at IS NULL AND sent_at IS NOT NULL AND failed_at IS NULL "
-            "AND telegram_document_message_id IS NOT NULL AND retryable = false) OR "
+            "AND telegram_document_message_id IS NOT NULL AND document_status = 'sent' AND retryable = false "
+            "AND (text_status = 'sent' OR delivery_format_version = 'pdf-only-v0')) OR "
             "(status = 'failed' AND claimed_at IS NULL AND failed_at IS NOT NULL AND sent_at IS NULL "
             "AND error_code IS NOT NULL) OR "
             "(status = 'canceled' AND claimed_at IS NULL AND sent_at IS NULL AND retryable = false)",
@@ -705,6 +708,19 @@ class FullReportTelegramDelivery(Base):
         Index("ix_full_report_delivery_status_claimed_at", "status", "claimed_at"),
         Index("ix_full_report_delivery_queued_at", "queued_at"),
         Index("ix_full_report_delivery_request_key", "request_key"),
+        Index(
+            "uq_full_report_delivery_active_report",
+            "report_id",
+            unique=True,
+            postgresql_where=text(
+                "status IN ('queued', 'sending') OR "
+                "(status = 'failed' AND retryable = true)"
+            ),
+            sqlite_where=text(
+                "status IN ('queued', 'sending') OR "
+                "(status = 'failed' AND retryable = true)"
+            ),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -721,6 +737,21 @@ class FullReportTelegramDelivery(Base):
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     telegram_chat_id_snapshot: Mapped[int | None] = mapped_column(BigInteger)
+    delivery_format_version: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default="full-text-pdf-v1"
+    )
+    text_payload_sha256: Mapped[str | None] = mapped_column(String(64))
+    text_chunks_snapshot: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
+    total_text_chunks: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
+    text_message_ids: Mapped[list[int] | None] = mapped_column(JSONB, nullable=True)
+    text_status: Mapped[str] = mapped_column(
+        String(24), nullable=False, server_default="pending"
+    )
+    document_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, server_default="pending"
+    )
     telegram_document_message_id: Mapped[int | None] = mapped_column(BigInteger)
     telegram_caption_message_id: Mapped[int | None] = mapped_column(BigInteger)
     telegram_file_id: Mapped[str | None] = mapped_column(String(256))

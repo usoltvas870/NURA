@@ -33,6 +33,9 @@ class FullReportTelegramDeliveryRepository:
         chat_id: int | None,
     ) -> FullReportTelegramDelivery:
         async with self._session_factory() as session:
+            active = await self._active_for_report(session, report_id)
+            if active is not None:
+                return active
             row = FullReportTelegramDelivery(
                 id=uuid.uuid4(), report_id=report_id, order_id=order_id, user_id=user_id,
                 delivery_reason=reason, request_key=request_key, artifact_sha256=artifact_sha256,
@@ -44,15 +47,36 @@ class FullReportTelegramDeliveryRepository:
                 return row
             except IntegrityError:
                 await session.rollback()
-                return (await session.execute(select(FullReportTelegramDelivery).where(
+                matching = (await session.execute(select(FullReportTelegramDelivery).where(
                     FullReportTelegramDelivery.report_id == report_id,
                     FullReportTelegramDelivery.delivery_reason == reason,
                     FullReportTelegramDelivery.request_key == request_key,
-                ))).scalar_one()
+                ))).scalar_one_or_none()
+                if matching is not None:
+                    return matching
+                active = await self._active_for_report(session, report_id)
+                if active is not None:
+                    return active
+                raise
 
     async def get(self, delivery_id: uuid.UUID) -> FullReportTelegramDelivery | None:
         async with self._session_factory() as session:
             return await session.get(FullReportTelegramDelivery, delivery_id)
+
+    async def get_existing_for_report(
+        self, report_id: uuid.UUID
+    ) -> FullReportTelegramDelivery | None:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(FullReportTelegramDelivery)
+                .where(FullReportTelegramDelivery.report_id == report_id)
+                .order_by(
+                    FullReportTelegramDelivery.created_at,
+                    FullReportTelegramDelivery.id,
+                )
+                .limit(1)
+            )
+            return result.scalar_one_or_none()
 
     async def owns_attempt(self, delivery_id: uuid.UUID, attempt: int) -> bool:
         async with self._session_factory() as session:
@@ -70,11 +94,10 @@ class FullReportTelegramDeliveryRepository:
         self, limit: int
     ) -> list[uuid.UUID]:
         async with self._session_factory() as session:
-            automatic_exists = (
+            delivery_exists = (
                 select(FullReportTelegramDelivery.id)
                 .where(
                     FullReportTelegramDelivery.report_id == Report.id,
-                    FullReportTelegramDelivery.delivery_reason == "automatic",
                 )
                 .exists()
             )
@@ -93,7 +116,7 @@ class FullReportTelegramDeliveryRepository:
                     Order.status == OrderStatus.PAID,
                     User.account_status == "active",
                     User.has_matrix.is_(True),
-                    ~automatic_exists,
+                    ~delivery_exists,
                 )
                 .order_by(Report.generated_at, Report.id)
                 .limit(limit)
@@ -181,6 +204,21 @@ class FullReportTelegramDeliveryRepository:
     async def claim(self, delivery_id: uuid.UUID, now: datetime) -> int | None:
         stale_before = now - timedelta(seconds=settings.telegram_delivery_claim_timeout_seconds)
         async with self._session_factory() as session:
+            # This is the same paid-order lock used around each Telegram call. A
+            # stale claimant therefore cannot overtake an active sender whose call
+            # is still in flight and turn its durable progress into a duplicate.
+            order_id = await session.scalar(
+                select(FullReportTelegramDelivery.order_id).where(
+                    FullReportTelegramDelivery.id == delivery_id
+                )
+            )
+            if order_id is None:
+                return None
+            locked_order = await session.scalar(
+                select(Order.id).where(Order.id == order_id).with_for_update()
+            )
+            if locked_order is None:
+                return None
             eligible = (
                 (FullReportTelegramDelivery.status == FullReportTelegramDeliveryState.QUEUED)
                 | ((FullReportTelegramDelivery.status == FullReportTelegramDeliveryState.FAILED)
@@ -197,11 +235,146 @@ class FullReportTelegramDeliveryRepository:
             await session.commit()
             return result.scalar_one_or_none()
 
-    async def complete(self, delivery_id: uuid.UUID, attempt: int, *, message_id: int, file_id: str | None) -> bool:
-        return await self._terminal(delivery_id, attempt, status=FullReportTelegramDeliveryState.COMPLETED,
-                                    sent_at=datetime.now(timezone.utc), telegram_document_message_id=message_id,
-                                    telegram_file_id=file_id, retryable=False,
-                                    failed_at=None, error_code=None, error_detail=None)
+    @staticmethod
+    async def _active_for_report(session, report_id: uuid.UUID):
+        result = await session.execute(
+            select(FullReportTelegramDelivery)
+            .where(
+                FullReportTelegramDelivery.report_id == report_id,
+                (
+                    FullReportTelegramDelivery.status.in_(
+                        (
+                            FullReportTelegramDeliveryState.QUEUED,
+                            FullReportTelegramDeliveryState.SENDING,
+                        )
+                    )
+                    | (
+                        (FullReportTelegramDelivery.status
+                         == FullReportTelegramDeliveryState.FAILED)
+                        & FullReportTelegramDelivery.retryable.is_(True)
+                    )
+                ),
+            )
+            .order_by(FullReportTelegramDelivery.created_at, FullReportTelegramDelivery.id)
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    async def complete(
+        self,
+        delivery_id: uuid.UUID,
+        attempt: int,
+        *,
+        message_id: int | None = None,
+        file_id: str | None = None,
+    ) -> bool:
+        async with self._session_factory() as session:
+            filters = [
+                FullReportTelegramDelivery.id == delivery_id,
+                FullReportTelegramDelivery.status
+                == FullReportTelegramDeliveryState.SENDING,
+                FullReportTelegramDelivery.attempt_count == attempt,
+            ]
+            if message_id is None:
+                filters.extend(
+                    (
+                        FullReportTelegramDelivery.text_status == "sent",
+                        FullReportTelegramDelivery.document_status == "sent",
+                        FullReportTelegramDelivery.telegram_document_message_id.is_not(
+                            None
+                        ),
+                    )
+                )
+            result = await session.execute(
+                update(FullReportTelegramDelivery)
+                .where(*filters)
+                .values(
+                    status=FullReportTelegramDeliveryState.COMPLETED,
+                    claimed_at=None,
+                    sent_at=datetime.now(timezone.utc),
+                    retryable=False,
+                    failed_at=None,
+                    error_code=None,
+                    error_detail=None,
+                    **(
+                        {
+                            "text_status": "sent",
+                            "document_status": "sent",
+                            "telegram_document_message_id": message_id,
+                            "telegram_file_id": file_id,
+                        }
+                        if message_id is not None
+                        else {}
+                    ),
+                )
+            )
+            await session.commit()
+            return result.rowcount == 1
+
+    async def ensure_text_snapshot(
+        self,
+        delivery_id: uuid.UUID,
+        attempt: int,
+        *,
+        chunks: list[str],
+        payload_sha256: str,
+    ) -> FullReportTelegramDelivery | None:
+        """Persist immutable rendered chunks before the first external send."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                update(FullReportTelegramDelivery)
+                .where(
+                    FullReportTelegramDelivery.id == delivery_id,
+                    FullReportTelegramDelivery.status
+                    == FullReportTelegramDeliveryState.SENDING,
+                    FullReportTelegramDelivery.attempt_count == attempt,
+                    FullReportTelegramDelivery.text_chunks_snapshot.is_(None),
+                )
+                .values(
+                    text_chunks_snapshot=chunks,
+                    text_payload_sha256=payload_sha256,
+                    total_text_chunks=len(chunks),
+                )
+            )
+            await session.commit()
+            if result.rowcount != 1:
+                return await session.get(FullReportTelegramDelivery, delivery_id)
+            return await session.get(FullReportTelegramDelivery, delivery_id)
+
+    async def save_text_progress(
+        self, delivery_id: uuid.UUID, attempt: int, message_ids: list[int]
+    ) -> bool:
+        return await self._progress(
+            delivery_id,
+            attempt,
+            text_message_ids=message_ids,
+        )
+
+    async def mark_text_sent(
+        self, delivery_id: uuid.UUID, attempt: int, message_ids: list[int]
+    ) -> bool:
+        return await self._progress(
+            delivery_id,
+            attempt,
+            text_message_ids=message_ids,
+            text_status="sent",
+        )
+
+    async def mark_document_sent(
+        self,
+        delivery_id: uuid.UUID,
+        attempt: int,
+        *,
+        message_id: int,
+        file_id: str | None,
+    ) -> bool:
+        return await self._progress(
+            delivery_id,
+            attempt,
+            document_status="sent",
+            telegram_document_message_id=message_id,
+            telegram_file_id=file_id,
+        )
 
     async def fail(self, delivery_id: uuid.UUID, attempt: int, code: str, *, retryable: bool) -> bool:
         return await self._terminal(delivery_id, attempt, status=FullReportTelegramDeliveryState.FAILED,
@@ -228,5 +401,22 @@ class FullReportTelegramDeliveryRepository:
                 FullReportTelegramDelivery.status == FullReportTelegramDeliveryState.SENDING,
                 FullReportTelegramDelivery.attempt_count == attempt,
             ).values(claimed_at=None, **values))
+            await session.commit()
+            return result.rowcount == 1
+
+    async def _progress(
+        self, delivery_id: uuid.UUID, attempt: int, **values: object
+    ) -> bool:
+        async with self._session_factory() as session:
+            result = await session.execute(
+                update(FullReportTelegramDelivery)
+                .where(
+                    FullReportTelegramDelivery.id == delivery_id,
+                    FullReportTelegramDelivery.status
+                    == FullReportTelegramDeliveryState.SENDING,
+                    FullReportTelegramDelivery.attempt_count == attempt,
+                )
+                .values(**values)
+            )
             await session.commit()
             return result.rowcount == 1
