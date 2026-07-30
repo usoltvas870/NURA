@@ -64,7 +64,7 @@
 | Aspect | Current behavior |
 |---|---|
 | Entry | `/start`, `/menu`, completion callbacks, profile/menu return |
-| User action | Выбирает Matrix, Tarot, chat, compatibility, reports или profile |
+| User action | Выбирает Matrix, Tarot с бесплатной картой дня, chat, reports или profile; compatibility видна только при явном release flag |
 | Bot response | Inline main menu и feature-specific message |
 | Persisted state | User/report/order state читается из PostgreSQL; transient interaction state — Redis FSM |
 | Quota/payment | Зависит от выбранной функции |
@@ -149,23 +149,27 @@ birth date saved
 
 ### 3.6. Free chat
 
-Универсальный Telegram entry и quota foundation — `CURRENT — IMPLEMENTED`; daily delivery-aware quota из target NURA 1.0 — `IMPLEMENTATION GAP`.
+Универсальный Telegram entry и daily quota/reset — `CURRENT — IMPLEMENTED` локально; durable delivery-aware retry/progress остаётся `IMPLEMENTATION GAP`.
 
 | Aspect | Current behavior |
 |---|---|
 | Entry | Main menu → «Чат с NURA»; `_has_chat_access` безусловно возвращает `True`, поэтому ordinary user входит без `has_matrix`; legacy PWA chat uses the same application layer |
 | User action | Отправляет свободный текст |
-| Bot response | Ordinary user, включая пользователя без `has_matrix`, получает AI answer либо lifetime-limit/failure response |
-| Persisted state | Durable usage reservation/consumption, request id/result; conversation history in Redis |
-| Quota/payment | Non-subscriber получает 5 consumed answers за всё время в shared Telegram/web ledger. Verified full-matrix payment sets `has_matrix=True`, но marker не меняет access или quota; active legacy premium/subscriber bypasses quota |
-| Success | Generation and history finalization complete, then reservation is consumed |
-| Failure/retry | Provider/fallback failure releases reservation; duplicate request replays result without second charge |
-| Current limits | Нет daily reset, delivery-aware accounting и canonical guided buttons. Telegram paywall и PWA copy о доступе «без ограничений»/без дневного лимита конфликтуют с shared lifetime ledger |
+| Bot response | Ordinary user, включая пользователя без `has_matrix`, получает AI answer либо controlled daily-limit/failure response |
+| Persisted state | Durable request reservation/result/consumption; conversation history in Redis |
+| Quota/payment | Non-subscriber получает 5 успешно доставленных ответов за календарный день в shared Telegram/web ledger (`Europe/Moscow`). `has_matrix` не меняет access/quota; active legacy premium/subscriber bypasses quota |
+| Success | Generation и history finalization завершены; Telegram consume выполняется после успешной отправки всех chunks |
+| Failure/retry | Provider/fallback releases reservation; persistence/send failure не создаёт consumed usage; duplicate request replays durable result без второго AI-вызова или charge |
+| Current limits | Canonical guided-button surface не реализован; external Telegram acceptance не выполнена |
 | Evidence | `bot/handlers/chat.py`, `core/services/full_matrix_checkout.py`, `core/services/chat_quota.py`, chat application/history services and tests |
 
-Target mismatch is explicit: universal Telegram free-chat entry уже реализован. NURA 1.0 заменяет current lifetime ledger на 5 **успешно доставленных** ответов каждый product day, reset at `00:00 Europe/Moscow`, shared across Telegram/PWA compatibility surfaces. Активный legacy subscriber bypasses current quota; `has_matrix` не участвует в access или bypass. Существующий `_has_unlimited_chat` helper с test-mode/`has_matrix` branches не используется фактическим chat flow.
+Локально реализованы universal entry, календарный reset `00:00 Europe/Moscow` и shared ledger. Активный legacy subscriber bypasses quota; `has_matrix` не участвует в access или bypass. `test_mode` остаётся development-only bypass. Для полного NURA 1.0 delivery-aware contract ещё нужны durable retry/progress при Telegram transport failure и client ACK после web rendering.
 
 При lifetime-limit current chat возвращает limit response; menu, сохранённые материалы, PDF и daily card остаются отдельными путями и не расходуют chat quota.
+
+#### Local free-chat delivery evidence (2026-07-30)
+
+The daily shared ledger persists Telegram chunk index/attempt/error state and only consumes quota once all response chunks are recorded as delivered. Retryable failures retain the saved response and reservation; terminal or controlled-expiry failures release it. The legacy PWA receives a delivery ID and calls an owned idempotent ACK after it renders the reply. External Telegram/PWA runtime acceptance was not executed.
 
 ### 3.7. Daily card
 

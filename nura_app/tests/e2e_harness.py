@@ -27,7 +27,7 @@ from api.routes.web import (
     UserProfileResponse,
 )
 from core.schemas.auth import EmailAuthRequest, EmailAuthResponse
-from core.schemas.chat import ChatQuotaState, ChatRequest, ChatResponse
+from core.schemas.chat import ChatDeliveryAckResponse, ChatQuotaState, ChatRequest, ChatResponse
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -330,7 +330,19 @@ def create_e2e_harness() -> FastAPI:
         quota = _quota(selected)
         if not quota.can_send:
             return JSONResponse(status_code=402, content=quota.model_dump(mode="json"))
-        return ChatResponse(reply="Deterministic E2E reply.", quota=quota)
+        return ChatResponse(
+            reply="Deterministic E2E reply.", quota=quota,
+            delivery_id="e2e-chat-delivery", delivery_status="awaiting_ack",
+        )
+
+    @app.post("/api/v1/web/chat/deliveries/{delivery_id}/ack", response_model=ChatDeliveryAckResponse)
+    async def chat_ack(request: Request, delivery_id: str) -> ChatDeliveryAckResponse:
+        selected = persona(request)
+        _profile(selected)
+        record(request, {"delivery_id": delivery_id})
+        return ChatDeliveryAckResponse(
+            delivery_id=delivery_id, delivery_status="delivered", quota=_quota(selected)
+        )
 
     @app.get("/api/v1/web/notifications", response_model=NotificationPrefsResponse)
     async def notifications(request: Request) -> NotificationPrefsResponse:

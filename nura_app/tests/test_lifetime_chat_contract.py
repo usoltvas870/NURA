@@ -1,9 +1,10 @@
-"""Acceptance contracts for durable lifetime free chat."""
+"""Acceptance contracts for durable daily free chat."""
 
 from __future__ import annotations
 
 import inspect
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -71,10 +72,15 @@ def test_model_and_migration_define_exact_lifetime_ledger_contract() -> None:
         "id", "user_id", "request_key", "channel", "status", "billable",
         "created_at", "reserved_at", "consumed_at", "released_at", "release_reason",
         "response_text", "error_code", "result_ready_at", "updated_at",
+        "delivery_status", "delivery_total_chunks", "delivery_next_chunk_index",
+        "delivery_attempt_count", "delivery_claimed_at", "delivery_completed_at",
+        "delivery_failed_at", "delivery_retryable", "delivery_error_code",
+        "telegram_chat_id_snapshot",
     }
     assert {index.name for index in table.indexes} == {
         "ix_chat_message_usages_user_status",
         "ix_chat_message_usages_stale_reserved",
+        "ix_chat_message_usages_delivery_claim",
     }
     source = MIGRATION.read_text(encoding="utf-8")
     assert 'revision = "d6e7f8a9b0c1"' in source
@@ -134,7 +140,7 @@ async def test_history_helper_rejects_empty_response_and_propagates_redis_error(
 
 
 @pytest.mark.asyncio
-async def test_five_successes_exhaust_lifetime_and_service_restart_does_not_reset(
+async def test_five_successes_exhaust_the_current_calendar_day(
     db_engine,
 ) -> None:
     factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
@@ -155,6 +161,36 @@ async def test_five_successes_exhaust_lifetime_and_service_restart_does_not_rese
     assert sixth.state.messages_left == 0
     restarted_service = ChatQuotaService(factory)
     assert (await restarted_service.state(user.id, subscriber=False)).messages_left == 0
+
+
+@pytest.mark.asyncio
+async def test_daily_quota_resets_at_the_configured_calendar_boundary(
+    db_engine, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    async with factory() as session:
+        user = User(id=uuid.uuid4(), telegram_id=111222333)
+        session.add(user)
+        await session.commit()
+
+    current = {"value": datetime(2026, 1, 1, 20, 59, tzinfo=timezone.utc)}
+    monkeypatch.setattr("core.services.chat_quota.settings.chat_quota_timezone", "Europe/Moscow")
+    service = ChatQuotaService(factory, now_provider=lambda: current["value"])
+    for index in range(5):
+        reservation = await service.reserve(
+            user.id, f"before-midnight-{index}", ChatChannel.TELEGRAM, subscriber=False
+        )
+        await service.store_result(reservation.usage_id, f"answer-{index}")
+        await service.consume(reservation.usage_id)
+
+    assert (await service.state(user.id, subscriber=False)).messages_left == 0
+    current["value"] = datetime(2026, 1, 1, 21, 1, tzinfo=timezone.utc)
+    reset = await service.state(user.id, subscriber=False)
+    assert reset.used == 0
+    assert reset.messages_left == 5
+    assert (await service.reserve(
+        user.id, "after-midnight", ChatChannel.TELEGRAM, subscriber=False
+    )).kind == QuotaReservationKind.RESERVED_NEW
 
 
 @pytest.mark.asyncio
@@ -198,6 +234,12 @@ async def test_result_ready_survives_history_failure_and_retry_skips_ai(
         history_finalizer=history_failure,
     )
     assert first.kind == ChatResultKind.HISTORY_FINALIZATION_PENDING
+    assert first.usage_id == "usage-id"
+    assert first.delivery_status == "awaiting_ack"
+    assert first.history[-2:] == [
+        {"role": "user", "content": "hello", "request_key": "k"},
+        {"role": "assistant", "content": "durable", "request_key": "k"},
+    ]
     quota.store_result.assert_awaited_once_with("usage-id", "durable")
     quota.consume.assert_not_awaited()
 
@@ -210,7 +252,30 @@ async def test_result_ready_survives_history_failure_and_retry_skips_ai(
     assert second.kind == ChatResultKind.COMPLETED_REPLAYED
     assert second.reply == "durable"
     assert ai.await_count == 1
-    quota.consume.assert_awaited_once_with("usage-id")
+    quota.consume.assert_not_awaited()
+    assert second.usage_id == "usage-id"
+
+
+@pytest.mark.asyncio
+async def test_result_store_failure_is_not_exposed_for_delivery(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    quota = AsyncMock()
+    quota.reserve.return_value = _reservation(QuotaReservationKind.RESERVED_NEW)
+    quota.store_result.side_effect = ConnectionError("postgres")
+    monkeypatch.setattr(
+        "core.services.chat_application.AIService.chat_response",
+        AsyncMock(return_value="not durable"),
+    )
+
+    result = await ChatApplicationService(quota).respond(
+        user_id="u", request_key="k", channel=ChatChannel.TELEGRAM, subscriber=False,
+        message="hello", history=[], matrix_data={}, user_name="Test",
+    )
+
+    assert result.kind == ChatResultKind.PERSISTENCE_FAILURE
+    assert result.reply is None
+    assert result.usage_id is None
 
 
 @pytest.mark.asyncio
@@ -271,6 +336,11 @@ def test_pwa_uses_one_stable_uuid_key_per_submit_and_clears_terminal_key() -> No
     assert "retry && pendingRequestKey ? pendingRequestKey : crypto.randomUUID()" in source
     assert "'Idempotency-Key': requestKey" in source
     assert "pendingRequestKey = null; state = data; return;" in source
-    assert "pendingRequestKey = null; var replyTime" in source
+    assert "'/web/chat/deliveries/' + encodeURIComponent(deliveryId) + '/ack'" in source
+    assert "if (!acknowledgement.ok) throw new Error('chat_ack');" in source
+    assert "state = acknowledgementData.quota;" in source
+    assert "localStorage.setItem(pendingDeliveryStorageKey()" in source
+    assert "await recoverPendingDelivery();" in source
+    assert "if (pendingDeliveryId) { try { await acknowledgeDelivery(pendingDeliveryId); renderState(); } catch (_) { return; } }" in source
     assert "daily limit" not in source.lower()
     assert "сброс" not in source.lower()

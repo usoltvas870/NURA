@@ -26,8 +26,10 @@ class ChatApplicationResult:
     reply: str | None
     quota: object
     history: list[dict]
+    usage_id: object | None = None
     replayed: bool = False
     error_code: str | None = None
+    delivery_status: str | None = None
 
 
 class ChatApplicationService:
@@ -61,12 +63,24 @@ class ChatApplicationService:
                 return ChatApplicationResult(ChatResultKind.PERSISTENCE_FAILURE, None, reservation.state, history)
             try:
                 await history_finalizer(reservation.response_text)
-                quota = await self._quota_service.consume(reservation.usage_id)
             except Exception:
-                return ChatApplicationResult(ChatResultKind.HISTORY_FINALIZATION_PENDING, reservation.response_text,
-                                             reservation.state, history, True, "history_finalization_pending")
-            return ChatApplicationResult(ChatResultKind.COMPLETED_REPLAYED, reservation.response_text, quota,
-                                         self._history_with_pair(history, request_key, message, reservation.response_text), True)
+                return ChatApplicationResult(
+                    ChatResultKind.HISTORY_FINALIZATION_PENDING,
+                    reservation.response_text,
+                    reservation.state,
+                    self._history_with_pair(
+                        history, request_key, message, reservation.response_text
+                    ),
+                    reservation.usage_id,
+                    True,
+                    "history_finalization_pending",
+                    reservation.delivery_status,
+                )
+            return ChatApplicationResult(
+                ChatResultKind.COMPLETED_REPLAYED, reservation.response_text, reservation.state,
+                self._history_with_pair(history, request_key, message, reservation.response_text),
+                reservation.usage_id, True, delivery_status=reservation.delivery_status,
+            )
         if reservation.usage_id is None:
             return ChatApplicationResult(ChatResultKind.PERSISTENCE_FAILURE, None, reservation.state, history)
         try:
@@ -81,10 +95,28 @@ class ChatApplicationService:
             return ChatApplicationResult(ChatResultKind.PROVIDER_FAILURE, None, quota, history, error_code="fallback")
         try:
             await self._quota_service.store_result(reservation.usage_id, reply)
-            await history_finalizer(reply)
-            quota = await self._quota_service.consume(reservation.usage_id)
         except Exception:
-            return ChatApplicationResult(ChatResultKind.HISTORY_FINALIZATION_PENDING, reply, reservation.state,
-                                         history, error_code="history_finalization_pending")
-        return ChatApplicationResult(ChatResultKind.COMPLETED_NEW, reply, quota,
-                                     self._history_with_pair(history, request_key, message, reply))
+            return ChatApplicationResult(
+                ChatResultKind.PERSISTENCE_FAILURE,
+                None,
+                reservation.state,
+                history,
+                error_code="persistence_failure",
+            )
+        try:
+            await history_finalizer(reply)
+        except Exception:
+            return ChatApplicationResult(
+                ChatResultKind.HISTORY_FINALIZATION_PENDING,
+                reply,
+                reservation.state,
+                self._history_with_pair(history, request_key, message, reply),
+                reservation.usage_id,
+                error_code="history_finalization_pending",
+                delivery_status="awaiting_ack" if channel == ChatChannel.WEB else "pending",
+            )
+        return ChatApplicationResult(
+            ChatResultKind.COMPLETED_NEW, reply, reservation.state,
+            self._history_with_pair(history, request_key, message, reply), reservation.usage_id,
+            delivery_status="awaiting_ack" if channel == ChatChannel.WEB else "pending",
+        )

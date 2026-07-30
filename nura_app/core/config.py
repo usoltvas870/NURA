@@ -161,6 +161,10 @@ class Settings(BaseSettings):
 
     # Chat
     chat_free_message_limit: int = Field(default=5, ge=1, le=100)
+    chat_quota_timezone: str = "Europe/Moscow"
+    enable_expanded_tarot: bool = False
+    enable_compatibility: bool = False
+    enable_referral_promotion: bool = False
     default_daily_tarot_timezone: str = "Europe/Moscow"
     daily_tarot_claim_timeout_seconds: int = Field(default=900, ge=60, le=3600)
 
@@ -200,6 +204,7 @@ class Settings(BaseSettings):
     bot_username: str | None = None
     telegram_document_max_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     telegram_delivery_claim_timeout_seconds: int = Field(default=900, ge=60, le=3600)
+    chat_delivery_result_ttl_seconds: int = Field(default=86400, ge=3600, le=7 * 86400)
 
     @model_validator(mode="after")
     def _load_telegram_token_file(self) -> "Settings":
@@ -346,13 +351,13 @@ class Settings(BaseSettings):
             raise ValueError(f"runtime_profile_must_be_one_of:{supported}")
         return normalized
 
-    @field_validator("default_daily_tarot_timezone")
+    @field_validator("chat_quota_timezone", "default_daily_tarot_timezone")
     @classmethod
-    def _validate_daily_tarot_timezone(cls, value: str) -> str:
+    def _validate_timezone(cls, value: str) -> str:
         try:
             ZoneInfo(value)
         except (TypeError, ZoneInfoNotFoundError) as error:
-            raise ValueError("invalid_default_daily_tarot_timezone") from error
+            raise ValueError("invalid_timezone") from error
         return value
 
     @property

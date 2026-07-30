@@ -12,6 +12,7 @@ from core.services.chat_quota import (
     QuotaReservation,
     QuotaReservationKind,
 )
+from bot.handlers.chat import _has_unlimited_chat
 
 
 def test_free_chat_limit_is_centralized_in_settings() -> None:
@@ -27,6 +28,35 @@ def test_subscriber_requires_active_entitlement() -> None:
         subscription_until=None,
         now=now,
     )
+
+
+def test_has_matrix_never_grants_unlimited_chat(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("bot.handlers.chat.settings.test_mode", False)
+    now = datetime.now(timezone.utc)
+    has_matrix_only = type("User", (), {
+        "has_matrix": True,
+        "tarot_subscription": False,
+        "tarot_subscription_until": None,
+        "subscription_status": "free",
+        "subscription_until": None,
+    })()
+    expired_premium = type("User", (), {
+        "has_matrix": False,
+        "tarot_subscription": False,
+        "tarot_subscription_until": None,
+        "subscription_status": "premium",
+        "subscription_until": now - timedelta(seconds=1),
+    })()
+    active_premium = type("User", (), {
+        "has_matrix": False,
+        "tarot_subscription": False,
+        "tarot_subscription_until": None,
+        "subscription_status": "premium",
+        "subscription_until": now + timedelta(seconds=1),
+    })()
+    assert not _has_unlimited_chat(has_matrix_only)
+    assert not _has_unlimited_chat(expired_premium)
+    assert _has_unlimited_chat(active_premium)
     assert not ChatQuotaService.is_subscriber(
         tarot_subscription=True,
         tarot_subscription_until=now - timedelta(seconds=1),
@@ -42,7 +72,7 @@ def test_chat_request_rejects_whitespace_only_message() -> None:
 
 
 @pytest.mark.asyncio
-async def test_application_service_does_not_send_ai_when_lifetime_quota_is_exhausted() -> None:
+async def test_application_service_does_not_send_ai_when_daily_quota_is_exhausted() -> None:
     quota = AsyncMock()
     quota.reserve.return_value = QuotaReservation(
         QuotaReservationKind.EXHAUSTED,
@@ -69,7 +99,6 @@ async def test_duplicate_completed_request_replays_durable_response_without_ai(
         ChatQuotaService._free_state(1),
         response_text="Durable answer",
     )
-    quota.consume.return_value = ChatQuotaService._free_state(1)
     ai = AsyncMock()
     monkeypatch.setattr("core.services.chat_application.AIService.chat_response", ai)
 
@@ -82,4 +111,5 @@ async def test_duplicate_completed_request_replays_durable_response_without_ai(
     assert result.reply == "Durable answer"
     assert result.replayed is True
     ai.assert_not_awaited()
-    quota.consume.assert_awaited_once_with("usage-1")
+    quota.consume.assert_not_awaited()
+    assert result.usage_id == "usage-1"

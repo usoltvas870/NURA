@@ -57,8 +57,9 @@ Execute and record each scenario separately:
 3. Generate one mini-report; verify readable Telegram text, one PDF and repeat access.
 4. Open My Reports/materials and resend the existing mini artifact without regeneration.
 5. Open Daily Tarot twice in the same product period and verify the same stored result.
-6. Exercise the currently implemented lifetime five-message chat boundary and record
-   that the canonical daily reset remains an implementation gap; do not claim target acceptance.
+6. Exercise five successful delivered chat responses, verify that the sixth request is
+   blocked before generation, then verify a five-response reset after `00:00 Europe/Moscow`.
+   Use only the approved test bot and fake/local providers where the runbook prescribes them.
 7. Open the 890 ₽ Full Matrix checkout CTA and verify that it points only to the test shop.
 8. After verified sandbox payment, receive the full PDF automatically and repeat manual
    delivery from My Reports without new Matrix, AI, PDF, order or payment side effects.
@@ -236,6 +237,10 @@ Runner modes have distinct purposes:
 - `--failure-retry-only`: proves webhook, generation and delivery failure/retry plus fresh-process replay without duplicate side effects;
 - `--golden-path-only`: runs the ordered cumulative Telegram-first PostgreSQL golden-path segments and durability replay;
 - `--safe-suite-only`: runs the deterministic file-sharded pytest suite and per-shard cleanup/immutability checks without creating the main acceptance sandbox.
+
+### Chat delivery boundary (local implementation)
+
+Free-chat now stores one request key, response and delivery record. Telegram delivery persists the completed chunk index after every send and resumes at that index after a retry; it commits the daily quota only after all chunks are durable. Retryable transport failures keep the reservation, while terminal or expired deliveries release it. The legacy PWA receives a stable delivery ID and must call its owned ACK endpoint after rendering; that ACK is idempotent and is the only web quota-commit point. This is local code/test evidence only: no Telegram, PWA browser, AI, YooKassa or production sandbox was executed by this change.
 
 To run the completed cumulative PostgreSQL golden path:
 

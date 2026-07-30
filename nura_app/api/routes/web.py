@@ -44,7 +44,7 @@ from core.services.auth import (
     TelegramConfirmationNotFoundError,
     TelegramLinkConfirmationService,
 )
-from core.schemas.chat import ChatQuotaState, ChatRequest, ChatResponse
+from core.schemas.chat import ChatDeliveryAckResponse, ChatQuotaState, ChatRequest, ChatResponse
 
 logger = logging.getLogger(__name__)
 
@@ -458,7 +458,7 @@ async def get_user_profile(
         ))
 
     ref_link = None
-    if user.telegram_id:
+    if settings.enable_referral_promotion and user.telegram_id:
         ref_link = f"https://t.me/{settings.bot_username}?start=ref_{user.telegram_id}"
 
     sub_until = None
@@ -569,7 +569,7 @@ def _safe_chat_history(value: object) -> list[dict[str, str]]:
 
 
 def _chat_subscriber(user: User) -> bool:
-    return ChatQuotaService.is_subscriber(
+    return settings.test_mode or ChatQuotaService.is_subscriber(
         tarot_subscription=bool(user.tarot_subscription),
         tarot_subscription_until=user.tarot_subscription_until,
         subscription_status=user.subscription_status,
@@ -644,7 +644,35 @@ async def web_chat(
         return JSONResponse(status_code=402, content=result.quota.model_dump(mode="json"))
     if result.kind not in {ChatResultKind.COMPLETED_NEW, ChatResultKind.COMPLETED_REPLAYED}:
         raise HTTPException(status_code=503, detail="chat_unavailable")
-    return ChatResponse(reply=result.reply or "", quota=result.quota)
+    if result.usage_id is None:
+        raise HTTPException(status_code=503, detail="chat_unavailable")
+    return ChatResponse(
+        reply=result.reply or "", quota=result.quota,
+        delivery_id=str(result.usage_id), delivery_status=result.delivery_status or "awaiting_ack",
+    )
+
+
+@router.post("/chat/deliveries/{delivery_id}/ack", response_model=ChatDeliveryAckResponse)
+@limiter.limit("30/minute")
+async def acknowledge_web_chat_delivery(
+    request: Request,
+    delivery_id: str,
+    user: User = Depends(get_current_web_user),
+):
+    try:
+        usage_id = uuid.UUID(delivery_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="chat_delivery_not_found") from None
+    acknowledgement = await ChatQuotaService(get_async_sessionmaker()).acknowledge_web_delivery(
+        user.id, usage_id
+    )
+    if acknowledgement is None:
+        raise HTTPException(status_code=409, detail="chat_delivery_not_acknowledgeable")
+    return ChatDeliveryAckResponse(
+        delivery_id=str(acknowledgement.usage_id),
+        delivery_status=acknowledgement.status,
+        quota=acknowledgement.state,
+    )
 
 class TestSubscribeResponse(BaseModel):
     ok: bool

@@ -31,3 +31,11 @@ class ChatQuotaState(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     quota: ChatQuotaState
+    delivery_id: str
+    delivery_status: str
+
+
+class ChatDeliveryAckResponse(BaseModel):
+    delivery_id: str
+    delivery_status: str
+    quota: ChatQuotaState

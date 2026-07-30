@@ -57,7 +57,15 @@ celery_app.conf.update(
     task_default_routing_key=settings.celery_task_queue,
 )
 
-celery_app.conf.beat_schedule = {} if settings.nura_tg_pilot else {
+_chat_delivery_schedule = {
+    "reconcile-chat-deliveries": {
+        "task": "core.tasks.reconcile_chat_deliveries",
+        "schedule": timedelta(minutes=5),
+        "kwargs": {"limit": 20},
+    },
+}
+
+celery_app.conf.beat_schedule = _chat_delivery_schedule if settings.nura_tg_pilot else {
     "send-weekly-tarot-spread": {
         "task": "core.tasks.send_weekly_tarot_spread",
         "schedule": crontab(hour=9, minute=0, day_of_week=1),
@@ -118,6 +126,7 @@ celery_app.conf.beat_schedule = {} if settings.nura_tg_pilot else {
             "expires": settings.report_generation_reconciliation_interval_seconds - 30
         },
     },
+    **_chat_delivery_schedule,
 }
 
 async def _send_message(
@@ -505,6 +514,58 @@ def deliver_full_report(self, delivery_id: str, claimed_attempt: int | None = No
             ) from error
 
     _run_async(_run())
+
+
+@celery_app.task(
+    bind=True, name="core.tasks.deliver_chat_response", acks_late=True,
+    reject_on_worker_lost=True, max_retries=3, default_retry_delay=30,
+)
+def deliver_chat_response(self, usage_id: str) -> None:
+    """Continue a persisted Telegram chat delivery after a transient failure."""
+    try:
+        parsed_id = uuid.UUID(usage_id)
+    except (ValueError, AttributeError):
+        return
+
+    async def _run() -> None:
+        from core.services.chat_quota import ChatQuotaService
+        from core.services.chat_telegram_delivery import TelegramChatDeliveryService
+
+        result = await TelegramChatDeliveryService(
+            ChatQuotaService(get_async_sessionmaker())
+        ).deliver(parsed_id)
+        if result.retryable:
+            raise self.retry(
+                exc=ConnectionError("telegram_chat_delivery_retryable"),
+                countdown=30,
+                args=(usage_id,), kwargs={},
+            )
+
+    _run_async(_run())
+
+
+@celery_app.task(name="core.tasks.reconcile_chat_deliveries", acks_late=False)
+def reconcile_chat_deliveries(limit: int = 20) -> dict:
+    if limit <= 0 or limit > 100:
+        return {"ok": False, "error": "invalid_limit"}
+
+    async def _run() -> dict:
+        from core.services.chat_quota import ChatQuotaService
+
+        selected = await ChatQuotaService(get_async_sessionmaker()).list_reconcilable_telegram_delivery_ids(
+            limit=limit
+        )
+        dispatched = 0
+        errors = 0
+        for usage_id in selected:
+            try:
+                deliver_chat_response.delay(str(usage_id))
+                dispatched += 1
+            except Exception:
+                errors += 1
+        return {"selected": len(selected), "dispatched": dispatched, "errors": errors}
+
+    return _run_async(_run())
 
 
 @celery_app.task(

@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
-def tarot_menu_keyboard(has_tarot: bool = False) -> InlineKeyboardMarkup:
+def tarot_menu_keyboard(has_tarot: bool = False, *, expanded_enabled: bool = False) -> InlineKeyboardMarkup:
     """
     Новая структура (задача 2.2):
     [🌒 Карта дня]
@@ -10,7 +10,7 @@ def tarot_menu_keyboard(has_tarot: bool = False) -> InlineKeyboardMarkup:
     [❓ По вопросу]  [✨ Ещё расклады →]
     [← Назад]
     """
-    if has_tarot:
+    if expanded_enabled and has_tarot:
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="🌒 Карта дня", callback_data="tarot_daily_card")],
@@ -26,6 +26,13 @@ def tarot_menu_keyboard(has_tarot: bool = False) -> InlineKeyboardMarkup:
                     InlineKeyboardButton(text="❓ По вопросу", callback_data="tarot_question"),
                     InlineKeyboardButton(text="✨ Ещё расклады →", callback_data="tarot_more"),
                 ],
+                [InlineKeyboardButton(text="← Назад", callback_data="main_menu")],
+            ]
+        )
+    if not expanded_enabled:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🌙 Карта дня", callback_data="tarot_daily_card")],
                 [InlineKeyboardButton(text="← Назад", callback_data="main_menu")],
             ]
         )

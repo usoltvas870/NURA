@@ -21,6 +21,7 @@ from bot.texts.onboarding import (
 )
 from bot.texts.start import help_text, welcome_back_text
 from core.database import get_async_sessionmaker, get_redis
+from core.config import settings
 from core.services.account_deletion import AccountDeletionService
 from core.repositories.user import UserRepository
 from core.services.attribution import AttributionService
@@ -74,7 +75,7 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
         start_parameter=args,
     )
 
-    if args and args.startswith("ref_"):
+    if args and args.startswith("ref_") and settings.enable_referral_promotion:
         ref_part = args[4:]
         if ref_part.isdigit():
             referrer_telegram_id = int(ref_part)

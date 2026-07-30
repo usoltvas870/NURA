@@ -33,7 +33,7 @@
 | Landing | Короткий объясняющий вход с CTA/deep link в Telegram | `TARGET — NURA 1.0` |
 | Public Telegram channel | Не входит в обязательные поверхности 1.0/1.5 | `OUT OF SCOPE — NURA 1.0/1.5` |
 | PWA/web | Существующий web client, auth, chat, Tarot, report links и push | `LEGACY COMPATIBILITY` |
-| Expanded Tarot, compatibility, referral | Реализация опережает version boundary; DM-04 требует скрыть эти функции из primary user path до соответствующего release | `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04` |
+| Expanded Tarot, compatibility, referral | Реализация сохранена за explicit release flags; default NURA 1.0 скрывает UI и direct callbacks/deep-link entry | `CURRENT — DM-04 APPLIED` |
 
 ## 4. Current implemented architecture
 
@@ -69,12 +69,12 @@ Public wiring подтверждён bot router и локальным golden pat
 `CURRENT — IMPLEMENTED`
 
 - `/start`, `/menu`, `/profile`, `/help` и callbacks ведут в inline-menu/profile flows.
-- Main menu содержит Matrix, Tarot, chat, compatibility, «Мои разборы», профиль и 890 ₽ CTA.
-- Menu также показывает PWA/email/VK entry; Tarot/compatibility видимы в local runtime wiring.
+- Main menu содержит Matrix, Tarot с бесплатной картой дня, chat, «Мои разборы», профиль и 890 ₽ CTA.
+- Compatibility скрыта по умолчанию; `enable_compatibility=true` восстанавливает существующий путь. Expanded Tarot закрыт `enable_expanded_tarot=false` по умолчанию.
 - Profile показывает Telegram name, birth date, Matrix/report state, legacy subscription controls и support contact.
 - Target settings surface, preferred-name edit, consent/legal navigation и полноценная quota state не собраны в единый профиль.
 
-Legacy PWA buttons — `LEGACY COMPATIBILITY`. Expanded Tarot и compatibility видимы в primary menu, а referral link — в profile; dedicated gating не найден — `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04`.
+Legacy PWA buttons — `LEGACY COMPATIBILITY`. Expanded Tarot, compatibility и referral promotion используют explicit false-by-default flags; закрытые callbacks дают нейтральный ответ и очищают FSM. Parsing legacy `ref_` deep links сохраняется без reward processing.
 
 ### 4.4. Mini-report
 
@@ -124,7 +124,7 @@ Taxonomy/naming — `IMPLEMENTATION GAP`; сохранение и repeated deliv
 - Provider/fallback failure освобождает reservation; duplicate request возвращает сохранённый результат без повторного списания.
 - В current greeting нет канонического набора 4–6 guided entry buttons.
 
-Текущая semantics для обычного пользователя — доступный Telegram entry и five lifetime consumed answers в общем Telegram/web ledger. Paywall copy предлагает перейти в PWA «без ограничений», а PWA также использует формулировки о безлимитном или дневном доступе, хотя web использует тот же lifetime ledger; это `IMPLEMENTATION / COPY GAP`. Универсальный бесплатный Telegram entry уже реализован. Daily 5 successful delivered answers, reset `00:00 Europe/Moscow`, delivery-aware cross-channel accounting и guided entries — `TARGET — NURA 1.0` / `IMPLEMENTATION GAP`.
+Обычный зарегистрированный Telegram user входит в чат без `has_matrix`. Telegram и web используют общий `ChatMessageUsage` ledger: для Free это пять календарных committed-ответов с reset `00:00 Europe/Moscow` (`chat_quota_timezone`). Ответ сохраняется и финализирует history до transport; Telegram consume выполняется только после успешного send. `has_matrix` не даёт bypass; только активный legacy entitlement или development `test_mode` дают unlimited access. До полного delivery-aware contract остаются durable retry/progress для failed multipart Telegram transport и client ACK для web.
 
 ### 4.8. Daily card and expanded Tarot
 
@@ -191,7 +191,7 @@ Status: `IMPLEMENTATION GAP` for the accepted/versioned report/chat runtime styl
 | Telegram text delivery | Mini and full readable in chat | Mini text exists; full text absent | `IMPLEMENTATION GAP` | Product spec §§3.5, 11.6 |
 | Telegram PDF delivery | Mini/full document, repeatable | Durable mini/full PDF and replay/resend | `CURRENT — IMPLEMENTED` locally | Product spec §§10.2, 11.6 |
 | Materials reopening | Open/resend without regeneration/payment | Ownership-checked list and repeated delivery | `CURRENT — IMPLEMENTED`; taxonomy gap | Product spec §12 |
-| Free chat | Universal Telegram access; 5 successful delivered answers each product day | Universal Telegram entry exists; ordinary users share 5 lifetime consumed answers across Telegram/web, `has_matrix` does not change access/quota, active legacy entitlement bypasses quota | Universal entry/shared ledger `CURRENT — IMPLEMENTED`; daily delivery-aware quota `IMPLEMENTATION GAP` | Product spec §13.1; Telegram chat handler/quota tests |
+| Free chat | Universal Telegram access; 5 successful delivered answers each product day | Ordinary users share five daily committed answers across Telegram/web; `has_matrix` does not bypass quota; active legacy entitlement remains unlimited | Daily/reset/access `CURRENT — IMPLEMENTED`; durable delivery retry/progress and web client ACK `IMPLEMENTATION GAP` | Product spec §13.1; Telegram chat handler/quota tests |
 | Guided questions | 4–6 concrete entry topics | Generic examples in greeting; no canonical guided-button surface | `IMPLEMENTATION GAP` | Product spec §13.3 |
 | Daily card | Free, one stable result per period | Durable per-user/local-date reuse | `CURRENT — IMPLEMENTED` locally | Product spec §14 |
 | Minimal broadcasts | Manual campaign, test send, segment, CTA, idempotency, status | Generic task start/status and all/free/premium transport | `IMPLEMENTATION GAP` | Product spec §16 |
@@ -200,6 +200,10 @@ Status: `IMPLEMENTATION GAP` for the accepted/versioned report/chat runtime styl
 | Product analytics | Funnel/payment/report/chat/broadcast events and KPI queries | Attribution link/touch foundation; operational rows only | `IMPLEMENTATION GAP` | Product spec §19 |
 | Report/chat prompt contracts | Separate approved/versioned runtime contracts | Separate loaders/files exist | `IMPLEMENTATION GAP` — acceptance/version contract incomplete | Product spec §§3.7, 20 |
 | Retry/support/observability | Recover payments/generation/delivery; support and monitoring | Strong durable/local foundation | `CURRENT — IMPLEMENTED` partially; external/legal/production gates pending | Product spec §§17–22; acceptance index |
+
+### Local chat delivery evidence (2026-07-30)
+
+The shared Telegram/PWA ledger now persists one request, stored response and logical delivery ID. Telegram records multipart progress after each completed chunk and commits quota only after the final chunk; retryable transport failures preserve the reservation and resume from the next persisted chunk. The PWA receives a stable delivery ID and commits through an owned, idempotent ACK endpoint after rendering. This is local implementation evidence only; no external Telegram, PWA runtime, AI, YooKassa or production sandbox was executed.
 
 ## 6. Target NURA 1.5 boundary
 

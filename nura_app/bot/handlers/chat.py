@@ -18,11 +18,7 @@ from bot.texts.chat import (
     paywall_text,
 )
 from bot.texts.start import help_text
-from bot.utils.formatting import (
-    TELEGRAM_INPUT_MAX_LENGTH,
-    TELEGRAM_MESSAGE_MAX_LENGTH,
-    split_telegram_html_text,
-)
+from bot.utils.formatting import TELEGRAM_INPUT_MAX_LENGTH
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
 from core.repositories.report import ReportRepository
@@ -31,6 +27,7 @@ from core.services.ai import AIService  # noqa: F401
 from core.services.chat_application import ChatApplicationService, ChatResultKind
 from core.services.chat_history import finalize_chat_history_once
 from core.services.chat_quota import ChatChannel, ChatQuotaService
+from core.services.chat_telegram_delivery import TelegramChatDeliveryService
 
 logger = logging.getLogger(__name__)
 
@@ -67,13 +64,12 @@ def _has_chat_access(user) -> bool:
 
 
 def _has_unlimited_chat(user, reports: list | None = None) -> bool:  # noqa: ARG001
-    if settings.test_mode:
-        return True
-    if user.subscription_status == "premium":
-        return True
-    if user.has_matrix:
-        return True
-    return False
+    return settings.test_mode or ChatQuotaService.is_subscriber(
+        tarot_subscription=bool(user.tarot_subscription),
+        tarot_subscription_until=user.tarot_subscription_until,
+        subscription_status=user.subscription_status,
+        subscription_until=user.subscription_until,
+    )
 
 
 @router.callback_query(F.data == "chat_with_nura")
@@ -113,12 +109,7 @@ async def enter_chat(callback: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(matrix_data=matrix_report.matrix_data)
     await state.update_data(user_name=name)
 
-    subscriber = ChatQuotaService.is_subscriber(
-        tarot_subscription=bool(user.tarot_subscription),
-        tarot_subscription_until=user.tarot_subscription_until,
-        subscription_status=user.subscription_status,
-        subscription_until=user.subscription_until,
-    )
+    subscriber = _has_unlimited_chat(user)
     quota_state = await ChatQuotaService(get_async_sessionmaker()).state(
         user.id, subscriber=subscriber
     )
@@ -184,12 +175,15 @@ async def chat_message(message: Message, state: FSMContext) -> None:
     if user is None:
         await message.answer("Пользователь не найден. Начни с /start")
         return
-    subscriber = ChatQuotaService.is_subscriber(
-        tarot_subscription=bool(user.tarot_subscription),
-        tarot_subscription_until=user.tarot_subscription_until,
-        subscription_status=user.subscription_status,
-        subscription_until=user.subscription_until,
-    )
+    try:
+        raw_history = await get_redis().get(_history_key(user.id))
+        if raw_history:
+            durable_history = json.loads(raw_history)
+            if isinstance(durable_history, list):
+                chat_history = [item for item in durable_history[-20:] if isinstance(item, dict)]
+    except Exception:
+        logger.warning("telegram_chat_history_recovery_failed", exc_info=True)
+    subscriber = _has_unlimited_chat(user)
     request_key = _telegram_request_key(message.chat.id, message.message_id)
     result = await ChatApplicationService(ChatQuotaService(session_factory)).respond(
         user_id=user.id,
@@ -215,19 +209,54 @@ async def chat_message(message: Message, state: FSMContext) -> None:
     if result.kind == ChatResultKind.IN_PROGRESS:
         await message.answer("Это сообщение уже обрабатывается. Попробуй немного позже.")
         return
-    if result.kind not in {ChatResultKind.COMPLETED_NEW, ChatResultKind.COMPLETED_REPLAYED}:
+    if result.kind not in {
+        ChatResultKind.COMPLETED_NEW,
+        ChatResultKind.COMPLETED_REPLAYED,
+        ChatResultKind.HISTORY_FINALIZATION_PENDING,
+    }:
         await message.answer("Сервис временно недоступен. Сообщение не списано.")
         return
+    if result.usage_id is None:
+        await message.answer("Сервис временно недоступен. Сообщение не списано.")
+        return
+    if (
+        result.kind in {
+            ChatResultKind.COMPLETED_REPLAYED,
+            ChatResultKind.HISTORY_FINALIZATION_PENDING,
+        }
+        and result.delivery_status == "delivered"
+    ):
+        await state.update_data(chat_history=result.history, chat_user_id=str(user.id))
+        return
+    quota_service = ChatQuotaService(session_factory)
+    delivery_service = TelegramChatDeliveryService(quota_service)
+    chunks = delivery_service.chunks(result.reply or "")
+    try:
+        await quota_service.configure_telegram_delivery(
+            result.usage_id, chat_id=message.chat.id, total_chunks=len(chunks)
+        )
+    except Exception:
+        logger.exception("telegram_chat_delivery_prepare_failed")
+        await message.answer("Сервис временно недоступен. Сообщение не списано.")
+        return
+    delivery = await delivery_service.deliver(result.usage_id, send_chunk=message.answer)
+    if delivery.retryable:
+        logger.warning("telegram_chat_delivery_retryable", extra={"usage_id": str(result.usage_id)})
+        try:
+            from core.tasks import deliver_chat_response
+            deliver_chat_response.delay(str(result.usage_id))
+        except Exception:
+            logger.warning("telegram_chat_delivery_dispatch_failed", exc_info=True)
+        return
+    if delivery.status != "delivered" or delivery.quota is None:
+        await message.answer("Не удалось доставить ответ. Сообщение не списано.")
+        return
+    quota_state = delivery.quota
     chat_history = result.history
     await state.update_data(chat_history=chat_history, chat_user_id=str(user.id))
-    suffix = "" if subscriber else messages_remaining_text(result.quota.messages_left or 0)
-    response_chunks = split_telegram_html_text(
-        result.reply or "", max_length=TELEGRAM_MESSAGE_MAX_LENGTH - len(suffix),
-    )
-    response_chunks[-1] += suffix
-    for response_chunk in response_chunks:
-        await message.answer(response_chunk)
-    if not subscriber and result.quota.messages_left == 0:
+    if not subscriber:
+        await message.answer(messages_remaining_text(quota_state.messages_left or 0))
+    if not subscriber and quota_state.messages_left == 0:
         await message.answer(paywall_text(), reply_markup=pwa_cta_keyboard())
         await state.clear()
     return

@@ -1,4 +1,5 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from core.config import settings
 
 
 def main_menu_keyboard(
@@ -19,15 +20,16 @@ def main_menu_keyboard(
             matrix_btn,
             InlineKeyboardButton(text="🌒 Таро", callback_data="tarot_menu"),
         ],
-        [
-            InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura"),
-            InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility"),
-        ],
+        [InlineKeyboardButton(text="💬 Чат с NURA", callback_data="chat_with_nura")],
         [
             InlineKeyboardButton(text="📄 Мои разборы", callback_data="reports:list:0"),
             InlineKeyboardButton(text="👤 Профиль", callback_data="profile"),
         ],
     ]
+    if settings.enable_compatibility:
+        keyboard[1].append(
+            InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility")
+        )
     if has_matrix:
         keyboard.insert(0, [
             InlineKeyboardButton(text="🌐 Открыть в NURA", url="https://nura-ai.ru/app")

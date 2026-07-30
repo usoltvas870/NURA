@@ -8,7 +8,7 @@
     "/offline.html": "4153c2af4511f70f75452fc892d376ed96236fb3dfddd4ccc3589fca3fdaf8ab",
     "/pwa-install.js": "fb7e8cbd3e9f60b846410e5f9e184f51bc45ebbd2b0ba5fa0fa7bfc3dcf60fcb",
     "/pwa/app/chat-v1-2.css": "867179ce7c351e59ad8ca130c700cc3f7ce39ffab8079949a0b882cdb0726316",
-    "/pwa/app/chat.html": "8a22b7c7e587282487c3c0b2f8b40dbd83373bc71c7e14f7a5780be921113a6c",
+    "/pwa/app/chat.html": "f66fa0c2e7036a0cd7065b95f10b556b9235d1fc3951034525069bbe323da6d7",
     "/pwa/app/home-v9.css": "d7d29df8b291b046f8b290c7b684126cbc058f1d19d895495ba419f7e40b8401",
     "/pwa/app/index.html": "adec57da2b8370a6dee6a4592a36dd9825376657d4f4b77f58efef38b1353c54",
     "/pwa/app/nura-pwa.css": "29319dd17cc45d716f939f7b5313aee8cc9e4f2e14c49ddd48c88a2b0f5421d1",
@@ -22,5 +22,5 @@
     "/success.html": "ec32c7a0c5d0ef7f7e4dc7cf534da2f0b5f3c353cd64079f657b5007d5c70a05",
     "/theme.css": "ac9d303cdb8a503c38f30d9f705f85ee79aff6cd696006d6698c40f0196d1f1a"
   },
-  "release_id": "a2a067705a223fbe"
+  "release_id": "3caed8acb3cac786"
 }

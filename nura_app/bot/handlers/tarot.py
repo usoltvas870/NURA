@@ -72,6 +72,18 @@ def _paywall_text(spread_name: str) -> str:
     )
 
 
+async def _reject_expanded_tarot(callback: CallbackQuery, state: FSMContext | None = None) -> bool:
+    if settings.enable_expanded_tarot:
+        return False
+    if state is not None:
+        await state.clear()
+    await callback.answer()
+    await callback.message.edit_text(
+        "Эта практика пока недоступна.", reply_markup=main_menu_keyboard()
+    )
+    return True
+
+
 @router.callback_query(F.data == "tarot_menu")
 async def show_tarot_menu(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
@@ -96,11 +108,17 @@ async def show_tarot_menu(callback: CallbackQuery, state: FSMContext) -> None:
             "Карта дня — бесплатно каждое утро.\n"
             "Остальные расклады — в полной практике."
         )
-    await callback.message.edit_text(text, reply_markup=tarot_menu_keyboard(has_tarot))
+    await callback.message.edit_text(
+        text, reply_markup=tarot_menu_keyboard(
+            has_tarot, expanded_enabled=settings.enable_expanded_tarot
+        )
+    )
 
 
 @router.callback_query(F.data == "tarot_more")
 async def show_tarot_more(callback: CallbackQuery) -> None:
+    if await _reject_expanded_tarot(callback):
+        return
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -178,6 +196,8 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "tarot_weekly")
 async def show_tarot_weekly(callback: CallbackQuery) -> None:
+    if await _reject_expanded_tarot(callback):
+        return
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -240,6 +260,8 @@ async def show_tarot_weekly(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "tarot_question")
 async def start_tarot_question(callback: CallbackQuery, state: FSMContext) -> None:
+    if await _reject_expanded_tarot(callback, state):
+        return
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -258,6 +280,8 @@ async def start_tarot_question(callback: CallbackQuery, state: FSMContext) -> No
     "tarot_sphere_money", "tarot_sphere_relations", "tarot_sphere_purpose",
 }))
 async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None:
+    if await _reject_expanded_tarot(callback, state):
+        return
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -309,6 +333,8 @@ async def show_sphere_result(callback: CallbackQuery, state: FSMContext) -> None
 
 @router.callback_query(F.data == "tarot_spheres")
 async def show_tarot_spheres(callback: CallbackQuery, state: FSMContext) -> None:
+    if await _reject_expanded_tarot(callback, state):
+        return
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -326,6 +352,8 @@ async def show_tarot_spheres(callback: CallbackQuery, state: FSMContext) -> None
 
 @router.callback_query(F.data == "tarot_twins")
 async def show_tarot_twins(callback: CallbackQuery) -> None:
+    if await _reject_expanded_tarot(callback):
+        return
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -379,6 +407,8 @@ async def show_tarot_twins(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "tarot_portal")
 async def show_tarot_portal(callback: CallbackQuery) -> None:
+    if await _reject_expanded_tarot(callback):
+        return
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -442,6 +472,8 @@ async def show_tarot_portal(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "tarot_blocks")
 async def show_tarot_blocks(callback: CallbackQuery) -> None:
+    if await _reject_expanded_tarot(callback):
+        return
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -506,6 +538,8 @@ async def show_tarot_blocks(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "tarot_yes_no")
 async def start_tarot_yes_no(callback: CallbackQuery, state: FSMContext) -> None:
+    if await _reject_expanded_tarot(callback, state):
+        return
     await callback.answer()
     user = await _get_user(callback.from_user.id)
     if user is None:
@@ -521,6 +555,10 @@ async def start_tarot_yes_no(callback: CallbackQuery, state: FSMContext) -> None
 
 @router.message(TarotStates.waiting_for_question)
 async def handle_question_input(message: Message, state: FSMContext) -> None:
+    if not settings.enable_expanded_tarot:
+        await state.clear()
+        await message.answer("Эта практика пока недоступна.", reply_markup=main_menu_keyboard())
+        return
     if not message.text or not message.text.strip():
         await message.answer("Напиши свой вопрос текстом.")
         return

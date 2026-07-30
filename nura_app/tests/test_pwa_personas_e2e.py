@@ -339,8 +339,15 @@ def test_chat_personas_keyboard_and_single_request(browser: Browser) -> None:
         assert "\n" in page.locator("#chat-input").input_value()
         page.locator("#chat-input").press("Enter")
         page.locator("#conversation").wait_for(state="visible")
+        page.wait_for_function("""async () => {
+            const response = await fetch('/__e2e__/requests');
+            return (await response.json()).count === 2;
+        }""")
         records = page.request.get("http://127.0.0.1:4174/__e2e__/requests").json()
-        assert records["count"] == 1 and records["requests"][0]["path"] == "/api/v1/web/chat"
+        assert [item["path"] for item in records["requests"]] == [
+            "/api/v1/web/chat",
+            "/api/v1/web/chat/deliveries/e2e-chat-delivery/ack",
+        ]
         assert_no_unexpected_errors(errors)
     finally:
         context.close()
@@ -394,6 +401,17 @@ def test_chat_final_send_shows_banner_after_response(browser: Browser) -> None:
     context, page, errors = new_page(browser, "free")
     try:
         request_count = 0
+        acknowledgement_count = 0
+        final_quota = {
+            "access": "free",
+            "can_send": False,
+            "daily_limit": 10,
+            "used": 10,
+            "messages_left": 0,
+            "reset_at": "2026-07-19T00:00:00Z",
+            "timezone": "UTC",
+            "code": "limit_reached",
+        }
 
         def last_quota(route: Route) -> None:
             nonlocal request_count
@@ -401,31 +419,36 @@ def test_chat_final_send_shows_banner_after_response(browser: Browser) -> None:
             route.fulfill(
                 json={
                     "reply": "Последний ответ NURA",
-                    "quota": {
-                        "access": "free",
-                        "can_send": False,
-                        "daily_limit": 10,
-                        "used": 10,
-                        "messages_left": 0,
-                        "reset_at": "2026-07-19T00:00:00Z",
-                        "timezone": "UTC",
-                        "code": "limit_reached",
-                    },
+                    "quota": final_quota,
+                    "delivery_id": "final-chat-delivery",
+                    "delivery_status": "awaiting_ack",
                 }
             )
 
+        def acknowledge_last_quota(route: Route) -> None:
+            nonlocal acknowledgement_count
+            acknowledgement_count += 1
+            route.fulfill(json={
+                "delivery_id": "final-chat-delivery",
+                "delivery_status": "delivered",
+                "quota": final_quota,
+            })
+
         page.route("**/api/v1/web/chat", last_quota)
+        page.route("**/api/v1/web/chat/deliveries/*/ack", acknowledge_last_quota)
         open_page(page, "chat.html")
         page.request.post("http://127.0.0.1:4174/__e2e__/reset")
         page.locator("#chat-input").fill("Последний вопрос")
         page.locator("#send-btn").click()
         page.locator("text=Последний ответ NURA").wait_for(state="visible")
+        page.locator("#quota-banner").wait_for(state="visible")
         assert page.locator("#quota-banner").is_visible()
         assert page.locator("#limit-state").is_hidden()
         assert page.locator("#chat-input").is_disabled()
         assert page.locator("#send-btn").is_disabled()
         assert page.locator("text=Последний ответ NURA").count() == 1
         assert request_count == 1
+        assert acknowledgement_count == 1
         assert_no_unexpected_errors(errors)
     finally:
         context.close()

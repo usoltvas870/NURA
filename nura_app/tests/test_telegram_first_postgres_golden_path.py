@@ -1584,8 +1584,9 @@ async def test_lifetime_chat_restart_replay_and_sixth_request_are_durable(
         for method in transport.methods
         if method.__api_method__ == "sendMessage"
     ]
-    assert any("Sandbox chat answer 5" in text_value for text_value in outbound_texts)
-    assert outbound_texts.count(paywall_text()) == 2
+    assert not any("Sandbox chat answer 5" in text_value for text_value in outbound_texts)
+    assert not any("Не удалось доставить ответ" in text_value for text_value in outbound_texts)
+    assert outbound_texts.count(paywall_text()) == 1
 
     async with postgres_factory() as session:
         usages = (await session.execute(select(ChatMessageUsage))).scalars().all()

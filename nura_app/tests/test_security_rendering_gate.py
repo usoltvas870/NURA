@@ -206,7 +206,12 @@ async def test_chat_rejects_over_limit_before_ai_history_and_quota(
 
 
 @pytest.mark.asyncio
-async def test_chat_accepts_limit_and_escapes_ai_response() -> None:
+@pytest.mark.parametrize(
+    "result_kind_name", ("COMPLETED_NEW", "HISTORY_FINALIZATION_PENDING")
+)
+async def test_chat_accepts_limit_and_escapes_ai_response(
+    result_kind_name: str,
+) -> None:
     message = _telegram_message("x" * TELEGRAM_INPUT_MAX_LENGTH)
     state = AsyncMock()
     state.get_data.return_value = {
@@ -225,12 +230,38 @@ async def test_chat_accepts_limit_and_escapes_ai_response() -> None:
     from core.services.chat_application import ChatApplicationResult, ChatResultKind
 
     completed = ChatApplicationResult(
-        ChatResultKind.COMPLETED_NEW, "<broken>& response", quota, []
+        getattr(ChatResultKind, result_kind_name),
+        "<broken>& response",
+        quota,
+        [],
+        "usage-42",
+        delivery_status="pending",
     )
-    with patch("bot.handlers.chat.UserRepository", return_value=repo), patch(
-        "bot.handlers.chat.ChatApplicationService.respond",
-        new=AsyncMock(return_value=completed),
-    ) as respond:
+    claim = SimpleNamespace(
+        usage_id="usage-42",
+        response_text="<broken>& response",
+        chat_id=42,
+        total_chunks=1,
+        next_chunk_index=0,
+        attempt=1,
+    )
+    quota_service = MagicMock()
+    quota_service.configure_telegram_delivery = AsyncMock()
+    quota_service.claim_telegram_delivery = AsyncMock(return_value=claim)
+    quota_service.mark_telegram_chunk_delivered = AsyncMock(return_value=True)
+    quota_service.complete_telegram_delivery = AsyncMock(return_value=quota)
+    redis = MagicMock()
+    redis.get = AsyncMock(return_value=None)
+    with (
+        patch("bot.handlers.chat.UserRepository", return_value=repo),
+        patch("bot.handlers.chat.get_redis", return_value=redis),
+        patch("bot.handlers.chat.ChatQuotaService", return_value=quota_service),
+        patch("bot.handlers.chat._has_unlimited_chat", return_value=True),
+        patch(
+            "bot.handlers.chat.ChatApplicationService.respond",
+            new=AsyncMock(return_value=completed),
+        ) as respond,
+    ):
         await chat_message(message, state)
 
     assert respond.await_args.kwargs["message"] == message.text
@@ -270,7 +301,7 @@ async def test_tarot_rejects_over_limit_before_state_and_ai() -> None:
 
     with patch(
         "bot.handlers.tarot.generate_tarot_text", new_callable=AsyncMock
-    ) as ai:
+    ) as ai, patch("bot.handlers.tarot.settings.enable_expanded_tarot", True):
         await handle_question_input(message, state)
 
     ai.assert_not_awaited()
@@ -300,6 +331,7 @@ async def test_tarot_accepts_limit_and_splits_escaped_question() -> None:
         ) as ai,
         patch("bot.handlers.tarot.animated_loading", return_value=loading),
         patch("bot.handlers.tarot.tarot_result_keyboard", return_value=MagicMock()),
+        patch("bot.handlers.tarot.settings.enable_expanded_tarot", True),
     ):
         await handle_question_input(message, state)
 

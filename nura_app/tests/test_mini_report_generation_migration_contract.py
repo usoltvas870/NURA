@@ -13,7 +13,7 @@ MIGRATION_PATH = (
 def test_mini_report_generation_migration_has_expected_parent_and_single_head() -> None:
     script = ScriptDirectory.from_config(Config(str(NURA_APP_ROOT / "alembic.ini")))
     heads = script.get_heads()
-    assert heads == ["f9a0b1c2d3e4"]
+    assert heads == ["b4c5d6e7f8a9"]
     revision = script.get_revision("c1d2e3f4a5b6")
     assert revision is not None and revision.down_revision == "b1c2d3e4f5a6"
 

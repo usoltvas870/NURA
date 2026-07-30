@@ -272,8 +272,14 @@ class ChatMessageUsage(Base):
             "(status = 'released' AND consumed_at IS NULL AND released_at IS NOT NULL AND result_ready_at IS NULL)",
             name="ck_chat_message_usages_timestamps_state",
         ),
+        CheckConstraint(
+            "delivery_status IN ('pending', 'queued', 'sending', 'retryable', 'delivered', 'awaiting_ack', 'failed')",
+            name="ck_chat_message_usages_delivery_status",
+        ),
+        CheckConstraint("delivery_attempt_count >= 0", name="ck_chat_message_usages_delivery_attempt_count"),
         Index("ix_chat_message_usages_user_status", "user_id", "status"),
         Index("ix_chat_message_usages_stale_reserved", "status", "reserved_at"),
+        Index("ix_chat_message_usages_delivery_claim", "delivery_status", "delivery_claimed_at"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -294,6 +300,16 @@ class ChatMessageUsage(Base):
     response_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     result_ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivery_status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="pending")
+    delivery_total_chunks: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    delivery_next_chunk_index: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    delivery_attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    delivery_claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivery_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivery_failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivery_retryable: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    delivery_error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    telegram_chat_id_snapshot: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )

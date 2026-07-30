@@ -142,8 +142,13 @@ def repo_patch():
 @pytest.fixture(autouse=True)
 def patch_settings_test_mode():
     """Автоматически выключаем test_mode во всех тестах."""
-    with patch("bot.handlers.tarot.settings") as mock_settings:
+    with (
+        patch("bot.handlers.tarot.settings") as mock_settings,
+        patch("bot.handlers.compatibility.settings.enable_compatibility", True),
+        patch("bot.handlers.start.settings.enable_referral_promotion", True),
+    ):
         mock_settings.test_mode = False
+        mock_settings.enable_expanded_tarot = True
         mock_settings.report_base_url = "http://test"
         mock_settings.bot_username = "test_bot"
         mock_settings.support_username = "@test_support"
@@ -349,7 +354,7 @@ class TestTarotMore:
 
     @pytest.mark.asyncio
     async def test_test_mode_bypasses_paywall(
-        self, mock_callback, mock_user
+        self, mock_callback, mock_user, patch_settings_test_mode
     ):
         """Тестовый режим пропускает пэйволл."""
         with (
@@ -364,9 +369,8 @@ class TestTarotMore:
             mock_mk.return_value = MagicMock()
 
             from bot.handlers.tarot import show_tarot_more
-            from core.config import settings
 
-            settings.test_mode = True
+            patch_settings_test_mode.test_mode = True
 
             await show_tarot_more(mock_callback)
 

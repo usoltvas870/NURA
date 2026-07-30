@@ -8,6 +8,7 @@ from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardButton
 from celery.result import AsyncResult
 
 from bot.handlers.validators import validate_date
+from bot.keyboards.main_menu import main_menu_keyboard
 from bot.states.compatibility_state import CompatibilityStates
 from bot.texts.compatibility import (
     ask_partner_date_text,
@@ -35,8 +36,27 @@ def _has_unlimited_compat(user) -> bool:
     return bool(user.tarot_subscription) or user.subscription_status == "premium"
 
 
+async def _reject_compatibility(
+    event: CallbackQuery | Message, state: FSMContext | None = None
+) -> bool:
+    if settings.enable_compatibility:
+        return False
+    if state is not None:
+        await state.clear()
+    if isinstance(event, CallbackQuery) or hasattr(event, "message"):
+        await event.answer()
+        await event.message.edit_text(
+            "Эта практика пока недоступна.", reply_markup=main_menu_keyboard()
+        )
+    else:
+        await event.answer("Эта практика пока недоступна.", reply_markup=main_menu_keyboard())
+    return True
+
+
 @router.callback_query(F.data == "compatibility")
 async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
+    if await _reject_compatibility(callback, state):
+        return
     await callback.answer()
 
     session_factory = get_async_sessionmaker()
@@ -94,6 +114,8 @@ async def ask_compatibility(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(CompatibilityStates.waiting_partner_name)
 async def process_partner_name(message: Message, state: FSMContext) -> None:
+    if await _reject_compatibility(message, state):
+        return
     partner_name = message.text.strip()
     await state.update_data(partner_name=partner_name)
 
@@ -117,6 +139,8 @@ async def process_partner_name(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data.startswith("reltype_"))
 async def process_relation_type(callback: CallbackQuery,
                                  state: FSMContext) -> None:
+    if await _reject_compatibility(callback, state):
+        return
     await callback.answer()
     rel_map = {
         "reltype_romance": "романтика",
@@ -142,6 +166,8 @@ async def process_relation_type(callback: CallbackQuery,
 
 @router.message(CompatibilityStates.waiting_partner_date)
 async def process_partner_date(message: Message, state: FSMContext) -> None:
+    if await _reject_compatibility(message, state):
+        return
     date_str = message.text.strip()
 
     if not validate_date(date_str):
@@ -285,6 +311,8 @@ async def process_partner_date(message: Message, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "compat_details")
 async def show_compat_details(callback: CallbackQuery, state: FSMContext) -> None:
+    if await _reject_compatibility(callback, state):
+        return
     await callback.answer()
     data = await state.get_data()
 
@@ -339,6 +367,8 @@ async def show_compat_details(callback: CallbackQuery, state: FSMContext) -> Non
 
 @router.callback_query(F.data == "share_compat_card")
 async def send_compat_card(callback: CallbackQuery, state: FSMContext) -> None:
+    if await _reject_compatibility(callback, state):
+        return
     await callback.answer("Генерирую карточку…")
 
     data = await state.get_data()
