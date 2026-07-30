@@ -70,8 +70,8 @@ Execute and record each scenario separately:
 
 #### Target acceptance scenario
 
-After the NURA 1.0 broadcast contour is implemented, an approved external
-sandbox run must verify all of the following on one identified baseline:
+An approved external sandbox run must verify all of the following on one
+identified baseline:
 
 - a controlled test send to approved recipients;
 - selection of an approved segment;
@@ -85,22 +85,22 @@ sandbox run must verify all of the following on one identified baseline:
 
 #### Current execution status
 
-`IMPLEMENTATION GAP — NOT EXECUTABLE YET`.
+`LOCALLY EXECUTABLE — EXTERNAL SANDBOX NOT EXECUTED`.
 
-The current generic transport and aggregate sent/failed totals documented by
-the accepted [bot technical specification](../bot-spec.md#410-broadcasts) and
-[bot UX map](../bot-ux-map.md#311-broadcast-receipt-cta-and-opt-out) do not prove
-the target campaign, delivery, CTA, deduplication, opt-out/suppression or
-attribution contract. The external scenario therefore cannot be executed in
-full until that contour exists. This is an implementation gate, not a failed
-sandbox result; the scenario has not been performed and must not be marked
-complete. Do not send an uncontrolled broadcast to real users.
+The accepted [bot technical specification](../bot-spec.md#410-broadcasts) and
+[bot UX map](../bot-ux-map.md#311-broadcast-receipt-cta-and-opt-out) record the
+local persisted campaign, delivery, CTA, deduplication, opt-out/suppression and
+attribution contract. Local contract/PostgreSQL tests make this scenario eligible
+for a separately authorized sandbox run, but they do not prove Telegram/provider
+behavior. No external message was sent in the implementation session and this
+scenario must not be marked complete. Do not send an uncontrolled broadcast to
+real users.
 
 #### Exit condition
 
-This scenario becomes executable only after evidence-backed implementation of
-the corresponding NURA 1.0 contour. The later execution must still use an
-approved sandbox window and produce a separate dated, redacted evidence record.
+Execution requires an approved sandbox window, test recipients in the configured
+admin allowlist, non-production campaign content and a separate dated, redacted
+evidence record. Production recipients remain outside this runbook proof.
 
 ## 5. YooKassa scenarios
 
@@ -196,7 +196,7 @@ An unexecuted or partially executed checklist is neither PASS nor production rea
 |---|---|---|---|
 | Local fake-provider tests | Accepted at their recorded baselines | Unit/integration, disposable PostgreSQL/Redis and local race evidence | External provider or production behavior |
 | External Telegram sandbox | `NOT EXECUTED` | This runbook | Bot identity, UX, delivery, blocked-bot and retry behavior |
-| Broadcast/CTA/opt-out target boundary | `IMPLEMENTATION GAP — NOT EXECUTABLE YET` | Target scenario only; accepted bot docs record the current gap | Campaign, per-user delivery, CTA, deduplication, opt-out/suppression and attribution; external execution was not performed |
+| Broadcast/CTA/opt-out target boundary | `LOCALLY EXECUTABLE — EXTERNAL SANDBOX NOT EXECUTED` | Local campaign/delivery/CTA/opt-out/analytics contracts and disposable PostgreSQL evidence | Real Telegram receipt/click/block/unblock behavior and approved external execution |
 | External YooKassa sandbox | `NOT EXECUTED` | This runbook | Test-shop payment, receipt, webhook, refund and ordering behavior |
 | External AI/provider sandbox | `NOT EXECUTED` | Local fake-provider contracts | Provider credentials, content quality, latency, failure and cost behavior |
 | Production | `NOT PROVEN` | Deployment instructions and tracked topology only | Availability, launch approval, legal/operations readiness and real traffic |

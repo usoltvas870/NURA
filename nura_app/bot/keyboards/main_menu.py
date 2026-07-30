@@ -72,6 +72,7 @@ def profile_keyboard(
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="💳 Управление подпиской", callback_data="manage_subscription")],
+                [InlineKeyboardButton(text="⚙️ Настройки сообщений", callback_data="settings")],
                 [InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
                 [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
             ]
@@ -81,6 +82,7 @@ def profile_keyboard(
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="💎 Оформить подписку — 390 ₽/мес", callback_data="buy_subscription")],
+                [InlineKeyboardButton(text="⚙️ Настройки сообщений", callback_data="settings")],
                 [InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
                 [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
             ]
@@ -89,6 +91,7 @@ def profile_keyboard(
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="✨ Рассчитать матрицу", callback_data="calculate_matrix")],
+            [InlineKeyboardButton(text="⚙️ Настройки сообщений", callback_data="settings")],
             [InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
             [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
         ]

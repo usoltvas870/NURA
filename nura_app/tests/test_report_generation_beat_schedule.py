@@ -309,14 +309,26 @@ class TestExistingBeatPreservation:
 
         schedule = celery_app.conf.beat_schedule
         required = [
-            "send-weekly-tarot-spread", "send-monthly-tarot-portal",
-            "check-inactive-users", "check-expiring-subscriptions",
-            "downgrade-expired-subscriptions", "charge-recurring-subscriptions",
+            "downgrade-expired-subscriptions",
             "cleanup-expired-guests", "block-inactive-users",
             "delete-inactive-users", "monitor-health",
+            "reconcile-broadcast-campaigns",
         ]
         for name in required:
             assert name in schedule, f"missing: {name}"
+
+    def test_default_nura_1_0_excludes_legacy_editorial_and_nura_1_5_jobs(self):
+        from core.tasks import celery_app
+
+        schedule = celery_app.conf.beat_schedule
+        forbidden = {
+            "send-weekly-tarot-spread",
+            "send-monthly-tarot-portal",
+            "check-inactive-users",
+            "check-expiring-subscriptions",
+            "charge-recurring-subscriptions",
+        }
+        assert forbidden.isdisjoint(schedule)
 
     def test_legacy_daily_card_producers_are_registered_but_not_scheduled(self):
         from core.tasks import celery_app

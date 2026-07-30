@@ -10,6 +10,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from core.config import settings
 from core.models import (
+    BroadcastCTAClick,
+    BroadcastCTAClickEvent,
+    BroadcastDelivery,
     FullReportTelegramDelivery,
     Order,
     Payment,
@@ -18,6 +21,7 @@ from core.models import (
     ReferralReward,
     Report,
     ReportGenerationJob,
+    TelegramSuppression,
     User,
 )
 from core.services.chat_history import chat_history_key, chat_history_marker_key
@@ -66,6 +70,10 @@ class AccountDeletionService:
                             event.anonymized_at = now
                             event.anonymization_reason = "account_deleted"
                 report_ids = select(Report.id).where(Report.user_id == user_id)
+                await session.execute(delete(BroadcastCTAClickEvent).where(BroadcastCTAClickEvent.user_id == user_id))
+                await session.execute(delete(BroadcastCTAClick).where(BroadcastCTAClick.user_id == user_id))
+                await session.execute(delete(BroadcastDelivery).where(BroadcastDelivery.user_id == user_id))
+                await session.execute(delete(TelegramSuppression).where(TelegramSuppression.user_id == user_id))
                 await session.execute(delete(FullReportTelegramDelivery).where(FullReportTelegramDelivery.user_id == user_id))
                 await session.execute(delete(ReportGenerationJob).where(ReportGenerationJob.report_id.in_(report_ids)))
                 await session.execute(delete(Report).where(Report.user_id == user_id))

@@ -30,7 +30,7 @@ from core.services.chat_quota import (  # noqa: E402
 
 
 PARENT = "d2e3f4a5b6c7"
-HEAD = "e8f9a0b1c2d3"
+HEAD = "c6d7e8f9a0b1"
 _URL = ""
 _ALEMBIC_LAUNCHER = (
     "from pydantic_settings.sources import DotEnvSettingsSource;"
@@ -127,6 +127,16 @@ def _assert_schema() -> None:
         "error_code": ("character varying", "YES"),
         "result_ready_at": ("timestamp with time zone", "YES"),
         "updated_at": ("timestamp with time zone", "NO"),
+        "delivery_status": ("character varying", "NO"),
+        "delivery_total_chunks": ("integer", "YES"),
+        "delivery_next_chunk_index": ("integer", "NO"),
+        "delivery_attempt_count": ("integer", "NO"),
+        "delivery_claimed_at": ("timestamp with time zone", "YES"),
+        "delivery_completed_at": ("timestamp with time zone", "YES"),
+        "delivery_failed_at": ("timestamp with time zone", "YES"),
+        "delivery_retryable": ("boolean", "NO"),
+        "delivery_error_code": ("character varying", "YES"),
+        "telegram_chat_id_snapshot": ("bigint", "YES"),
     }
     with psycopg2.connect(_URL) as connection, connection.cursor() as cursor:
         cursor.execute(

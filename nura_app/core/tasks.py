@@ -8,7 +8,6 @@ from datetime import date, datetime, timedelta, timezone
 
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
-from celery.schedules import crontab
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import load_only
@@ -66,29 +65,9 @@ _chat_delivery_schedule = {
 }
 
 celery_app.conf.beat_schedule = _chat_delivery_schedule if settings.nura_tg_pilot else {
-    "send-weekly-tarot-spread": {
-        "task": "core.tasks.send_weekly_tarot_spread",
-        "schedule": crontab(hour=9, minute=0, day_of_week=1),
-    },
-    "send-monthly-tarot-portal": {
-        "task": "core.tasks.send_monthly_tarot_portal",
-        "schedule": crontab(hour=9, minute=0, day_of_month=1),
-    },
-    "check-inactive-users": {
-        "task": "core.tasks.check_inactive_users",
-        "schedule": 60 * 60 * 6,
-    },
-    "check-expiring-subscriptions": {
-        "task": "core.tasks.check_expiring_subscriptions",
-        "schedule": 60 * 60 * 12,
-    },
     "downgrade-expired-subscriptions": {
         "task": "core.tasks.downgrade_expired_subscriptions",
         "schedule": 60 * 60 * 24,
-    },
-    "charge-recurring-subscriptions": {
-        "task": "core.tasks.charge_recurring_subscriptions",
-        "schedule": 60 * 60 * 6,
     },
     "cleanup-expired-guests": {
         "task": "core.tasks.cleanup_expired_guest_profiles",
@@ -125,6 +104,12 @@ celery_app.conf.beat_schedule = _chat_delivery_schedule if settings.nura_tg_pilo
         "options": {
             "expires": settings.report_generation_reconciliation_interval_seconds - 30
         },
+    },
+    "reconcile-broadcast-campaigns": {
+        "task": "core.tasks.reconcile_broadcast_campaigns",
+        "schedule": timedelta(minutes=1),
+        "kwargs": {"limit": 20},
+        "options": {"expires": 50},
     },
     **_chat_delivery_schedule,
 }
@@ -1444,118 +1429,42 @@ async def _send_broadcast_async(
     push_title: str | None,
     push_url: str | None,
 ) -> dict:
-    from aiogram import Bot
-    from aiogram.client.default import DefaultBotProperties
-    from aiogram.enums import ParseMode
-    from aiogram.exceptions import TelegramForbiddenError
-
     redis = get_redis()
-    session_factory = get_async_sessionmaker()
-
-    async with session_factory() as session:
-        stmt = select(User)
-        if filter_type == "premium":
-            stmt = stmt.where(User.subscription_status == "premium")
-        elif filter_type == "free":
-            stmt = stmt.where(User.subscription_status == "free")
-        result = await session.execute(stmt)
-        users = result.scalars().all()
-
-    total = len(users)
-    if total == 0:
-        await redis.set(f"broadcast:{task_id}", json.dumps({
-            "status": "completed", "sent": 0, "total": 0, "failed": 0,
-            "finished_at": datetime.now(timezone.utc).isoformat(),
-        }))
-        return {"sent": 0, "total": 0, "failed": 0}
-
-    await redis.set(f"broadcast:{task_id}", json.dumps({
-        "status": "running", "sent": 0, "total": total, "failed": 0, "finished_at": None,
-    }))
-
-    send_telegram = "telegram" in channels
-    send_push = "push" in channels
-
-    bot = None
-    if send_telegram and settings.telegram_bot_token:
-        bot = Bot(
-            token=settings.telegram_bot_token,
-            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-        )
-
-    send_semaphore = asyncio.Semaphore(5)
-    failed = 0
-
-    async def _send_one(user: User) -> bool:
-        nonlocal failed
-        tg_sent = False
-
-        async with send_semaphore:
-            if send_telegram and user.telegram_id and bot:
-                try:
-                    await bot.send_message(chat_id=user.telegram_id, text=text)
-                    tg_sent = True
-                except TelegramForbiddenError:
-                    failed += 1
-                    return False
-                except Exception:
-                    logger.exception("Broadcast TG failed for user %s", user.id)
-                    failed += 1
-                    return False
-
-            if send_push and user.has_pwa_push and user.push_endpoint and user.push_p256dh and user.push_auth:
-                try:
-                    ok = await send_web_push(
-                        endpoint=user.push_endpoint,
-                        p256dh=user.push_p256dh,
-                        auth=user.push_auth,
-                        title=push_title or "NURA",
-                        body=text[:200],
-                        url=push_url or "/app",
-                        tag="broadcast",
-                    )
-                    if not ok:
-                        failed += 1
-                        return False
-                except PushSubscriptionExpired:
-                    user_repo = UserRepository(session_factory)
-                    try:
-                        await user_repo.update_push_subscription(
-                            user_id=user.id,
-                            endpoint=None,
-                            p256dh=None,
-                            auth=None,
-                            has_pwa_push=False,
-                        )
-                    except Exception:
-                        logger.exception("Failed to clear push sub for user %s", user.id)
-                    failed += 1
-                    return False
-                except Exception:
-                    logger.exception("Broadcast push failed for user %s", user.id)
-                    failed += 1
-                    return False
-
-            if tg_sent or not send_telegram:
-                return True
-            return False
-
-    try:
-        await asyncio.gather(*[_send_one(u) for u in users])
-    finally:
-        if bot:
-            await bot.session.close()
-
-    sent = total - failed
-    await redis.set(f"broadcast:{task_id}", json.dumps({
-        "status": "completed",
-        "sent": sent,
-        "total": total,
-        "failed": failed,
+    del text, channels, filter_type, push_title, push_url
+    result = {
+        "status": "deprecated",
+        "sent": 0,
+        "total": 0,
+        "failed": 0,
+        "error_code": "direct_broadcast_disabled",
         "finished_at": datetime.now(timezone.utc).isoformat(),
-    }))
+    }
+    await redis.set(f"broadcast:{task_id}", json.dumps(result))
+    return result
 
-    return {"sent": sent, "total": total, "failed": failed}
+
+@celery_app.task(name="core.tasks.dispatch_broadcast_campaign")
+def dispatch_broadcast_campaign(campaign_id: str) -> dict:
+    return _run_async(_dispatch_broadcast_campaign_async(campaign_id))
+
+
+async def _dispatch_broadcast_campaign_async(campaign_id: str) -> dict:
+    from core.services.broadcast import BroadcastCampaignService
+
+    return await BroadcastCampaignService(
+        get_async_sessionmaker()
+    ).dispatch_campaign(uuid.UUID(campaign_id))
+
+
+@celery_app.task(name="core.tasks.reconcile_broadcast_campaigns")
+def reconcile_broadcast_campaigns(limit: int = 20) -> dict:
+    return _run_async(_reconcile_broadcast_campaigns_async(limit))
+
+
+async def _reconcile_broadcast_campaigns_async(limit: int) -> dict:
+    from core.services.broadcast import BroadcastCampaignService
+
+    return await BroadcastCampaignService(get_async_sessionmaker()).reconcile(limit=limit)
 
 
 @celery_app.task(

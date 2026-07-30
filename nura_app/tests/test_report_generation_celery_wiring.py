@@ -458,14 +458,18 @@ class TestTaskRegistration:
         assert dispatch_report_generation_jobs.name.endswith("dispatch_report_generation_jobs")
 
 
-class TestBeatScheduleUnchanged:
-    def test_existing_entries_preserved(self):
+class TestBeatScheduleContract:
+    def test_service_entries_preserved_and_editorial_bypasses_absent(self):
         from core.tasks import celery_app
 
         schedule = celery_app.conf.beat_schedule
         assert "dispatch-report-generation-jobs" in schedule
         assert "reconcile-report-generation-jobs" in schedule
-        assert "send-weekly-tarot-spread" in schedule
-        assert "send-monthly-tarot-portal" in schedule
+        assert "reconcile-broadcast-campaigns" in schedule
+        assert "send-weekly-tarot-spread" not in schedule
+        assert "send-monthly-tarot-portal" not in schedule
+        assert "notify-inactive-users" not in schedule
+        assert "check-expired-subscriptions" not in schedule
+        assert "charge-recurring-subscriptions" not in schedule
         assert "send-daily-card" not in schedule
         assert "send-daily-tarot-card" not in schedule

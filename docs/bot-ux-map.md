@@ -233,21 +233,21 @@ Both are runtime-reachable and belong canonically to `TARGET — NURA 1.5B`; the
 
 ### 3.11. Broadcast receipt, CTA and opt-out
 
-`CURRENT — IMPLEMENTED` only as limited transport foundation.
+`CURRENT — IMPLEMENTED` locally as the minimal manual Telegram campaign contour.
 
 | Aspect | Current behavior |
 |---|---|
-| Entry | Admin API starts a generic broadcast task; recipient receives Telegram message and/or legacy web push |
-| User action | Reads the message; no canonical registered inline CTA or Telegram opt-out action was found |
-| Bot response | Generic configured message only; target transition to a concrete function is not guaranteed |
-| Persisted state | Redis task status with aggregate sent/failed counts; no durable campaign/per-user delivery ledger |
-| Quota/payment | Receipt/action does not consume chat quota; purchase attribution is not implemented in this contour |
-| Success | Transport reports send success in aggregate |
-| Failure/retry | Blocked users count as failures; no canonical suppression state, duplicate guard or per-user retry contract |
-| Current limits | No test-send/approval, campaign ID, CTA registry, opt-out, click/conversion analytics |
-| Evidence | Admin broadcast route/task, Redis status path, broadcast tests/current-status evidence |
+| Entry | Operator creates, estimates, test-sends and idempotently launches an immutable campaign through Admin API; recipient receives Telegram text and optional Telegram-hosted media |
+| User action | Reads message, follows one of one/two registered inline CTAs, or disables editorial messages in `/settings` / profile settings |
+| Bot response | Opaque owned CTA opens only an allowlisted existing function: main menu, chat, daily Tarot, My Reports, full Matrix checkout or profile |
+| Persisted state | Campaign/version/audit, one delivery per selected user, attempt/media/text progress, blocked suppression, preference and bounded click aggregate |
+| Quota/payment | Receipt and CTA click do not consume chat quota; stats attribute an already-paid full Matrix order by bounded deterministic last click without changing payment state |
+| Success | Delivery is terminal only after all configured message parts persist Telegram message IDs; repeated dispatch/launch does not create a second logical delivery |
+| Failure/retry | Retryable failures retain progress and use fenced bounded attempts; terminal block/chat-not-found creates suppression; claim-time opt-out/cap/suppression recheck prevents a stale selection from sending |
+| Current limits | External Telegram/content acceptance and production operator permissions are not executed; advanced scheduler/quiet hours/lifecycle/A-B orchestration remain 1.5 target |
+| Evidence | Broadcast migration/models/repository/service/routes/handler plus `test_broadcast_campaign.py`, `test_broadcast_admin_api.py` and PostgreSQL claim proof |
 
-The user-facing target path — test send, approved campaign, inline CTA, deduplication, opt-out/suppression, per-user delivery state, clicks and purchases — is an `IMPLEMENTATION GAP`.
+The minimal NURA 1.0 path is locally implemented. It is not external Telegram sandbox evidence and does not authorize sending to real users.
 
 ### 3.12. Throttling and anti-flood
 
@@ -272,7 +272,7 @@ This is a target crosswalk, not a claim that every step exists.
 | 11 | First 5 successfully delivered answers per Moscow product day are free across channels | `IMPLEMENTATION GAP` — current ledger is lifetime |
 | 12 | User receives one stable free daily card | `CURRENT — IMPLEMENTED` locally |
 | 13 | User can manage profile, consent/legal links, support and deletion | Partial `CURRENT — IMPLEMENTED`; target settings/consent surface incomplete |
-| 14 | Minimal manual messaging uses persisted campaign/delivery, test send, segment, CTA, opt-out and analytics | `IMPLEMENTATION GAP`; generic transport only |
+| 14 | Minimal manual messaging uses persisted campaign/delivery, test send, segment, CTA, opt-out and analytics | `CURRENT — IMPLEMENTED` locally; external sandbox pending |
 
 ## 5. Chat state matrix: current versus target
 
@@ -310,7 +310,7 @@ This is a target crosswalk, not a claim that every step exists.
 | Expanded Tarot | Telegram/PWA wiring with 390 assumptions | Excluded | Accepted set/history/access model | Existing PWA/paywall paths | `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04` |
 | Compatibility | Menu/FSM/generation/share flow | Excluded | Compatibility product in 1.5B | 390 upsell assumptions | `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04` |
 | Referral | Deep link, profile link and reward foundation | Excluded | Referral/growth in 1.5B | Early reward behavior | `IMPLEMENTATION GAP — CURRENT VISIBILITY CONFLICTS WITH DM-04` |
-| Broadcasts | Generic admin task, all/free/premium selection, aggregate totals | Persisted manual campaign/test/segment/CTA/opt-out/delivery/analytics | Scheduler and expanded orchestration | Web push transport | confirmed current |
+| Broadcasts | Persisted manual campaign/test/segment/CTA/opt-out/delivery/analytics; legacy direct send fails closed | Persisted manual campaign/test/segment/CTA/opt-out/delivery/analytics | Advanced scheduler, lifecycle chains, quiet hours and A/B orchestration | Web push transport | NURA 1.0 local contract implemented; external sandbox pending |
 | Lifecycle | Legacy scheduled inactive/expiry/recurring tasks exist | Excluded beyond minimal manual messaging | Chains, quiet hours, caps, attribution windows, A/B | Current legacy jobs | legacy only |
 | Subscription/gift | Recurring 390 ₽ and saved method code | No subscription/gift access | Gift 30 days; voluntary 399 ₽ / 30 days without auto-renew | Existing 390 ₽ surface | legacy only |
 | PWA/web | Active client, auth, reports, chat, Tarot and push | Compatibility surface only | Does not own roadmap | Entire row | legacy only |
@@ -355,7 +355,7 @@ This map does not prescribe the exact gating mechanism, beta/rollout parameters,
 | Full generation/delivery | Canonical text + PDF, retry/manual resend, refund fence | External Telegram/content acceptance pending |
 | Chat concurrency/failure | Reservation, release, replay | Daily/delivery-aware semantics missing |
 | Saved material reopen | Ownership/status check and resend | Taxonomy/metadata incomplete |
-| Broadcast failure | Aggregate sent/failed status | Persisted campaign/delivery/suppression/analytics absent |
+| Broadcast failure | Persisted typed delivery outcome, bounded retry/progress, suppression and campaign stats | External Telegram/provider behavior not executed |
 
 ## 10. References
 

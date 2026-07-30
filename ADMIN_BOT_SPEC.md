@@ -72,7 +72,7 @@ The `/restart` command family, its advertised `celery-worker` and `celery-beat` 
 - A generic `run_db_query()` helper exists in `DockerClient`, but no registered handler calls it. There is no registered database command in the current bot contract.
 - User lookup, payment listing, subscription/tarot grants, report regeneration, promo management, health, logs and broadcast start/status exist on the separately authenticated Admin API. They are not exposed by the current Admin Bot.
 - No refund endpoint or Admin Bot refund action was found. Support and refund workflows must not be inferred from generic admin capabilities.
-- Broadcasts are initiated through the Admin API/Celery foundation, not through this bot. Current broadcast persistence/opt-out/analytics gaps remain governed by the accepted bot/current-status documents.
+- Broadcasts are initiated through the separate Admin API/Celery campaign contour, not through this bot. That surface now persists campaign/delivery/audit/click/suppression state and requires `X-Admin-Actor` on mutations in addition to Admin API authentication; it does not become an Admin Bot command.
 
 ## 7. Error, retry and audit behavior
 
@@ -103,7 +103,7 @@ Local code paths do not establish production retention, alert delivery or operat
 - `/logs` and `/errors` code is dormant because routers are not registered.
 - Default Compose names for `celery-worker` and `celery-beat` collapse to the shared `celery` alias in `DockerClient`; explicit and natural-language Celery restart therefore remain registered operations with a current runtime `IMPLEMENTATION GAP`.
 - `/status` cannot reliably distinguish the worker from Beat, and scheduled log monitoring can duplicate one Celery scan while omitting the other; this limitation does not imply that all Admin Bot monitoring is non-functional.
-- No user/payment/refund/support/broadcast command surface in the bot itself.
+- No user/payment/refund/support/broadcast command surface in the bot itself; the separate Admin API campaign endpoints must not be inferred as bot commands.
 - No persistent command audit ledger.
 - Redis clear is database-wide rather than scoped.
 - AI advice is informational and may fail; it is not an acceptance or remediation engine.

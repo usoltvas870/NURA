@@ -31,7 +31,7 @@ if str(NURA_APP_ROOT) not in sys.path:
 EXPECTED_BASE = "0001a2b3c4d5e6"
 FK_NORMALIZATION_HEAD = "c0d1e2f3a4b5"
 PREVIOUS_HEAD = "d1e2f3a4b5c6"
-EXPECTED_HEAD = "e8f9a0b1c2d3"
+EXPECTED_HEAD = "c6d7e8f9a0b1"
 
 _URL = ""
 

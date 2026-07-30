@@ -8,14 +8,25 @@ import time
 import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
 from asyncpg.exceptions import PostgresConnectionError
-from sqlalchemy import text
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import core.celery_async as celery_async
 import core.database as database
+from core.models import (
+    Base,
+    BroadcastCampaign,
+    BroadcastCTAClick,
+    BroadcastCTAClickEvent,
+    BroadcastDelivery,
+    User,
+)
+from core.repositories.broadcast import BroadcastRepository
 
 
 @dataclass(frozen=True)
@@ -162,6 +173,89 @@ def _audit_state(postgres: DisposablePostgres) -> tuple[int, int, int]:
     ).stdout.strip()
     total, idle_in_transaction, active = output.split("|")
     return int(total), int(idle_in_transaction), int(active)
+
+
+@pytest.mark.asyncio
+async def test_broadcast_delivery_claim_is_fenced_across_postgres_workers(
+    disposable_postgres: DisposablePostgres,
+) -> None:
+    engine = create_async_engine(disposable_postgres.url, pool_size=10, max_overflow=0)
+    factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    try:
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
+        async with factory() as session:
+            user = User(id=uuid.uuid4(), telegram_id=710001, account_status="active")
+            campaign = BroadcastCampaign(
+                id=uuid.uuid4(), public_id="pg-claim-campaign", campaign_type="editorial",
+                status="queued", content_version=1, text_snapshot="message",
+                cta_snapshot=[{"key": "primary", "label": "Profile", "destination": "profile"}],
+                segment_type="all_editorial_enabled", segment_parameters={},
+                created_by="test", updated_by="test",
+            )
+            session.add_all((user, campaign))
+            await session.flush()
+            delivery = BroadcastDelivery(
+                id=uuid.uuid4(), campaign_id=campaign.id, user_id=user.id,
+                telegram_chat_id_snapshot=user.telegram_id, click_token="pg-claim-token",
+            )
+            session.add(delivery)
+            await session.commit()
+        repository = BroadcastRepository(factory)
+        now = datetime.now(timezone.utc)
+        claims = await asyncio.gather(
+            *(repository.claim_delivery(delivery.id, now=now) for _ in range(8))
+        )
+        owned = [claim for claim in claims if claim is not None]
+        assert len(owned) == 1 and owned[0].attempt == 1
+
+        click_results = await asyncio.gather(
+            *(repository.record_click("pg-claim-token", "primary", 710001, now=now) for _ in range(8))
+        )
+        assert click_results == ["profile"] * 8
+        async with factory() as session:
+            aggregates = list(
+                (
+                    await session.execute(
+                        select(BroadcastCTAClick).where(
+                            BroadcastCTAClick.delivery_id == delivery.id
+                        )
+                    )
+                ).scalars()
+            )
+            event_count = len(
+                list(
+                    (
+                        await session.execute(
+                            select(BroadcastCTAClickEvent.id).where(
+                                BroadcastCTAClickEvent.delivery_id == delivery.id
+                            )
+                        )
+                    ).scalars()
+                )
+            )
+            assert len(aggregates) == 1
+            assert aggregates[0].click_count == 8
+            assert event_count == 8
+
+        async with factory() as session:
+            stored = await session.get(BroadcastDelivery, delivery.id)
+            stored.claimed_at = now - timedelta(hours=1)
+            await session.commit()
+        second = await repository.claim_delivery(
+            delivery.id,
+            now=now + timedelta(seconds=1),
+        )
+        assert second is not None and second.attempt == 2
+        assert await repository.save_media_progress(delivery.id, 1, 1001) is False
+        assert await repository.save_media_progress(delivery.id, 2, 1002) is True
+        async with factory() as session:
+            stored = await session.scalar(
+                select(BroadcastDelivery).where(BroadcastDelivery.id == delivery.id)
+            )
+            assert stored.attempt_count == 2 and stored.media_message_id == 1002
+    finally:
+        await engine.dispose()
 
 
 @pytest.fixture

@@ -1,12 +1,13 @@
 import asyncio
 import json
 import os
+import re
 import time
 import uuid
 from datetime import datetime, timezone
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, or_, select, text
 
@@ -16,6 +17,10 @@ from core.models import Payment, PromoCode, Report, ReportType, User
 from core.repositories.report import ReportRepository
 from core.repositories.user import UserRepository
 from core.services.report import ReportService
+from core.schemas.broadcast import CampaignAction, CampaignCreate, CampaignLaunch, CampaignUpdate
+from core.services.broadcast import BroadcastCampaignService, BroadcastServiceError
+from core.services.broadcast_telegram import BroadcastTelegramError
+from api.deps import limiter
 from core.tasks import generate_full_report
 
 DOCKER_SOCK = "/var/run/docker.sock"
@@ -27,6 +32,35 @@ async def verify_admin_token(x_admin_token: str = Header(..., alias="X-Admin-Tok
 
 
 router = APIRouter(prefix="/api/v1/admin", dependencies=[Depends(verify_admin_token)])
+
+ADMIN_ACTOR_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._@-]{1,63}$")
+
+
+async def require_admin_actor(
+    x_admin_actor: str = Header(..., alias="X-Admin-Actor"),
+) -> str:
+    actor = x_admin_actor.strip()
+    if not ADMIN_ACTOR_PATTERN.fullmatch(actor):
+        raise HTTPException(status_code=422, detail="Invalid admin actor")
+    return actor
+
+
+def _campaign_http_error(error: BroadcastServiceError) -> HTTPException:
+    if error.code in {"campaign_not_found", "user_not_found"}:
+        return HTTPException(status_code=404, detail=error.code)
+    if error.code in {
+        "campaign_immutable",
+        "campaign_already_launched",
+        "campaign_not_launchable",
+        "campaign_not_cancelable",
+        "campaign_already_claimed",
+        "stale_content_version",
+        "exact_version_not_tested",
+        "exact_version_not_estimated",
+        "idempotency_key_conflict",
+    }:
+        return HTTPException(status_code=409, detail=error.code)
+    return HTTPException(status_code=400, detail=error.code)
 
 
 def _payment_amount_kopecks(payment: Payment) -> int:
@@ -895,16 +929,11 @@ async def delete_promo_code(code_id: str):
 
 @router.post("/broadcast")
 async def start_broadcast(body: BroadcastRequest):
-    from core.tasks import send_broadcast
-
-    task = send_broadcast.delay(
-        text=body.text,
-        channels=body.channels,
-        filter_type=body.filter,
-        push_title=body.push_title,
-        push_url=body.push_url,
+    del body
+    raise HTTPException(
+        status_code=410,
+        detail="Direct broadcast is deprecated; create, estimate, test, and launch a campaign",
     )
-    return {"task_id": task.id, "status": "queued"}
 
 
 @router.get("/broadcast/status/{task_id}")
@@ -915,6 +944,149 @@ async def get_broadcast_status(task_id: str):
     if not raw:
         raise HTTPException(status_code=404, detail="Task not found")
     return json.loads(raw)
+
+
+@router.post("/campaigns", status_code=201)
+@limiter.limit("30/minute")
+async def create_campaign(
+    request: Request,
+    body: CampaignCreate,
+    actor: str = Depends(require_admin_actor),
+):
+    campaign = await BroadcastCampaignService(get_async_sessionmaker()).create(
+        body, actor=actor
+    )
+    return BroadcastCampaignService.campaign_dict(campaign)
+
+
+@router.get("/campaigns")
+@limiter.limit("120/minute")
+async def list_campaigns(
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+):
+    service = BroadcastCampaignService(get_async_sessionmaker())
+    rows = await service.list(limit=limit, offset=offset)
+    return {"campaigns": [service.campaign_dict(row) for row in rows]}
+
+
+@router.get("/campaigns/{campaign_id}")
+@limiter.limit("120/minute")
+async def get_campaign(request: Request, campaign_id: str):
+    service = BroadcastCampaignService(get_async_sessionmaker())
+    try:
+        campaign = await service.get(campaign_id)
+    except BroadcastServiceError as error:
+        raise _campaign_http_error(error) from None
+    return service.campaign_dict(campaign)
+
+
+@router.patch("/campaigns/{campaign_id}")
+@limiter.limit("30/minute")
+async def update_campaign(
+    request: Request,
+    campaign_id: str,
+    body: CampaignUpdate,
+    actor: str = Depends(require_admin_actor),
+):
+    service = BroadcastCampaignService(get_async_sessionmaker())
+    try:
+        campaign = await service.update(campaign_id, body, actor=actor)
+    except BroadcastServiceError as error:
+        raise _campaign_http_error(error) from None
+    return service.campaign_dict(campaign)
+
+
+@router.post("/campaigns/{campaign_id}/estimate")
+@limiter.limit("30/minute")
+async def estimate_campaign(
+    request: Request,
+    campaign_id: str,
+    body: CampaignAction,
+    actor: str = Depends(require_admin_actor),
+):
+    service = BroadcastCampaignService(get_async_sessionmaker())
+    try:
+        campaign, count = await service.estimate(
+            campaign_id, actor=actor, reason=body.reason
+        )
+    except BroadcastServiceError as error:
+        raise _campaign_http_error(error) from None
+    return {
+        "campaign_id": campaign.public_id,
+        "content_version": campaign.content_version,
+        "estimated_recipients": count,
+    }
+
+
+@router.post("/campaigns/{campaign_id}/test")
+@limiter.limit("10/minute")
+async def test_campaign(
+    request: Request,
+    campaign_id: str,
+    body: CampaignAction,
+    actor: str = Depends(require_admin_actor),
+):
+    service = BroadcastCampaignService(get_async_sessionmaker())
+    try:
+        campaign = await service.test_send(
+            campaign_id, actor=actor, reason=body.reason
+        )
+    except BroadcastServiceError as error:
+        raise _campaign_http_error(error) from None
+    except BroadcastTelegramError as error:
+        raise HTTPException(status_code=503 if error.retryable else 422, detail=error.code) from None
+    return service.campaign_dict(campaign)
+
+
+@router.post("/campaigns/{campaign_id}/launch")
+@limiter.limit("10/minute")
+async def launch_campaign(
+    request: Request,
+    campaign_id: str,
+    body: CampaignLaunch,
+    actor: str = Depends(require_admin_actor),
+):
+    service = BroadcastCampaignService(get_async_sessionmaker())
+    try:
+        campaign, launched = await service.launch(
+            campaign_id,
+            expected_version=body.expected_content_version,
+            idempotency_key=body.idempotency_key,
+            actor=actor,
+            reason=body.reason,
+        )
+    except BroadcastServiceError as error:
+        raise _campaign_http_error(error) from None
+    return {**service.campaign_dict(campaign), "new_launch": launched}
+
+
+@router.post("/campaigns/{campaign_id}/cancel")
+@limiter.limit("30/minute")
+async def cancel_campaign(
+    request: Request,
+    campaign_id: str,
+    body: CampaignAction,
+    actor: str = Depends(require_admin_actor),
+):
+    service = BroadcastCampaignService(get_async_sessionmaker())
+    try:
+        campaign = await service.cancel(
+            campaign_id, actor=actor, reason=body.reason
+        )
+    except BroadcastServiceError as error:
+        raise _campaign_http_error(error) from None
+    return service.campaign_dict(campaign)
+
+
+@router.get("/campaigns/{campaign_id}/stats")
+@limiter.limit("120/minute")
+async def campaign_stats(request: Request, campaign_id: str):
+    try:
+        return await BroadcastCampaignService(get_async_sessionmaker()).stats(campaign_id)
+    except BroadcastServiceError as error:
+        raise _campaign_http_error(error) from None
 
 
 ALLOWED_CONTAINERS = {"all", "api", "bot", "celery-worker", "celery-beat", "postgres", "redis", "nginx"}

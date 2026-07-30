@@ -43,8 +43,8 @@
 
 - `bot/main.py` создаёт aiogram `Dispatcher` с `RedisStorage`, регистрирует handlers/middlewares и запускает polling.
 - PostgreSQL/SQLAlchemy хранит пользователей, consent timestamp, отчёты, заказы/платёжные события, chat usage, daily Tarot, delivery ledgers, attribution и referral foundation.
-- Redis используется для FSM, chat history и краткоживущего broadcast task status.
-- Celery/Redis выполняет mini/full generation, Telegram delivery, scheduled legacy Tarot/subscription jobs и generic broadcasts.
+- Redis используется для FSM и chat history; legacy direct-broadcast task status остаётся только fail-closed compatibility evidence.
+- Celery выполняет mini/full generation, Telegram delivery, service maintenance и reconciliation persisted broadcast campaigns. Legacy editorial Tarot/inactive/subscription-expiry/recurring-charge jobs не входят в default Beat schedule.
 - FastAPI обслуживает YooKassa webhook/checkout, tokenized report routes, legacy web/PWA/auth и admin API.
 - DeepSeek consumers загружают prompts только из `nura_app/core/prompts/`.
 - Центральный middleware order для message/callback surfaces: registration → throttling → anti-flood; на message surface перед registration также работает legacy Telegram-auth retirement guard.
@@ -141,14 +141,18 @@ Taxonomy/naming — `IMPLEMENTATION GAP`; сохранение и repeated deliv
 
 ### 4.10. Broadcasts
 
-`CURRENT — IMPLEMENTED` only as a limited transport/admin foundation.
+`CURRENT — IMPLEMENTED` locally as the minimal manual NURA 1.0 campaign contour.
 
-- Admin API can start a Celery task and read task status from Redis.
-- Task selects all/free/premium users and sends Telegram and/or legacy web push; counts sent/failed.
-- No persisted `BroadcastCampaign`/per-user `Delivery`, test-send/approval flow, Telegram opt-out/suppression, duplicate protection, inline CTA registry, click tracking or purchase attribution was found.
-- Blocked Telegram users count as failures; the broadcast path does not persist canonical blocked/suppression state.
+- Admin API supports create/list/get/update, estimate, exact-version test send, idempotent launch, safe pre-claim cancel and stats. Mutations require authenticated admin access plus bounded `X-Admin-Actor`; audit entries persist actor, action, reason and bounded evidence.
+- Campaign content is snapshotted and immutable after queueing. Supported content is Telegram HTML text with optional Telegram `photo`/`animation`/`video` `file_id` and one or two allowlisted inline CTAs.
+- Canonical segments are `all_editorial_enabled`, `mini_completed_without_full_purchase`, `full_report_purchasers`, `onboarding_incomplete` and bounded `inactive` days. Selection always excludes editorial opt-out, active Telegram suppression and users at the shared editorial/commercial frequency cap.
+- Test send goes only to configured admin allowlist recipients and records the tested content version. Launch requires matching estimate and test versions, persists one delivery row per selected user and rejects duplicate logical launch while safely replaying the same idempotency key.
+- Delivery rechecks user preference, suppression and cap under lock, persists attempts/media/text progress, fences stale attempts and classifies retryable, terminal and blocked outcomes. Block/chat-not-found creates durable suppression; `/start` releases only automatic suppression after a real inbound user action.
+- `/settings` and the profile settings entry expose the explicit editorial preference. PWA `news` preference remains a compatibility alias synchronized to the same field. Service messages such as paid-report delivery are outside this opt-out.
+- CTA callbacks use opaque delivery tokens, validate ownership and the snapshotted allowlist destination, persist bounded click counts and route through existing bot functions. Stats expose selected/delivery outcomes, click aggregates and deterministic last-click paid-order attribution inside each campaign window; one paid order is counted for at most one campaign.
+- The previous direct `/broadcast` path returns `410`, and its registered legacy Celery task fails closed without sending. The default Beat schedule retains service maintenance plus campaign reconciliation but no longer schedules weekly/monthly editorial Tarot, inactive-user broadcast, subscription-expiry or recurring-charge jobs.
 
-The NURA 1.0 minimal campaign/delivery/opt-out/analytics contour is an `IMPLEMENTATION GAP`. Scheduler, lifecycle chains, quiet hours, frequency caps, attribution windows and A/B tests are `TARGET — NURA 1.5`.
+External Telegram sandbox, production operator permissions and content approval remain `NOT_EXECUTED`. Advanced scheduling, lifecycle chains, quiet hours and A/B tests remain `TARGET — NURA 1.5`; the minimal NURA 1.0 contour includes the shared frequency cap and bounded attribution window required by its accepted contract.
 
 ### 4.11. Runtime prompts
 
@@ -163,7 +167,7 @@ Status: `IMPLEMENTATION GAP` for the accepted/versioned report/chat runtime styl
 ### 4.12. Admin, support and observability
 
 - Bot support opens configured Telegram contact; account deletion exists.
-- Admin API/admin bot provide user/payment/report operations, stats, health and generic broadcast controls.
+- Admin API/admin bot provide user/payment/report operations, stats and health; persisted broadcast campaign controls принадлежат Admin API, а не Admin Bot.
 - Durable generation/delivery retries, correlation/audit data, Sentry scrubbing and local backup/restore evidence exist.
 - Some admin/profile/payment operations remain subscription-centric legacy paths.
 - Telegram/YooKassa external sandbox, legal/support process and production infrastructure acceptance remain unexecuted.
@@ -194,10 +198,10 @@ Status: `IMPLEMENTATION GAP` for the accepted/versioned report/chat runtime styl
 | Free chat | Universal Telegram access; 5 successful delivered answers each product day | Ordinary users share five daily committed answers across Telegram/web; `has_matrix` does not bypass quota; active legacy entitlement remains unlimited | Daily/reset/access `CURRENT — IMPLEMENTED`; durable delivery retry/progress and web client ACK `IMPLEMENTATION GAP` | Product spec §13.1; Telegram chat handler/quota tests |
 | Guided questions | 4–6 concrete entry topics | Generic examples in greeting; no canonical guided-button surface | `IMPLEMENTATION GAP` | Product spec §13.3 |
 | Daily card | Free, one stable result per period | Durable per-user/local-date reuse | `CURRENT — IMPLEMENTED` locally | Product spec §14 |
-| Minimal broadcasts | Manual campaign, test send, segment, CTA, idempotency, status | Generic task start/status and all/free/premium transport | `IMPLEMENTATION GAP` | Product spec §16 |
-| Opt-out | Editorial opt-out and suppression | Canonical Telegram opt-out not found | `IMPLEMENTATION GAP` | Product spec §§16.6, 17.1 |
-| Campaign tracking | campaign/delivery/click/conversion data | Only Redis task totals; acquisition attribution separate | `IMPLEMENTATION GAP` | Product spec §§16.8, 19 |
-| Product analytics | Funnel/payment/report/chat/broadcast events and KPI queries | Attribution link/touch foundation; operational rows only | `IMPLEMENTATION GAP` | Product spec §19 |
+| Minimal broadcasts | Manual campaign, test send, segment, CTA, idempotency, status | Persisted immutable campaign, five segments, exact-version estimate/test/launch, bounded delivery and stats | `CURRENT — IMPLEMENTED` locally; external sandbox pending | Product spec §16 |
+| Opt-out | Editorial opt-out and suppression | Explicit Telegram/PWA-compatible preference plus durable blocked-user suppression and automatic `/start` release | `CURRENT — IMPLEMENTED` locally | Product spec §§16.6, 17.1 |
+| Campaign tracking | campaign/delivery/click/conversion data | Persisted delivery outcomes, append-only CTA clicks and deterministic bounded last-click paid-order attribution | `CURRENT — IMPLEMENTED` for minimal campaign scope | Product spec §§16.8, 19 |
+| Product analytics | Funnel/payment/report/chat/broadcast events and KPI queries | Acquisition link/touch plus campaign delivery/click/purchase queries; no unified cross-product event registry | `IMPLEMENTATION GAP` for unified registry/full funnel, not broadcast contour | Product spec §19 |
 | Report/chat prompt contracts | Separate approved/versioned runtime contracts | Separate loaders/files exist | `IMPLEMENTATION GAP` — acceptance/version contract incomplete | Product spec §§3.7, 20 |
 | Retry/support/observability | Recover payments/generation/delivery; support and monitoring | Strong durable/local foundation | `CURRENT — IMPLEMENTED` partially; external/legal/production gates pending | Product spec §§17–22; acceptance index |
 
@@ -257,7 +261,7 @@ DM-04 already requires functions outside NURA 1.0 to be hidden from the primary 
 | Daily quota | Lifetime ledger without window | Product spec §13.1 | Always label lifetime current vs daily target |
 | Guided chat entries | No canonical button set | Product spec §13.3 | Do not claim guided journey implemented |
 | Materials taxonomy | «Мои разборы», incomplete labels/metadata | Product spec §12 | Saved access exists; target library incomplete |
-| Broadcast campaign/opt-out/analytics | Generic task + Redis totals only | Product spec §§16, 19 | Transport foundation is not campaign acceptance |
+| Broadcast external acceptance | Local persisted campaign/opt-out/delivery/click/paid-order analytics pass contract and PostgreSQL tests | Product spec §§16, 19; sandbox runbook | Do not claim real Telegram/provider or production readiness until approved external evidence exists |
 | Product event registry/KPIs | Attribution foundation only | Product spec §19 | Do not infer funnel analytics from acquisition tracking |
 | Approved report/chat runtime contracts | Separate files/loaders, no accepted version contract | Product spec §§3.7, 20 | Existing prompts are partial implementation |
 | Early-feature visibility | No dedicated flags; primary menu/profile wiring exists | Product spec §§23–32; migration decision DM-04 | Treat current visibility as an implementation gap; do not invent exact gating/rollout mechanics |

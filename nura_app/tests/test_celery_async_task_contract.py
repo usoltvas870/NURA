@@ -25,6 +25,8 @@ EXPECTED_ASYNC_TASKS = {
     "downgrade_expired_subscriptions",
     "charge_recurring_subscriptions",
     "send_broadcast",
+    "dispatch_broadcast_campaign",
+    "reconcile_broadcast_campaigns",
     "send_magic_link_email",
     "cleanup_expired_guest_profiles",
     "block_inactive_users",

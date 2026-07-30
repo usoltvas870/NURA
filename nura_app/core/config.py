@@ -205,6 +205,15 @@ class Settings(BaseSettings):
     telegram_document_max_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     telegram_delivery_claim_timeout_seconds: int = Field(default=900, ge=60, le=3600)
     chat_delivery_result_ttl_seconds: int = Field(default=86400, ge=3600, le=7 * 86400)
+    broadcast_admin_telegram_ids: str = ""
+    broadcast_frequency_max: int = Field(default=3, ge=1, le=20)
+    broadcast_frequency_window_days: int = Field(default=7, ge=1, le=30)
+    broadcast_attribution_window_days: int = Field(default=7, ge=1, le=30)
+    broadcast_selection_batch_size: int = Field(default=500, ge=10, le=5000)
+    broadcast_delivery_batch_size: int = Field(default=100, ge=1, le=1000)
+    broadcast_delivery_concurrency: int = Field(default=5, ge=1, le=20)
+    broadcast_retry_max_attempts: int = Field(default=5, ge=1, le=20)
+    broadcast_retry_max_seconds: int = Field(default=3600, ge=30, le=86400)
 
     @model_validator(mode="after")
     def _load_telegram_token_file(self) -> "Settings":
@@ -240,6 +249,20 @@ class Settings(BaseSettings):
     # Admin Bot
     admin_bot_token: str | None = None
     admin_telegram_id: int | None = None
+
+    @property
+    def broadcast_admin_ids(self) -> tuple[int, ...]:
+        values: set[int] = set()
+        if self.admin_telegram_id is not None and self.admin_telegram_id > 0:
+            values.add(self.admin_telegram_id)
+        for raw in self.broadcast_admin_telegram_ids.split(","):
+            item = raw.strip()
+            if item:
+                parsed = int(item)
+                if not 0 < parsed < 2**63:
+                    raise ValueError("invalid_broadcast_admin_telegram_id")
+                values.add(parsed)
+        return tuple(sorted(values))
 
     # YooKassa
     yookassa_shop_id: str | None = None
@@ -358,6 +381,17 @@ class Settings(BaseSettings):
             ZoneInfo(value)
         except (TypeError, ZoneInfoNotFoundError) as error:
             raise ValueError("invalid_timezone") from error
+        return value
+
+    @field_validator("broadcast_admin_telegram_ids")
+    @classmethod
+    def _validate_broadcast_admin_ids(cls, value: str) -> str:
+        for raw in value.split(","):
+            item = raw.strip()
+            if not item:
+                continue
+            if not item.isdigit() or not 0 < int(item) < 2**63:
+                raise ValueError("invalid_broadcast_admin_telegram_id")
         return value
 
     @property

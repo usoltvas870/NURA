@@ -26,6 +26,7 @@ from core.services.account_deletion import AccountDeletionService
 from core.repositories.user import UserRepository
 from core.services.attribution import AttributionService
 from core.services.auth import TelegramLinkConfirmationService
+from core.services.broadcast import BroadcastCampaignService
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,13 @@ async def cmd_start(message: Message, state: FSMContext, command: CommandObject)
                 await _handle_referral(message, referrer_telegram_id)
 
     user = start_result.user
+    try:
+        await BroadcastCampaignService(session_factory).release_start_suppression(user.id)
+    except Exception:
+        logger.warning(
+            "Could not release automatic Telegram suppression on /start",
+            exc_info=True,
+        )
 
     if user and user.birth_date:
         await _show_authenticated_menu(message, user)

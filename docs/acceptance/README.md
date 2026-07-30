@@ -83,12 +83,13 @@ database sizing, failover or operator recovery.
 - external AI/provider credentials, model behavior, content review and failure handling.
 
 The [broadcast/CTA/opt-out target scenario](telegram-first-sandbox.md#41-broadcast-cta-and-opt-out-acceptance-boundary)
-is `BLOCKED BY IMPLEMENTATION GAP — NOT EXECUTABLE YET`; external execution was
-not performed. The accepted [bot technical specification](../bot-spec.md#410-broadcasts)
-and [bot UX map](../bot-ux-map.md#311-broadcast-receipt-cta-and-opt-out) record
-only generic transport and aggregate totals, not the target campaign, per-user
-delivery, CTA, deduplication, opt-out/suppression or attribution contract. This
-is neither a completed nor a failed sandbox result.
+is `LOCALLY EXECUTABLE — EXTERNAL SANDBOX NOT EXECUTED`. The accepted
+[bot technical specification](../bot-spec.md#410-broadcasts) and
+[bot UX map](../bot-ux-map.md#311-broadcast-receipt-cta-and-opt-out) record the
+local persisted campaign, per-user delivery, logical CTA/click events,
+deduplication, opt-out/suppression and bounded attribution contract. This local
+evidence only makes a separately authorized sandbox run eligible; it is neither
+a completed nor a failed external sandbox result and proves no production send.
 
 The [Telegram-first external sandbox runbook](telegram-first-sandbox.md) is an
 instruction set only. No checkbox or procedure in it may be marked complete

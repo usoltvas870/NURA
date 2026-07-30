@@ -101,6 +101,28 @@ class FullReportTelegramDeliveryState:
     CANCELED = "canceled"
 
 
+class BroadcastCampaignState:
+    DRAFT = "draft"
+    TESTED = "tested"
+    QUEUED = "queued"
+    SENDING = "sending"
+    COMPLETED = "completed"
+    CANCELED = "canceled"
+    FAILED = "failed"
+
+
+class BroadcastDeliveryState:
+    QUEUED = "queued"
+    SENDING = "sending"
+    DELIVERED = "delivered"
+    FAILED_RETRYABLE = "failed_retryable"
+    FAILED_TERMINAL = "failed_terminal"
+    BLOCKED = "blocked"
+    SUPPRESSED_OPT_OUT = "suppressed_opt_out"
+    SUPPRESSED_FREQUENCY = "suppressed_frequency"
+    CANCELED = "canceled"
+
+
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
@@ -154,6 +176,9 @@ class User(Base):
     push_p256dh: Mapped[str | None] = mapped_column(Text, nullable=True)
     push_auth: Mapped[str | None] = mapped_column(Text, nullable=True)
     notification_prefs: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    editorial_messages_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False, server_default="true"
+    )
     web_session_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -985,4 +1010,156 @@ class PromoReservation(Base):
     payment_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("payments.id"), unique=True, nullable=True)
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class BroadcastCampaign(Base):
+    __tablename__ = "broadcast_campaigns"
+    __table_args__ = (
+        CheckConstraint("campaign_type IN ('editorial', 'commercial')", name="ck_broadcast_campaigns_type"),
+        CheckConstraint(
+            "status IN ('draft', 'tested', 'queued', 'sending', 'completed', 'canceled', 'failed')",
+            name="ck_broadcast_campaigns_status",
+        ),
+        CheckConstraint("content_version >= 1", name="ck_broadcast_campaigns_version"),
+        CheckConstraint("attribution_window_days BETWEEN 1 AND 30", name="ck_broadcast_campaigns_attribution_window"),
+        CheckConstraint("selected_count >= 0 AND delivered_count >= 0 AND blocked_count >= 0 AND suppressed_count >= 0 AND failed_count >= 0", name="ck_broadcast_campaigns_counts"),
+        Index("ix_broadcast_campaigns_status_created", "status", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    public_id: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
+    campaign_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="draft")
+    content_version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    text_snapshot: Mapped[str] = mapped_column(Text, nullable=False)
+    media_type: Mapped[str | None] = mapped_column(String(16))
+    media_file_id: Mapped[str | None] = mapped_column(String(256))
+    cta_snapshot: Mapped[list] = mapped_column(JSONB, nullable=False)
+    segment_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    segment_parameters: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'"))
+    attribution_window_days: Mapped[int] = mapped_column(Integer, nullable=False, server_default="7")
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    updated_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    launched_by: Mapped[str | None] = mapped_column(String(64))
+    tested_version: Mapped[int | None] = mapped_column(Integer)
+    tested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    test_message_ids: Mapped[list | None] = mapped_column(JSONB)
+    preview_version: Mapped[int | None] = mapped_column(Integer)
+    preview_count: Mapped[int | None] = mapped_column(Integer)
+    previewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    launch_idempotency_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    queued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    canceled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    selected_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    delivered_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    blocked_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    suppressed_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    failed_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class BroadcastDelivery(Base):
+    __tablename__ = "broadcast_deliveries"
+    __table_args__ = (
+        UniqueConstraint("campaign_id", "user_id", name="uq_broadcast_deliveries_campaign_user"),
+        CheckConstraint(
+            "status IN ('queued', 'sending', 'delivered', 'failed_retryable', 'failed_terminal', 'blocked', 'suppressed_opt_out', 'suppressed_frequency', 'canceled')",
+            name="ck_broadcast_deliveries_status",
+        ),
+        CheckConstraint("attempt_count >= 0", name="ck_broadcast_deliveries_attempts"),
+        Index("ix_broadcast_deliveries_campaign_status", "campaign_id", "status", "created_at"),
+        Index("ix_broadcast_deliveries_user_delivered", "user_id", "delivered_at"),
+        Index("ix_broadcast_deliveries_retry", "status", "retry_not_before", "claimed_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    campaign_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broadcast_campaigns.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    telegram_chat_id_snapshot: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    click_token: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, server_default="queued")
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    retry_not_before: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    media_message_id: Mapped[int | None] = mapped_column(BigInteger)
+    text_message_id: Mapped[int | None] = mapped_column(BigInteger)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    blocked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    suppressed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class BroadcastCTAClick(Base):
+    __tablename__ = "broadcast_cta_clicks"
+    __table_args__ = (
+        UniqueConstraint("delivery_id", "cta_key", name="uq_broadcast_cta_clicks_delivery_key"),
+        CheckConstraint("click_count BETWEEN 1 AND 1000000", name="ck_broadcast_cta_clicks_count"),
+        Index("ix_broadcast_cta_clicks_campaign_clicked", "campaign_id", "last_clicked_at"),
+        Index("ix_broadcast_cta_clicks_user_clicked", "user_id", "last_clicked_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    campaign_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broadcast_campaigns.id", ondelete="CASCADE"), nullable=False)
+    delivery_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broadcast_deliveries.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    cta_key: Mapped[str] = mapped_column(String(16), nullable=False)
+    destination: Mapped[str] = mapped_column(String(32), nullable=False)
+    first_clicked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_clicked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    click_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+
+
+class BroadcastCTAClickEvent(Base):
+    __tablename__ = "broadcast_cta_click_events"
+    __table_args__ = (
+        Index("ix_broadcast_cta_click_events_campaign_clicked", "campaign_id", "clicked_at"),
+        Index("ix_broadcast_cta_click_events_user_clicked", "user_id", "clicked_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    click_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broadcast_cta_clicks.id", ondelete="CASCADE"), nullable=False)
+    campaign_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broadcast_campaigns.id", ondelete="CASCADE"), nullable=False)
+    delivery_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broadcast_deliveries.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    cta_key: Mapped[str] = mapped_column(String(16), nullable=False)
+    destination: Mapped[str] = mapped_column(String(32), nullable=False)
+    clicked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    attribution_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class TelegramSuppression(Base):
+    __tablename__ = "telegram_suppressions"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="uq_telegram_suppressions_user"),
+        CheckConstraint("reason IN ('bot_blocked', 'chat_not_found', 'operator')", name="ck_telegram_suppressions_reason"),
+        Index("ix_telegram_suppressions_active", "active", "reason"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    reason: Mapped[str] = mapped_column(String(32), nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False, server_default="system")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class BroadcastAuditEntry(Base):
+    __tablename__ = "broadcast_audit_entries"
+    __table_args__ = (Index("ix_broadcast_audit_campaign_created", "campaign_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    campaign_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("broadcast_campaigns.id", ondelete="CASCADE"), nullable=False)
+    actor: Mapped[str] = mapped_column(String(64), nullable=False)
+    action: Mapped[str] = mapped_column(String(32), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(256))
+    evidence: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default=text("'{}'"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -11,6 +11,7 @@ from aiogram.types import BotCommand, BotCommandScopeDefault, MenuButtonCommands
 from redis.asyncio import Redis
 
 from bot.handlers.chat import router as chat_router
+from bot.handlers.broadcast import router as broadcast_router
 from bot.handlers.compatibility import router as compatibility_router
 from bot.handlers.errors import global_error_handler
 from bot.handlers.onboarding import router as onboarding_router
@@ -82,6 +83,7 @@ def configure_dispatcher(dp: Dispatcher) -> None:
     dp.include_router(chat_router)
     dp.include_router(payment_router)
     dp.include_router(profile_router)
+    dp.include_router(broadcast_router)
     dp.include_router(tarot_router)
     dp.include_router(insights_router)
     dp.include_router(fallback_router)
@@ -130,6 +132,7 @@ async def main() -> None:
     commands = [
         BotCommand(command="start", description="🚀 Главное меню"),
         BotCommand(command="profile", description="👤 Мой профиль"),
+        BotCommand(command="settings", description="⚙️ Настройки сообщений"),
         BotCommand(command="delete_account", description="🗑 Удалить аккаунт"),
         BotCommand(command="help", description="❓ Помощь"),
     ]

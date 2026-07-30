@@ -61,6 +61,11 @@ EXPECTED_PUBLIC_TABLES = {
     "alembic_version",
     "attribution_links",
     "attribution_touches",
+    "broadcast_audit_entries",
+    "broadcast_campaigns",
+    "broadcast_cta_clicks",
+    "broadcast_cta_click_events",
+    "broadcast_deliveries",
     "chat_message_usages",
     "daily_tarot_draws",
     "full_report_telegram_deliveries",
@@ -76,6 +81,7 @@ EXPECTED_PUBLIC_TABLES = {
     "report_generation_jobs",
     "reports",
     "telegram_report_deliveries",
+    "telegram_suppressions",
     "users",
 }
 APPLICATION_TABLES = EXPECTED_PUBLIC_TABLES - {"alembic_version"}

@@ -14,7 +14,6 @@ Exit code 0 = all scenarios passed (FK-NORM-01 through FK-NORM-10).
 
 from __future__ import annotations
 
-import asyncio
 import os
 import re
 import subprocess
@@ -24,14 +23,13 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 import psycopg2
-from sqlalchemy.ext.asyncio import create_async_engine
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NURA_APP_ROOT = REPO_ROOT / "nura_app"
 
 PREVIOUS_HEAD = "b9c0d1e2f3a4"
 NORMALIZATION_REVISION = "c0d1e2f3a4b5"
-EXPECTED_HEAD = "e8f9a0b1c2d3"
+EXPECTED_HEAD = "c6d7e8f9a0b1"
 
 _URL = ""
 _ALL_OK = True
@@ -262,49 +260,15 @@ def create_legacy_fk_names():
 
 
 def setup_legacy_db():
-    """Create legacy-style DB: create_all schema + stamp previous head.
-
-    Uses a real async Python function inside the same process, avoiding
-    fragile inline ``python -c`` quoting.
-    """
+    """Create a b9 schema and give the two target FKs their legacy names."""
     drop_schema()
-    async_url = _normalize_to_asyncpg_url(_URL)
-
-    async def _create_schema():
-        engine = create_async_engine(async_url)
-        try:
-            async with engine.begin() as conn:
-                await conn.run_sync(_create_all_schema)
-        finally:
-            await engine.dispose()
-
-    asyncio.run(_create_schema())
-
-    # Stamp previous head so the normalization migration is the next step.
-    _alembic("stamp", PREVIOUS_HEAD)
+    result = _alembic("upgrade", PREVIOUS_HEAD, check=False)
+    if result.returncode != 0:
+        raise RuntimeError("Could not create the canonical b9 fixture")
+    create_legacy_fk_names()
 
     # Prove the fixture is usable before any scenario continues.
     _legacy_fk_preflight()
-
-
-def _create_all_schema(connection) -> None:
-    """Synchronous callback for create_all inside an async connection."""
-    from core.models import Base
-
-    pre_attribution_tables = [
-        table
-        for table in Base.metadata.sorted_tables
-        if table.name
-        not in {
-            "attribution_links",
-            "attribution_touches",
-            "mini_report_generations",
-            "telegram_report_deliveries",
-            "chat_message_usages",
-            "daily_tarot_draws",
-        }
-    ]
-    Base.metadata.create_all(connection, tables=pre_attribution_tables)
 
 
 def setup_properly_migrated_db():
@@ -499,7 +463,7 @@ def scenario_08_downgrade_reupgrade():
     fks_after_d1_downgrade = get_fk_names()
     check(
         "FK names remain target after d1 downgrade",
-        fks_after_d1_downgrade == fks,
+        _TARGET_NAMES.issubset(fks_after_d1_downgrade),
         str(fks_after_d1_downgrade),
     )
     _assert_current(NORMALIZATION_REVISION, f"Current is {NORMALIZATION_REVISION}")
@@ -510,7 +474,7 @@ def scenario_08_downgrade_reupgrade():
     fks_after_downgrade = get_fk_names()
     check(
         "FK names remain target after downgrade",
-        fks_after_downgrade == fks,
+        _TARGET_NAMES.issubset(fks_after_downgrade),
         str(fks_after_downgrade),
     )
     _assert_current(PREVIOUS_HEAD, f"Current is {PREVIOUS_HEAD}")

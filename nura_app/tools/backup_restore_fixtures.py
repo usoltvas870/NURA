@@ -28,6 +28,11 @@ RESERVATION_PRIMARY = UUID("70000000-0000-0000-0000-000000000001")
 EXPECTED_ROW_COUNTS = {
     "attribution_links": 0,
     "attribution_touches": 0,
+    "broadcast_audit_entries": 0,
+    "broadcast_campaigns": 0,
+    "broadcast_cta_clicks": 0,
+    "broadcast_cta_click_events": 0,
+    "broadcast_deliveries": 0,
     "chat_message_usages": 0,
     "daily_tarot_draws": 0,
     "full_report_telegram_deliveries": 0,
@@ -43,6 +48,7 @@ EXPECTED_ROW_COUNTS = {
     "report_generation_jobs": 2,
     "reports": 2,
     "telegram_report_deliveries": 0,
+    "telegram_suppressions": 0,
     "users": 2,
 }
 
