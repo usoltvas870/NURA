@@ -182,6 +182,14 @@ class DatabaseSnapshot:
 
 
 @dataclass(frozen=True)
+class SchemaDifference:
+    object_type: str
+    path: str
+    source_value: str
+    restored_value: str
+
+
+@dataclass(frozen=True)
 class ProofResult:
     run_id: str
     evidence_dir: str
@@ -495,11 +503,28 @@ def verify_expected_metadata(
     expected_fingerprint: str,
     fixture_checksum: str,
     expected_fixture_checksum: str,
+    actual_catalog: dict[str, list[dict[str, object]]] | None = None,
+    expected_catalog: dict[str, list[dict[str, object]]] | None = None,
 ) -> None:
     if actual_revision != expected_revision:
         raise ProofError("Alembic revision mismatch")
     if actual_fingerprint != expected_fingerprint:
-        raise ProofError("Schema fingerprint mismatch")
+        message = (
+            "Schema fingerprint mismatch: "
+            f"source_fingerprint={expected_fingerprint}; "
+            f"restored_fingerprint={actual_fingerprint}"
+        )
+        if actual_catalog is not None and expected_catalog is not None:
+            difference = _first_schema_difference(expected_catalog, actual_catalog)
+            if difference is not None:
+                message += (
+                    f"; object={difference.object_type}; path={difference.path}; "
+                    f"source_value={difference.source_value}; "
+                    f"restored_value={difference.restored_value}"
+                )
+        if len(message) > _SCHEMA_DIAGNOSTIC_MESSAGE_LIMIT:
+            message = message[: _SCHEMA_DIAGNOSTIC_MESSAGE_LIMIT - 3] + "..."
+        raise ProofError(message)
     if fixture_checksum != expected_fixture_checksum:
         raise ProofError("Fixture checksum mismatch")
 
@@ -677,21 +702,32 @@ def _catalog_snapshot(database_url: str) -> dict[str, list[dict[str, object]]]:
     return {name: _rows_as_dicts(database_url, statement) for name, statement in queries.items()}
 
 
-def _canonical_check_definition(definition: object) -> object:
-    """Normalize the one textual CHECK representation changed by pg_restore."""
+def _canonical_check_expression(definition: object) -> object:
+    """Normalize the one textual array-cast representation changed by pg_restore."""
     if not isinstance(definition, str):
         return definition
     normalized = _RESTORED_CHECK_ARRAY_LITERAL.sub(r"\1", definition)
     return _SOURCE_CHECK_ARRAY_CAST.sub(r"ARRAY[\1]", normalized)
 
 
+def _canonical_partial_index_definition(definition: object) -> object:
+    """Normalize only the predicate of a partial index, never its key expression."""
+    if not isinstance(definition, str):
+        return definition
+    prefix, separator, predicate = definition.partition(" WHERE ")
+    if not separator:
+        return definition
+    return prefix + separator + str(_canonical_check_expression(predicate))
+
+
 def _catalog_for_comparison(
     catalog: dict[str, list[dict[str, object]]],
 ) -> dict[str, list[dict[str, object]]]:
-    """Compare CHECK constraints without accepting semantic drift.
+    """Compare CHECK expressions without accepting semantic drift.
 
     ``pg_restore`` can render an equivalent CHECK expression with different
-    array casts. Normalize only that known rendering delta; all other CHECK
+    array casts. The expression can occur in a CHECK constraint or a partial
+    index predicate. Normalize only that known rendering delta; all other SQL
     expression content remains part of the schema fingerprint and comparison.
     """
     comparison: dict[str, list[dict[str, object]]] = {}
@@ -699,13 +735,101 @@ def _catalog_for_comparison(
         comparison_rows: list[dict[str, object]] = []
         for row in rows:
             normalized = dict(row)
-            if name == "constraints" and normalized.get("contype") == "c":
-                normalized["definition"] = _canonical_check_definition(
+            is_check_constraint = (
+                name == "constraints" and normalized.get("contype") == "c"
+            )
+            if is_check_constraint:
+                normalized["definition"] = _canonical_check_expression(
+                    normalized.get("definition")
+                )
+            elif name == "indexes":
+                normalized["definition"] = _canonical_partial_index_definition(
                     normalized.get("definition")
                 )
             comparison_rows.append(normalized)
         comparison[name] = comparison_rows
     return comparison
+
+
+_CATALOG_KEY_FIELDS = {
+    "tables": ("table_name",),
+    "columns": ("table_name", "column_name"),
+    "constraints": ("table_name", "conname"),
+    "indexes": ("table_name", "index_name"),
+    "sequences": ("sequence_name",),
+    "views": ("view_name",),
+    "materialized_views": ("view_name",),
+    "functions": ("function_name", "arguments"),
+    "triggers": ("table_name", "trigger_name"),
+    "types": ("type_name",),
+    "extensions": ("extension_name",),
+}
+_SCHEMA_DIAGNOSTIC_IDENTITY_LIMIT = 80
+_SCHEMA_DIAGNOSTIC_MESSAGE_LIMIT = 1024
+
+
+def _schema_value_summary(value: object) -> str:
+    if value is None or isinstance(value, (bool, int, float)):
+        return repr(value)
+    canonical = _canonical_json(_canonical_value(value))
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+    return f"<{type(value).__name__} length={len(canonical)} sha256={digest}>"
+
+
+def _catalog_row_key(
+    object_type: str, row: dict[str, object]
+) -> tuple[tuple[str, str], ...]:
+    fields = _CATALOG_KEY_FIELDS.get(object_type)
+    if fields is None:
+        return (("canonical_row", _canonical_json(row)),)
+    return tuple((field, str(row.get(field))) for field in fields)
+
+
+def _catalog_path(object_type: str, key: tuple[tuple[str, str], ...]) -> str:
+    def safe_identity(value: str) -> str:
+        sanitized = _sanitize(value).replace("\r", "\\r").replace("\n", "\\n")
+        if len(sanitized) <= _SCHEMA_DIAGNOSTIC_IDENTITY_LIMIT:
+            return sanitized
+        digest = hashlib.sha256(sanitized.encode("utf-8")).hexdigest()[:16]
+        return f"<length={len(sanitized)} sha256={digest}>"
+
+    identity = ",".join(f"{field}={safe_identity(value)}" for field, value in key)
+    return f"{object_type}[{identity}]"
+
+
+def _first_schema_difference(
+    source_catalog: dict[str, list[dict[str, object]]],
+    restored_catalog: dict[str, list[dict[str, object]]],
+) -> SchemaDifference | None:
+    source = _catalog_for_comparison(source_catalog)
+    restored = _catalog_for_comparison(restored_catalog)
+    for object_type in sorted(set(source) | set(restored)):
+        source_rows = {
+            _catalog_row_key(object_type, row): row for row in source.get(object_type, [])
+        }
+        restored_rows = {
+            _catalog_row_key(object_type, row): row
+            for row in restored.get(object_type, [])
+        }
+        for key in sorted(set(source_rows) | set(restored_rows)):
+            path = _catalog_path(object_type, key)
+            if key not in source_rows:
+                return SchemaDifference(object_type, path, "<missing>", "<present>")
+            if key not in restored_rows:
+                return SchemaDifference(object_type, path, "<present>", "<missing>")
+            source_row = source_rows[key]
+            restored_row = restored_rows[key]
+            for field in sorted(set(source_row) | set(restored_row)):
+                source_value = source_row.get(field)
+                restored_value = restored_row.get(field)
+                if source_value != restored_value:
+                    return SchemaDifference(
+                        object_type,
+                        f"{path}.{field}",
+                        _schema_value_summary(source_value),
+                        _schema_value_summary(restored_value),
+                    )
+    return None
 
 
 def _schema_fingerprint(catalog: dict[str, list[dict[str, object]]]) -> str:
@@ -1292,6 +1416,8 @@ def _compare_snapshots(
         expected_fingerprint=source.schema_fingerprint,
         fixture_checksum=fixture_checksum,
         expected_fixture_checksum=_fixture_checksum(source),
+        actual_catalog=target.catalog,
+        expected_catalog=source.catalog,
     )
     comparisons = {
         "revision": source.revision == target.revision == repository_head,

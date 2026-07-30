@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 import hashlib
 import json
 import subprocess
@@ -58,6 +59,194 @@ def test_catalog_comparison_rejects_changed_check_semantics() -> None:
     }
 
     assert proof._catalog_for_comparison(source) != proof._catalog_for_comparison(changed)
+
+
+def test_catalog_comparison_normalizes_pg_restore_casts_in_partial_indexes() -> None:
+    source = {
+        "indexes": [{
+            "table_name": "example",
+            "index_name": "ix_example_active",
+            "definition": "CREATE INDEX ix_example_active ON public.example USING btree (id) "
+            "WHERE ((status)::text = ANY ((ARRAY['queued'::character varying, "
+            "'sending'::character varying])::text[]))",
+        }]
+    }
+    restored = {
+        "indexes": [{
+            "table_name": "example",
+            "index_name": "ix_example_active",
+            "definition": "CREATE INDEX ix_example_active ON public.example USING btree (id) "
+            "WHERE ((status)::text = ANY (ARRAY[('queued'::character varying)::text, "
+            "('sending'::character varying)::text]))",
+        }]
+    }
+
+    assert proof._catalog_for_comparison(source) == proof._catalog_for_comparison(restored)
+    assert proof._schema_fingerprint(source) == proof._schema_fingerprint(restored)
+
+
+def test_catalog_comparison_rejects_changed_partial_index_semantics() -> None:
+    source = {
+        "indexes": [{
+            "table_name": "example",
+            "index_name": "ix_example_active",
+            "definition": "CREATE INDEX ix_example_active ON public.example USING btree (id) "
+            "WHERE ((status)::text = 'queued'::text)",
+        }]
+    }
+    changed = deepcopy(source)
+    changed["indexes"][0]["definition"] = (
+        "CREATE INDEX ix_example_active ON public.example USING btree (id) "
+        "WHERE ((status)::text = 'failed'::text)"
+    )
+
+    assert proof._schema_fingerprint(source) != proof._schema_fingerprint(changed)
+
+
+def test_catalog_comparison_does_not_normalize_expression_index_keys() -> None:
+    source = {
+        "indexes": [{
+            "table_name": "example",
+            "index_name": "ix_example_expression",
+            "definition": "CREATE INDEX ix_example_expression ON public.example "
+            "USING btree ((('queued'::character varying)::text))",
+        }]
+    }
+    changed = deepcopy(source)
+    changed["indexes"][0]["definition"] = (
+        "CREATE INDEX ix_example_expression ON public.example "
+        "USING btree (('queued'::character varying))"
+    )
+
+    assert proof._catalog_for_comparison(source) != proof._catalog_for_comparison(changed)
+    assert proof._schema_fingerprint(source) != proof._schema_fingerprint(changed)
+
+
+@pytest.mark.parametrize(
+    ("object_type", "field", "changed_value"),
+    [
+        ("columns", "data_type", "bigint"),
+        ("columns", "is_nullable", "YES"),
+        ("columns", "column_default", "1"),
+        ("constraints", "definition", "CHECK ((amount >= 0))"),
+        (
+            "indexes",
+            "definition",
+            "CREATE INDEX ix_example_amount ON public.example USING btree (other_amount)",
+        ),
+    ],
+)
+def test_schema_fingerprint_detects_logical_catalog_changes(
+    object_type: str, field: str, changed_value: str
+) -> None:
+    source = {
+        "columns": [{
+            "table_name": "example",
+            "column_name": "amount",
+            "data_type": "integer",
+            "is_nullable": "NO",
+            "column_default": "0",
+        }],
+        "constraints": [{
+            "table_name": "example",
+            "conname": "ck_example_amount",
+            "contype": "c",
+            "definition": "CHECK ((amount > 0))",
+        }],
+        "indexes": [{
+            "table_name": "example",
+            "index_name": "ix_example_amount",
+            "definition": "CREATE INDEX ix_example_amount ON public.example USING btree (amount)",
+        }],
+    }
+    changed = deepcopy(source)
+    changed[object_type][0][field] = changed_value
+
+    assert proof._schema_fingerprint(source) != proof._schema_fingerprint(changed)
+
+
+@pytest.mark.parametrize("object_type", ["constraints", "indexes"])
+def test_schema_fingerprint_detects_removed_schema_objects(object_type: str) -> None:
+    source = {
+        "constraints": [{
+            "table_name": "example",
+            "conname": "ck_example_amount",
+            "contype": "c",
+            "definition": "CHECK ((amount > 0))",
+        }],
+        "indexes": [{
+            "table_name": "example",
+            "index_name": "ix_example_amount",
+            "definition": "CREATE INDEX ix_example_amount ON public.example USING btree (amount)",
+        }],
+    }
+    changed = deepcopy(source)
+    changed[object_type] = []
+
+    assert proof._schema_fingerprint(source) != proof._schema_fingerprint(changed)
+
+
+def test_schema_mismatch_diagnostic_is_bounded_deterministic_and_secret_free() -> None:
+    source = {
+        "columns": [{
+            "table_name": "example",
+            "column_name": "status",
+            "column_default": "password=source-secret",
+        }]
+    }
+    restored = deepcopy(source)
+    restored["columns"][0]["column_default"] = "password=restored-secret"
+
+    with pytest.raises(proof.ProofError) as error:
+        proof.verify_expected_metadata(
+            actual_revision="rev",
+            expected_revision="rev",
+            actual_fingerprint=proof._schema_fingerprint(restored),
+            expected_fingerprint=proof._schema_fingerprint(source),
+            fixture_checksum="fixture",
+            expected_fixture_checksum="fixture",
+            actual_catalog=restored,
+            expected_catalog=source,
+        )
+
+    message = str(error.value)
+    assert "object=columns" in message
+    assert "columns[table_name=example,column_name=status].column_default" in message
+    assert "source_fingerprint=" in message and "restored_fingerprint=" in message
+    assert "source-secret" not in message and "restored-secret" not in message
+    assert "<str length=" in message and "sha256=" in message
+    assert len(message) < 1024
+
+
+def test_schema_mismatch_diagnostic_bounds_long_identity_and_masks_arbitrary_secret() -> None:
+    long_arguments = "api_key=sk-live-EXAMPLESECRET" + "x" * 5000
+    source = {
+        "functions": [{
+            "function_name": "example",
+            "arguments": long_arguments,
+            "definition": "secret_token=source-secret",
+        }]
+    }
+    restored = deepcopy(source)
+    restored["functions"][0]["definition"] = "secret_token=restored-secret"
+
+    with pytest.raises(proof.ProofError) as error:
+        proof.verify_expected_metadata(
+            actual_revision="rev",
+            expected_revision="rev",
+            actual_fingerprint=proof._schema_fingerprint(restored),
+            expected_fingerprint=proof._schema_fingerprint(source),
+            fixture_checksum="fixture",
+            expected_fixture_checksum="fixture",
+            actual_catalog=restored,
+            expected_catalog=source,
+        )
+
+    message = str(error.value)
+    assert "EXAMPLESECRET" not in message
+    assert "source-secret" not in message and "restored-secret" not in message
+    assert "arguments=<length=" in message
+    assert len(message) <= proof._SCHEMA_DIAGNOSTIC_MESSAGE_LIMIT
 
 
 def test_disposable_identifiers_reject_production_like_values() -> None:

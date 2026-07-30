@@ -179,6 +179,8 @@ def _schema_proof() -> None:
         "id", "report_id", "order_id", "user_id", "delivery_reason",
         "request_key", "status", "retryable", "attempt_count", "claimed_at",
         "queued_at", "sent_at", "failed_at", "telegram_chat_id_snapshot",
+        "delivery_format_version", "text_payload_sha256", "text_chunks_snapshot",
+        "total_text_chunks", "text_message_ids", "text_status", "document_status",
         "telegram_document_message_id", "telegram_caption_message_id",
         "telegram_file_id", "artifact_sha256", "artifact_size_bytes",
         "error_code", "error_detail", "created_at", "updated_at",
@@ -193,12 +195,23 @@ def _schema_proof() -> None:
         "order_id", "claimed_at", "sent_at", "failed_at",
         "telegram_chat_id_snapshot", "telegram_document_message_id",
         "telegram_caption_message_id", "telegram_file_id", "error_code",
-        "error_detail",
+        "error_detail", "text_payload_sha256", "text_chunks_snapshot",
+        "text_message_ids",
     }
     _check("required columns are NOT NULL", all(columns[name][1] == "NO" for name in required))
     _check("queued status default", "queued" in (columns["status"][2] or ""))
     _check("retryable default true", "true" in (columns["retryable"][2] or ""))
     _check("attempt default zero", columns["attempt_count"][2] == "0")
+    _check(
+        "delivery format default",
+        "full-text-pdf-v1" in (columns["delivery_format_version"][2] or ""),
+    )
+    _check("text chunk count default zero", columns["total_text_chunks"][2] == "0")
+    _check("text status default pending", "pending" in (columns["text_status"][2] or ""))
+    _check(
+        "document status default pending",
+        "pending" in (columns["document_status"][2] or ""),
+    )
 
     constraints = {
         row[0]: row[1]
@@ -214,6 +227,10 @@ def _schema_proof() -> None:
         "ck_full_report_delivery_reason", "ck_full_report_delivery_status",
         "ck_full_report_delivery_attempt_count", "ck_full_report_delivery_artifact_size",
         "ck_full_report_delivery_artifact_sha256", "ck_full_report_delivery_state",
+        "ck_full_report_delivery_text_status",
+        "ck_full_report_delivery_document_status",
+        "ck_full_report_delivery_total_text_chunks",
+        "ck_full_report_delivery_text_payload_sha256",
         "uq_full_report_delivery_request",
     ):
         _check(f"constraint {name}", name in constraints)
@@ -257,12 +274,19 @@ def _schema_proof() -> None:
         "ix_full_report_delivery_report_id", "ix_full_report_delivery_order_id",
         "ix_full_report_delivery_user_id", "ix_full_report_delivery_status_claimed_at",
         "ix_full_report_delivery_queued_at", "ix_full_report_delivery_request_key",
+        "ix_full_report_delivery_status_text_document",
+        "uq_full_report_delivery_active_report",
     ):
         _check(f"index {name}", name in indexes)
     _check(
         "automatic uniqueness is partial",
         "UNIQUE" in indexes["uq_full_report_delivery_automatic_report"]
         and "delivery_reason" in indexes["uq_full_report_delivery_automatic_report"],
+    )
+    _check(
+        "active delivery uniqueness is partial",
+        "UNIQUE" in indexes["uq_full_report_delivery_active_report"]
+        and "retryable" in indexes["uq_full_report_delivery_active_report"],
     )
     report_columns = {row[0] for row in _query(
         "SELECT column_name FROM information_schema.columns WHERE table_name='reports'"
@@ -278,8 +302,13 @@ class FakeSender:
     def __init__(self, *, invalid_file_id: bool = False, returned_file_id: str | None = "file-new"):
         self.invalid_file_id = invalid_file_id
         self.returned_file_id = returned_file_id
+        self.message_calls = 0
         self.file_id_calls = 0
         self.artifact_calls = 0
+
+    async def send_message(self, chat_id: int, text: str) -> int:
+        self.message_calls += 1
+        return 600 + self.message_calls
 
     async def send_document_by_file_id(self, chat_id: int, file_id: str, caption: str):
         from core.services.telegram_report_delivery import TelegramDeliveryError, TelegramDocument
@@ -298,6 +327,7 @@ class FakeSender:
 
 async def _seed_subject(factory, *, suffix: str) -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:
     from core.models import Order, Report, User
+    from core.services.full_report_telegram_delivery import FullReportTelegramDeliveryService
 
     user_id, report_id, order_id = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
     artifact = b"%PDF-" + suffix.encode() + b"x" * 2048
@@ -307,6 +337,10 @@ async def _seed_subject(factory, *, suffix: str) -> tuple[uuid.UUID, uuid.UUID, 
         report = Report(
             id=report_id, user_id=user_id, report_type="full", token=uuid.uuid4().hex,
             payment_state="payment_confirmed", generation_state="completed", generated_at=now,
+            ai_analysis={
+                key: f"Synthetic {key} analysis for {suffix}"
+                for _title, key in FullReportTelegramDeliveryService._TEXT_SECTIONS
+            },
             artifact_bytes=artifact, artifact_sha256=hashlib.sha256(artifact).hexdigest(),
             artifact_size_bytes=len(artifact), artifact_mime_type="application/pdf",
             artifact_completed_at=now,
@@ -392,11 +426,13 @@ async def _concurrency_proof() -> None:
         attempt = await repo.claim(retryable, now)
         _check("F retryable failed", await repo.fail(retryable, attempt, "network", retryable=True))
         retry_wave = await _wave(lambda: FullReportTelegramDeliveryRepository(factory).claim(retryable, now + timedelta(seconds=1)))
-        _check("F next wave one winner", [value for value in retry_wave if value is not None] == [2])
-        terminal = await FullReportTelegramDeliveryService(factory).enqueue_manual(user_id, report_id, "terminal")
-        terminal_attempt = await repo.claim(terminal, now)
-        _check("G terminal failed", await repo.fail(terminal, terminal_attempt, "forbidden", retryable=False))
-        terminal_wave = await _wave(lambda: FullReportTelegramDeliveryRepository(factory).claim(terminal, stale_now))
+        retry_attempts = [value for value in retry_wave if value is not None]
+        _check("F next wave one winner", retry_attempts == [2])
+        _check(
+            "G terminal failed",
+            await repo.fail(retryable, retry_attempts[0], "forbidden", retryable=False),
+        )
+        terminal_wave = await _wave(lambda: FullReportTelegramDeliveryRepository(factory).claim(retryable, stale_now))
         _check("G non-retryable has no claim", all(value is None for value in terminal_wave))
 
         manuals = await _wave(lambda: FullReportTelegramDeliveryService(factory).enqueue_manual(user_id, report_id, "same-click"))
@@ -416,15 +452,31 @@ async def _concurrency_proof() -> None:
 
         sender = FakeSender()
         await FullReportTelegramDeliveryService(factory, sender).deliver(new_manual)
-        _check("J file_id reuse only", sender.file_id_calls == 1 and sender.artifact_calls == 0)
+        expected_text_calls = len(FullReportTelegramDeliveryService._TEXT_SECTIONS) + 1
+        _check(
+            "J text and file_id reuse only",
+            sender.message_calls == expected_text_calls
+            and sender.file_id_calls == 1
+            and sender.artifact_calls == 0,
+        )
         invalid = await FullReportTelegramDeliveryService(factory).enqueue_manual(user_id, report_id, "invalid-file")
         fallback = FakeSender(invalid_file_id=True, returned_file_id="file-replaced")
         await FullReportTelegramDeliveryService(factory, fallback).deliver(invalid)
-        _check("K invalid ID falls back once", fallback.file_id_calls == 1 and fallback.artifact_calls == 1)
+        _check(
+            "K text and invalid ID fallback once",
+            fallback.message_calls == expected_text_calls
+            and fallback.file_id_calls == 1
+            and fallback.artifact_calls == 1,
+        )
         next_id = await FullReportTelegramDeliveryService(factory).enqueue_manual(user_id, report_id, "after-fallback")
         next_sender = FakeSender()
         await FullReportTelegramDeliveryService(factory, next_sender).deliver(next_id)
-        _check("K replacement becomes canonical", next_sender.file_id_calls == 1 and next_sender.artifact_calls == 0)
+        _check(
+            "K text and replacement become canonical",
+            next_sender.message_calls == expected_text_calls
+            and next_sender.file_id_calls == 1
+            and next_sender.artifact_calls == 0,
+        )
 
         refund_user, refund_report, refund_order = await _seed_subject(factory, suffix="refund")
         refund_delivery = await FullReportTelegramDeliveryService(factory).enqueue_automatic(refund_report)
@@ -435,7 +487,12 @@ async def _concurrency_proof() -> None:
             await session.commit()
         refund_sender = FakeSender()
         await FullReportTelegramDeliveryService(factory, refund_sender).deliver(refund_delivery)
-        _check("L refund before claim sends nothing", refund_sender.file_id_calls + refund_sender.artifact_calls == 0)
+        _check(
+            "L refund before claim sends nothing",
+            refund_sender.message_calls
+            + refund_sender.file_id_calls
+            + refund_sender.artifact_calls == 0,
+        )
         _check("L refunded delivery canceled", (await repo.get(refund_delivery)).status == "canceled")
 
         refund2_user, refund2_report, refund2_order = await _seed_subject(factory, suffix="refund-after-claim")
@@ -450,7 +507,12 @@ async def _concurrency_proof() -> None:
         await FullReportTelegramDeliveryService(factory, refund2_sender).deliver(
             refund2_delivery, claimed_attempt=refund2_attempt
         )
-        _check("M refund after claim sends nothing", refund2_sender.file_id_calls + refund2_sender.artifact_calls == 0)
+        _check(
+            "M refund after claim sends nothing",
+            refund2_sender.message_calls
+            + refund2_sender.file_id_calls
+            + refund2_sender.artifact_calls == 0,
+        )
         _check("M claimed delivery canceled", (await repo.get(refund2_delivery)).status == "canceled")
 
         delete_user, delete_report, _delete_order = await _seed_subject(factory, suffix="delete")
@@ -460,7 +522,12 @@ async def _concurrency_proof() -> None:
         deleted_sender = FakeSender()
         await FullReportTelegramDeliveryService(factory, deleted_sender).deliver(delete_delivery, claimed_attempt=delete_attempt)
         _check("N deletion removes user/report/delivery", await repo.get(delete_delivery) is None)
-        _check("N stale worker cannot send", deleted_sender.file_id_calls + deleted_sender.artifact_calls == 0)
+        _check(
+            "N stale worker cannot send",
+            deleted_sender.message_calls
+            + deleted_sender.file_id_calls
+            + deleted_sender.artifact_calls == 0,
+        )
         _check("N stale terminal update rejected", not await repo.complete(delete_delivery, delete_attempt, message_id=1, file_id="gone"))
         async with factory() as session:
             retained_order = await session.scalar(select(Order).where(Order.customer_reference_hash.is_not(None)))
