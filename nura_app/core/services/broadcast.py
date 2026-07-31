@@ -17,6 +17,7 @@ from core.services.broadcast_telegram import (
     BroadcastTelegramAdapter,
     BroadcastTelegramError,
 )
+from core.services.telegram_sandbox import telegram_user_is_allowed
 
 ALLOWED_DESTINATIONS = frozenset(
     {
@@ -174,7 +175,16 @@ class BroadcastCampaignService:
         self, public_id: str, *, actor: str, reason: str | None
     ) -> BroadcastCampaign:
         campaign = await self.get(public_id)
-        admin_ids = settings.broadcast_admin_ids
+        if not settings.payment_operations_enabled and any(
+            item.get("destination") == "buy_matrix"
+            for item in campaign.cta_snapshot
+        ):
+            raise BroadcastServiceError("payments_disabled")
+        admin_ids = tuple(
+            chat_id
+            for chat_id in settings.broadcast_admin_ids
+            if telegram_user_is_allowed(chat_id)
+        )
         if not admin_ids:
             raise BroadcastServiceError("broadcast_admin_allowlist_empty")
         expected_version = campaign.content_version
@@ -220,6 +230,8 @@ class BroadcastCampaignService:
         actor: str,
         reason: str | None,
     ) -> tuple[BroadcastCampaign, bool]:
+        if settings.is_owner_prelaunch:
+            raise BroadcastServiceError("prelaunch_campaign_launch_forbidden")
         key_hash = hashlib.sha256(idempotency_key.encode("utf-8")).hexdigest()
         try:
             result = await self._repository.launch_campaign(

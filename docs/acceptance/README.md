@@ -1,5 +1,18 @@
 # NURA Acceptance Evidence
 
+## Owner-only prelaunch local evidence (2026-07-31)
+
+Owner decision заменяет ближайший execution path: отдельный external sandbox
+stack на текущей стадии не создаётся; будущая проверка планируется на текущих
+VPS, hostname и production bot в закрытом allowlisted режиме. YooKassa
+отложена, payments выключены, current production DeepSeek path сохраняется.
+Локальные code/tests подтверждают contract, но не являются VPS inventory,
+backup, deploy, Telegram/AI call или production smoke evidence.
+
+План перехода: [Current VPS owner-only prelaunch](../current-vps-prelaunch.md).
+Он имеет уровень `RUNBOOK — NOT EXECUTION PROOF`. Существующее state считается
+disposable только после backup и отдельного owner approval на очистку.
+
 ## Fail-closed external sandbox profile (2026-07-31)
 
 Локальный worktree на baseline `0be905226eebc1148d26bf89559d2ae5ce45096f`

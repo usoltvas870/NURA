@@ -2392,7 +2392,7 @@ class TestBuyMatrix:
         checkout_service.assert_not_called()
         user_repository.assert_not_called()
         text = mock_callback.message.edit_text.await_args.args[0]
-        assert text == "⚠️ Оплата временно недоступна.\nПопробуй позже."
+        assert text == "Оплата пока недоступна — полный запуск готовится."
 
     @pytest.mark.asyncio
     async def test_creates_matrix_payment(

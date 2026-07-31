@@ -144,10 +144,10 @@ async def show_my_matrix(callback: CallbackQuery) -> None:
             InlineKeyboardButton(text="⬇️ Скачать PDF", url=pdf_url),
         ])
     else:
-        # Матрица не куплена — показываем кнопку покупки с пояснением
-        buttons.append([
-            InlineKeyboardButton(text="💎 Купить матрицу — 890 ₽", callback_data="buy_matrix")
-        ])
+        if settings.payment_operations_enabled:
+            buttons.append([
+                InlineKeyboardButton(text="💎 Купить матрицу — 890 ₽", callback_data="buy_matrix")
+            ])
         buttons.append([
             InlineKeyboardButton(text="👁 Посмотреть пример отчёта", callback_data="sample_report")
         ])

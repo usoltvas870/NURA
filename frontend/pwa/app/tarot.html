@@ -218,6 +218,7 @@
         if (iosModal.hidden && iosModal.style.display === 'flex') openIOSInstallDialog(document.activeElement);
       }).observe(iosModal, {attributes: true, attributeFilter: ['style']});
       var access = 'loading';
+      var paymentsEnabled = true;
       var cardData = null;
       var currentUserId = null;
       var accessRequest = 0;
@@ -241,6 +242,7 @@
         button.classList.toggle('is-premium', state === 'premium');
         if (state === 'guest') badge.textContent = 'Нужен вход';
         if (state === 'premium') badge.textContent = 'Premium';
+        if (state === 'blocked') badge.textContent = 'Недоступно';
         if (state === 'free' || state === 'subscriber') badge.textContent = 'Открыто';
       }
 
@@ -253,6 +255,7 @@
           if (next === 'guest') setFormatState(button, 'guest');
           else if (next === 'subscriber') setFormatState(button, 'subscriber');
           else if (freeFormats[type]) setFormatState(button, 'free');
+          else if (!paymentsEnabled) setFormatState(button, 'blocked');
           else setFormatState(button, 'premium');
         });
         caption.textContent = next === 'subscriber' ? 'Все форматы открыты' : next === 'free' ? '3 формата открыты' : next === 'guest' ? 'Нужен вход' : '';
@@ -367,6 +370,14 @@
       };
 
       window.openPaywall = function (name) {
+        if (!paymentsEnabled) {
+          $('pw-practice-title').textContent = 'Ранний доступ';
+          $('pw-practice-name').textContent = 'Этот формат пока недоступен';
+          $('pw-subscribe-btn').hidden = true;
+          openSheet('pw');
+          return;
+        }
+        $('pw-subscribe-btn').hidden = false;
         $('pw-practice-title').textContent = 'Подписка Tarot';
         $('pw-practice-name').textContent = (name || 'Этот формат') + ' доступен по подписке';
         openSheet('pw', $('pw-subscribe-btn'));
@@ -452,6 +463,7 @@
       function clearTarotCheckoutKey() { sessionStorage.removeItem('nura_checkout_action_v1'); }
       window.subscribeTarot = function () {
         if (access === 'guest') return promptGuestAccess();
+        if (!paymentsEnabled) return;
         var button = $('pw-subscribe-btn'); button.disabled = true; button.textContent = 'Загрузка…';
         var idempotencyKey = tarotCheckoutKey(); N.track('checkout_opened', { surface: 'tarot' }); N.fetchJSON(BASE + '/web/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({}) }).then(function (data) {
           if (data.payment_url) { clearTarotCheckoutKey(); location.href = data.payment_url; } else throw new Error('payment_url missing');
@@ -478,12 +490,13 @@
            if (!response.ok) throw new Error('session check failed');
            return N.fetchJSON(BASE + '/web/me').then(function (user) {
              if (!user || typeof user.user_id !== 'string' || !user.user_id) throw new Error('user id missing');
-             return { access: user.has_tarot ? 'subscriber' : 'free', userId: user.user_id };
+             return { access: user.has_tarot ? 'subscriber' : 'free', userId: user.user_id, paymentsEnabled: user.payments_enabled !== false };
            });
          }).then(function (result) {
            if (requestId !== accessRequest || !result) return;
            if (result === 'guest') { applyAccess('guest'); return; }
            currentUserId = result.userId;
+           paymentsEnabled = result.paymentsEnabled;
            applyAccess(result.access);
          }).catch(function () { if (requestId === accessRequest) applyAccess('guest'); });
        }

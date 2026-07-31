@@ -285,6 +285,20 @@ async def callback_main_menu(callback: CallbackQuery, state: FSMContext) -> None
 @router.callback_query(F.data == "sample_report")
 async def callback_sample_report(callback: CallbackQuery) -> None:
     await callback.answer()
+    payment_copy = (
+        "<b>💎 Полный разбор — 890 ₽ разово, навсегда.</b>"
+        if settings.payment_operations_enabled
+        else "Оплата пока недоступна — полный запуск готовится."
+    )
+    rows = []
+    if settings.payment_operations_enabled:
+        rows.append([
+            InlineKeyboardButton(
+                text="💎 Купить — 890 ₽",
+                callback_data="buy_matrix",
+            )
+        ])
+    rows.append([InlineKeyboardButton(text="← Назад", callback_data="my_matrix")])
     await callback.message.answer(
         "📄 <b>Пример полного отчёта</b>\n\n"
         "Отчёт включает 15 разделов:\n"
@@ -295,14 +309,8 @@ async def callback_sample_report(callback: CallbackQuery) -> None:
         "• Жизненные циклы — периоды силы и спада\n"
         "• 7-дневные персональные рекомендации\n\n"
         "Всё это — на основе твоей даты рождения.\n\n"
-        "<b>💎 Полный разбор — 890 ₽ разово, навсегда.</b>",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text="💎 Купить — 890 ₽",
-                callback_data="buy_matrix"
-            )],
-            [InlineKeyboardButton(text="← Назад", callback_data="my_matrix")],
-        ])
+        f"{payment_copy}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
     )
 
 

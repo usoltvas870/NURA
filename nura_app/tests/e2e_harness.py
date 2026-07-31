@@ -38,6 +38,7 @@ PERSONA_HEADER = "X-NURA-E2E-Persona"
 PERSONAS = frozenset(
     {
         "guest", "free", "premium", "expired", "matrix_owner", "report_owner",
+        "prelaunch_owner",
         "telegram_connected", "telegram_disconnected", "chat_limit", "loading",
         "telegram_pending", "telegram_linked", "telegram_expired",
         "telegram_confirm_invalid", "telegram_confirm_missing", "telegram_confirm_conflict",
@@ -103,6 +104,7 @@ def _profile(persona: str) -> UserProfileResponse:
         subscription_status="expired" if expired else ("premium" if premium else "free"),
         subscription_until="31.12.2029" if expired else ("31.12.2030" if premium else None),
         tarot_until="31.12.2029" if expired else ("31.12.2030" if premium else None),
+        payments_enabled=persona != "prelaunch_owner",
         has_pwa_push=False, telegram_linked=persona in {"telegram_connected", "telegram_linked"},
         reports=reports, ref_link=None,
     )
@@ -141,8 +143,11 @@ def create_e2e_harness() -> FastAPI:
     if os.environ.get("APP_ENV") != "test":
         raise RuntimeError("NURA E2E harness can run only when APP_ENV=test")
 
+    default_persona = os.environ.get("NURA_E2E_DEFAULT_PERSONA", "free")
+    if default_persona not in PERSONAS:
+        raise RuntimeError("unknown_e2e_default_persona")
     app = FastAPI(title="NURA E2E harness", docs_url=None, redoc_url=None)
-    app.state.e2e = HarnessState()
+    app.state.e2e = HarnessState(persona=default_persona)
 
     def persona(request: Request) -> str:
         selected = request.headers.get(PERSONA_HEADER, app.state.e2e.persona)

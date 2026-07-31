@@ -38,6 +38,7 @@ from core.services.prompt_governance import (
     input_hash,
     prompt_registry,
     resolve_active_bundle,
+    resolve_pinned_bundle,
 )
 from core.services.telegram_report_delivery import MiniReportTelegramDeliveryService, TelegramDeliveryError
 from core.services.external_sandbox import (
@@ -45,7 +46,7 @@ from core.services.external_sandbox import (
     validate_sandbox_database_versions,
     validate_sandbox_startup,
 )
-from core.services.telegram_sandbox import SandboxGuardedBot
+from core.services.telegram_sandbox import RestrictedTelegramBot
 from core.services.web_push import PushSubscriptionExpired, send_web_push
 
 MSK = timezone(timedelta(hours=3))
@@ -104,8 +105,7 @@ _sandbox_schedule = {
     },
 }
 
-celery_app.conf.beat_schedule = _sandbox_schedule if settings.is_sandbox else (
-    _chat_delivery_schedule if settings.nura_tg_pilot else {
+_production_schedule = {
     "downgrade-expired-subscriptions": {
         "task": "core.tasks.downgrade_expired_subscriptions",
         "schedule": 60 * 60 * 24,
@@ -153,8 +153,19 @@ celery_app.conf.beat_schedule = _sandbox_schedule if settings.is_sandbox else (
         "options": {"expires": 50},
     },
     **_chat_delivery_schedule,
-    }
-)
+}
+
+
+def beat_schedule_for(current_settings) -> dict:
+    """Return only schedules allowed by the active runtime contract."""
+    if current_settings.is_sandbox or current_settings.is_owner_prelaunch:
+        return _sandbox_schedule
+    if current_settings.nura_tg_pilot:
+        return _chat_delivery_schedule
+    return _production_schedule
+
+
+celery_app.conf.beat_schedule = beat_schedule_for(settings)
 
 
 def _validate_sandbox_database_dependency() -> None:
@@ -194,7 +205,7 @@ async def _send_message(
         logger.warning("TELEGRAM_BOT_TOKEN not configured, skipping notification")
         return False
 
-    bot = SandboxGuardedBot(
+    bot = RestrictedTelegramBot(
         token=token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
@@ -546,6 +557,97 @@ def generate_full_report(
 
 
 @celery_app.task(
+    name="core.tasks.generate_prelaunch_full_report",
+    acks_late=True,
+    reject_on_worker_lost=True,
+    autoretry_for=(Exception,),
+    max_retries=2,
+    retry_backoff=30,
+    retry_backoff_max=180,
+    retry_jitter=True,
+)
+def generate_prelaunch_full_report(report_id: str) -> dict:
+    """Generate one audited owner-prelaunch artifact without payment state."""
+    try:
+        parsed_report_id = uuid.UUID(report_id)
+    except (ValueError, AttributeError):
+        return {"ok": False, "error": "invalid_report_id"}
+
+    async def _run() -> dict:
+        from core.services.matrix_report_generator import (
+            DefaultMatrixReportGenerator,
+        )
+        from core.services.matrix_report_worker import render_full_report_artifact
+        from core.services.prelaunch_full_report import PrelaunchFullReportService
+
+        service = PrelaunchFullReportService(get_async_sessionmaker())
+        claim = await service.claim_generation(parsed_report_id)
+        if claim is None:
+            return {"ok": False, "error": "prelaunch_generation_not_claimed"}
+        report, user, should_generate = claim
+        if not should_generate:
+            await service.ensure_initial_delivery(report.id)
+            return {"ok": True, "idempotent": True, "report_id": str(report.id)}
+
+        try:
+            metadata = report.generation_metadata
+            if not isinstance(metadata, dict):
+                raise RuntimeError("prelaunch_prompt_pin_missing")
+            bundle = resolve_pinned_bundle("report.full", metadata)
+            result = await DefaultMatrixReportGenerator().generate(
+                birth_date=user.birth_date,
+                user_name=user.first_name or user.username or "пользователь",
+                report_token=report.token,
+                prompt_bundle=bundle,
+            )
+            artifact = await render_full_report_artifact(
+                result,
+                user_name=user.first_name or user.username or "пользователь",
+                report_token=report.token,
+            )
+            details = result.generation_details or {}
+            generation_source = details.get("generation_source")
+            if generation_source not in {"provider", "fallback"}:
+                generation_source = "fallback"
+            final_metadata = finalize_generation_metadata(
+                metadata,
+                provider=(
+                    details.get("provider")
+                    if isinstance(details.get("provider"), str)
+                    else None
+                ),
+                model=(
+                    details.get("model")
+                    if isinstance(details.get("model"), str)
+                    else None
+                ),
+                generation_source=generation_source,
+                structured_input_hash=input_hash(result.matrix_data),
+                components=(
+                    details.get("components")
+                    if isinstance(details.get("components"), dict)
+                    else None
+                ),
+            )
+            completed = await service.complete_generation(
+                report.id,
+                matrix_data=result.matrix_data,
+                ai_analysis=result.ai_analysis,
+                kitchen_analysis=result.kitchen_analysis,
+                generation_metadata=final_metadata,
+                artifact=artifact,
+            )
+        except Exception:
+            await service.fail_generation(
+                report.id, "prelaunch_generation_failed"
+            )
+            raise
+        return {"ok": True, "report_id": str(completed.id)}
+
+    return _run_async(_run())
+
+
+@celery_app.task(
     bind=True,
     name="core.tasks.process_report_generation_job",
     acks_late=True,
@@ -729,7 +831,7 @@ def reconcile_report_generation_jobs(limit: int = 50) -> dict:
         now = datetime.now(timezone.utc)
         reconciler = build_report_generation_reconciler()
         result = await reconciler.reconcile_batch(now=now, limit=limit)
-        return {
+        response = {
             "inspected": result.inspected,
             "dispatch_claims_recovered": result.dispatch_claims_recovered,
             "queued_recovered": result.queued_recovered,
@@ -745,6 +847,17 @@ def reconcile_report_generation_jobs(limit: int = 50) -> dict:
             "conflicts": result.conflicts,
             "errors": result.errors,
         }
+        if settings.is_owner_prelaunch:
+            from core.services.prelaunch_full_report import (
+                PrelaunchFullReportService,
+            )
+
+            response["prelaunch"] = (
+                await PrelaunchFullReportService(
+                    get_async_sessionmaker()
+                ).reconcile_stalled_generations(now=now, limit=limit)
+            )
+        return response
 
     return _run_async(_run())
 
@@ -919,6 +1032,8 @@ async def _notify_user(
 # but do not schedule until notifications use DailyTarotApplicationService.
 @celery_app.task(name="core.tasks.send_daily_card")
 def send_daily_card() -> dict:
+    if settings.is_owner_prelaunch:
+        return {"sent": 0, "failed": 0, "total": 0, "disabled": True}
     return _run_async(_send_daily_card_async())
 
 
@@ -1028,6 +1143,8 @@ async def _send_daily_card_async() -> dict:
 
 @celery_app.task(name="core.tasks.send_daily_tarot_card")
 def send_daily_tarot_card() -> dict:
+    if settings.is_owner_prelaunch:
+        return {"sent": 0, "failed": 0, "total": 0, "disabled": True}
     return _run_async(_send_daily_tarot_card_async())
 
 
@@ -1125,6 +1242,8 @@ async def _send_daily_tarot_card_async() -> dict:
 
 @celery_app.task(name="core.tasks.send_weekly_tarot_spread")
 def send_weekly_tarot_spread() -> dict:
+    if settings.is_owner_prelaunch:
+        return {"sent": 0, "failed": 0, "total": 0, "disabled": True}
     return _run_async(_send_weekly_tarot_spread_async())
 
 
@@ -1216,6 +1335,8 @@ async def _send_weekly_tarot_spread_async() -> dict:
 
 @celery_app.task(name="core.tasks.send_monthly_tarot_portal")
 def send_monthly_tarot_portal() -> dict:
+    if settings.is_owner_prelaunch:
+        return {"sent": 0, "failed": 0, "total": 0, "disabled": True}
     return _run_async(_send_monthly_tarot_portal_async())
 
 
@@ -1358,6 +1479,8 @@ async def _check_inactive_users_async() -> dict:
 
 @celery_app.task(name="core.tasks.check_expiring_subscriptions")
 def check_expiring_subscriptions() -> dict:
+    if settings.is_owner_prelaunch:
+        return {"sent": 0, "disabled": True}
     return _run_async(_check_expiring_subscriptions_async())
 
 
@@ -1404,6 +1527,8 @@ async def _check_expiring_subscriptions_async() -> dict:
 
 @celery_app.task(name="core.tasks.downgrade_expired_subscriptions")
 def downgrade_expired_subscriptions() -> dict:
+    if settings.is_owner_prelaunch:
+        return {"downgraded": 0, "total_expired": 0, "disabled": True}
     return _run_async(_downgrade_expired_subscriptions_async())
 
 
@@ -1431,8 +1556,8 @@ async def _downgrade_expired_subscriptions_async() -> dict:
 
 @celery_app.task(name="core.tasks.charge_recurring_subscriptions")
 def charge_recurring_subscriptions() -> dict:
-    if not settings.payments_enabled:
-        logger.warning("recurring payments are disabled for the Telegram pilot")
+    if not settings.payment_operations_enabled:
+        logger.warning("recurring payments are disabled")
         return {"charged": 0, "failed": 0, "total": 0, "disabled": True}
     return _run_async(_charge_recurring_subscriptions_async())
 
@@ -1575,6 +1700,13 @@ def dispatch_broadcast_campaign(campaign_id: str) -> dict:
 
 
 async def _dispatch_broadcast_campaign_async(campaign_id: str) -> dict:
+    if settings.is_owner_prelaunch:
+        return {
+            "processed": 0,
+            "delivered": 0,
+            "failed": 0,
+            "error_code": "prelaunch_campaign_dispatch_disabled",
+        }
     from core.services.broadcast import BroadcastCampaignService
 
     return await BroadcastCampaignService(
@@ -1588,6 +1720,11 @@ def reconcile_broadcast_campaigns(limit: int = 20) -> dict:
 
 
 async def _reconcile_broadcast_campaigns_async(limit: int) -> dict:
+    if settings.is_owner_prelaunch:
+        return {
+            "campaigns_dispatched": 0,
+            "error_code": "prelaunch_campaign_reconciliation_disabled",
+        }
     from core.services.broadcast import BroadcastCampaignService
 
     return await BroadcastCampaignService(get_async_sessionmaker()).reconcile(limit=limit)
@@ -1709,6 +1846,12 @@ def block_inactive_users() -> dict:
 
 @celery_app.task(name="core.tasks.delete_inactive_users")
 def delete_inactive_users() -> dict:
+    if settings.is_owner_prelaunch:
+        return {
+            "deleted": 0,
+            "error_code": "prelaunch_inactive_user_deletion_disabled",
+        }
+
     async def _run() -> dict:
         session_factory = get_async_sessionmaker()
         user_repo = UserRepository(session_factory)
@@ -1822,7 +1965,7 @@ async def _send_admin_message(telegram_id: int, text: str) -> bool:
         logger.warning("ADMIN_BOT_TOKEN not configured, skipping admin message")
         return False
 
-    bot = SandboxGuardedBot(
+    bot = RestrictedTelegramBot(
         token=token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )

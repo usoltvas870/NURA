@@ -38,8 +38,7 @@ def tarot_menu_keyboard(has_tarot: bool = False, *, expanded_enabled: bool = Fal
             ]
         )
     # Для не-подписчиков: карта дня свободна, остальное — замки
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
+    rows = [
             [InlineKeyboardButton(text="🌒 Карта дня", callback_data="tarot_daily_card")],
             [
                 InlineKeyboardButton(text="🔒 Деньги", callback_data="tarot_money"),
@@ -53,10 +52,20 @@ def tarot_menu_keyboard(has_tarot: bool = False, *, expanded_enabled: bool = Fal
                 InlineKeyboardButton(text="🔒 По вопросу", callback_data="tarot_question"),
                 InlineKeyboardButton(text="🔒 Ещё расклады", callback_data="tarot_more"),
             ],
-            [InlineKeyboardButton(text="✨ Открыть практику — 390 ₽/мес", callback_data="buy_tarot_subscription")],
-            [InlineKeyboardButton(text="← Назад", callback_data="main_menu")],
-        ]
+    ]
+    if settings.payment_operations_enabled:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text="✨ Открыть практику — 390 ₽/мес",
+                    callback_data="buy_tarot_subscription",
+                )
+            ]
+        )
+    rows.append(
+        [InlineKeyboardButton(text="← Назад", callback_data="main_menu")]
     )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def tarot_more_keyboard() -> InlineKeyboardMarkup:
@@ -87,6 +96,12 @@ def tarot_back_keyboard() -> InlineKeyboardMarkup:
 
 
 def tarot_paywall_keyboard() -> InlineKeyboardMarkup:
+    if not settings.payment_operations_enabled:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="← К раскладам", callback_data="tarot_menu")],
+            ]
+        )
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="✨ Подключить — 390 ₽/мес", callback_data="buy_tarot_subscription")],
@@ -111,7 +126,7 @@ def tarot_spheres_keyboard() -> InlineKeyboardMarkup:
 
 
 def tarot_result_keyboard() -> InlineKeyboardMarkup:
-    if settings.is_sandbox:
+    if settings.telegram_access_restricted:
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="← К раскладам", callback_data="tarot_menu")],

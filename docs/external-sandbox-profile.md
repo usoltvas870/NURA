@@ -1,5 +1,12 @@
 # Внешний sandbox-профиль NURA
 
+> **CURRENT OWNER DECISION (2026-07-31):** отдельный sandbox VPS/hostname/bot
+> сейчас не создаётся. Этот fail-closed профиль остаётся реализованным и
+> regression-tested contract, но ближайший внешний путь — owner-only prelaunch
+> на текущем VPS с current bot/DeepSeek и отключённой YooKassa. См.
+> [current-vps-prelaunch.md](current-vps-prelaunch.md). Это изменение стратегии,
+> а не доказательство deploy или внешнего запуска.
+
 **Статус:** IMPLEMENTED LOCALLY — EXTERNAL SANDBOX NOT EXECUTED
 
 **Baseline реализации:** `main` / `0be905226eebc1148d26bf89559d2ae5ce45096f` плюс локальный незакоммиченный worktree

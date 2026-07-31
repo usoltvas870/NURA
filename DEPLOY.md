@@ -1,5 +1,12 @@
 # NURA — coordinated production release contract
 
+> Одноразовый переход на закрытый owner-only prelaunch описан в
+> [docs/current-vps-prelaunch.md](docs/current-vps-prelaunch.md). Это только
+> `RUNBOOK — NOT EXECUTION PROOF`: он не заменяет coordinated immutable release
+> contract ниже и отдельно требует approval на VPS inventory, backup,
+> stop/migration/deploy/rollback/cleanup. Автоматический database rollback не
+> заявляется.
+
 > `docker-compose.sandbox.yml` не является production deploy path. Он описывает
 > отдельный fail-closed внешний sandbox и не должен запускаться через production
 > workflows или команды этого документа. Sandbox execution требует отдельного

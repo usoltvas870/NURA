@@ -19,8 +19,10 @@ from core.models import (
     ReportType,
     User,
 )
+from core.repositories.report import PRELAUNCH_FULL_REPORT_AUDIT_KEY
 
 RETRYABLE_RECONCILIATION_DELAY_SECONDS = 300
+PRELAUNCH_FULL_REPORT_DELIVERY_FORMAT = "prelaunch-full-text-pdf-v1"
 
 
 class FullReportTelegramDeliveryRepository:
@@ -30,7 +32,7 @@ class FullReportTelegramDeliveryRepository:
     async def get_or_create(
         self, *, report_id: uuid.UUID, order_id: uuid.UUID | None, user_id: uuid.UUID,
         reason: str, request_key: str, artifact_sha256: str, artifact_size_bytes: int,
-        chat_id: int | None,
+        chat_id: int | None, delivery_format_version: str = "full-text-pdf-v1",
     ) -> FullReportTelegramDelivery:
         async with self._session_factory() as session:
             active = await self._active_for_report(session, report_id)
@@ -40,6 +42,7 @@ class FullReportTelegramDeliveryRepository:
                 id=uuid.uuid4(), report_id=report_id, order_id=order_id, user_id=user_id,
                 delivery_reason=reason, request_key=request_key, artifact_sha256=artifact_sha256,
                 artifact_size_bytes=artifact_size_bytes, telegram_chat_id_snapshot=chat_id,
+                delivery_format_version=delivery_format_version,
             )
             session.add(row)
             try:
@@ -172,11 +175,19 @@ class FullReportTelegramDeliveryRepository:
                 & FullReportTelegramDelivery.retryable.is_(True)
             )
         )
+        payment_ineligible = (
+            (Order.id.is_(None)) | (Order.status != OrderStatus.PAID)
+        )
+        if settings.is_owner_prelaunch:
+            payment_ineligible = payment_ineligible & (
+                FullReportTelegramDelivery.delivery_format_version
+                != PRELAUNCH_FULL_REPORT_DELIVERY_FORMAT
+            )
         async with self._session_factory() as session:
             result = await session.execute(
                 select(FullReportTelegramDelivery.id)
                 .outerjoin(Order, Order.id == FullReportTelegramDelivery.order_id)
-                .where(active, (Order.id.is_(None)) | (Order.status != OrderStatus.PAID))
+                .where(active, payment_ineligible)
                 .order_by(FullReportTelegramDelivery.queued_at)
                 .limit(limit)
             )
@@ -207,18 +218,45 @@ class FullReportTelegramDeliveryRepository:
             # This is the same paid-order lock used around each Telegram call. A
             # stale claimant therefore cannot overtake an active sender whose call
             # is still in flight and turn its durable progress into a duplicate.
-            order_id = await session.scalar(
-                select(FullReportTelegramDelivery.order_id).where(
+            delivery = await session.scalar(
+                select(FullReportTelegramDelivery).where(
                     FullReportTelegramDelivery.id == delivery_id
+                ).with_for_update()
+            )
+            if delivery is None:
+                return None
+            if delivery.order_id is None:
+                if (
+                    not settings.is_owner_prelaunch
+                    or delivery.delivery_format_version
+                    != PRELAUNCH_FULL_REPORT_DELIVERY_FORMAT
+                ):
+                    return None
+                report = await session.get(
+                    Report, delivery.report_id, with_for_update=True
                 )
-            )
-            if order_id is None:
-                return None
-            locked_order = await session.scalar(
-                select(Order.id).where(Order.id == order_id).with_for_update()
-            )
-            if locked_order is None:
-                return None
+                user = await session.get(User, delivery.user_id)
+                metadata = report.generation_metadata if report is not None else None
+                if (
+                    report is None
+                    or user is None
+                    or report.user_id != user.id
+                    or report.generation_state != ReportGenerationState.COMPLETED
+                    or not isinstance(metadata, dict)
+                    or PRELAUNCH_FULL_REPORT_AUDIT_KEY not in metadata
+                    or not user.telegram_id
+                    or user.telegram_id
+                    not in settings.prelaunch_telegram_allowed_ids
+                ):
+                    return None
+            else:
+                locked_order = await session.scalar(
+                    select(Order.id)
+                    .where(Order.id == delivery.order_id)
+                    .with_for_update()
+                )
+                if locked_order is None:
+                    return None
             eligible = (
                 (FullReportTelegramDelivery.status == FullReportTelegramDeliveryState.QUEUED)
                 | ((FullReportTelegramDelivery.status == FullReportTelegramDeliveryState.FAILED)
@@ -226,12 +264,22 @@ class FullReportTelegramDeliveryRepository:
                 | ((FullReportTelegramDelivery.status == FullReportTelegramDeliveryState.SENDING)
                    & (FullReportTelegramDelivery.claimed_at < stale_before))
             )
-            result = await session.execute(update(FullReportTelegramDelivery).where(
-                FullReportTelegramDelivery.id == delivery_id, eligible
-            ).values(status=FullReportTelegramDeliveryState.SENDING, claimed_at=now,
-                     attempt_count=FullReportTelegramDelivery.attempt_count + 1,
-                     retryable=True, failed_at=None, sent_at=None,
-                     error_code=None, error_detail=None).returning(FullReportTelegramDelivery.attempt_count))
+            result = await session.execute(
+                update(FullReportTelegramDelivery)
+                .where(FullReportTelegramDelivery.id == delivery_id, eligible)
+                .values(
+                    status=FullReportTelegramDeliveryState.SENDING,
+                    claimed_at=now,
+                    attempt_count=FullReportTelegramDelivery.attempt_count + 1,
+                    retryable=True,
+                    failed_at=None,
+                    sent_at=None,
+                    error_code=None,
+                    error_detail=None,
+                )
+                .returning(FullReportTelegramDelivery.attempt_count)
+                .execution_options(synchronize_session=False)
+            )
             await session.commit()
             return result.scalar_one_or_none()
 

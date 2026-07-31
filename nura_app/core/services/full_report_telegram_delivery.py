@@ -24,7 +24,11 @@ from core.models import (
     ReportType,
     User,
 )
-from core.repositories.full_report_telegram_delivery import FullReportTelegramDeliveryRepository
+from core.repositories.full_report_telegram_delivery import (
+    PRELAUNCH_FULL_REPORT_DELIVERY_FORMAT,
+    FullReportTelegramDeliveryRepository,
+)
+from core.repositories.report import PRELAUNCH_FULL_REPORT_AUDIT_KEY
 from core.services.telegram_report_delivery import TelegramDeliveryError, TelegramDocumentAdapter
 from core.services.telegram_sandbox import (
     SandboxTelegramRecipientBlocked,
@@ -71,6 +75,8 @@ class FullReportTelegramDeliveryService:
         if subject is None:
             return None
         report, user, order = subject
+        if order is None:
+            return None
         if not self._valid_artifact(report, report.artifact_bytes):
             return None
         row = await self._deliveries.get_or_create(
@@ -89,11 +95,19 @@ class FullReportTelegramDeliveryService:
         report, user, order = subject
         if not self._valid_artifact(report, report.artifact_bytes):
             return None
+        prelaunch_delivery = order is None
         row = await self._deliveries.get_or_create(
-            report_id=report.id, order_id=order.id, user_id=user.id,
+            report_id=report.id,
+            order_id=order.id if order is not None else None,
+            user_id=user.id,
             reason="manual", request_key=hashlib.sha256(request_key.encode()).hexdigest(),
             artifact_sha256=report.artifact_sha256, artifact_size_bytes=report.artifact_size_bytes,
             chat_id=user.telegram_id,
+            delivery_format_version=(
+                PRELAUNCH_FULL_REPORT_DELIVERY_FORMAT
+                if prelaunch_delivery
+                else "full-text-pdf-v1"
+            ),
         )
         return row.id
 
@@ -241,7 +255,15 @@ class FullReportTelegramDeliveryService:
                 return None
             user = await session.get(User, report.user_id)
             order = await session.get(Order, report.order_id) if report.order_id else None
-            if user is None or user.account_status != "active" or not user.has_matrix or order is None or order.status != OrderStatus.PAID:
+            paid_subject = bool(
+                user
+                and user.account_status == "active"
+                and user.has_matrix
+                and order
+                and order.status == OrderStatus.PAID
+            )
+            prelaunch_subject = self._is_prelaunch_subject(report, user, order)
+            if not paid_subject and not prelaunch_subject:
                 return None
             return report, user, order
 
@@ -253,10 +275,18 @@ class FullReportTelegramDeliveryService:
         *,
         delivery_id: uuid.UUID | None = None,
         attempt: int | None = None,
-    ) -> AsyncIterator[tuple[Report, User, Order] | None]:
+    ) -> AsyncIterator[tuple[Report, User, Order | None] | None]:
         async with self._session_factory() as session:
             order_id = await session.scalar(select(Report.order_id).where(Report.id == report_id))
-            order = (await session.execute(select(Order).where(Order.id == order_id).with_for_update())).scalar_one_or_none()
+            order = None
+            if order_id is not None:
+                order = (
+                    await session.execute(
+                        select(Order)
+                        .where(Order.id == order_id)
+                        .with_for_update()
+                    )
+                ).scalar_one_or_none()
             if delivery_id is not None:
                 owns_attempt = await session.scalar(
                     select(FullReportTelegramDelivery.id).where(
@@ -271,8 +301,46 @@ class FullReportTelegramDeliveryService:
                     return
             report = await session.get(Report, report_id)
             user = await session.get(User, report.user_id) if report else None
-            eligible = bool(report and report.report_type == ReportType.FULL.value and report.generation_state == ReportGenerationState.COMPLETED and (user_id is None or report.user_id == user_id) and user and user.account_status == "active" and user.has_matrix and order and order.report_id == report.id and order.status == OrderStatus.PAID)
+            paid_subject = bool(
+                report
+                and user
+                and user.account_status == "active"
+                and user.has_matrix
+                and order
+                and order.report_id == report.id
+                and order.status == OrderStatus.PAID
+            )
+            prelaunch_subject = self._is_prelaunch_subject(report, user, order)
+            eligible = bool(
+                report
+                and report.report_type == ReportType.FULL.value
+                and report.generation_state == ReportGenerationState.COMPLETED
+                and (user_id is None or report.user_id == user_id)
+                and (paid_subject or prelaunch_subject)
+            )
             yield (report, user, order) if eligible else None
+
+    @staticmethod
+    def _is_prelaunch_subject(
+        report: Report | None,
+        user: User | None,
+        order: Order | None,
+    ) -> bool:
+        metadata = report.generation_metadata if report is not None else None
+        return bool(
+            settings.is_owner_prelaunch
+            and not settings.payments_enabled
+            and order is None
+            and report is not None
+            and report.report_type == ReportType.FULL.value
+            and report.generation_state == ReportGenerationState.COMPLETED
+            and isinstance(metadata, dict)
+            and PRELAUNCH_FULL_REPORT_AUDIT_KEY in metadata
+            and user is not None
+            and user.account_status == "active"
+            and user.telegram_id
+            and user.telegram_id in settings.prelaunch_telegram_allowed_ids
+        )
 
     @staticmethod
     def _valid_artifact(report: Report, artifact: bytes | None) -> bool:

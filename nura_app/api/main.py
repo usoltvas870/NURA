@@ -44,6 +44,8 @@ async def lifespan(_: FastAPI):
 
 def payment_webhook_readiness_status() -> str:
     """Expose only a safe category for payment webhook configuration."""
+    if settings.is_owner_prelaunch and not settings.payments_enabled:
+        return "disabled"
     return "ok" if settings.payment_webhook_configuration_error is None else "missing_configuration"
 
 if settings.sentry_dsn:
@@ -115,7 +117,7 @@ async def readiness(request: Request):
     except Exception:
         dependencies["redis"] = "unavailable"
 
-    ready = all(value == "ok" for value in dependencies.values())
+    ready = all(value in {"ok", "disabled"} for value in dependencies.values())
     payload = {
         "status": "ready" if ready else "not_ready",
         "dependencies": dependencies,

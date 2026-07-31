@@ -30,7 +30,7 @@ def main_menu_keyboard(
         keyboard[1].append(
             InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility")
         )
-    if not settings.is_sandbox:
+    if not settings.telegram_access_restricted:
         if has_matrix:
             keyboard.insert(0, [
                 InlineKeyboardButton(text="🌐 Открыть в NURA", url="https://nura-ai.ru/app")
@@ -42,7 +42,11 @@ def main_menu_keyboard(
     # Кнопка «Купить разбор» скрывается если:
     # - has_matrix=True (матрица уже куплена)
     # - subscription_status="premium" (подписка даёт доступ ко всему)
-    hide_buy_btn = has_matrix or subscription_status == "premium"
+    hide_buy_btn = (
+        not settings.payment_operations_enabled
+        or has_matrix
+        or subscription_status == "premium"
+    )
     if not hide_buy_btn:
         keyboard.insert(
             -1,
@@ -52,6 +56,12 @@ def main_menu_keyboard(
 
 
 def compatibility_paywall_keyboard() -> InlineKeyboardMarkup:
+    if not settings.payment_operations_enabled:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+            ]
+        )
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="💎 Полный разбор по подписке 390 ₽/мес", callback_data="buy_subscription")],
@@ -80,13 +90,23 @@ def profile_keyboard(
         )
 
     if has_matrix:
-        return InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="💎 Оформить подписку — 390 ₽/мес", callback_data="buy_subscription")],
+        rows = []
+        if settings.payment_operations_enabled:
+            rows.append(
+                [InlineKeyboardButton(
+                    text="💎 Оформить подписку — 390 ₽/мес",
+                    callback_data="buy_subscription",
+                )]
+            )
+        rows.extend(
+            [
                 [InlineKeyboardButton(text="⚙️ Настройки сообщений", callback_data="settings")],
                 [InlineKeyboardButton(text="🆘 Поддержка", callback_data="support")],
                 [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
             ]
+        )
+        return InlineKeyboardMarkup(
+            inline_keyboard=rows
         )
 
     return InlineKeyboardMarkup(
@@ -100,6 +120,12 @@ def profile_keyboard(
 
 
 def subscription_keyboard() -> InlineKeyboardMarkup:
+    if not settings.payment_operations_enabled:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+            ]
+        )
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="💎 Оформить подписку — 390 ₽/мес", callback_data="buy_subscription")],
@@ -109,7 +135,7 @@ def subscription_keyboard() -> InlineKeyboardMarkup:
 
 
 def pwa_cta_keyboard() -> InlineKeyboardMarkup:
-    if settings.is_sandbox:
+    if settings.telegram_access_restricted:
         return InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
@@ -163,7 +189,7 @@ def my_report_detail_keyboard(report_id: str, page: int) -> InlineKeyboardMarkup
 
 
 def open_pwa_keyboard(url: str | None = None) -> InlineKeyboardMarkup:
-    if settings.is_sandbox:
+    if settings.telegram_access_restricted:
         return InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
         ])

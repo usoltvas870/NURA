@@ -68,6 +68,7 @@ class UserProfileResponse(BaseModel):
     subscription_status: str | None
     subscription_until: str | None
     tarot_until: str | None
+    payments_enabled: bool
     has_pwa_push: bool
     telegram_linked: bool
     reports: list[ReportItem]
@@ -151,6 +152,7 @@ async def _complete_web_checkout(
     provider_key: str,
     report_token: str | None,
 ) -> str:
+    PaymentService._require_payments_enabled()
     if checkout_amount.product == "web_matrix":
         async with session_factory() as session:
             coordinator = ReportLifecycleCoordinator(session)
@@ -301,6 +303,8 @@ async def create_payment(
     body: CreatePaymentRequest,
     user: User = Depends(get_current_web_user),
 ):
+    if not settings.payment_operations_enabled:
+        raise HTTPException(status_code=503, detail="payments_disabled")
     session_factory = get_async_sessionmaker()
     raw_key = _parse_idempotency_key(request)
     scoped_key, report_token = _checkout_keys(
@@ -480,6 +484,7 @@ async def get_user_profile(
         subscription_status=user.subscription_status,
         subscription_until=sub_until,
         tarot_until=tarot_until,
+        payments_enabled=settings.payment_operations_enabled,
         has_pwa_push=bool(user.has_pwa_push),
         telegram_linked=bool(user.telegram_id),
         reports=reports,
@@ -502,6 +507,8 @@ async def subscribe_tarot(
     body: SubscribeRequest,
     user: User = Depends(get_current_web_user),
 ):
+    if not settings.payment_operations_enabled:
+        raise HTTPException(status_code=503, detail="payments_disabled")
     session_factory = get_async_sessionmaker()
     raw_key = _parse_idempotency_key(request)
     scoped_key, _ = _checkout_keys(user.id, "web_tarot", raw_key)

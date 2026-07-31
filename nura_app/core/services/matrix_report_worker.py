@@ -355,26 +355,11 @@ class MatrixReportGenerationWorker:
     async def _render_artifact(
         result: MatrixReportGeneratorResult, generation_input: _GenerationInput
     ) -> bytes:
-        report_data = {
-            "matrix": result.matrix_data,
-            "analysis": result.ai_analysis,
-            "kitchen_analysis": result.kitchen_analysis,
-            "user_name": generation_input.user_name,
-            "token": generation_input.report_token,
-        }
-        try:
-            rendered_html = ReportService.generate_html_report(report_data, template_name="full_report_v2.html")
-        except Exception:
-            # Existing generator persistence is the source of truth. This safe renderer
-            # keeps delivery available if a legacy result lacks an optional template field.
-            rendered_html = "<html><body><h1>Полная Матрица — NURA</h1><pre>%s</pre></body></html>" % html.escape(
-                json.dumps(report_data, ensure_ascii=False, indent=2, default=str)
-            )
-        pdf = await ReportService.generate_pdf(rendered_html)
-        if not pdf.startswith(b"%PDF-") or len(pdf) < 1024:
-            raise ValueError("invalid_full_report_pdf")
-        return pdf
-
+        return await render_full_report_artifact(
+            result,
+            user_name=generation_input.user_name,
+            report_token=generation_input.report_token,
+        )
     async def _mark_retryable_failure(
         self,
         report_id: uuid.UUID,
@@ -464,3 +449,36 @@ class MatrixReportGenerationWorker:
         if category in REPORT_GENERATION_ERROR_CATEGORIES:
             return category
         return fallback
+
+
+async def render_full_report_artifact(
+    result: MatrixReportGeneratorResult,
+    *,
+    user_name: str,
+    report_token: str,
+) -> bytes:
+    """Render the canonical persisted full-report PDF artifact."""
+    report_data = {
+        "matrix": result.matrix_data,
+        "analysis": result.ai_analysis,
+        "kitchen_analysis": result.kitchen_analysis,
+        "user_name": user_name,
+        "token": report_token,
+    }
+    try:
+        rendered_html = ReportService.generate_html_report(
+            report_data, template_name="full_report_v2.html"
+        )
+    except Exception:
+        # Existing generator persistence is the source of truth. This safe renderer
+        # keeps delivery available if a legacy result lacks an optional template field.
+        rendered_html = (
+            "<html><body><h1>Полная Матрица — NURA</h1><pre>%s</pre></body></html>"
+            % html.escape(
+                json.dumps(report_data, ensure_ascii=False, indent=2, default=str)
+            )
+        )
+    pdf = await ReportService.generate_pdf(rendered_html)
+    if not pdf.startswith(b"%PDF-") or len(pdf) < 1024:
+        raise ValueError("invalid_full_report_pdf")
+    return pdf

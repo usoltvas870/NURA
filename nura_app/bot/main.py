@@ -22,7 +22,7 @@ from bot.handlers.tarot import router as tarot_router
 from bot.handlers.insights import router as insights_router
 from bot.middlewares import (
     AntiFloodMiddleware,
-    SandboxTelegramInboundMiddleware,
+    RestrictedTelegramInboundMiddleware,
     ThrottlingMiddleware,
     UserRegistrationMiddleware,
 )
@@ -34,7 +34,7 @@ from core.services.external_sandbox import (
     validate_sandbox_database_head,
     validate_sandbox_startup,
 )
-from core.services.telegram_sandbox import SandboxGuardedBot
+from core.services.telegram_sandbox import RestrictedTelegramBot
 from core.database import (
     create_engine,
     dispose_async_database_state,
@@ -80,8 +80,8 @@ def configure_dispatcher(dp: Dispatcher) -> None:
     dp.startup.register(_on_startup)
     dp.shutdown.register(_on_shutdown)
 
-    dp.message.middleware(SandboxTelegramInboundMiddleware())
-    dp.callback_query.middleware(SandboxTelegramInboundMiddleware())
+    dp.message.middleware(RestrictedTelegramInboundMiddleware())
+    dp.callback_query.middleware(RestrictedTelegramInboundMiddleware())
     dp.message.middleware(LegacyTelegramAuthRetirementMiddleware())
     dp.message.middleware(UserRegistrationMiddleware())
     dp.callback_query.middleware(UserRegistrationMiddleware())
@@ -111,7 +111,7 @@ def create_runtime() -> tuple[Bot, Dispatcher]:
     if not token or not token.strip() or token.startswith("change-me"):
         raise RuntimeError("telegram_bot_token_not_configured")
 
-    bot = SandboxGuardedBot(
+    bot = RestrictedTelegramBot(
         token=token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )

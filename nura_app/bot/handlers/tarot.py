@@ -176,7 +176,7 @@ async def show_tarot_daily_card(callback: CallbackQuery) -> None:
         f"<i>{date.fromisoformat(result.local_date).strftime('%d.%m.%Y')}</i>\n"
         f"{'─' * 20}\n\n{escape_telegram_html(result.interpretation)}"
     )
-    if user.tarot_subscription:
+    if user.tarot_subscription or not settings.payment_operations_enabled:
         keyboard = tarot_result_keyboard()
     else:
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup

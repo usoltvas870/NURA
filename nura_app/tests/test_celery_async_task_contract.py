@@ -9,6 +9,7 @@ EXPECTED_ASYNC_TASKS = {
     "deliver_repeated_mini_report",
     "deliver_chat_response",
     "generate_full_report",
+    "generate_prelaunch_full_report",
     "notify_full_matrix_payment_confirmed",
     "process_report_generation_job",
     "deliver_full_report",

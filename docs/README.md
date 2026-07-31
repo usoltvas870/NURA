@@ -38,6 +38,7 @@ Telegram-бот — основной интерфейс. NURA 1.0 включае
 
 - [Acceptance index](acceptance/README.md)
 - [Telegram-first external sandbox runbook](acceptance/telegram-first-sandbox.md)
+- [Current VPS owner-only prelaunch](current-vps-prelaunch.md)
 - [Dated readiness evidence](acceptance/evidence/telegram-first-v1-readiness-review.md)
 - [Backup/restore](operations/backup-restore.md)
 - [Security configuration](operations/p7a-security-configuration.md)

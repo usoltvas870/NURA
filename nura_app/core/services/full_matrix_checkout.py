@@ -172,8 +172,10 @@ class FullMatrixCheckoutService:
 
     @staticmethod
     def _require_payments_enabled() -> None:
-        if not settings.payments_enabled:
+        if settings.nura_tg_pilot:
             raise ValueError("payments_disabled_for_telegram_pilot")
+        if not settings.payment_operations_enabled:
+            raise ValueError("payments_disabled")
 
     async def create_or_get_order(self, *, user_id: uuid.UUID) -> CheckoutOrderResult:
         """Create one active server-priced order for the Telegram identity."""
@@ -231,6 +233,7 @@ class FullMatrixCheckoutService:
 
     async def checkout_page_is_available(self, checkout_token: str) -> bool:
         """Resolve the opaque browser capability before rendering checkout."""
+        self._require_payments_enabled()
         async with self._session_factory() as session:
             order = await self._get_order_by_checkout_token(
                 session, checkout_token, lock=False
@@ -315,6 +318,7 @@ class FullMatrixCheckoutService:
 
     async def process_webhook(self, body: dict) -> dict:
         """Claim the durable event before exactly one worker reads the provider."""
+        self._require_payments_enabled()
         require_yookassa_identity_evidence(settings)
         event_type = body.get("event") if isinstance(body.get("event"), str) else "unknown"
         if event_type not in FULL_MATRIX_WEBHOOK_EVENTS:
@@ -555,6 +559,7 @@ class FullMatrixCheckoutService:
 
     async def handles_webhook(self, body: dict) -> bool:
         """Route production-shaped full-Matrix notifications without trusting metadata."""
+        self._require_payments_enabled()
         event_type = body.get("event") if isinstance(body, dict) else None
         obj = body.get("object") if isinstance(body, dict) else None
         if event_type == "refund.succeeded":

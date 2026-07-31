@@ -43,10 +43,16 @@ def _callback_idempotence_key(callback: CallbackQuery) -> str:
 
 
 async def _stop_when_payments_disabled(callback: CallbackQuery) -> bool:
-    if settings.payments_enabled:
+    payments_enabled = getattr(settings, "payments_enabled", True)
+    pilot_enabled = getattr(settings, "nura_tg_pilot", False)
+    if not isinstance(payments_enabled, bool):
+        payments_enabled = True
+    if not isinstance(pilot_enabled, bool):
+        pilot_enabled = False
+    if payments_enabled and not pilot_enabled:
         return False
     await callback.message.edit_text(
-        "⚠️ Оплата временно недоступна.\nПопробуй позже.",
+        "Оплата пока недоступна — полный запуск готовится.",
         reply_markup=main_menu_keyboard(),
     )
     return True

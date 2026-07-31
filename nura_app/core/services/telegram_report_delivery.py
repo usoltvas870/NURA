@@ -16,7 +16,7 @@ from core.repositories.telegram_report_delivery import TelegramReportDeliveryRep
 from core.repositories.user import UserRepository
 from core.services.report import ReportService
 from core.services.telegram_sandbox import (
-    SandboxGuardedBot,
+    RestrictedTelegramBot,
     SandboxTelegramRecipientBlocked,
     require_telegram_recipient_allowed,
 )
@@ -112,7 +112,7 @@ class TelegramDocumentAdapter:
         token = settings.telegram_bot_token
         if not token or token.startswith("change-me"):
             raise TelegramDeliveryError("telegram_not_configured", retryable=False)
-        return SandboxGuardedBot(
+        return RestrictedTelegramBot(
             token=token,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
         )

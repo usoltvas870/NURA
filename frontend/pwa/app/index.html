@@ -432,7 +432,7 @@
     $('journey-complete').hidden = !complete;
   }
 
-  function setAccessBadges(state, hasMini, hasFull) {
+  function setAccessBadges(state, hasMini, hasFull, hasTarot) {
     var badges = {
       guest: [
         ['Начать', 'action'], ['После мини-разбора', 'action'], ['После входа', 'action'],
@@ -443,6 +443,13 @@
         [hasFull ? 'Открыто' : hasMini ? 'Купить отчёт' : 'После мини-разбора', hasFull ? 'available' : 'action'],
         ['По подписке', 'action'],
         [hasFull || hasMini ? 'Открыто' : 'Получить отчёт', hasFull || hasMini ? 'available' : 'action'],
+        ['Базовый', 'available'], ['Открыто', 'available'], ['Открыто', 'available']
+      ],
+      prelaunch: [
+        [hasMini ? 'Готово' : 'Начать', hasMini ? 'available' : 'action'],
+        [hasFull ? 'Открыто' : 'Готовится', hasFull ? 'available' : 'action'],
+        [hasTarot ? 'Открыто' : 'Базовый', 'available'],
+        [hasFull || hasMini ? 'Открыто' : 'Мини-разбор', 'available'],
         ['Базовый', 'available'], ['Открыто', 'available'], ['Открыто', 'available']
       ],
       subscriber: [
@@ -566,16 +573,21 @@
         var hasFull = !!d.has_matrix;
         var hasMini = !!(d.reports && d.reports.length > 0);
         var hasTarot = !!(d.has_tarot || d.subscription_status === 'premium' || d.subscription_status === 'active');
+        var paymentsEnabled = d.payments_enabled !== false;
 
         window.__hasFullReport = hasFull;
         window.__hasMini = hasMini;
         window.__hasTarotSubscription = hasTarot;
+        window.__paymentsEnabled = paymentsEnabled;
 
-        setAccessBadges(hasTarot ? 'subscriber' : 'free', hasMini, hasFull);
+        setAccessBadges(paymentsEnabled ? (hasTarot ? 'subscriber' : 'free') : 'prelaunch', hasMini, hasFull, hasTarot);
 
         setQuickActionsReady(true);
         configureJourneyActions();
-        if (hasFull && hasTarot) {
+        if (!hasFull && !paymentsEnabled) {
+          setHero('Твой мягкий ритуал на сегодня', 'Доступные практики, карта дня и диалог с NURA собраны в одном спокойном пространстве.');
+          setJourney(hasMini ? 'Готов' : 'Начать', 'Готовится', hasTarot ? 'Активен' : 'Базовый доступ', false);
+        } else if (hasFull && hasTarot) {
           setHero('Твой мягкий ритуал на сегодня', 'Отчёт, карта дня и диалог уже собраны в одном спокойном пространстве.');
           setJourney('Готов', 'Открыть', 'Активен', true);
         } else if (hasTarot) {
@@ -586,7 +598,12 @@
           setJourney(hasMini ? 'Готов' : 'Начать', hasFull ? 'Открыть' : 'Получить', 'Базовый доступ', false);
         }
 
-        if (hasFull && hasTarot) {
+        if (!hasFull && !paymentsEnabled) {
+          $('status-copy').textContent = hasMini
+            ? 'Мини-разбор уже готов. Полный отчёт появится после завершения подготовки запуска.'
+            : 'Начни с доступных практик и мини-разбора. Полный отчёт пока готовится к запуску.';
+          $('report-cta').textContent = 'Открыть профиль';
+        } else if (hasFull && hasTarot) {
           $('status-copy').textContent = 'Полный отчёт под рукой, карта дня обновлена, а чат с NURA открыт без лишних шагов.';
           $('report-cta').textContent = 'Продолжить отчёт';
         } else if (hasFull) {
@@ -608,6 +625,8 @@
 
         if (hasFull) {
           setReportSummary('Готов', 'Полный разбор уже доступен в профиле и сохранён для тебя.');
+        } else if (!paymentsEnabled) {
+          setReportSummary('Готовится к запуску', 'Сейчас доступны мини-разбор и другие практики без оформления оплаты.');
         } else if (hasMini) {
           setReportSummary('Есть мини-разбор', 'Основной контур уже собран. Полный отчёт добавит детали по Матрице.');
         } else {
@@ -616,14 +635,16 @@
 
         if (hasTarot) {
           setSubscriptionSummary('Активна', 'Карта дня, практики и чат доступны в расширенном режиме.');
+        } else if (!paymentsEnabled) {
+          setSubscriptionSummary('Базовый доступ', 'Платное подключение пока недоступно — полный запуск готовится.');
         } else {
           setSubscriptionSummary('Не активна', 'Подписка открывает практики, карту дня и более глубокий диалог с NURA.');
         }
 
         setQuickCopies(
-          hasFull ? 'Вернуться к отчёту и главным энергиям' : 'Собрать Матрицу и открыть личный отчёт',
+          hasFull ? 'Вернуться к отчёту и главным энергиям' : (paymentsEnabled ? 'Собрать Матрицу и открыть личный отчёт' : 'Открыть доступные материалы и мини-разбор'),
           hasTarot ? 'Продолжить диалог с NURA без лимита' : 'Спросить про день, отношения или деньги',
-          hasTarot ? 'Подписка активна, настройки и отчёты внутри' : 'Подписка, отчёты и настройки доступа'
+          hasTarot ? 'Подписка активна, настройки и отчёты внутри' : (paymentsEnabled ? 'Подписка, отчёты и настройки доступа' : 'Отчёты и настройки базового доступа')
         );
 
         if (d.archetype_number) {
@@ -734,6 +755,10 @@
     }
     if (window.__hasTarotSubscription) {
       location.href = 'profile.html';
+      return;
+    }
+    if (window.__paymentsEnabled === false) {
+      location.href = 'profile.html#reports';
       return;
     }
     location.href = 'profile.html#subscription';

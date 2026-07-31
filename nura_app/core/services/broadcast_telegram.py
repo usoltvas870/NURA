@@ -19,7 +19,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from core.config import settings
 from core.services.telegram_sandbox import (
-    SandboxGuardedBot,
+    RestrictedTelegramBot,
     SandboxTelegramRecipientBlocked,
     require_telegram_recipient_allowed,
 )
@@ -55,7 +55,7 @@ class BroadcastTelegramAdapter:
         if self._bot is None:
             if not settings.telegram_bot_token:
                 raise BroadcastTelegramError("telegram_not_configured", retryable=True)
-            self._bot = SandboxGuardedBot(
+            self._bot = RestrictedTelegramBot(
                 token=settings.telegram_bot_token,
                 default=DefaultBotProperties(parse_mode=ParseMode.HTML),
             )

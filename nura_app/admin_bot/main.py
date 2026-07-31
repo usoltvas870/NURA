@@ -19,7 +19,10 @@ from admin_bot.handlers import (
 from admin_bot.middleware import AdminOnlyMiddleware
 from core.config import settings
 from core.services.external_sandbox import validate_sandbox_startup
-from core.services.telegram_sandbox import SandboxGuardedBot
+from core.services.telegram_sandbox import (
+    RestrictedTelegramBot,
+    RestrictedTelegramInboundMiddleware,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -45,7 +48,7 @@ async def main() -> None:
         while True:
             await asyncio.sleep(3600)
 
-    bot = SandboxGuardedBot(
+    bot = RestrictedTelegramBot(
         token=bot_config.token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
@@ -53,6 +56,8 @@ async def main() -> None:
     dp = Dispatcher(storage=storage)
 
     admin_mw = AdminOnlyMiddleware(bot_config)
+    dp.message.middleware(RestrictedTelegramInboundMiddleware())
+    dp.callback_query.middleware(RestrictedTelegramInboundMiddleware())
     dp.message.middleware(admin_mw)
     dp.callback_query.middleware(admin_mw)
 

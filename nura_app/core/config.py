@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     app_env: str = "development"
     secret_key: str = "change-me"
     secret_key_file: str | None = None
+    prelaunch_owner_only: bool = False
+    prelaunch_telegram_allowed_user_ids: str = ""
+    payments_enabled: bool = True
 
     # Database
     postgres_user: str = "nura"
@@ -298,11 +301,6 @@ class Settings(BaseSettings):
             raise ValueError("pilot_telegram_token_file_required")
         return self
 
-    @property
-    def payments_enabled(self) -> bool:
-        """The isolated Telegram pilot is intentionally sandbox-only."""
-        return not self.nura_tg_pilot
-
     # Admin Bot
     admin_bot_token: str | None = None
     admin_telegram_id: int | None = None
@@ -346,9 +344,59 @@ class Settings(BaseSettings):
         return self.app_env == "sandbox"
 
     @property
+    def is_owner_prelaunch(self) -> bool:
+        return self.is_production and self.prelaunch_owner_only
+
+    @property
+    def payment_operations_enabled(self) -> bool:
+        """Effective runtime switch preserving the isolated pilot contract."""
+        return self.payments_enabled and not self.nura_tg_pilot
+
+    @property
+    def telegram_access_restricted(self) -> bool:
+        return self.is_sandbox or self.is_owner_prelaunch
+
+    @staticmethod
+    def _parse_telegram_ids(value: str, error_code: str) -> tuple[int, ...]:
+        values: set[int] = set()
+        for raw in value.split(","):
+            item = raw.strip()
+            if not item:
+                continue
+            if not item.isdigit() or not 0 < int(item) < 2**63:
+                raise ValueError(error_code)
+            values.add(int(item))
+        return tuple(sorted(values))
+
+    @property
+    def prelaunch_telegram_allowed_ids(self) -> tuple[int, ...]:
+        return self._parse_telegram_ids(
+            self.prelaunch_telegram_allowed_user_ids,
+            "prelaunch_telegram_allowed_user_ids_invalid",
+        )
+
+    @property
+    def telegram_restricted_allowed_ids(self) -> tuple[int, ...]:
+        if self.is_owner_prelaunch:
+            return self.prelaunch_telegram_allowed_ids
+        if self.is_sandbox:
+            return self.sandbox_telegram_allowed_ids
+        return ()
+
+    @property
+    def telegram_restriction_scope(self) -> str | None:
+        if self.is_owner_prelaunch:
+            return "prelaunch"
+        if self.is_sandbox:
+            return "sandbox"
+        return None
+
+    @property
     def payment_webhook_configuration_error(self) -> str | None:
         """Return a non-sensitive payment-webhook readiness failure, if any."""
         if not self.is_production:
+            return None
+        if self.is_owner_prelaunch and not self.payments_enabled:
             return None
         if not self.yookassa_verify_on_webhook:
             return "production_payment_webhook_verification_required"
@@ -382,13 +430,45 @@ class Settings(BaseSettings):
             errors.append("production_internal_payment_shortcut_forbidden")
         if self.yookassa_expect_test_mode:
             errors.append("production_yookassa_test_mode_forbidden")
-        if not self.yookassa_verify_on_webhook:
-            errors.append("production_payment_webhook_verification_required")
-        if not self.yookassa_shop_id or not self.yookassa_secret_key:
-            errors.append("production_payment_webhook_credentials_required")
-        receipt_error = self.yookassa_receipt_configuration_error
-        if receipt_error:
-            errors.append(receipt_error)
+        if self.prelaunch_owner_only:
+            try:
+                allowed_ids = self.prelaunch_telegram_allowed_ids
+            except ValueError:
+                allowed_ids = ()
+                errors.append("prelaunch_telegram_allowed_user_ids_invalid")
+            if not allowed_ids:
+                errors.append("prelaunch_telegram_allowlist_required")
+            elif len(allowed_ids) != 1:
+                errors.append("prelaunch_single_owner_required")
+            elif (
+                self.admin_telegram_id is None
+                or allowed_ids[0] != self.admin_telegram_id
+            ):
+                errors.append("prelaunch_owner_must_match_admin")
+            if self.payments_enabled:
+                errors.append("prelaunch_payments_must_be_disabled")
+            if (
+                self.yookassa_shop_id
+                or self.yookassa_secret_key
+                or self.yookassa_secret_key_file
+            ):
+                errors.append("prelaunch_yookassa_credentials_forbidden")
+            if (
+                self.enable_expanded_tarot
+                or self.enable_compatibility
+                or self.enable_referral_promotion
+            ):
+                errors.append("prelaunch_feature_flags_must_be_disabled")
+        else:
+            if not self.payments_enabled:
+                errors.append("production_payments_required")
+            if not self.yookassa_verify_on_webhook:
+                errors.append("production_payment_webhook_verification_required")
+            if not self.yookassa_shop_id or not self.yookassa_secret_key:
+                errors.append("production_payment_webhook_credentials_required")
+            receipt_error = self.yookassa_receipt_configuration_error
+            if receipt_error:
+                errors.append(receipt_error)
         if not redis_url_has_credentials(self.redis_url):
             errors.append("production_redis_auth_required")
         if not redis_url_has_credentials(self.celery_broker_url):
@@ -477,6 +557,15 @@ class Settings(BaseSettings):
                 raise ValueError("invalid_broadcast_admin_telegram_id")
         return value
 
+    @field_validator(
+        "sandbox_telegram_allowed_user_ids",
+        "prelaunch_telegram_allowed_user_ids",
+    )
+    @classmethod
+    def _validate_telegram_allowlist(cls, value: str) -> str:
+        cls._parse_telegram_ids(value, "telegram_allowed_user_ids_invalid")
+        return value
+
     @property
     def yookassa_ip_whitelist_list(self) -> list[str]:
         return [
@@ -529,15 +618,10 @@ class Settings(BaseSettings):
 
     @property
     def sandbox_telegram_allowed_ids(self) -> tuple[int, ...]:
-        values: set[int] = set()
-        for raw in self.sandbox_telegram_allowed_user_ids.split(","):
-            item = raw.strip()
-            if not item:
-                continue
-            if not item.isdigit() or not 0 < int(item) < 2**63:
-                raise ValueError("sandbox_telegram_allowed_user_ids_invalid")
-            values.add(int(item))
-        return tuple(sorted(values))
+        return self._parse_telegram_ids(
+            self.sandbox_telegram_allowed_user_ids,
+            "sandbox_telegram_allowed_user_ids_invalid",
+        )
 
     # Pricing
     tarot_subscription_price_rub: int = 390

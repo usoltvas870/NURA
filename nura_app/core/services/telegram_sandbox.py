@@ -1,4 +1,4 @@
-"""Global Telegram allowlist boundary for APP_ENV=sandbox."""
+"""Canonical fail-closed Telegram allowlist boundary for restricted runtimes."""
 
 from __future__ import annotations
 
@@ -22,13 +22,15 @@ from core.services.external_sandbox import (
 logger = logging.getLogger(__name__)
 
 
-class SandboxTelegramRecipientBlocked(RuntimeError):
+class TelegramRecipientBlocked(RuntimeError):
     """Typed terminal error raised before an outbound Telegram transport call."""
 
-    code = "sandbox_telegram_recipient_not_allowed"
-
-    def __init__(self) -> None:
+    def __init__(self, code: str) -> None:
+        self.code = code
         super().__init__(self.code)
+
+
+SandboxTelegramRecipientBlocked = TelegramRecipientBlocked
 
 
 class TelegramIdentityVerifier(Protocol):
@@ -36,7 +38,7 @@ class TelegramIdentityVerifier(Protocol):
 
 
 def _safe_telegram_fingerprint(telegram_id: int, environment_id: str | None) -> str:
-    material = f"{environment_id or 'sandbox'}|{telegram_id}".encode("utf-8")
+    material = f"{environment_id or 'restricted'}|{telegram_id}".encode("utf-8")
     return hashlib.sha256(material).hexdigest()[:12]
 
 
@@ -45,11 +47,11 @@ def telegram_user_is_allowed(
     *,
     current_settings: Settings = settings,
 ) -> bool:
-    if not current_settings.is_sandbox:
+    if not current_settings.telegram_access_restricted:
         return True
     if not isinstance(telegram_id, int):
         return False
-    return telegram_id in current_settings.sandbox_telegram_allowed_ids
+    return telegram_id in current_settings.telegram_restricted_allowed_ids
 
 
 def require_telegram_recipient_allowed(
@@ -59,14 +61,20 @@ def require_telegram_recipient_allowed(
 ) -> None:
     if telegram_user_is_allowed(telegram_id, current_settings=current_settings):
         return
+    scope = current_settings.telegram_restriction_scope or "restricted"
     logger.warning(
-        "sandbox_telegram_outbound_blocked recipient=%s",
+        "telegram_restricted_outbound_blocked scope=%s recipient=%s",
+        scope,
         _safe_telegram_fingerprint(
             int(telegram_id) if isinstance(telegram_id, int) else 0,
-            current_settings.sandbox_environment_id,
+            (
+                current_settings.sandbox_environment_id
+                if current_settings.is_sandbox
+                else "owner-prelaunch"
+            ),
         ),
     )
-    raise SandboxTelegramRecipientBlocked()
+    raise TelegramRecipientBlocked(f"{scope}_telegram_recipient_not_allowed")
 
 
 async def verify_telegram_identity_with(
@@ -93,7 +101,7 @@ async def verify_telegram_identity_with(
     }
 
 
-class SandboxTelegramInboundMiddleware(BaseMiddleware):
+class RestrictedTelegramInboundMiddleware(BaseMiddleware):
     """Drop disallowed updates before registration, attribution or handlers."""
 
     async def __call__(
@@ -103,23 +111,37 @@ class SandboxTelegramInboundMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ) -> Any:
         telegram_user: TelegramUser | None = data.get("event_from_user")
-        if (
-            settings.is_sandbox
-            and telegram_user is not None
-            and not telegram_user.is_bot
-            and not telegram_user_is_allowed(telegram_user.id)
+        if settings.telegram_access_restricted and (
+            telegram_user is None
+            or telegram_user.is_bot
+            or not telegram_user_is_allowed(telegram_user.id)
         ):
-            logger.warning(
-                "sandbox_telegram_inbound_blocked sender=%s",
+            scope = settings.telegram_restriction_scope or "restricted"
+            sender = (
                 _safe_telegram_fingerprint(
-                    telegram_user.id, settings.sandbox_environment_id
-                ),
+                    telegram_user.id,
+                    (
+                        settings.sandbox_environment_id
+                        if settings.is_sandbox
+                        else "owner-prelaunch"
+                    ),
+                )
+                if telegram_user is not None
+                else "missing"
+            )
+            logger.warning(
+                "telegram_restricted_inbound_blocked scope=%s sender=%s",
+                scope,
+                sender,
             )
             return None
         return await handler(event, data)
 
 
-class SandboxGuardedBot(Bot):
+SandboxTelegramInboundMiddleware = RestrictedTelegramInboundMiddleware
+
+
+class RestrictedTelegramBot(Bot):
     """Aiogram boundary that guards every method carrying a recipient chat_id."""
 
     async def __call__(
@@ -132,3 +154,6 @@ class SandboxGuardedBot(Bot):
         if chat_id is not None:
             require_telegram_recipient_allowed(chat_id)
         return await super().__call__(method, request_timeout=request_timeout)
+
+
+SandboxGuardedBot = RestrictedTelegramBot

@@ -257,6 +257,51 @@ def test_home_quick_actions_free_matrix_uses_subscription_route(browser: Browser
         context.close()
 
 
+@pytest.mark.parametrize("viewport", ((360, 800), (390, 844), (430, 932)))
+def test_owner_prelaunch_hides_payment_ctas(
+    browser: Browser,
+    viewport: tuple[int, int],
+) -> None:
+    context, page, errors = new_page(browser, "prelaunch_owner", viewport)
+    try:
+        open_home_actions(page)
+        assert page.locator("#report-cta").inner_text() == "Открыть профиль"
+        assert page.locator("#journey-report-badge").inner_text() == "Готовится"
+        assert page.locator("#quick-matrix-badge").inner_text() == "Мини-разбор"
+        assert "Купить полный отчёт" not in page.locator("main").inner_text()
+        assert "По подписке" not in page.locator("main").inner_text()
+        assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+
+        page.locator("#quick-matrix").click()
+        page.locator("#profile-account").wait_for(state="visible")
+        assert page.url.endswith("/profile.html#reports")
+        assert page.locator("#subscription-copy").inner_text() == (
+            "Оплата пока недоступна — полный запуск готовится."
+        )
+        assert page.locator("#subscribe-btn").is_hidden()
+        assert page.locator("#matrix-buy-btn").is_hidden()
+        assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+
+        checkout_requests: list[str] = []
+        page.on(
+            "request",
+            lambda request: checkout_requests.append(request.url)
+            if request.url.endswith("/api/v1/web/subscribe")
+            else None,
+        )
+        open_page(page, "tarot.html")
+        page.locator("#p-weekly .tarot-badge").wait_for(state="visible")
+        assert page.locator("#p-weekly").is_disabled()
+        assert page.locator("#p-weekly .tarot-badge").inner_text() == "Недоступно"
+        assert page.locator("#pw-subscribe-btn").is_hidden()
+        page.evaluate("window.subscribeTarot()")
+        assert checkout_requests == []
+        assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+        assert_no_unexpected_errors(errors)
+    finally:
+        context.close()
+
+
 def test_home_quick_actions_premium_are_enabled_and_truthful(browser: Browser) -> None:
     context, page, errors = new_page(browser, "premium")
     try:

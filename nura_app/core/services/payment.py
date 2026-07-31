@@ -46,8 +46,10 @@ class PaymentService:
     def _require_payments_enabled() -> None:
         if settings.is_sandbox:
             raise RuntimeError("legacy_payments_disabled_for_external_sandbox")
-        if not settings.payments_enabled:
+        if settings.nura_tg_pilot:
             raise RuntimeError("payments_disabled_for_telegram_pilot")
+        if not settings.payment_operations_enabled:
+            raise RuntimeError("payments_disabled")
 
     @staticmethod
     def _web_product_base_amount(

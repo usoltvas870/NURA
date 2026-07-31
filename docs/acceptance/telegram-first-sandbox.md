@@ -1,5 +1,12 @@
 # Telegram-First External Sandbox Runbook
 
+> **CURRENT OWNER DECISION (2026-07-31):** этот external-sandbox runbook
+> сохраняется как действующий изолированный contract, но не является текущим
+> execution path. На ближайшем этапе используется закрытый owner-only prelaunch
+> на текущем VPS и production bot согласно
+> [current-vps-prelaunch.md](../current-vps-prelaunch.md). Ни один вариант не
+> выполнен и не является production evidence.
+
 > Перед выполнением этого runbook обязателен локально реализованный
 > [fail-closed external sandbox profile](../external-sandbox-profile.md).
 > Сначала должен пройти offline preflight. Его результат

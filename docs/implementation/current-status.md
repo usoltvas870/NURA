@@ -1,5 +1,29 @@
 # NURA: текущее состояние реализации
 
+## Локальный owner-only prelaunch milestone (2026-07-31)
+
+На clean baseline `main` / `88d64e5cf61df5210b44008ccdeb4045c049fd81`
+локально реализован явный production prelaunch contract:
+`PRELAUNCH_OWNER_ONLY=true`, ровно один Telegram owner ID, совпадающий с
+`ADMIN_TELEGRAM_ID`, и
+`PAYMENTS_ENABLED=false`. Он сохраняет production security gates и текущий
+DeepSeek path, но разрешает readiness без YooKassa только в этом строго
+ограниченном режиме. Public production по-прежнему требует включённых payments,
+YooKassa credentials/receipts и запрещает test/internal shortcuts.
+
+Restricted Telegram policy применяется до persistence/handlers и ко всем
+outbound transports. Платёжные routes/tasks/CTA fail closed. Beat оставляет
+только recovery/delivery работу. Для allowlisted owner добавлена отдельная
+admin-authenticated audited full-report операция без Order, PaymentAttempt,
+purchase или entitlement; resend использует сохранённый artifact и не запускает
+повторную генерацию. PWA остаётся legacy compatibility client, но в payments-off
+runtime также скрывает purchase/subscription CTA.
+
+Это implementation evidence незакоммиченного worktree. VPS, Telegram, DeepSeek,
+YooKassa, production database/Redis, migrations и deploy не затрагивались.
+Operational procedure описана как `RUNBOOK — NOT EXECUTION PROOF` в
+[current-vps-prelaunch.md](../current-vps-prelaunch.md). `STATE.md` не менялся.
+
 ## Локальный fail-closed external sandbox milestone (2026-07-31)
 
 На clean baseline `main` / `0be905226eebc1148d26bf89559d2ae5ce45096f`

@@ -43,6 +43,8 @@ def _client_ip(request: Request) -> str:
 @router.post("/webhook")
 @limiter.limit("10/minute")
 async def payment_webhook(request: Request):
+    if not settings.payment_operations_enabled:
+        raise HTTPException(status_code=503, detail="payments_disabled")
     if settings.yookassa_ip_whitelist:
         ip = _client_ip(request)
         try:
@@ -98,6 +100,8 @@ async def payment_webhook(request: Request):
 @limiter.limit("30/minute")
 async def full_matrix_checkout_page(request: Request, public_id: str) -> HTMLResponse:
     # The opaque id is an authorization capability; never expose user or payment data.
+    if not settings.payment_operations_enabled:
+        raise HTTPException(status_code=404, detail="checkout_not_found")
     if len(public_id) < 40 or len(public_id) > 64:
         raise HTTPException(status_code=404, detail="checkout_not_found")
     if not await FullMatrixCheckoutService(
@@ -119,6 +123,8 @@ async def full_matrix_checkout_page(request: Request, public_id: str) -> HTMLRes
 @router.post("/full-matrix/checkout/{public_id}")
 @limiter.limit("10/minute")
 async def start_full_matrix_checkout(request: Request, public_id: str) -> RedirectResponse:
+    if not settings.payment_operations_enabled:
+        raise HTTPException(status_code=404, detail="checkout_not_available")
     try:
         if len(public_id) < 40 or len(public_id) > 64:
             raise ValueError("checkout_not_available")
@@ -138,6 +144,8 @@ async def start_full_matrix_checkout(request: Request, public_id: str) -> Redire
 @router.get("/full-matrix/return/{public_id}", response_class=HTMLResponse)
 async def full_matrix_return(public_id: str) -> HTMLResponse:
     # A browser return is deliberately informational: only a verified webhook activates.
+    if not settings.payment_operations_enabled:
+        raise HTTPException(status_code=404, detail="payment_not_available")
     return HTMLResponse(
         "<!doctype html><html lang='ru'><meta charset='utf-8'><title>NURA</title>"
         "<p>Проверяем оплату. После подтверждения начнём готовить полный разбор.</p>",

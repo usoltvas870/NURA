@@ -20,6 +20,10 @@ from core.services.report import ReportService
 from core.schemas.broadcast import CampaignAction, CampaignCreate, CampaignLaunch, CampaignUpdate
 from core.services.broadcast import BroadcastCampaignService, BroadcastServiceError
 from core.services.broadcast_telegram import BroadcastTelegramError
+from core.services.prelaunch_full_report import (
+    PrelaunchFullReportError,
+    PrelaunchFullReportService,
+)
 from api.deps import limiter
 from core.tasks import active_report_prompt_identity, generate_full_report
 
@@ -61,6 +65,14 @@ def _campaign_http_error(error: BroadcastServiceError) -> HTTPException:
     }:
         return HTTPException(status_code=409, detail=error.code)
     return HTTPException(status_code=400, detail=error.code)
+
+
+def _reject_prelaunch_entitlement_mutation() -> None:
+    if settings.is_owner_prelaunch:
+        raise HTTPException(
+            status_code=409,
+            detail="prelaunch_entitlement_mutation_forbidden",
+        )
 
 
 def _payment_amount_kopecks(payment: Payment) -> int:
@@ -585,6 +597,7 @@ async def get_user_detail(user_id: str):
 
 @router.post("/users/{user_id}/subscription/extend")
 async def extend_user_subscription(user_id: str, body: ExtendSubscriptionRequest):
+    _reject_prelaunch_entitlement_mutation()
     user_uuid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
@@ -596,6 +609,7 @@ async def extend_user_subscription(user_id: str, body: ExtendSubscriptionRequest
 
 @router.post("/users/{user_id}/tarot/extend")
 async def extend_user_tarot(user_id: str, body: ExtendSubscriptionRequest):
+    _reject_prelaunch_entitlement_mutation()
     user_uuid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
@@ -607,6 +621,7 @@ async def extend_user_tarot(user_id: str, body: ExtendSubscriptionRequest):
 
 @router.post("/users/{user_id}/subscription/grant")
 async def grant_user_subscription(user_id: str, body: GrantSubscriptionRequest):
+    _reject_prelaunch_entitlement_mutation()
     user_uuid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
@@ -618,6 +633,7 @@ async def grant_user_subscription(user_id: str, body: GrantSubscriptionRequest):
 
 @router.post("/users/{user_id}/tarot/grant")
 async def grant_user_tarot(user_id: str, body: GrantSubscriptionRequest):
+    _reject_prelaunch_entitlement_mutation()
     user_uuid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
     user_repo = UserRepository(session_factory)
@@ -629,6 +645,7 @@ async def grant_user_tarot(user_id: str, body: GrantSubscriptionRequest):
 
 @router.post("/users/{user_id}/regenerate-matrix")
 async def regenerate_user_matrix(user_id: str):
+    _reject_prelaunch_entitlement_mutation()
     user_uuid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
 
@@ -660,6 +677,57 @@ async def regenerate_user_matrix(user_id: str):
     )
 
     return {"ok": True}
+
+
+class PrelaunchFullReportRequest(BaseModel):
+    reason: str = Field(min_length=5, max_length=256)
+    request_key: str = Field(
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9._:-]+$",
+    )
+
+
+@router.post("/users/{user_id}/prelaunch-full-report")
+@limiter.limit("5/minute")
+async def request_prelaunch_full_report(
+    request: Request,
+    user_id: str,
+    body: PrelaunchFullReportRequest,
+    actor: str = Depends(require_admin_actor),
+):
+    try:
+        parsed_user_id = uuid.UUID(user_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=404, detail="prelaunch_user_not_found") from None
+    try:
+        result = await PrelaunchFullReportService(
+            get_async_sessionmaker()
+        ).request(
+            user_id=parsed_user_id,
+            actor=actor,
+            reason=body.reason,
+            request_key=body.request_key,
+        )
+    except PrelaunchFullReportError as error:
+        status_code = (
+            404
+            if error.code == "prelaunch_user_not_found"
+            else 409
+            if error.code
+            in {
+                "prelaunch_full_report_unavailable",
+                "prelaunch_delivery_unavailable",
+            }
+            else 422
+        )
+        raise HTTPException(status_code=status_code, detail=error.code) from None
+    return {
+        "report_id": str(result.report_id),
+        "status": result.status,
+        "generation_dispatched": result.generation_dispatched,
+        "delivery_dispatched": result.delivery_dispatched,
+    }
 
 
 class HealthComponent(BaseModel):
@@ -726,6 +794,13 @@ async def get_health():
 
     async def check_yookassa():
         start = time.monotonic()
+        if not settings.payment_operations_enabled:
+            return {
+                "name": "Yookassa",
+                "status": "disabled",
+                "latency_ms": None,
+                "detail": "Payments disabled by runtime policy",
+            }
         if not settings.yookassa_shop_id or not settings.yookassa_secret_key:
             return {
                 "name": "Yookassa",
