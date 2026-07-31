@@ -1,5 +1,15 @@
 # NURA Acceptance Evidence
 
+## Fail-closed external sandbox profile (2026-07-31)
+
+Локальный worktree на baseline `0be905226eebc1148d26bf89559d2ae5ce45096f`
+реализует отдельный `APP_ENV=sandbox`, общий startup validator, глобальные
+Telegram guards, разделённые YooKassa test-shop/shortcut contracts, AI budget,
+isolated full-stack Compose и offline preflight. Это `LOCAL UNIT/INTEGRATION` и
+`STATIC EVIDENCE`, а не внешний запуск. Telegram/YooKassa/AI identity checks,
+Compose start, DNS/TLS и deploy в implementation-сессии не выполнялись. См.
+[описание профиля](../external-sandbox-profile.md).
+
 ## Local prompt-governance evidence (2026-07-31)
 
 Checked-in report/chat manifests, resolver, pinning, nullable provenance migration, contract tests и sanitized human-review packet относятся к local automated evidence. Они не доказывают качество реального provider output. External AI/provider content sandbox остаётся отдельным `NOT EXECUTED` gate; см. [prompt governance](../prompt-governance.md) и [Telegram-first sandbox](telegram-first-sandbox.md).

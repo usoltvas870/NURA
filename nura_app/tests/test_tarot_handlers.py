@@ -2090,7 +2090,7 @@ class TestBuySubscription:
         assert "Подписка уже активна" in text
 
     @pytest.mark.asyncio
-    async def test_test_mode_activates(
+    async def test_internal_payment_shortcut_activates(
         self, mock_callback, mock_user
     ):
         """Тестовый режим активирует подписку."""
@@ -2108,7 +2108,8 @@ class TestBuySubscription:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_mm.return_value = MagicMock()
-            mock_settings.test_mode = True
+            mock_settings.test_mode = False
+            mock_settings.enable_internal_payment_shortcut = True
 
             from bot.handlers.payment import initiate_subscription
 
@@ -2210,7 +2211,7 @@ class TestBuyTarotSubscription:
         assert "Таро-подписка уже активна" in text
 
     @pytest.mark.asyncio
-    async def test_test_mode_activates(
+    async def test_internal_payment_shortcut_activates(
         self, mock_callback, mock_user
     ):
         """Тестовый режим активирует таро."""
@@ -2226,7 +2227,8 @@ class TestBuyTarotSubscription:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_mm.return_value = MagicMock()
-            mock_settings.test_mode = True
+            mock_settings.test_mode = False
+            mock_settings.enable_internal_payment_shortcut = True
 
             from bot.handlers.payment import initiate_tarot_subscription
 
@@ -2326,10 +2328,10 @@ class TestBuyMatrix:
         assert "Матрица уже куплена" in text
 
     @pytest.mark.asyncio
-    async def test_test_mode_activates(
+    async def test_internal_payment_shortcut_activates(
         self, mock_callback, mock_user
     ):
-        """Тестовый режим активирует матрицу и ставит отчёт в очередь."""
+        """Явный внутренний shortcut активирует матрицу и ставит отчёт в очередь."""
         with (
             patch("bot.handlers.payment.UserRepository") as MockRepo,
             patch("bot.handlers.payment.get_async_sessionmaker") as mock_gsm,
@@ -2352,7 +2354,8 @@ class TestBuyMatrix:
             MockReportRepo.return_value = report_repo_instance
             mock_gsm.return_value = MagicMock()
             mock_mm.return_value = MagicMock()
-            mock_settings.test_mode = True
+            mock_settings.test_mode = False
+            mock_settings.enable_internal_payment_shortcut = True
             mock_gen_report.delay = MagicMock()
             MockReportService.generate_token.return_value = "report-token-abc"
 
@@ -2412,6 +2415,7 @@ class TestBuyMatrix:
             MockRepo.return_value = repo_instance
             mock_gsm.return_value = MagicMock()
             mock_settings.test_mode = False
+            mock_settings.enable_internal_payment_shortcut = False
             checkout_service.return_value.create_or_get_order = AsyncMock(
                 return_value=MagicMock(public_id="opaque-checkout-id")
             )

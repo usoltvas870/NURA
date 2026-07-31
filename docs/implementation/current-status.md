@@ -1,5 +1,22 @@
 # NURA: текущее состояние реализации
 
+## Локальный fail-closed external sandbox milestone (2026-07-31)
+
+На clean baseline `main` / `0be905226eebc1148d26bf89559d2ae5ce45096f`
+реализован незакоммиченный отдельный профиль `APP_ENV=sandbox`: единые startup
+gates API/bot/worker/Beat, проверка фактического Alembic head, global Telegram
+allowlist, отдельные YooKassa provider-test и internal-shortcut contracts,
+Redis-backed AI budget, isolated full-stack Compose, минимальный ingress и
+offline preflight. После независимого review дополнительно закрыты legacy
+YooKassa SDK bypass, host-level AI/resource identity checks, inline Redis
+credentials, production URL markup и executable ASGI ingress enforcement.
+Подробный контракт:
+[external-sandbox-profile.md](../external-sandbox-profile.md).
+
+Это локальное implementation evidence. External identity checks, provider calls,
+Compose execution, DNS/TLS, migration apply, deploy, commit, push и PR не
+выполнялись; внешний sandbox остаётся `NOT_EXECUTED`.
+
 **Статус:** CURRENT IMPLEMENTATION MIRROR — EVIDENCE-BACKED, NON-NORMATIVE
 **Проверено:** 2026-07-30
 **Baseline:** локальный непубликовавшийся worktree на branch `main`, исходный HEAD `a6ef95e437e974f13ab78af15da612ac91c91f67`

@@ -1,4 +1,5 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from core.config import settings
 
 
 def tarot_menu_keyboard(has_tarot: bool = False, *, expanded_enabled: bool = False) -> InlineKeyboardMarkup:
@@ -110,6 +111,12 @@ def tarot_spheres_keyboard() -> InlineKeyboardMarkup:
 
 
 def tarot_result_keyboard() -> InlineKeyboardMarkup:
+    if settings.is_sandbox:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="← К раскладам", callback_data="tarot_menu")],
+            ]
+        )
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🌐 Открыть в PWA", url="https://nura-ai.ru/app/tarot")],

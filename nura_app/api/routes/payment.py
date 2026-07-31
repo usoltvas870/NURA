@@ -79,6 +79,8 @@ async def payment_webhook(request: Request):
                 from core.tasks import notify_full_matrix_payment_confirmed
                 notify_full_matrix_payment_confirmed.delay(result["order_id"])
             return result
+        if settings.is_sandbox:
+            return {"status": "ok", "result": "unsupported_sandbox_event"}
         result = await PaymentService.process_webhook(
             get_async_sessionmaker(), data
         )

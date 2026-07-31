@@ -79,7 +79,7 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
         await callback.message.edit_text(text, reply_markup=main_menu_keyboard())
         return
 
-    if settings.test_mode:
+    if settings.enable_internal_payment_shortcut is True:
         from datetime import datetime, timedelta, timezone
         session_factory = get_async_sessionmaker()
         user_repo = UserRepository(session_factory)
@@ -122,16 +122,24 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
             idempotence_key=_callback_idempotence_key(callback),
         )
 
+        payment_buttons = [
+            [InlineKeyboardButton(text="💎 Оплатить 390 ₽/мес", url=subscription["payment_url"])],
+            [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+        ]
+        if not settings.is_sandbox:
+            payment_buttons.insert(
+                0,
+                [InlineKeyboardButton(
+                    text="🌐 Оформить в NURA",
+                    url="https://nura-ai.ru/app/profile.html#subscription",
+                )],
+            )
         await callback.message.edit_text(
             "Почти готово!\n\n"
             "Для оформления подписки нужно завершить оплату.\n\n"
             "⚠️ Не закрывай это окно, пока платёж не завершится.",
             reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text="🌐 Оформить в NURA", url="https://nura-ai.ru/app/profile.html#subscription")],
-                    [InlineKeyboardButton(text="💎 Оплатить 390 ₽/мес", url=subscription["payment_url"])],
-                    [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
-                ]
+                inline_keyboard=payment_buttons
             ),
         )
 
@@ -168,7 +176,7 @@ async def initiate_tarot_subscription(callback: CallbackQuery) -> None:
         )
         return
 
-    if settings.test_mode:
+    if settings.enable_internal_payment_shortcut is True:
         from datetime import datetime, timedelta, timezone
         session_factory = get_async_sessionmaker()
         user_repo = UserRepository(session_factory)
@@ -245,7 +253,7 @@ async def buy_matrix(callback: CallbackQuery) -> None:
         )
         return
 
-    if settings.test_mode:
+    if settings.enable_internal_payment_shortcut is True:
         session_factory = get_async_sessionmaker()
         user_repo = UserRepository(session_factory)
         await user_repo.update_has_matrix(user.id, True)
@@ -343,12 +351,15 @@ async def open_report(callback: CallbackQuery) -> None:
         )
         return
 
-    report_url = f"{settings.report_base_url}/report/{token}"
-    pwa_url = f"https://nura-ai.ru/report/{token}"
-    buttons = [[InlineKeyboardButton(text="👁 Открыть отчёт", url=report_url)]]
+    buttons = []
+    if not settings.is_sandbox:
+        report_url = f"{settings.report_base_url}/report/{token}"
+        pwa_url = f"https://nura-ai.ru/report/{token}"
+        buttons.append([InlineKeyboardButton(text="👁 Открыть отчёт", url=report_url)])
     if report.kitchen_analysis:
         buttons.insert(0, [InlineKeyboardButton(text="🧮 Показать расчёт", callback_data=f"kitchen:{token}")])
-    buttons.append([InlineKeyboardButton(text="🌐 Открыть в NURA", url=pwa_url)])
+    if not settings.is_sandbox:
+        buttons.append([InlineKeyboardButton(text="🌐 Открыть в NURA", url=pwa_url)])
     buttons.append([InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")])
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
     arch = report.matrix_data.get("archetype_name") if report.matrix_data else None

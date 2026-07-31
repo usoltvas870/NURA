@@ -15,6 +15,11 @@ from core.repositories.mini_report_generation import MiniReportGenerationReposit
 from core.repositories.telegram_report_delivery import TelegramReportDeliveryRepository
 from core.repositories.user import UserRepository
 from core.services.report import ReportService
+from core.services.telegram_sandbox import (
+    SandboxGuardedBot,
+    SandboxTelegramRecipientBlocked,
+    require_telegram_recipient_allowed,
+)
 
 _MINI_CONTENT_FIELDS = (
     "main_archetype",
@@ -101,14 +106,16 @@ class TelegramDocumentAdapter:
 
     @staticmethod
     async def _bot():
-        from aiogram import Bot
         from aiogram.client.default import DefaultBotProperties
         from aiogram.enums import ParseMode
 
         token = settings.telegram_bot_token
         if not token or token.startswith("change-me"):
             raise TelegramDeliveryError("telegram_not_configured", retryable=False)
-        return Bot(token=token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+        return SandboxGuardedBot(
+            token=token,
+            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        )
 
     @staticmethod
     def _classify(
@@ -116,6 +123,8 @@ class TelegramDocumentAdapter:
     ) -> TelegramDeliveryError:
         from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramNetworkError, TelegramRetryAfter
 
+        if isinstance(error, SandboxTelegramRecipientBlocked):
+            return TelegramDeliveryError(error.code, retryable=False)
         if isinstance(error, TelegramRetryAfter):
             return TelegramDeliveryError("telegram_retry_after", retryable=True, retry_after=error.retry_after)
         if isinstance(error, (TelegramNetworkError, TimeoutError)):
@@ -192,6 +201,7 @@ class MiniReportTelegramDeliveryService:
                 retryable=False,
             )
             raise TelegramDeliveryError("delivery_subject_missing", retryable=False)
+        require_telegram_recipient_allowed(user.telegram_id)
         try:
             if delivery.text_status != "sent":
                 message_ids = list(delivery.text_message_ids or [])

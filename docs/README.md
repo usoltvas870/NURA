@@ -10,6 +10,7 @@
 2. [Current implementation status](implementation/current-status.md) — что фактически подтверждается code/migrations/tests/config и какие остаются gaps.
 3. [Owner migration decisions](decisions/NURA_DOCUMENTATION_MIGRATION_DECISIONS.md) — решения владельца по этой миграции; не замена product spec.
 4. [Acceptance evidence router](acceptance/README.md) — current/dated local evidence, runbooks, unexecuted external sandbox и unproven production/legal gates.
+5. [Fail-closed external sandbox profile](external-sandbox-profile.md) — implemented local runtime/configuration contract; не является execution evidence или deploy authorization.
 
 Target state не равен implemented state. При конфликте product spec определяет цель, а code/tests/config — фактическую реализацию.
 

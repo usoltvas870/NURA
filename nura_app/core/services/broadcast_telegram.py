@@ -18,6 +18,11 @@ from aiogram.exceptions import (
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from core.config import settings
+from core.services.telegram_sandbox import (
+    SandboxGuardedBot,
+    SandboxTelegramRecipientBlocked,
+    require_telegram_recipient_allowed,
+)
 
 
 @dataclass(frozen=True)
@@ -50,7 +55,7 @@ class BroadcastTelegramAdapter:
         if self._bot is None:
             if not settings.telegram_bot_token:
                 raise BroadcastTelegramError("telegram_not_configured", retryable=True)
-            self._bot = Bot(
+            self._bot = SandboxGuardedBot(
                 token=settings.telegram_bot_token,
                 default=DefaultBotProperties(parse_mode=ParseMode.HTML),
             )
@@ -76,6 +81,7 @@ class BroadcastTelegramAdapter:
         return InlineKeyboardMarkup(inline_keyboard=rows)
 
     async def send_media(self, chat_id: int, media_type: str, file_id: str) -> BroadcastSendResult:
+        require_telegram_recipient_allowed(chat_id)
         bot = self._require_bot()
         try:
             if media_type == "photo":
@@ -101,6 +107,7 @@ class BroadcastTelegramAdapter:
         *,
         test: bool = False,
     ) -> BroadcastSendResult:
+        require_telegram_recipient_allowed(chat_id)
         bot = self._require_bot()
         try:
             message = await bot.send_message(
@@ -119,6 +126,8 @@ class BroadcastTelegramAdapter:
 
     @staticmethod
     def classify(error: Exception) -> BroadcastTelegramError:
+        if isinstance(error, SandboxTelegramRecipientBlocked):
+            return BroadcastTelegramError(error.code, retryable=False)
         if isinstance(error, TelegramForbiddenError):
             return BroadcastTelegramError(
                 "telegram_forbidden", retryable=False, blocked_reason="bot_blocked"

@@ -9,6 +9,10 @@ import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+from core.config import settings
+from core.services.external_sandbox import sandbox_public_path_allowed
 
 logger = logging.getLogger(__name__)
 
@@ -48,3 +52,12 @@ class RequestCorrelationMiddleware(BaseHTTPMiddleware):
             (time.perf_counter() - started) * 1000,
         )
         return response
+
+
+class SandboxPublicIngressMiddleware(BaseHTTPMiddleware):
+    """Return 404 before routing any path outside the sandbox public contract."""
+
+    async def dispatch(self, request: Request, call_next):
+        if settings.is_sandbox and not sandbox_public_path_allowed(request.url.path):
+            return JSONResponse({"detail": "not_found"}, status_code=404)
+        return await call_next(request)

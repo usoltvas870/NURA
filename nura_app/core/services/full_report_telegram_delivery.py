@@ -26,6 +26,17 @@ from core.models import (
 )
 from core.repositories.full_report_telegram_delivery import FullReportTelegramDeliveryRepository
 from core.services.telegram_report_delivery import TelegramDeliveryError, TelegramDocumentAdapter
+from core.services.telegram_sandbox import (
+    SandboxTelegramRecipientBlocked,
+    require_telegram_recipient_allowed,
+)
+
+
+def _require_sandbox_recipient(chat_id: int) -> None:
+    try:
+        require_telegram_recipient_allowed(chat_id)
+    except SandboxTelegramRecipientBlocked as error:
+        raise TelegramDeliveryError(error.code, retryable=False) from error
 
 
 class FullReportTelegramDeliveryService:
@@ -114,6 +125,7 @@ class FullReportTelegramDeliveryService:
                         if subject is None or not subject[1].telegram_id:
                             await self._deliveries.cancel(delivery_id, attempt)
                             return
+                        _require_sandbox_recipient(subject[1].telegram_id)
                         # A paid-order lock fences one external call at a time. This
                         # prevents post-refund sends without a multipart-wide DB lock.
                         message_ids.append(await self._adapter.send_message(subject[1].telegram_id, chunk))
@@ -134,6 +146,7 @@ class FullReportTelegramDeliveryService:
                         await self._deliveries.cancel(delivery_id, attempt)
                         return
                     report, user, _order = subject
+                    _require_sandbox_recipient(user.telegram_id)
                     caption = "<b>Полный отчёт NURA в PDF</b>\nСохрани его, чтобы возвращаться к разбору в удобный момент."
                     file_id = await self._deliveries.get_canonical_file_id(report.id)
                     if file_id:

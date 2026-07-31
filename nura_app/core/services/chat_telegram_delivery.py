@@ -8,6 +8,10 @@ from dataclasses import dataclass
 from bot.utils.formatting import split_telegram_html_text
 from core.services.chat_quota import ChatQuotaService
 from core.services.telegram_report_delivery import TelegramDeliveryError, TelegramDocumentAdapter
+from core.services.telegram_sandbox import (
+    SandboxTelegramRecipientBlocked,
+    require_telegram_recipient_allowed,
+)
 
 
 @dataclass(frozen=True)
@@ -46,6 +50,7 @@ class TelegramChatDeliveryService:
             )
             return TelegramChatDeliveryResult("failed")
         try:
+            require_telegram_recipient_allowed(claim.chat_id)
             for chunk_index in range(claim.next_chunk_index, len(chunks)):
                 if send_chunk is None:
                     await self._adapter.send_message(claim.chat_id, chunks[chunk_index])
@@ -57,6 +62,14 @@ class TelegramChatDeliveryService:
                     return TelegramChatDeliveryResult("claim_lost", retryable=True)
             quota = await self._quota.complete_telegram_delivery(claim.usage_id, claim.attempt)
             return TelegramChatDeliveryResult("delivered", quota=quota)
+        except SandboxTelegramRecipientBlocked as error:
+            quota = await self._quota.fail_telegram_delivery(
+                claim.usage_id,
+                claim.attempt,
+                error_code=error.code,
+                retryable=False,
+            )
+            return TelegramChatDeliveryResult("failed", quota=quota)
         except TelegramDeliveryError as error:
             quota = await self._quota.fail_telegram_delivery(
                 claim.usage_id, claim.attempt, error_code=error.code, retryable=error.retryable

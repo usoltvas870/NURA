@@ -44,6 +44,8 @@ class PromoCheckoutError(ValueError):
 class PaymentService:
     @staticmethod
     def _require_payments_enabled() -> None:
+        if settings.is_sandbox:
+            raise RuntimeError("legacy_payments_disabled_for_external_sandbox")
         if not settings.payments_enabled:
             raise RuntimeError("payments_disabled_for_telegram_pilot")
 
@@ -472,6 +474,7 @@ class PaymentService:
 
     @staticmethod
     async def cancel_subscription(payment_method_id: str) -> None:
+        PaymentService._require_payments_enabled()
         from yookassa import PaymentMethod as YooPaymentMethod
 
         YooPaymentMethod.cancel(payment_method_id)
@@ -532,6 +535,7 @@ class PaymentService:
     async def process_webhook(
         session_factory: async_sessionmaker, data: dict
     ) -> dict:
+        PaymentService._require_payments_enabled()
         event = data.get("event")
         payment_obj = data.get("object", {})
 

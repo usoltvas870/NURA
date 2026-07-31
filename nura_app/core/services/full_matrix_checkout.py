@@ -35,6 +35,7 @@ from core.models import (
 from core.repositories.payment_event import PaymentEventRepository
 from core.repositories.report_lifecycle import ReportLifecycleRepository
 from core.services.report_lifecycle import ReportLifecycleService
+from core.services.external_sandbox import require_yookassa_identity_evidence
 
 
 FULL_MATRIX_PRODUCT_CODE = "full_matrix"
@@ -120,6 +121,12 @@ def _is_expired(value: datetime | None) -> bool:
 
 def _attempt_key(order: Order, number: int) -> str:
     return hashlib.sha256(f"nura.full-matrix.yookassa.v1|{order.public_id}|{number}".encode()).hexdigest()
+
+
+def _public_base_url() -> str:
+    if settings.is_sandbox:
+        return str(settings.sandbox_public_base_url).rstrip("/")
+    return settings.report_base_url.rstrip("/")
 
 
 def normalize_fiscal_email(value: str) -> str:
@@ -238,6 +245,7 @@ class FullMatrixCheckoutService:
     async def start_checkout(self, checkout_token: str, fiscal_email: str) -> str:
         """Create/reuse a YooKassa attempt.  Client controls neither product nor amount."""
         self._require_payments_enabled()
+        require_yookassa_identity_evidence(settings)
         fiscal_email = normalize_fiscal_email(fiscal_email)
         receipt_error = settings.yookassa_receipt_configuration_error
         if receipt_error:
@@ -270,7 +278,7 @@ class FullMatrixCheckoutService:
                 raise ValueError("receipt_item_mismatch")
             payload = {
                 "amount": {"value": FULL_MATRIX_AMOUNT_VALUE, "currency": FULL_MATRIX_CURRENCY},
-                "confirmation": {"type": "redirect", "return_url": f"{settings.report_base_url}/api/v1/payment/full-matrix/return/{checkout_token}"},
+                "confirmation": {"type": "redirect", "return_url": f"{_public_base_url()}/api/v1/payment/full-matrix/return/{checkout_token}"},
                 "capture": True,
                 "save_payment_method": False,
                 "description": FULL_MATRIX_PRODUCT_NAME,
@@ -293,7 +301,8 @@ class FullMatrixCheckoutService:
                 currency=FULL_MATRIX_CURRENCY, confirmation_url=confirmation_url,
                 fiscal_email=fiscal_email,
                 provider_metadata={"product_code": FULL_MATRIX_PRODUCT_CODE, "order_id": public_id},
-                test_mode=bool(settings.test_mode), retain_until=_retain_until(now),
+                test_mode=settings.yookassa_expect_test_mode,
+                retain_until=_retain_until(now),
             )
             session.add(attempt)
             await session.flush()
@@ -306,6 +315,7 @@ class FullMatrixCheckoutService:
 
     async def process_webhook(self, body: dict) -> dict:
         """Claim the durable event before exactly one worker reads the provider."""
+        require_yookassa_identity_evidence(settings)
         event_type = body.get("event") if isinstance(body.get("event"), str) else "unknown"
         if event_type not in FULL_MATRIX_WEBHOOK_EVENTS:
             return {"status": "ok", "result": "unsupported_event"}
@@ -434,7 +444,10 @@ class FullMatrixCheckoutService:
             attempt = (await session.execute(select(PaymentAttempt).where(PaymentAttempt.provider_payment_id == intake.provider_id).with_for_update())).scalar_one_or_none()
             if order is None or attempt is None or attempt.order_id != order.id:
                 raise ValueError("payment_attempt_not_found")
-            if isinstance(remote.get("test"), bool) and remote["test"] != attempt.test_mode:
+            if (
+                remote.get("test") is not settings.yookassa_expect_test_mode
+                or attempt.test_mode is not settings.yookassa_expect_test_mode
+            ):
                 raise ValueError("provider_mode_mismatch")
             now = _now()
             event = await session.get(PaymentEvent, intake.event_id, with_for_update=True)

@@ -8,7 +8,9 @@ from datetime import date, datetime, timedelta, timezone
 
 from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
-from sqlalchemy import select
+from celery.signals import beat_init, worker_init
+from sqlalchemy import create_engine as create_sync_engine
+from sqlalchemy import select, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import load_only
 
@@ -38,11 +40,19 @@ from core.services.prompt_governance import (
     resolve_active_bundle,
 )
 from core.services.telegram_report_delivery import MiniReportTelegramDeliveryService, TelegramDeliveryError
+from core.services.external_sandbox import (
+    SandboxConfigurationError,
+    validate_sandbox_database_versions,
+    validate_sandbox_startup,
+)
+from core.services.telegram_sandbox import SandboxGuardedBot
 from core.services.web_push import PushSubscriptionExpired, send_web_push
 
 MSK = timezone(timedelta(hours=3))
 
 logger = logging.getLogger(__name__)
+
+validate_sandbox_startup(settings)
 
 celery_app = Celery("nura")
 celery_app.conf.update(
@@ -70,7 +80,32 @@ _chat_delivery_schedule = {
     },
 }
 
-celery_app.conf.beat_schedule = _chat_delivery_schedule if settings.nura_tg_pilot else {
+_sandbox_schedule = {
+    **_chat_delivery_schedule,
+    "dispatch-report-generation-jobs": {
+        "task": "core.tasks.dispatch_report_generation_jobs",
+        "schedule": timedelta(
+            seconds=settings.report_generation_dispatch_interval_seconds
+        ),
+        "kwargs": {"limit": settings.report_generation_dispatch_limit},
+        "options": {
+            "expires": settings.report_generation_dispatch_interval_seconds - 5
+        },
+    },
+    "reconcile-report-generation-jobs": {
+        "task": "core.tasks.reconcile_report_generation_jobs",
+        "schedule": timedelta(
+            seconds=settings.report_generation_reconciliation_interval_seconds
+        ),
+        "kwargs": {"limit": settings.report_generation_reconciliation_limit},
+        "options": {
+            "expires": settings.report_generation_reconciliation_interval_seconds - 30
+        },
+    },
+}
+
+celery_app.conf.beat_schedule = _sandbox_schedule if settings.is_sandbox else (
+    _chat_delivery_schedule if settings.nura_tg_pilot else {
     "downgrade-expired-subscriptions": {
         "task": "core.tasks.downgrade_expired_subscriptions",
         "schedule": 60 * 60 * 24,
@@ -118,14 +153,38 @@ celery_app.conf.beat_schedule = _chat_delivery_schedule if settings.nura_tg_pilo
         "options": {"expires": 50},
     },
     **_chat_delivery_schedule,
-}
+    }
+)
+
+
+def _validate_sandbox_database_dependency() -> None:
+    engine = create_sync_engine(settings.database_url_sync, pool_pre_ping=True)
+    try:
+        with engine.connect() as connection:
+            versions = tuple(
+                connection.execute(
+                    text("SELECT version_num FROM alembic_version")
+                ).scalars()
+            )
+    except Exception as exc:
+        raise SandboxConfigurationError("migration_head") from exc
+    finally:
+        engine.dispose()
+    validate_sandbox_database_versions(versions, settings)
+
+
+@worker_init.connect
+@beat_init.connect
+def _validate_sandbox_process_startup(**_: object) -> None:
+    validate_sandbox_startup(settings)
+    if settings.is_sandbox:
+        _validate_sandbox_database_dependency()
 
 async def _send_message(
     telegram_id: int,
     text: str,
     reply_markup: dict | None = None,
 ) -> bool:
-    from aiogram import Bot
     from aiogram.client.default import DefaultBotProperties
     from aiogram.enums import ParseMode
     from aiogram.exceptions import TelegramForbiddenError
@@ -135,7 +194,7 @@ async def _send_message(
         logger.warning("TELEGRAM_BOT_TOKEN not configured, skipping notification")
         return False
 
-    bot = Bot(
+    bot = SandboxGuardedBot(
         token=token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
@@ -1754,7 +1813,6 @@ async def _monitor_health_async() -> dict:
 
 
 async def _send_admin_message(telegram_id: int, text: str) -> bool:
-    from aiogram import Bot
     from aiogram.client.default import DefaultBotProperties
     from aiogram.enums import ParseMode
     from aiogram.exceptions import TelegramForbiddenError
@@ -1764,7 +1822,7 @@ async def _send_admin_message(telegram_id: int, text: str) -> bool:
         logger.warning("ADMIN_BOT_TOKEN not configured, skipping admin message")
         return False
 
-    bot = Bot(
+    bot = SandboxGuardedBot(
         token=token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )

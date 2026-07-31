@@ -2,7 +2,7 @@ import asyncio
 import logging
 import sys
 
-from aiogram import Bot, Dispatcher
+from aiogram import Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -17,6 +17,9 @@ from admin_bot.handlers import (
     status_router,
 )
 from admin_bot.middleware import AdminOnlyMiddleware
+from core.config import settings
+from core.services.external_sandbox import validate_sandbox_startup
+from core.services.telegram_sandbox import SandboxGuardedBot
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,6 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
+    validate_sandbox_startup(settings)
+    if settings.is_sandbox:
+        raise RuntimeError("admin_bot_disabled_for_external_sandbox")
     bot_config = AdminBotConfig()
 
     if not bot_config.token or bot_config.token.startswith("change-me"):
@@ -39,7 +45,7 @@ async def main() -> None:
         while True:
             await asyncio.sleep(3600)
 
-    bot = Bot(
+    bot = SandboxGuardedBot(
         token=bot_config.token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )

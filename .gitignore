@@ -27,6 +27,7 @@ Thumbs.db
 # Environment
 .env
 .env.*
+!.env.sandbox.example
 !.env.example
 
 # Project

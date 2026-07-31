@@ -1,4 +1,5 @@
 import sentry_sdk
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
@@ -11,7 +12,7 @@ from slowapi.errors import RateLimitExceeded
 from api.admin import setup_admin
 from api.deps import limiter
 from api.logging import configure_uvicorn_access_redaction, scrub_sentry_event
-from api.middleware import RequestCorrelationMiddleware
+from api.middleware import RequestCorrelationMiddleware, SandboxPublicIngressMiddleware
 from api.routes.reports import router as reports_router
 from api.routes.web import router as web_router
 from api.routes.payment import router as payment_router
@@ -23,10 +24,22 @@ from api.routes.auth import router as auth_router
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
 from core.services.prompt_governance import validate_active_prompt_bundles
+from core.services.external_sandbox import (
+    validate_sandbox_database_head,
+    validate_sandbox_startup,
+)
 
 
 configure_uvicorn_access_redaction()
+validate_sandbox_startup(settings)
 validate_active_prompt_bundles()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    async with get_async_sessionmaker()() as session:
+        await validate_sandbox_database_head(session, settings)
+    yield
 
 
 def payment_webhook_readiness_status() -> str:
@@ -42,18 +55,24 @@ if settings.sentry_dsn:
         before_send=scrub_sentry_event,
     )
 
-app = FastAPI(title="NURA API", version="1.0.0", docs_url=None, redoc_url=None)
+app = FastAPI(
+    title="NURA API",
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None,
+    lifespan=lifespan,
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(RequestCorrelationMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://nura-ai.ru", "https://www.nura-ai.ru"],
+    allow_origins=list(settings.cors_allowed_origins_list),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestCorrelationMiddleware)
+app.add_middleware(SandboxPublicIngressMiddleware)
 
 app.include_router(web_router)
 app.include_router(reports_router)
@@ -88,6 +107,7 @@ async def readiness(request: Request):
     try:
         async with get_async_sessionmaker()() as session:
             await session.execute(text("SELECT 1"))
+            await validate_sandbox_database_head(session, settings)
     except Exception:
         dependencies["database"] = "unavailable"
     try:

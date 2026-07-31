@@ -30,14 +30,15 @@ def main_menu_keyboard(
         keyboard[1].append(
             InlineKeyboardButton(text="❤️ Совместимость", callback_data="compatibility")
         )
-    if has_matrix:
-        keyboard.insert(0, [
-            InlineKeyboardButton(text="🌐 Открыть в NURA", url="https://nura-ai.ru/app")
-        ])
-    else:
-        keyboard.insert(0, [
-            InlineKeyboardButton(text="🌐 Войти через Email или VK", url="https://nura-ai.ru/app")
-        ])
+    if not settings.is_sandbox:
+        if has_matrix:
+            keyboard.insert(0, [
+                InlineKeyboardButton(text="🌐 Открыть в NURA", url="https://nura-ai.ru/app")
+            ])
+        else:
+            keyboard.insert(0, [
+                InlineKeyboardButton(text="🌐 Войти через Email или VK", url="https://nura-ai.ru/app")
+            ])
     # Кнопка «Купить разбор» скрывается если:
     # - has_matrix=True (матрица уже куплена)
     # - subscription_status="premium" (подписка даёт доступ ко всему)
@@ -108,6 +109,12 @@ def subscription_keyboard() -> InlineKeyboardMarkup:
 
 
 def pwa_cta_keyboard() -> InlineKeyboardMarkup:
+    if settings.is_sandbox:
+        return InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+            ]
+        )
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🌐 Открыть NURA в браузере", url="https://nura-ai.ru/app/chat")],
@@ -155,7 +162,12 @@ def my_report_detail_keyboard(report_id: str, page: int) -> InlineKeyboardMarkup
     )
 
 
-def open_pwa_keyboard(url: str = "https://nura-ai.ru/app") -> InlineKeyboardMarkup:
+def open_pwa_keyboard(url: str | None = None) -> InlineKeyboardMarkup:
+    if settings.is_sandbox:
+        return InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],
+        ])
+    url = url or "https://nura-ai.ru/app"
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🌐 Открыть в NURA", url=url)],
         [InlineKeyboardButton(text="🏠 В меню", callback_data="main_menu")],

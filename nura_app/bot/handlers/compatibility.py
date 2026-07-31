@@ -397,7 +397,11 @@ async def send_compat_card(callback: CallbackQuery, state: FSMContext) -> None:
         caption = (
             f"✦ {sender_name} + {partner_name}\n"
             f"{a1_name} · {a2_name}\n\n"
-            f"Проверь свою совместимость: nura-ai.ru"
+            + (
+                ""
+                if settings.is_sandbox
+                else "Проверь свою совместимость: nura-ai.ru"
+            )
         )
         await callback.message.answer_photo(photo=photo, caption=caption)
 

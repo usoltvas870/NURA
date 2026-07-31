@@ -27,6 +27,8 @@ def receipt_settings(monkeypatch):
     monkeypatch.setattr(settings, "yookassa_receipt_vat_code", "test_vat")
     monkeypatch.setattr(settings, "yookassa_receipt_payment_mode", "test_mode")
     monkeypatch.setattr(settings, "yookassa_receipt_payment_subject", "test_subject")
+    monkeypatch.setattr(settings, "yookassa_expect_test_mode", False)
+    monkeypatch.setattr(settings, "enable_internal_payment_shortcut", False)
 
 
 class FakeYooKassa:
@@ -44,6 +46,7 @@ class FakeYooKassa:
             "id": f"fake-yookassa-{number}",
             "status": "pending",
             "paid": False,
+            "test": settings.yookassa_expect_test_mode,
             "amount": {"value": "890.00", "currency": "RUB"},
             "metadata": payload["metadata"],
             "confirmation": {"confirmation_url": f"https://yookassa.test/pay/{number}"},
@@ -132,6 +135,63 @@ async def test_verified_success_creates_one_report_and_dispatch_job(db_engine, t
         assert attempt.fiscal_email == "buyer@example.test"
         assert job.report_id == report.id
         assert len((await session.execute(select(PaymentEvent))).scalars().all()) == 1
+
+
+@pytest.mark.asyncio
+async def test_provider_test_shop_mode_is_independent_and_persisted(
+    db_engine, test_user, monkeypatch
+):
+    monkeypatch.setattr(settings, "test_mode", False)
+    monkeypatch.setattr(settings, "enable_internal_payment_shortcut", False)
+    monkeypatch.setattr(settings, "yookassa_expect_test_mode", True)
+    factory = async_sessionmaker(
+        db_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    provider = FakeYooKassa()
+    service = FullMatrixCheckoutService(factory, provider)
+    order = await service.create_or_get_order(user_id=test_user.id)
+    await service.start_checkout(order.checkout_token, "buyer@example.test")
+    provider.remote.update({"status": "succeeded", "paid": True, "test": True})
+
+    result = await service.process_webhook(
+        {"event": "payment.succeeded", "object": {"id": provider.remote["id"]}}
+    )
+
+    assert result["result"] == "activated"
+    async with factory() as session:
+        attempt = (await session.execute(select(PaymentAttempt))).scalar_one()
+        assert attempt.test_mode is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider_test_value", [False, None, "true", "missing"])
+async def test_provider_test_shop_requires_exact_true(
+    db_engine, test_user, monkeypatch, provider_test_value
+):
+    monkeypatch.setattr(settings, "yookassa_expect_test_mode", True)
+    factory = async_sessionmaker(
+        db_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    provider = FakeYooKassa()
+    service = FullMatrixCheckoutService(factory, provider)
+    order = await service.create_or_get_order(user_id=test_user.id)
+    await service.start_checkout(order.checkout_token, "buyer@example.test")
+    provider.remote.update({"status": "succeeded", "paid": True})
+    if provider_test_value == "missing":
+        provider.remote.pop("test", None)
+    else:
+        provider.remote["test"] = provider_test_value
+
+    result = await service.process_webhook(
+        {"event": "payment.succeeded", "object": {"id": provider.remote["id"]}}
+    )
+
+    assert result["result"] == "verification_failed"
+    async with factory() as session:
+        stored_order = (await session.execute(select(Order))).scalar_one()
+        stored_user = await session.get(User, test_user.id)
+        assert stored_order.status == OrderStatus.PENDING
+        assert stored_user is not None and stored_user.has_matrix is False
 
 
 @pytest.mark.asyncio

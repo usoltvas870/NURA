@@ -1,0 +1,17 @@
+# Contract sample only. DNS, TLS and real proxy activation are out of scope.
+server {
+    listen 443 ssl;
+    server_name SANDBOX_EXPECTED_HOSTNAME;
+
+    location = /health { proxy_pass http://api:8000; }
+    location = /ready { proxy_pass http://api:8000; }
+    location = /api/v1/payment/webhook { proxy_pass http://api:8000; }
+    location ~ ^/api/v1/payment/full-matrix/checkout/[A-Za-z0-9_-]{40,64}$ {
+        proxy_pass http://api:8000;
+    }
+    location ~ ^/api/v1/payment/full-matrix/return/[A-Za-z0-9_-]{40,64}$ {
+        proxy_pass http://api:8000;
+    }
+
+    location / { return 404; }
+}

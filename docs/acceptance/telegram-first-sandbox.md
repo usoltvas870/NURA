@@ -1,5 +1,13 @@
 # Telegram-First External Sandbox Runbook
 
+> Перед выполнением этого runbook обязателен локально реализованный
+> [fail-closed external sandbox profile](../external-sandbox-profile.md).
+> Сначала должен пройти offline preflight. Его результат
+> `READY_FOR_EXTERNAL_IDENTITY_CHECK` не разрешает внешний вызов: Telegram и
+> YooKassa identity checks, запуск Compose, DNS/TLS и provider actions требуют
+> отдельного owner approval. На 2026-07-31 внешнее выполнение остаётся
+> `NOT EXECUTED`.
+
 **STATUS: RUNBOOK — NOT EXECUTION PROOF**
 
 Authority: [canonical target](../product/NURA_1_0_1_5_PRODUCT_SPEC.md),

@@ -1,0 +1,1 @@
+{"contract":"nura-sandbox-public-ingress-v1","public_paths":["/health","/ready","/api/v1/payment/webhook","/api/v1/payment/full-matrix/checkout/{public_id}","/api/v1/payment/full-matrix/return/{public_id}"]}

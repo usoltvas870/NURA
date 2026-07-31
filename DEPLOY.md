@@ -1,5 +1,11 @@
 # NURA — coordinated production release contract
 
+> `docker-compose.sandbox.yml` не является production deploy path. Он описывает
+> отдельный fail-closed внешний sandbox и не должен запускаться через production
+> workflows или команды этого документа. Sandbox execution требует отдельного
+> owner approval и предварительного offline preflight по
+> [docs/external-sandbox-profile.md](docs/external-sandbox-profile.md).
+
 > **STATUS: CURRENT OPERATIONS CONTRACT — EXTERNAL ACTIONS REQUIRE CURRENT AUTHORIZATION**
 >
 > Сохранено в стабильном root path на Stage 2A, чтобы не ломать release tooling/references. Не является production evidence и не разрешает deploy.

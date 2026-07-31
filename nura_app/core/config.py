@@ -1,7 +1,6 @@
 import os
 import re
 import stat
-from pathlib import Path
 from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -10,7 +9,7 @@ from pydantic_settings import BaseSettings
 
 
 SUPPORTED_APP_ENVIRONMENTS = frozenset(
-    {"development", "test", "staging", "production"}
+    {"development", "test", "staging", "sandbox", "production"}
 )
 INSECURE_SECRET_KEYS = frozenset(
     {"change-me", "change-me-to-a-random-string-64-chars-min"}
@@ -30,7 +29,14 @@ def _read_secret_fd(path: str, label: str) -> str:
         descriptor = os.open(path, flags)
         try:
             info = os.fstat(descriptor)
-            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or info.st_nlink != 1
+                or (
+                    os.name != "nt"
+                    and info.st_mode & (stat.S_IWGRP | stat.S_IWOTH)
+                )
+            ):
                 raise ValueError(f"{label}_file_unsafe")
             value = os.read(descriptor, info.st_size + 1).decode("utf-8")
         finally:
@@ -78,6 +84,7 @@ def redis_url_with_password(url: str, password: str) -> str:
 class Settings(BaseSettings):
     app_env: str = "development"
     secret_key: str = "change-me"
+    secret_key_file: str | None = None
 
     # Database
     postgres_user: str = "nura"
@@ -157,6 +164,7 @@ class Settings(BaseSettings):
 
     # DeepSeek AI
     deepseek_api_key: str | None = None
+    deepseek_api_key_file: str | None = None
     deepseek_base_url: str = "https://api.deepseek.com/v1"
     deepseek_model: str = "deepseek-chat"
     report_prompt_bundle_version: str = "v1"
@@ -203,6 +211,56 @@ class Settings(BaseSettings):
                 raise ValueError("nura_tg_plaintext_database_url_forbidden")
             if database_url_file != NURA_TG_DATABASE_URL_FILE:
                 raise ValueError("nura_tg_database_url_file_required")
+        app_env = values.get("app_env", values.get("APP_ENV", "development"))
+        if app_env == "sandbox":
+            plaintext_fields = (
+                ("SECRET_KEY", "secret_key", "sandbox_plaintext_secret_key_forbidden"),
+                (
+                    "TELEGRAM_BOT_TOKEN",
+                    "telegram_bot_token",
+                    "sandbox_plaintext_telegram_token_forbidden",
+                ),
+                (
+                    "DEEPSEEK_API_KEY",
+                    "deepseek_api_key",
+                    "sandbox_plaintext_deepseek_key_forbidden",
+                ),
+                (
+                    "YOOKASSA_SECRET_KEY",
+                    "yookassa_secret_key",
+                    "sandbox_plaintext_yookassa_key_forbidden",
+                ),
+                (
+                    "DATABASE_URL",
+                    "database_url",
+                    "sandbox_plaintext_database_url_forbidden",
+                ),
+                (
+                    "POSTGRES_PASSWORD",
+                    "postgres_password",
+                    "sandbox_plaintext_postgres_password_forbidden",
+                ),
+            )
+            for env_name, field_name, error_code in plaintext_fields:
+                if values.get(field_name, values.get(env_name)) not in (None, ""):
+                    raise ValueError(error_code)
+            redis_urls = (
+                ("REDIS_URL", "redis_url"),
+                ("NURA_CELERY_BROKER_URL", "celery_broker_url"),
+                ("NURA_CELERY_RESULT_BACKEND", "celery_result_backend"),
+            )
+            for env_name, field_name in redis_urls:
+                raw_url = values.get(field_name, values.get(env_name))
+                if not isinstance(raw_url, str) or not raw_url:
+                    continue
+                try:
+                    parsed = urlsplit(raw_url)
+                except ValueError as exc:
+                    raise ValueError("sandbox_redis_url_invalid") from exc
+                if parsed.query or parsed.fragment:
+                    raise ValueError("sandbox_redis_url_query_forbidden")
+                if parsed.username is not None or parsed.password is not None:
+                    raise ValueError("sandbox_plaintext_redis_credentials_forbidden")
         return values
     bot_username: str | None = None
     telegram_document_max_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=50 * 1024 * 1024)
@@ -222,13 +280,9 @@ class Settings(BaseSettings):
     def _load_telegram_token_file(self) -> "Settings":
         if not self.telegram_bot_token_file:
             return self
-        try:
-            token = Path(self.telegram_bot_token_file).read_text(encoding="utf-8")
-        except OSError as exc:
-            raise ValueError("telegram_bot_token_file_unreadable") from exc
-        if not token or "\n" in token or "\r" in token or "\x00" in token:
-            raise ValueError("telegram_bot_token_file_invalid")
-        self.telegram_bot_token = token
+        self.telegram_bot_token = _read_secret_file(
+            self.telegram_bot_token_file, "telegram_bot_token"
+        )
         return self
 
     @model_validator(mode="after")
@@ -270,7 +324,10 @@ class Settings(BaseSettings):
     # YooKassa
     yookassa_shop_id: str | None = None
     yookassa_secret_key: str | None = None
+    yookassa_secret_key_file: str | None = None
     yookassa_verify_on_webhook: bool = True
+    yookassa_expect_test_mode: bool = False
+    enable_internal_payment_shortcut: bool = False
     yookassa_ip_whitelist: str = ""
     # Fiscal receipt. Values are deliberately unset until the merchant confirms
     # its YooKassa / tax configuration; payment creation then fails closed.
@@ -283,6 +340,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return is_production_environment(self.app_env)
+
+    @property
+    def is_sandbox(self) -> bool:
+        return self.app_env == "sandbox"
 
     @property
     def payment_webhook_configuration_error(self) -> str | None:
@@ -317,6 +378,10 @@ class Settings(BaseSettings):
             errors.append("production_secure_session_cookie_required")
         if self.test_mode:
             errors.append("production_test_mode_forbidden")
+        if self.enable_internal_payment_shortcut:
+            errors.append("production_internal_payment_shortcut_forbidden")
+        if self.yookassa_expect_test_mode:
+            errors.append("production_yookassa_test_mode_forbidden")
         if not self.yookassa_verify_on_webhook:
             errors.append("production_payment_webhook_verification_required")
         if not self.yookassa_shop_id or not self.yookassa_secret_key:
@@ -336,12 +401,7 @@ class Settings(BaseSettings):
     def _load_redis_password_file(self) -> "Settings":
         if not self.redis_password_file:
             return self
-        try:
-            password = Path(self.redis_password_file).read_text(encoding="utf-8")
-        except OSError as exc:
-            raise ValueError("redis_password_file_unreadable") from exc
-        if not password or "\n" in password or "\r" in password or "\x00" in password:
-            raise ValueError("redis_password_file_invalid")
+        password = _read_secret_file(self.redis_password_file, "redis_password")
         for field_name in (
             "redis_url",
             "celery_broker_url",
@@ -350,6 +410,19 @@ class Settings(BaseSettings):
             url = getattr(self, field_name)
             if not redis_url_has_credentials(url):
                 setattr(self, field_name, redis_url_with_password(url, password))
+        return self
+
+    @model_validator(mode="after")
+    def _load_secret_files(self) -> "Settings":
+        file_fields = (
+            ("secret_key_file", "secret_key", "secret_key"),
+            ("deepseek_api_key_file", "deepseek_api_key", "deepseek_api_key"),
+            ("yookassa_secret_key_file", "yookassa_secret_key", "yookassa_secret_key"),
+        )
+        for path_field, value_field, label in file_fields:
+            path = getattr(self, path_field)
+            if path:
+                setattr(self, value_field, _read_secret_file(path, label))
         return self
 
     @model_validator(mode="after")
@@ -415,6 +488,56 @@ class Settings(BaseSettings):
     # Report
     report_base_url: str = "https://nura-ai.ru"
     report_token_ttl_days: int = 90
+    cors_allowed_origins: str = "https://nura-ai.ru,https://www.nura-ai.ru"
+
+    # Fail-closed external sandbox profile. These values are inert outside
+    # APP_ENV=sandbox and are validated by one canonical startup gate.
+    sandbox_environment_id: str | None = None
+    sandbox_public_base_url: str | None = None
+    sandbox_expected_hostname: str | None = None
+    sandbox_expected_alembic_head: str | None = None
+    sandbox_expected_database_host: str | None = None
+    sandbox_expected_database_port: int | None = Field(default=None, ge=1, le=65535)
+    sandbox_expected_database_name: str | None = None
+    sandbox_expected_redis_host: str | None = None
+    sandbox_expected_redis_port: int | None = Field(default=None, ge=1, le=65535)
+    sandbox_expected_redis_data_db: int | None = Field(default=None, ge=0, le=15)
+    sandbox_expected_redis_broker_db: int | None = Field(default=None, ge=0, le=15)
+    sandbox_expected_redis_backend_db: int | None = Field(default=None, ge=0, le=15)
+    sandbox_telegram_allowed_user_ids: str = ""
+    sandbox_telegram_bot_id: int | None = None
+    sandbox_telegram_bot_username: str | None = None
+    sandbox_telegram_identity_evidence_file: str | None = None
+    sandbox_yookassa_expected_shop_id: str | None = None
+    sandbox_yookassa_identity_evidence_file: str | None = None
+    sandbox_ai_allowed_base_url: str | None = None
+    sandbox_ai_allowed_model: str | None = None
+    sandbox_ai_max_external_calls: int = Field(default=0, ge=0, le=100_000)
+    sandbox_ai_max_total_tokens: int = Field(default=0, ge=0, le=100_000_000)
+    sandbox_redis_key_prefix: str | None = None
+    sandbox_evidence_owner: str | None = None
+    sandbox_cleanup_owner: str | None = None
+    sandbox_ingress_contract_file: str | None = None
+
+    @property
+    def cors_allowed_origins_list(self) -> tuple[str, ...]:
+        return tuple(
+            item.strip().rstrip("/")
+            for item in self.cors_allowed_origins.split(",")
+            if item.strip()
+        )
+
+    @property
+    def sandbox_telegram_allowed_ids(self) -> tuple[int, ...]:
+        values: set[int] = set()
+        for raw in self.sandbox_telegram_allowed_user_ids.split(","):
+            item = raw.strip()
+            if not item:
+                continue
+            if not item.isdigit() or not 0 < int(item) < 2**63:
+                raise ValueError("sandbox_telegram_allowed_user_ids_invalid")
+            values.add(int(item))
+        return tuple(sorted(values))
 
     # Pricing
     tarot_subscription_price_rub: int = 390
@@ -474,8 +597,15 @@ class Settings(BaseSettings):
     def settings_customise_sources(
         cls, settings_cls, init_settings, env_settings, dotenv_settings, file_secret_settings,
     ):
-        """Allow isolated local harnesses to opt out of an ambient dotenv file."""
-        if os.environ.get("NURA_DISABLE_DOTENV") == "1":
+        """Disable dotenv unconditionally for sandbox and isolated local harnesses."""
+        init_kwargs = getattr(init_settings, "init_kwargs", {})
+        initial_app_env = init_kwargs.get("app_env") if isinstance(init_kwargs, dict) else None
+        environment_app_env = os.environ.get("APP_ENV")
+        if (
+            initial_app_env == "sandbox"
+            or environment_app_env == "sandbox"
+            or os.environ.get("NURA_DISABLE_DOTENV") == "1"
+        ):
             return init_settings, env_settings, file_secret_settings
         return init_settings, env_settings, dotenv_settings, file_secret_settings
 

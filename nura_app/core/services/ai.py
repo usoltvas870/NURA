@@ -34,8 +34,21 @@ from core.schemas import (
     MiniAnalysisResult,
 )
 from core.services.prompt_governance import ResolvedPromptBundle, resolve_active_bundle
+from core.services.sandbox_ai_budget import reserve_sandbox_ai_call
 
 logger = logging.getLogger(__name__)
+
+
+def _sandbox_token_reservation(
+    messages: list[dict[str, str]],
+    max_completion_tokens: int,
+) -> int:
+    """Return a conservative prompt + completion upper bound for one attempt."""
+
+    prompt_bytes = len(
+        json.dumps(messages, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    )
+    return prompt_bytes + max_completion_tokens
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
@@ -234,6 +247,13 @@ class AIService:
         last_error = None
         for attempt in range(max_retries):
             try:
+                await reserve_sandbox_ai_call(
+                    model=model,
+                    max_tokens=_sandbox_token_reservation(
+                        messages,
+                        int(params.get("max_tokens", 4000)),
+                    ),
+                )
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     r = await client.post(
                         f"{settings.deepseek_base_url}/chat/completions",
@@ -312,6 +332,13 @@ class AIService:
         fallback_payload = {"model": model, "messages": messages, **fallback_params}
         for attempt in range(2):
             try:
+                await reserve_sandbox_ai_call(
+                    model=model,
+                    max_tokens=_sandbox_token_reservation(
+                        messages,
+                        int(fallback_params["max_tokens"]),
+                    ),
+                )
                 async with httpx.AsyncClient(timeout=timeout) as client:
                     r = await client.post(
                         f"{settings.deepseek_base_url}/chat/completions",

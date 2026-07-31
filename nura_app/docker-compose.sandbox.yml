@@ -1,0 +1,202 @@
+name: ${SANDBOX_ENVIRONMENT_ID:?SANDBOX_ENVIRONMENT_ID is required}
+
+x-sandbox-environment: &sandbox-environment
+  APP_ENV: sandbox
+  TEST_MODE: "false"
+  ENABLE_INTERNAL_PAYMENT_SHORTCUT: "false"
+  SANDBOX_ENVIRONMENT_ID: ${SANDBOX_ENVIRONMENT_ID:?required}
+  SANDBOX_PUBLIC_BASE_URL: ${SANDBOX_PUBLIC_BASE_URL:?required}
+  SANDBOX_EXPECTED_HOSTNAME: ${SANDBOX_EXPECTED_HOSTNAME:?required}
+  SANDBOX_EXPECTED_ALEMBIC_HEAD: d8e9f0a1b2c3
+  SANDBOX_EXPECTED_DATABASE_HOST: postgres-sandbox
+  SANDBOX_EXPECTED_DATABASE_PORT: "5432"
+  SANDBOX_EXPECTED_DATABASE_NAME: ${SANDBOX_POSTGRES_DB:?required}
+  SANDBOX_EXPECTED_REDIS_HOST: redis-sandbox
+  SANDBOX_EXPECTED_REDIS_PORT: "6379"
+  SANDBOX_EXPECTED_REDIS_DATA_DB: "0"
+  SANDBOX_EXPECTED_REDIS_BROKER_DB: "1"
+  SANDBOX_EXPECTED_REDIS_BACKEND_DB: "2"
+  REPORT_BASE_URL: ${SANDBOX_PUBLIC_BASE_URL:?required}
+  CORS_ALLOWED_ORIGINS: ${SANDBOX_PUBLIC_BASE_URL:?required}
+  SECRET_KEY_FILE: /run/secrets/secret_key
+  DATABASE_URL_FILE: /run/secrets/database_url
+  REDIS_PASSWORD_FILE: /run/secrets/redis_password
+  REDIS_URL: redis://redis-sandbox:6379/0
+  NURA_CELERY_BROKER_URL: redis://redis-sandbox:6379/1
+  NURA_CELERY_RESULT_BACKEND: redis://redis-sandbox:6379/2
+  CELERY_TASK_QUEUE: nura-sandbox-${SANDBOX_ENVIRONMENT_ID:?required}
+  SANDBOX_REDIS_KEY_PREFIX: "sandbox:${SANDBOX_ENVIRONMENT_ID:?required}:"
+  TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
+  TELEGRAM_POLLING_ENABLED: ${SANDBOX_TELEGRAM_POLLING_ENABLED:-false}
+  SANDBOX_TELEGRAM_ALLOWED_USER_IDS: ${SANDBOX_TELEGRAM_ALLOWED_USER_IDS:?required}
+  SANDBOX_TELEGRAM_BOT_ID: ${SANDBOX_TELEGRAM_BOT_ID:?required}
+  SANDBOX_TELEGRAM_BOT_USERNAME: ${SANDBOX_TELEGRAM_BOT_USERNAME:?required}
+  SANDBOX_TELEGRAM_IDENTITY_EVIDENCE_FILE: /run/secrets/telegram_identity_evidence
+  YOOKASSA_SHOP_ID: ${SANDBOX_YOOKASSA_EXPECTED_SHOP_ID:?required}
+  YOOKASSA_SECRET_KEY_FILE: /run/secrets/yookassa_secret_key
+  YOOKASSA_EXPECT_TEST_MODE: "true"
+  YOOKASSA_VERIFY_ON_WEBHOOK: "true"
+  SANDBOX_YOOKASSA_EXPECTED_SHOP_ID: ${SANDBOX_YOOKASSA_EXPECTED_SHOP_ID:?required}
+  SANDBOX_YOOKASSA_IDENTITY_EVIDENCE_FILE: /run/secrets/yookassa_identity_evidence
+  YOOKASSA_RECEIPT_ENABLED: "true"
+  YOOKASSA_RECEIPT_VAT_CODE: ${SANDBOX_YOOKASSA_RECEIPT_VAT_CODE:?required}
+  YOOKASSA_RECEIPT_PAYMENT_MODE: ${SANDBOX_YOOKASSA_RECEIPT_PAYMENT_MODE:?required}
+  YOOKASSA_RECEIPT_PAYMENT_SUBJECT: ${SANDBOX_YOOKASSA_RECEIPT_PAYMENT_SUBJECT:?required}
+  DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek_api_key
+  DEEPSEEK_BASE_URL: ${SANDBOX_AI_ALLOWED_BASE_URL:?required}
+  DEEPSEEK_MODEL: ${SANDBOX_AI_ALLOWED_MODEL:?required}
+  SANDBOX_AI_ALLOWED_BASE_URL: ${SANDBOX_AI_ALLOWED_BASE_URL:?required}
+  SANDBOX_AI_ALLOWED_MODEL: ${SANDBOX_AI_ALLOWED_MODEL:?required}
+  SANDBOX_AI_MAX_EXTERNAL_CALLS: ${SANDBOX_AI_MAX_EXTERNAL_CALLS:?required}
+  SANDBOX_AI_MAX_TOTAL_TOKENS: ${SANDBOX_AI_MAX_TOTAL_TOKENS:?required}
+  ENABLE_EXPANDED_TAROT: "false"
+  ENABLE_COMPATIBILITY: "false"
+  ENABLE_REFERRAL_PROMOTION: "false"
+  SANDBOX_INGRESS_CONTRACT_FILE: /app/config/sandbox-ingress-paths.json
+  SANDBOX_EVIDENCE_OWNER: ${SANDBOX_EVIDENCE_OWNER:?required}
+  SANDBOX_CLEANUP_OWNER: ${SANDBOX_CLEANUP_OWNER:?required}
+
+x-app-secrets: &app-secrets
+  - secret_key
+  - database_url
+  - redis_password
+  - telegram_bot_token
+  - telegram_identity_evidence
+  - yookassa_secret_key
+  - yookassa_identity_evidence
+  - deepseek_api_key
+
+x-app-healthcheck: &app-healthcheck
+  test:
+    - CMD
+    - python
+    - -c
+    - from core.config import settings; from core.services.external_sandbox import validate_sandbox_startup; validate_sandbox_startup(settings)
+  interval: 30s
+  timeout: 10s
+  retries: 3
+
+services:
+  postgres-sandbox:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${SANDBOX_POSTGRES_USER:?required}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: ${SANDBOX_POSTGRES_DB:?required}
+    secrets: [postgres_password]
+    volumes:
+      - postgres-sandbox-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [sandbox-private]
+
+  redis-sandbox:
+    image: redis:7-alpine
+    command: ["/bin/sh", "/usr/local/bin/nura-redis-entrypoint"]
+    secrets: [redis_password]
+    volumes:
+      - redis-sandbox-data:/data
+      - ./scripts/redis-entrypoint.sh:/usr/local/bin/nura-redis-entrypoint:ro
+      - ./scripts/redis-healthcheck.sh:/usr/local/bin/nura-redis-healthcheck:ro
+    healthcheck:
+      test: ["CMD", "/bin/sh", "/usr/local/bin/nura-redis-healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [sandbox-private]
+
+  api:
+    build: .
+    environment:
+      <<: *sandbox-environment
+      RUN_MIGRATIONS: "0"
+    secrets: *app-secrets
+    depends_on:
+      postgres-sandbox: {condition: service_healthy}
+      redis-sandbox: {condition: service_healthy}
+    expose: ["8000"]
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=*
+    healthcheck: *app-healthcheck
+    networks: [sandbox-private, sandbox-egress, sandbox-ingress]
+
+  bot:
+    build: .
+    environment: *sandbox-environment
+    secrets: *app-secrets
+    depends_on:
+      api: {condition: service_healthy}
+    command: python -m bot.main
+    healthcheck: *app-healthcheck
+    networks: [sandbox-private, sandbox-egress]
+
+  celery-worker:
+    build: .
+    environment:
+      <<: *sandbox-environment
+      PYTHONPATH: /app
+    secrets: *app-secrets
+    depends_on:
+      api: {condition: service_healthy}
+    command:
+      - celery
+      - -A
+      - core.tasks
+      - worker
+      - --loglevel=info
+      - --queues=nura-sandbox-${SANDBOX_ENVIRONMENT_ID:?required}
+    healthcheck: *app-healthcheck
+    networks: [sandbox-private, sandbox-egress]
+
+  celery-beat:
+    build: .
+    environment:
+      <<: *sandbox-environment
+      PYTHONPATH: /app
+    secrets: *app-secrets
+    depends_on:
+      api: {condition: service_healthy}
+    command:
+      - celery
+      - -A
+      - core.tasks
+      - beat
+      - --loglevel=info
+      - --schedule=/var/run/nura-sandbox/beat-schedule
+    tmpfs:
+      - /var/run/nura-sandbox:mode=0700
+    healthcheck: *app-healthcheck
+    networks: [sandbox-private]
+
+volumes:
+  postgres-sandbox-data:
+  redis-sandbox-data:
+
+networks:
+  sandbox-private:
+    internal: true
+  sandbox-egress:
+  sandbox-ingress:
+    internal: true
+
+secrets:
+  secret_key:
+    file: ${SANDBOX_SECRET_KEY_FILE:?required}
+  postgres_password:
+    file: ${SANDBOX_POSTGRES_PASSWORD_FILE:?required}
+  database_url:
+    file: ${SANDBOX_DATABASE_URL_FILE:?required}
+  redis_password:
+    file: ${SANDBOX_REDIS_PASSWORD_FILE:?required}
+  telegram_bot_token:
+    file: ${SANDBOX_TELEGRAM_BOT_TOKEN_FILE:?required}
+  telegram_identity_evidence:
+    file: ${SANDBOX_TELEGRAM_IDENTITY_EVIDENCE_FILE:?required}
+  yookassa_secret_key:
+    file: ${SANDBOX_YOOKASSA_SECRET_KEY_FILE:?required}
+  yookassa_identity_evidence:
+    file: ${SANDBOX_YOOKASSA_IDENTITY_EVIDENCE_FILE:?required}
+  deepseek_api_key:
+    file: ${SANDBOX_DEEPSEEK_API_KEY_FILE:?required}

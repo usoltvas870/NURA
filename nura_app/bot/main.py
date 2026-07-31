@@ -22,12 +22,19 @@ from bot.handlers.tarot import router as tarot_router
 from bot.handlers.insights import router as insights_router
 from bot.middlewares import (
     AntiFloodMiddleware,
+    SandboxTelegramInboundMiddleware,
     ThrottlingMiddleware,
     UserRegistrationMiddleware,
 )
 from bot.middlewares.registration import LegacyTelegramAuthRetirementMiddleware
 from core.config import settings
 from core.services.prompt_governance import validate_active_prompt_bundles
+from core.services.external_sandbox import (
+    require_telegram_identity_evidence,
+    validate_sandbox_database_head,
+    validate_sandbox_startup,
+)
+from core.services.telegram_sandbox import SandboxGuardedBot
 from core.database import (
     create_engine,
     dispose_async_database_state,
@@ -49,11 +56,13 @@ async def _verify_database_ready() -> None:
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
+            await validate_sandbox_database_head(conn, settings)
     finally:
         await engine.dispose()
 
 
 async def _on_startup(**_: object) -> None:
+    validate_sandbox_startup(settings)
     validate_active_prompt_bundles()
     await _verify_database_ready()
     await get_redis().ping()
@@ -71,6 +80,8 @@ def configure_dispatcher(dp: Dispatcher) -> None:
     dp.startup.register(_on_startup)
     dp.shutdown.register(_on_shutdown)
 
+    dp.message.middleware(SandboxTelegramInboundMiddleware())
+    dp.callback_query.middleware(SandboxTelegramInboundMiddleware())
     dp.message.middleware(LegacyTelegramAuthRetirementMiddleware())
     dp.message.middleware(UserRegistrationMiddleware())
     dp.callback_query.middleware(UserRegistrationMiddleware())
@@ -93,11 +104,14 @@ def configure_dispatcher(dp: Dispatcher) -> None:
 
 def create_runtime() -> tuple[Bot, Dispatcher]:
     """Construct the production Bot and Dispatcher without performing Telegram I/O."""
+    validate_sandbox_startup(settings)
+    if settings.is_sandbox and settings.telegram_polling_enabled:
+        require_telegram_identity_evidence(settings)
     token = settings.telegram_bot_token
     if not token or not token.strip() or token.startswith("change-me"):
         raise RuntimeError("telegram_bot_token_not_configured")
 
-    bot = Bot(
+    bot = SandboxGuardedBot(
         token=token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
@@ -131,6 +145,10 @@ async def main() -> None:
             else:
                 raise
 
+    if not settings.telegram_polling_enabled:
+        logger.info("Bot standby ready without Telegram I/O")
+        await asyncio.Event().wait()
+
     commands = [
         BotCommand(command="start", description="🚀 Главное меню"),
         BotCommand(command="profile", description="👤 Мой профиль"),
@@ -141,13 +159,11 @@ async def main() -> None:
     await bot.set_my_commands(commands, BotCommandScopeDefault())
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
     logger.info("Bot commands registered")
-    if not settings.telegram_polling_enabled:
-        logger.info("Bot standby ready without polling")
-        await asyncio.Event().wait()
 
     lease = Redis.from_url(settings.redis_url)
-    lease_key = "nura_tg:polling_lease"
-    polling_marker_key = "nura_tg:polling_active"
+    lease_prefix = settings.sandbox_redis_key_prefix or "nura_tg:"
+    lease_key = f"{lease_prefix}polling_lease"
+    polling_marker_key = f"{lease_prefix}polling_active"
     # Docker exposes the container instance identity as hostname; this lets the
     # controller prove that Redis lease ownership matches the running bot.
     lease_value = socket.gethostname()
