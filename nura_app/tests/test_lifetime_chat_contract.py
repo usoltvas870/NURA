@@ -22,6 +22,7 @@ from bot.handlers.chat import _telegram_request_key
 from core.fallbacks import FALLBACK_CHAT
 from core.models import ChatMessageUsage, User
 from core.services.chat_application import ChatApplicationService, ChatResultKind
+from core.services.ai import GeneratedContentResult
 from core.services.chat_history import (
     CHAT_HISTORY_MAX_MESSAGES,
     CHAT_HISTORY_TTL,
@@ -41,6 +42,18 @@ from core.services.chat_quota import (
 ROOT = Path(__file__).resolve().parents[2]
 PWA_CHAT = ROOT / "frontend" / "pwa" / "app" / "chat.html"
 MIGRATION = ROOT / "nura_app" / "alembic" / "versions" / "d6e7f8a9b0c1_add_lifetime_chat_message_usage.py"
+
+
+def _generated(content: str, *, source: str = "provider") -> GeneratedContentResult:
+    return GeneratedContentResult(
+        content=content,
+        provider="deepseek" if source == "provider" else None,
+        model="deepseek-chat" if source == "provider" else None,
+        usage={},
+        duration_ms=1,
+        cached=False,
+        generation_source=source,
+    )
 
 
 class CapturingRedis:
@@ -71,7 +84,7 @@ def test_model_and_migration_define_exact_lifetime_ledger_contract() -> None:
     assert set(table.c.keys()) == {
         "id", "user_id", "request_key", "channel", "status", "billable",
         "created_at", "reserved_at", "consumed_at", "released_at", "release_reason",
-        "response_text", "error_code", "result_ready_at", "updated_at",
+        "response_text", "generation_metadata", "error_code", "result_ready_at", "updated_at",
         "delivery_status", "delivery_total_chunks", "delivery_next_chunk_index",
         "delivery_attempt_count", "delivery_claimed_at", "delivery_completed_at",
         "delivery_failed_at", "delivery_retryable", "delivery_error_code",
@@ -204,8 +217,8 @@ async def test_provider_failure_and_fallback_release_reservation(
     quota.release.return_value = ChatQuotaService._free_state(0)
     ai = AsyncMock(side_effect=provider_result if isinstance(provider_result, Exception) else None)
     if not isinstance(provider_result, Exception):
-        ai.return_value = provider_result
-    monkeypatch.setattr("core.services.chat_application.AIService.chat_response", ai)
+        ai.return_value = _generated(str(provider_result), source="fallback")
+    monkeypatch.setattr("core.services.chat_application.AIService.chat_response_with_metadata", ai)
     result = await ChatApplicationService(quota).respond(
         user_id="u", request_key="k", channel=ChatChannel.WEB, subscriber=False,
         message="hello", history=[], matrix_data={}, user_name="Test",
@@ -225,8 +238,8 @@ async def test_result_ready_survives_history_failure_and_retry_skips_ai(
         _reservation(QuotaReservationKind.DUPLICATE_RESULT, response="durable"),
     ]
     quota.consume.return_value = ChatQuotaService._free_state(1)
-    ai = AsyncMock(return_value="durable")
-    monkeypatch.setattr("core.services.chat_application.AIService.chat_response", ai)
+    ai = AsyncMock(return_value=_generated("durable"))
+    monkeypatch.setattr("core.services.chat_application.AIService.chat_response_with_metadata", ai)
     history_failure = AsyncMock(side_effect=ConnectionError("redis"))
     first = await ChatApplicationService(quota).respond(
         user_id="u", request_key="k", channel=ChatChannel.WEB, subscriber=False,
@@ -240,7 +253,13 @@ async def test_result_ready_survives_history_failure_and_retry_skips_ai(
         {"role": "user", "content": "hello", "request_key": "k"},
         {"role": "assistant", "content": "durable", "request_key": "k"},
     ]
-    quota.store_result.assert_awaited_once_with("usage-id", "durable")
+    quota.store_result.assert_awaited_once()
+    assert quota.store_result.await_args.args[:2] == ("usage-id", "durable")
+    metadata = quota.store_result.await_args.args[2]
+    assert metadata["prompt_consumer"] == "chat.free"
+    assert metadata["bundle_version"] == "v1"
+    assert metadata["generation_source"] == "provider"
+    assert len(metadata["context_input_hash"]) == 64
     quota.consume.assert_not_awaited()
 
     finalizer = AsyncMock(return_value=True)
@@ -264,8 +283,8 @@ async def test_result_store_failure_is_not_exposed_for_delivery(
     quota.reserve.return_value = _reservation(QuotaReservationKind.RESERVED_NEW)
     quota.store_result.side_effect = ConnectionError("postgres")
     monkeypatch.setattr(
-        "core.services.chat_application.AIService.chat_response",
-        AsyncMock(return_value="not durable"),
+        "core.services.chat_application.AIService.chat_response_with_metadata",
+        AsyncMock(return_value=_generated("not durable")),
     )
 
     result = await ChatApplicationService(quota).respond(
@@ -283,7 +302,7 @@ async def test_duplicate_released_never_restarts_provider(monkeypatch: pytest.Mo
     quota = AsyncMock()
     quota.reserve.return_value = _reservation(QuotaReservationKind.DUPLICATE_RELEASED)
     ai = AsyncMock()
-    monkeypatch.setattr("core.services.chat_application.AIService.chat_response", ai)
+    monkeypatch.setattr("core.services.chat_application.AIService.chat_response_with_metadata", ai)
     result = await ChatApplicationService(quota).respond(
         user_id="u", request_key="k", channel=ChatChannel.TELEGRAM, subscriber=False,
         message="hello", history=[], matrix_data={}, user_name="Test",

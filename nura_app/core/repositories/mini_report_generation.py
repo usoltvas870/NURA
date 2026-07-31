@@ -70,12 +70,27 @@ class MiniReportGenerationRepository:
         raise RuntimeError("mini_report_generation_conflict_unresolved")
 
     async def claim(
-        self, generation_id: uuid.UUID, *, allow_retry: bool, now: datetime
+        self,
+        generation_id: uuid.UUID,
+        *,
+        allow_retry: bool,
+        now: datetime,
+        generation_metadata: dict,
     ) -> int | None:
         eligible_states = [MiniReportGenerationState.PENDING]
         if allow_retry:
             eligible_states.append(MiniReportGenerationState.FAILED)
         async with self._session_factory() as session:
+            existing = await session.get(
+                MiniReportGeneration, generation_id, with_for_update=True
+            )
+            if existing is None:
+                await session.rollback()
+                return None
+            pinned_metadata = existing.generation_metadata
+            if pinned_metadata is not None and pinned_metadata != generation_metadata:
+                await session.rollback()
+                raise ValueError("mini_report_prompt_pin_mismatch")
             result = await session.execute(
                 update(MiniReportGeneration)
                 .where(
@@ -89,6 +104,7 @@ class MiniReportGenerationRepository:
                     failed_at=None,
                     error_code=None,
                     error_detail=None,
+                    generation_metadata=pinned_metadata or generation_metadata,
                 )
                 .returning(MiniReportGeneration.attempt_count)
             )
@@ -188,6 +204,7 @@ class MiniReportGenerationRepository:
         expected_attempt_count: int,
         matrix_data: dict,
         content: dict,
+        generation_metadata: dict,
         report_token: str,
         now: datetime,
     ) -> uuid.UUID | None:
@@ -215,6 +232,7 @@ class MiniReportGenerationRepository:
                     token=report_token,
                     matrix_data=matrix_data,
                     ai_analysis=content,
+                    generation_metadata=generation_metadata,
                 )
                 session.add(report)
                 await session.flush()
@@ -230,6 +248,7 @@ class MiniReportGenerationRepository:
             generation.failed_at = None
             generation.error_code = None
             generation.error_detail = None
+            generation.generation_metadata = generation_metadata
             await session.commit()
             return report_id
 

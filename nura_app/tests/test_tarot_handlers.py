@@ -2337,6 +2337,10 @@ class TestBuyMatrix:
             patch("bot.handlers.payment.settings") as mock_settings,
             patch("core.repositories.report.ReportRepository") as MockReportRepo,
             patch("core.tasks.generate_full_report") as mock_gen_report,
+            patch(
+                "core.tasks.active_report_prompt_identity",
+                return_value=("v1", "a" * 64),
+            ),
             patch("core.services.report.ReportService") as MockReportService,
         ):
             repo_instance = MagicMock()
@@ -2359,7 +2363,7 @@ class TestBuyMatrix:
         repo_instance.update_has_matrix.assert_awaited_once()
         report_repo_instance.get_by_user_id_and_type.assert_awaited_once()
         mock_gen_report.delay.assert_called_once_with(
-            str(mock_user.id), mock_user.birth_date, "report-token-abc"
+            str(mock_user.id), mock_user.birth_date, "report-token-abc", "v1", "a" * 64
         )
         text = mock_callback.message.edit_text.await_args[0][0]
         assert "Тест-режим" in text

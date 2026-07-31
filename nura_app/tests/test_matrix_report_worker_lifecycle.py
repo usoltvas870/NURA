@@ -63,7 +63,12 @@ class FakeGenerator:
         return list(self._calls)
 
     async def generate(
-        self, *, birth_date: str, user_name: str, report_token: str
+        self,
+        *,
+        birth_date: str,
+        user_name: str,
+        report_token: str,
+        prompt_bundle: object,
     ) -> MatrixReportGeneratorResult:
         self._call_count += 1
         if self.transaction_check is not None:
@@ -675,6 +680,14 @@ class TestWorkerPersistence:
             }
             assert stored.kitchen_analysis == {"kitchen": "test kitchen"}
             assert stored.generated_at is not None
+            metadata = stored.generation_metadata
+            assert metadata is not None
+            assert metadata["prompt_consumer"] == "report.full"
+            assert metadata["bundle_version"] == "v1"
+            assert len(metadata["prompt_hash"]) == 64
+            assert len(metadata["structured_input_hash"]) == 64
+            assert metadata["generation_source"] == "fallback"
+            assert metadata["provider"] is None and metadata["model"] is None
 
     @pytest.mark.asyncio
     async def test_worker_does_not_delete_or_create_report(
@@ -849,7 +862,7 @@ class TestWorkerDbFailure:
 
     @pytest.mark.asyncio
     async def test_session_usable_after_rollback_and_retry_possible(
-        self, sf, test_user
+        self, sf, test_user, monkeypatch: pytest.MonkeyPatch
     ):
         async with sf() as s:
             report, job, _ = await _create_paid_queued_report(
@@ -875,6 +888,7 @@ class TestWorkerDbFailure:
             row = (await s.execute(select(Report).where(Report.id == report.id))).scalar_one()
             assert row is not None
             assert row.generation_state == ReportGenerationState.FAILED_RETRYABLE
+            pinned_hash = row.generation_metadata["prompt_hash"]
 
         async with sf() as s:
             lifecycle = ReportLifecycleService(s)
@@ -894,9 +908,15 @@ class TestWorkerDbFailure:
             await s.commit()
 
         generator2 = FakeGenerator([_sample_generator_result()])
+        monkeypatch.setattr(
+            "core.config.settings.report_prompt_bundle_version", "v999"
+        )
         worker2 = MatrixReportGenerationWorker(sf, generator2)
         result2 = await worker2.process(job_id=job.id, report_id=report.id)
         assert result2.disposition.value == "completed"
+        async with sf() as s:
+            completed = await s.get(Report, report.id)
+            assert completed.generation_metadata["prompt_hash"] == pinned_hash
 
 
 class TestWorkerStaleRunningRecovery:

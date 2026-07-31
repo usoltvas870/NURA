@@ -25,7 +25,7 @@ REPO_ROOT = NURA_APP_ROOT.parent
 if str(NURA_APP_ROOT) not in sys.path:
     sys.path.insert(0, str(NURA_APP_ROOT))
 PARENT = "e8f9a0b1c2d3"
-HEAD = "c6d7e8f9a0b1"
+HEAD = "d8e9f0a1b2c3"
 WORKERS = 8
 _URL = os.environ.get("DATABASE_URL", "")
 ALEMBIC_LAUNCHER = (

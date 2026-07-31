@@ -1,5 +1,7 @@
 # NURA Telegram Bot — UX Journey Map
 
+> Prompt governance update (2026-07-31): UX entries и quota/delivery journeys не менялись. Новые substantive chat answers и report artifacts теперь имеют доказуемые bundle/version/hash/provider-source metadata; Matrix не обязана упоминаться в каждом chat answer. См. [runtime prompt governance](prompt-governance.md).
+
 **Статус документа:** CURRENT UX MAP WITH TARGET CROSSWALK
 **Проверено:** 2026-07-28
 **Граница evidence:** локальный committed code baseline; external Telegram/YooKassa sandbox и production не подтверждены.

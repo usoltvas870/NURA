@@ -9,6 +9,11 @@ from sqlalchemy import func, select, update
 from core.config import settings
 from core.models import ChatMessageUsage, User
 from core.schemas.chat import ChatQuotaState
+from core.services.prompt_governance import PIN_FIELDS
+from core.services.prompt_governance import (
+    finalize_generation_metadata,
+    resolve_active_bundle,
+)
 
 
 class ChatChannel(StrEnum):
@@ -52,6 +57,7 @@ class QuotaReservation:
     response_text: str | None = None
     error_code: str | None = None
     delivery_status: str | None = None
+    generation_metadata: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -127,8 +133,19 @@ class ChatQuotaService:
             await session.commit()
         return self._free_state(consumed, reserved, now=self._now())
 
-    async def reserve(self, user_id: object, request_key: str, channel: ChatChannel,
-                      *, subscriber: bool) -> QuotaReservation:
+    async def reserve(
+        self,
+        user_id: object,
+        request_key: str,
+        channel: ChatChannel,
+        *,
+        subscriber: bool,
+        generation_metadata: dict | None = None,
+    ) -> QuotaReservation:
+        if generation_metadata is None:
+            bundle = resolve_active_bundle("chat.free")
+            generation_metadata = bundle.pin("chat.free")
+            generation_metadata["requested_model"] = settings.deepseek_model
         async with self._session_factory() as session:
             await session.execute(select(User.id).where(User.id == user_id).with_for_update())
             await self._release_stale(session, user_id)
@@ -143,6 +160,7 @@ class ChatQuotaService:
                     return QuotaReservation(
                         QuotaReservationKind.DUPLICATE_RESULT, usage.id, state,
                         usage.response_text, delivery_status=usage.delivery_status,
+                        generation_metadata=usage.generation_metadata,
                     )
                 if usage.status == ChatUsageStatus.RELEASED.value:
                     return QuotaReservation(QuotaReservationKind.DUPLICATE_RELEASED, usage.id, state,
@@ -152,22 +170,50 @@ class ChatQuotaService:
             if not subscriber and not state.can_send:
                 await session.commit()
                 return QuotaReservation(QuotaReservationKind.EXHAUSTED, None, state)
-            usage = ChatMessageUsage(user_id=user_id, request_key=request_key, channel=channel.value,
-                                     billable=not subscriber, status=ChatUsageStatus.RESERVED.value)
+            usage = ChatMessageUsage(
+                user_id=user_id,
+                request_key=request_key,
+                channel=channel.value,
+                billable=not subscriber,
+                status=ChatUsageStatus.RESERVED.value,
+                generation_metadata=generation_metadata,
+            )
             session.add(usage)
             await session.flush()
             state = await self._state_in_session(session, user_id, subscriber)
             await session.commit()
             return QuotaReservation(QuotaReservationKind.RESERVED_NEW, usage.id, state)
 
-    async def store_result(self, usage_id: object, response_text: str) -> None:
+    async def store_result(
+        self,
+        usage_id: object,
+        response_text: str,
+        generation_metadata: dict | None = None,
+    ) -> None:
         if not response_text or not response_text.strip():
             raise ValueError("quota_result_empty")
         async with self._session_factory() as session:
             usage = await session.get(ChatMessageUsage, usage_id, with_for_update=True)
             if usage is None or usage.status != ChatUsageStatus.RESERVED.value:
                 raise RuntimeError("quota_result_not_reservable")
+            if generation_metadata is None and isinstance(
+                usage.generation_metadata, dict
+            ):
+                generation_metadata = finalize_generation_metadata(
+                    usage.generation_metadata,
+                    provider=None,
+                    model=None,
+                    generation_source="fallback",
+                )
+            if generation_metadata is None:
+                raise RuntimeError("quota_prompt_metadata_missing")
+            if not isinstance(usage.generation_metadata, dict) or any(
+                usage.generation_metadata.get(field) != generation_metadata.get(field)
+                for field in PIN_FIELDS
+            ):
+                raise RuntimeError("quota_prompt_pin_mismatch")
             usage.response_text = response_text
+            usage.generation_metadata = generation_metadata
             usage.result_ready_at = self._now()
             usage.status = ChatUsageStatus.RESULT_READY.value
             usage.delivery_status = (

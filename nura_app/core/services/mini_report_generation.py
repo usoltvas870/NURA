@@ -66,10 +66,23 @@ class MiniReportGenerationService:
         return await self._repository.get(generation_id)
 
     async def claim_generation(
-        self, generation_id: uuid.UUID, *, allow_retry: bool = False
+        self,
+        generation_id: uuid.UUID,
+        *,
+        generation_metadata: dict | None = None,
+        allow_retry: bool = False,
     ) -> int | None:
+        if generation_metadata is None:
+            from core.services.prompt_governance import resolve_active_bundle
+
+            bundle = resolve_active_bundle("report.mini")
+            generation_metadata = bundle.pin("report.mini")
+            generation_metadata["requested_model"] = settings.deepseek_model
         return await self._repository.claim(
-            generation_id, allow_retry=allow_retry, now=datetime.now(timezone.utc)
+            generation_id,
+            allow_retry=allow_retry,
+            now=datetime.now(timezone.utc),
+            generation_metadata=generation_metadata,
         )
 
     async def recover_stale_generation(
@@ -110,6 +123,7 @@ class MiniReportGenerationService:
         expected_attempt_count: int,
         matrix_data: dict,
         content: dict,
+        generation_metadata: dict,
         report_token: str,
     ) -> uuid.UUID | None:
         return await self._repository.finalize_result(
@@ -117,6 +131,7 @@ class MiniReportGenerationService:
             expected_attempt_count=expected_attempt_count,
             matrix_data=matrix_data,
             content=content,
+            generation_metadata=generation_metadata,
             report_token=report_token,
             now=datetime.now(timezone.utc),
         )

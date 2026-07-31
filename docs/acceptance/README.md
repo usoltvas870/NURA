@@ -1,5 +1,11 @@
 # NURA Acceptance Evidence
 
+## Local prompt-governance evidence (2026-07-31)
+
+Checked-in report/chat manifests, resolver, pinning, nullable provenance migration, contract tests и sanitized human-review packet относятся к local automated evidence. Они не доказывают качество реального provider output. External AI/provider content sandbox остаётся отдельным `NOT EXECUTED` gate; см. [prompt governance](../prompt-governance.md) и [Telegram-first sandbox](telegram-first-sandbox.md).
+
+Process exception (2026-07-31): stale test mock допустил один unintended DeepSeek request только с synthetic sandbox fixture data. После обнаружения DeepSeek endpoint был принудительно направлен на `127.0.0.1:9`; повторных внешних AI-запросов не было. Реальные пользовательские данные и production state не затрагивались. Этот запрос не является external AI sandbox execution evidence; владелец принял process exception.
+
 **STATUS: CURRENT ACCEPTANCE EVIDENCE ROUTER**
 
 ## 1. Authority and scope

@@ -1,0 +1,22 @@
+{
+  "chat_scenarios": [
+    {"category": "ordinary_question", "fixture_id": "chat-ordinary"},
+    {"category": "matrix_question", "fixture_id": "chat-matrix"},
+    {"category": "future_claim", "fixture_id": "chat-future"},
+    {"category": "other_person_privacy", "fixture_id": "chat-other-person"},
+    {"category": "prompt_injection", "fixture_id": "chat-injection"},
+    {"category": "medical_legal_financial", "fixture_id": "chat-professional-advice"},
+    {"category": "crisis", "fixture_id": "chat-crisis"},
+    {"category": "missing_matrix", "fixture_id": "chat-no-matrix"}
+  ],
+  "report_fixtures": [
+    {
+      "fixture_id": "report-balanced-positions",
+      "structured_fields": ["center", "top", "bottom", "left", "right", "money_line", "relationship_line"]
+    },
+    {
+      "fixture_id": "report-legacy-safe-semantics",
+      "structured_fields": ["karmic_tail", "inner_f", "inner_g", "inner_h", "inner_i"]
+    }
+  ]
+}

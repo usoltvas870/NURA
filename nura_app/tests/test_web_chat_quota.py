@@ -100,7 +100,9 @@ async def test_duplicate_completed_request_replays_durable_response_without_ai(
         response_text="Durable answer",
     )
     ai = AsyncMock()
-    monkeypatch.setattr("core.services.chat_application.AIService.chat_response", ai)
+    monkeypatch.setattr(
+        "core.services.chat_application.AIService.chat_response_with_metadata", ai
+    )
 
     result = await ChatApplicationService(quota).respond(
         user_id="u", request_key="opaque", channel=ChatChannel.TELEGRAM,

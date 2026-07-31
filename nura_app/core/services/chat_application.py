@@ -7,6 +7,11 @@ from typing import Awaitable, Callable
 from core.fallbacks import FALLBACK_CHAT
 from core.services.ai import AIService
 from core.services.chat_quota import ChatChannel, ChatQuotaService, QuotaReservationKind
+from core.services.prompt_governance import (
+    finalize_generation_metadata,
+    input_hash,
+    resolve_active_bundle,
+)
 
 
 class ChatResultKind(StrEnum):
@@ -50,7 +55,18 @@ class ChatApplicationService:
         if history_finalizer is None:
             async def history_finalizer(_: str) -> bool:
                 return True
-        reservation = await self._quota_service.reserve(user_id, request_key, channel, subscriber=subscriber)
+        from core.config import settings
+
+        bundle = resolve_active_bundle("chat.free")
+        prompt_pin = bundle.pin("chat.free")
+        prompt_pin["requested_model"] = settings.deepseek_model
+        reservation = await self._quota_service.reserve(
+            user_id,
+            request_key,
+            channel,
+            subscriber=subscriber,
+            generation_metadata=prompt_pin,
+        )
         if reservation.kind == QuotaReservationKind.EXHAUSTED:
             return ChatApplicationResult(ChatResultKind.QUOTA_EXHAUSTED, None, reservation.state, history)
         if reservation.kind == QuotaReservationKind.DUPLICATE_RESERVED:
@@ -84,17 +100,39 @@ class ChatApplicationService:
         if reservation.usage_id is None:
             return ChatApplicationResult(ChatResultKind.PERSISTENCE_FAILURE, None, reservation.state, history)
         try:
-            reply = await AIService.chat_response(user_message=message, chat_history=history[-10:],
-                                                  matrix_data=matrix_data, user_name=user_name)
+            generated = await AIService.chat_response_with_metadata(
+                user_message=message,
+                chat_history=history[-10:],
+                matrix_data=matrix_data,
+                user_name=user_name,
+                bundle=bundle,
+            )
+            reply = str(generated.content)
         except Exception:
             quota = await self._quota_service.release(reservation.usage_id, reason="provider_failure")
             return ChatApplicationResult(ChatResultKind.PROVIDER_FAILURE, None, quota, history,
                                          error_code="provider_failure")
-        if reply == FALLBACK_CHAT:
+        if generated.generation_source == "fallback" or reply == FALLBACK_CHAT:
             quota = await self._quota_service.release(reservation.usage_id, reason="fallback")
             return ChatApplicationResult(ChatResultKind.PROVIDER_FAILURE, None, quota, history, error_code="fallback")
         try:
-            await self._quota_service.store_result(reservation.usage_id, reply)
+            context_input_hash = input_hash(
+                {
+                    "history": history[-10:],
+                    "matrix": matrix_data,
+                    "message": message,
+                }
+            )
+            generation_metadata = finalize_generation_metadata(
+                prompt_pin,
+                provider=generated.provider,
+                model=generated.model,
+                generation_source=generated.generation_source,
+                context_input_hash=context_input_hash,
+            )
+            await self._quota_service.store_result(
+                reservation.usage_id, reply, generation_metadata
+            )
         except Exception:
             return ChatApplicationResult(
                 ChatResultKind.PERSISTENCE_FAILURE,

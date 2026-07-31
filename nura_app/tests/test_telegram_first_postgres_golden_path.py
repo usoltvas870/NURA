@@ -72,7 +72,7 @@ from core.models import (
 )
 from core.repositories.daily_tarot_draw import DailyTarotDrawRepository
 from core.repositories.user import UserRepository
-from core.services.ai import AIService
+from core.services.ai import AICompletionResult, AIService, GeneratedContentResult
 from core.services.account_deletion import AccountDeletionService
 from core.services.chat_quota import ChatChannel, ChatQuotaService, ChatUsageStatus
 from core.services.chat_history import chat_history_key, chat_history_marker_key
@@ -381,9 +381,17 @@ class RecordingChatAI:
     def __init__(self) -> None:
         self.calls: list[dict[str, Any]] = []
 
-    async def chat_response(self, **kwargs: Any) -> str:
+    async def chat_response(self, **kwargs: Any) -> GeneratedContentResult:
         self.calls.append(kwargs)
-        return f"Sandbox chat answer {len(self.calls)}"
+        return GeneratedContentResult(
+            content=f"Sandbox chat answer {len(self.calls)}",
+            provider="sandbox",
+            model="sandbox-chat",
+            usage={},
+            duration_ms=1,
+            cached=False,
+            generation_source="provider",
+        )
 
 
 def _docker(*args: str) -> str:
@@ -986,9 +994,19 @@ async def test_mini_report_generation_and_delivery(
 
     ai_calls: list[tuple[str, int]] = []
 
-    async def fake_mini_ai(date_value: str, matrix: Any) -> dict[str, str]:
+    async def fake_mini_ai(
+        date_value: str, matrix: Any, **_kwargs: Any
+    ) -> GeneratedContentResult:
         ai_calls.append((date_value, matrix.center))
-        return dict(MINI_ANALYSIS)
+        return GeneratedContentResult(
+            content=dict(MINI_ANALYSIS),
+            provider="sandbox",
+            model="sandbox-report",
+            usage={},
+            duration_ms=1,
+            cached=False,
+            generation_source="provider",
+        )
 
     delivery_dispatches: list[tuple[str, str, str]] = []
 
@@ -1004,7 +1022,7 @@ async def test_mini_report_generation_and_delivery(
 
     adapter = RecordingMiniDeliveryAdapter()
     monkeypatch.setattr(MatrixService, "calculate", calculate_spy)
-    monkeypatch.setattr(AIService, "generate_mini_analysis", fake_mini_ai)
+    monkeypatch.setattr(AIService, "generate_mini_analysis_with_metadata", fake_mini_ai)
     monkeypatch.setattr(tasks.deliver_mini_report, "delay", fake_delivery_delay)
     monkeypatch.setattr(ReportService, "generate_pdf", classmethod(generate_pdf_spy))
     monkeypatch.setattr(
@@ -1129,7 +1147,7 @@ async def test_mini_report_restart_and_repeated_access(
     )
     monkeypatch.setattr(
         AIService,
-        "generate_mini_analysis",
+        "generate_mini_analysis_with_metadata",
         lambda *_args, **_kwargs: pytest.fail("manual resend must not call AI"),
     )
     monkeypatch.setattr(
@@ -1490,7 +1508,9 @@ async def test_lifetime_chat_five_telegram_requests_and_replay(
     fake_ai = RecordingChatAI()
     monkeypatch.setattr(chat, "get_async_sessionmaker", lambda: postgres_factory)
     monkeypatch.setattr(chat, "get_redis", _redis_for_sandbox)
-    monkeypatch.setattr(AIService, "chat_response", staticmethod(fake_ai.chat_response))
+    monkeypatch.setattr(
+        AIService, "chat_response_with_metadata", staticmethod(fake_ai.chat_response)
+    )
 
     transport = RecordingBotSession()
     bot = Bot(token=BOT_TOKEN, session=transport)
@@ -1560,12 +1580,14 @@ async def test_lifetime_chat_restart_replay_and_sixth_request_are_durable(
         assert await _count(session, DailyTarotDraw) == 1
         assert await _count(session, TelegramReportDelivery) == 2
 
-    async def forbidden_chat_ai(**_kwargs: Any) -> str:
+    async def forbidden_chat_ai(**_kwargs: Any) -> GeneratedContentResult:
         pytest.fail("durable replay and exhausted request must not call chat AI")
 
     monkeypatch.setattr(chat, "get_async_sessionmaker", lambda: postgres_factory)
     monkeypatch.setattr(chat, "get_redis", _redis_for_sandbox)
-    monkeypatch.setattr(AIService, "chat_response", staticmethod(forbidden_chat_ai))
+    monkeypatch.setattr(
+        AIService, "chat_response_with_metadata", staticmethod(forbidden_chat_ai)
+    )
 
     transport = RecordingBotSession()
     bot = Bot(token=BOT_TOKEN, session=transport)
@@ -1973,26 +1995,49 @@ async def test_full_report_generation_uses_existing_job_and_dispatches_delivery_
     pdf_calls: list[str] = []
     delivery_dispatches: list[str] = []
     real_calculate = MatrixService.calculate
-    real_full_loop = report_loop.generate_full_report_with_loop
+    real_full_loop = report_loop.generate_governed_full_report_with_loop
     real_generate_pdf = ReportService.generate_pdf.__func__
 
     def calculate_spy(birth_date: str) -> Any:
         matrix_calls.append(birth_date)
         return real_calculate(birth_date)
 
-    async def full_loop_spy(birth_date: str, matrix: Any, *, name: str = "user") -> dict:
+    async def full_loop_spy(
+        birth_date: str,
+        matrix: Any,
+        *,
+        name: str = "user",
+        bundle: Any,
+    ) -> GeneratedContentResult:
         full_generation_calls.append((birth_date, name))
-        return await real_full_loop(birth_date, matrix, name=name)
+        return await real_full_loop(birth_date, matrix, name=name, bundle=bundle)
 
-    async def fake_ai_chat(*_args: Any, **kwargs: Any) -> str:
+    async def fake_ai_chat(*_args: Any, **kwargs: Any) -> AICompletionResult:
         method_name = str(kwargs["method_name"])
         provider_calls.append(method_name)
         if method_name.startswith("full_report_"):
-            return FULL_AI_JSON
+            return AICompletionResult(
+                content=FULL_AI_JSON,
+                provider="sandbox",
+                model="sandbox-report",
+                usage={},
+                duration_ms=1,
+                cached=False,
+            )
         pytest.fail(f"unexpected_external_ai_call:{method_name}")
 
-    async def fake_kitchen_ai(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
-        return FALLBACK_KITCHEN
+    async def fake_kitchen_ai(
+        *_args: Any, **_kwargs: Any
+    ) -> GeneratedContentResult:
+        return GeneratedContentResult(
+            content=dict(FALLBACK_KITCHEN),
+            provider="sandbox",
+            model="sandbox-report",
+            usage={},
+            duration_ms=1,
+            cached=False,
+            generation_source="provider",
+        )
 
     async def generate_pdf_spy(cls: type[ReportService], html_content: str) -> bytes:
         assert "Sandbox" in html_content
@@ -2002,9 +2047,13 @@ async def test_full_report_generation_uses_existing_job_and_dispatches_delivery_
     monkeypatch.setattr(tasks, "get_async_sessionmaker", lambda: postgres_factory)
     monkeypatch.setattr(database_module, "get_async_sessionmaker", lambda: postgres_factory)
     monkeypatch.setattr(MatrixService, "calculate", calculate_spy)
-    monkeypatch.setattr(report_loop, "generate_full_report_with_loop", full_loop_spy)
-    monkeypatch.setattr(AIService, "chat", fake_ai_chat)
-    monkeypatch.setattr(AIService, "generate_kitchen_report", fake_kitchen_ai)
+    monkeypatch.setattr(
+        report_loop, "generate_governed_full_report_with_loop", full_loop_spy
+    )
+    monkeypatch.setattr(AIService, "chat_with_metadata", fake_ai_chat)
+    monkeypatch.setattr(
+        AIService, "generate_kitchen_report_with_metadata", fake_kitchen_ai
+    )
     monkeypatch.setattr(ReportService, "generate_pdf", classmethod(generate_pdf_spy))
     monkeypatch.setattr(
         tasks.deliver_full_report, "delay", lambda delivery_id: delivery_dispatches.append(delivery_id)

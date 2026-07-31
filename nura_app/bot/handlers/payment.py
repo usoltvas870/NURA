@@ -88,14 +88,21 @@ async def initiate_subscription(callback: CallbackQuery) -> None:
         until_str = until_date.strftime("%d.%m.%Y")
 
         if user.birth_date:
-            from core.tasks import generate_full_report
+            from core.tasks import active_report_prompt_identity, generate_full_report
             from core.repositories.report import ReportRepository
             report_repo = ReportRepository(session_factory)
             existing = await report_repo.get_by_user_id_and_type(user.id, ReportType.FULL)
             if not existing:
                 from core.services.report import ReportService
                 report_token = ReportService.generate_token()
-                generate_full_report.delay(str(user.id), user.birth_date, report_token)
+                prompt_version, prompt_hash = active_report_prompt_identity()
+                generate_full_report.delay(
+                    str(user.id),
+                    user.birth_date,
+                    report_token,
+                    prompt_version,
+                    prompt_hash,
+                )
 
         await callback.message.edit_text(
             f"🎉 Подписка активирована!\n"
@@ -245,14 +252,21 @@ async def buy_matrix(callback: CallbackQuery) -> None:
 
         if user.birth_date:
             try:
-                from core.tasks import generate_full_report
+                from core.tasks import active_report_prompt_identity, generate_full_report
                 from core.repositories.report import ReportRepository
                 report_repo = ReportRepository(session_factory)
                 existing = await report_repo.get_by_user_id_and_type(user.id, ReportType.FULL)
                 if not existing:
                     from core.services.report import ReportService
                     report_token = ReportService.generate_token()
-                    generate_full_report.delay(str(user.id), user.birth_date, report_token)
+                    prompt_version, prompt_hash = active_report_prompt_identity()
+                    generate_full_report.delay(
+                        str(user.id),
+                        user.birth_date,
+                        report_token,
+                        prompt_version,
+                        prompt_hash,
+                    )
             except Exception:
                 logger.exception("Failed to queue full report generation for user %s", user.id)
 

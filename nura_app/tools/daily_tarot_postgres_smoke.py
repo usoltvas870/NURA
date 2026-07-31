@@ -24,7 +24,7 @@ from core.models import DailyTarotDraw, User  # noqa: E402
 from core.repositories.daily_tarot_draw import DailyTarotDrawRepository  # noqa: E402
 
 PARENT = "d6e7f8a9b0c1"
-HEAD = "c6d7e8f9a0b1"
+HEAD = "d8e9f0a1b2c3"
 _URL = ""
 _ALEMBIC_LAUNCHER = (
     "from pydantic_settings.sources import DotEnvSettingsSource;"

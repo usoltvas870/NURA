@@ -680,7 +680,7 @@ class PaymentService:
 
             if user.birth_date:
                 from core.services.report import ReportService
-                from core.tasks import generate_full_report
+                from core.tasks import active_report_prompt_identity, generate_full_report
 
                 report_token = metadata.get("report_token") or ReportService.generate_token()
                 try:
@@ -913,14 +913,17 @@ class PaymentService:
 
             if user.birth_date:
                 from core.services.report import ReportService
-                from core.tasks import generate_full_report
+                from core.tasks import active_report_prompt_identity, generate_full_report
 
                 report_token = ReportService.generate_token()
                 try:
+                    prompt_version, prompt_hash = active_report_prompt_identity()
                     generate_full_report.delay(
                         str(user.id),
                         user.birth_date,
                         report_token,
+                        prompt_version,
+                        prompt_hash,
                     )
                 except Exception:
                     logger.error(

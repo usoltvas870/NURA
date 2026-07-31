@@ -14,6 +14,7 @@ from telegram_first_safe_suite import (  # noqa: E402
     DESELECTED_NODE,
     EXCLUSIONS,
     OWNED_DOCKER_LABELS,
+    PROCESS_ISOLATED_FILES,
     build_manifest,
 )
 
@@ -31,6 +32,11 @@ def test_safe_suite_manifest_covers_actual_inventory_exactly_once() -> None:
     assert all(path not in assigned for path in EXCLUSIONS)
     assert all(item["sha256"] for item in manifest["inventory"])
     assert manifest["manifest_sha256"]
+    for isolated_file in PROCESS_ISOLATED_FILES:
+        isolated_shard = next(
+            shard for shard in manifest["shards"] if isolated_file in shard["files"]
+        )
+        assert isolated_shard["files"] == [isolated_file]
 
 
 def _completed(

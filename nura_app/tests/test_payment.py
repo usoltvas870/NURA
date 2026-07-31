@@ -430,7 +430,17 @@ class TestProcessWebhook:
         self, session_factory, test_user, matrix_payment_in_db,
     ):
         """Платеж типа matrix → has_matrix=True."""
-        with patch("core.tasks.generate_full_report.delay"):
+        with (
+            patch(
+                "core.tasks.active_report_prompt_identity",
+                return_value=("v1", "a" * 64),
+            ) as prompt_identity,
+            patch("core.tasks.generate_full_report.delay") as enqueue,
+            patch(
+                "core.services.report.ReportService.generate_token",
+                return_value="report-token",
+            ),
+        ):
             await PaymentService.process_webhook(
                 session_factory,
                 {
@@ -444,6 +454,14 @@ class TestProcessWebhook:
                     },
                 },
             )
+        prompt_identity.assert_called_once_with()
+        enqueue.assert_called_once_with(
+            str(test_user.id),
+            test_user.birth_date,
+            "report-token",
+            "v1",
+            "a" * 64,
+        )
         repo = UserRepository(session_factory)
         user = await repo.get(test_user.id)
         assert user.has_matrix is True

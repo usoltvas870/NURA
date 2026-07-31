@@ -193,19 +193,19 @@ def test_revision_constants(bootstrap, fk, reconciliation) -> None:
     assert bootstrap.EXPECTED_BASE == "0001a2b3c4d5e6"
     assert bootstrap.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert bootstrap.PREVIOUS_HEAD == "d1e2f3a4b5c6"
-    assert bootstrap.EXPECTED_HEAD == "c6d7e8f9a0b1"
+    assert bootstrap.EXPECTED_HEAD == "d8e9f0a1b2c3"
     assert fk.PREVIOUS_HEAD == "b9c0d1e2f3a4"
     assert fk.NORMALIZATION_REVISION == "c0d1e2f3a4b5"
-    assert fk.EXPECTED_HEAD == "c6d7e8f9a0b1"
+    assert fk.EXPECTED_HEAD == "d8e9f0a1b2c3"
     assert reconciliation.PRODUCTION_REVISION == "d5e6f7a8b9c0"
     assert reconciliation.FK_NORMALIZATION_HEAD == "c0d1e2f3a4b5"
     assert reconciliation.EXPECTED_HEAD == "d1e2f3a4b5c6"
-    assert reconciliation.GRAPH_HEAD == "c6d7e8f9a0b1"
+    assert reconciliation.GRAPH_HEAD == "d8e9f0a1b2c3"
 
 
 def test_full_delivery_race_contract(full_delivery_race) -> None:
     assert full_delivery_race.PARENT == "e8f9a0b1c2d3"
-    assert full_delivery_race.HEAD == "c6d7e8f9a0b1"
+    assert full_delivery_race.HEAD == "d8e9f0a1b2c3"
     assert full_delivery_race.WORKERS == 8
     full_delivery_race._validate_disposable_database_url(
         "postgresql://user:pass@127.0.0.1:5432/nura_delivery_disposable"

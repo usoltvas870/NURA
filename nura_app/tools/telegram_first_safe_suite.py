@@ -44,6 +44,10 @@ DESELECTED_NODE = (
     "tests/test_tarot_asset_delivery.py::"
     "test_tarot_asset_builder_verifies_checked_in_derivatives"
 )
+PROCESS_ISOLATED_FILES = (
+    "tests/test_telegram_first_service_boot.py",
+    "tests/test_telegram_first_postgres_golden_path.py",
+)
 SCHEMA_VERSION = 1
 OWNED_DOCKER_LABELS = (
     "nura.test=telegram-first-acceptance",
@@ -159,8 +163,15 @@ def _manifest_payload(inventory: tuple[InventoryEntry, ...]) -> dict[str, Any]:
     included = [entry for entry in inventory if not entry.excluded]
     shard_count = min(8, len(included))
     shards: list[list[InventoryEntry]] = [[] for _ in range(shard_count)]
-    for index, entry in enumerate(sorted(included, key=lambda item: item.path.casefold())):
-        shards[index % shard_count].append(entry)
+    isolated = [entry for entry in included if entry.path in PROCESS_ISOLATED_FILES]
+    regular = [entry for entry in included if entry.path not in PROCESS_ISOLATED_FILES]
+    if len(isolated) >= shard_count:
+        raise RuntimeError("process_isolation_requires_regular_shard")
+    regular_shard_count = shard_count - len(isolated)
+    for index, entry in enumerate(sorted(regular, key=lambda item: item.path.casefold())):
+        shards[index % regular_shard_count].append(entry)
+    for offset, entry in enumerate(sorted(isolated, key=lambda item: item.path.casefold())):
+        shards[regular_shard_count + offset].append(entry)
     assignments = {entry.path: index + 1 for index, shard in enumerate(shards) for entry in shard}
     return {
         "schema_version": SCHEMA_VERSION,

@@ -41,7 +41,7 @@
 | VK auth | `LEGACY` | compatibility | `nura_app/api/routes/auth.py`, `nura_app/core/services/auth.py`, mocked provider coverage в `nura_app/tests/test_auth.py` | Current legacy web compatibility path; внешний VK provider/configuration отдельно не подтверждён | нет | да через legacy web |
 | Email magic-link auth | `PARTIAL` | compatibility | `AuthService.start_email_auth()`/`verify_magic_link()`, email verification/guest merge foundation и local service tests | Production verify route ставит session cookie на injected `Response`, затем возвращает отдельный `RedirectResponse`; cookie не переносится, поэтому end-to-end email login session имеет active wiring gap | нет | route видим, рабочая session не доказана |
 | Web report links | `LEGACY` | compatibility | `nura_app/api/routes/reports.py`, `nura_app/bot/handlers/payment.py` | Tokenized HTML/PDF routes активны, но target delivery не должен требовать web-ссылку | нет | да |
-| Runtime prompts | `PARTIAL` | 1.0 | `nura_app/core/prompts/system_prompt.txt`, `nura_app/core/prompts/chat_system_prompt.txt`, loaders в `nura_app/core/services/ai.py` | Исполняемые prompts есть; утверждённый раздельный runtime style contract для report/chat не оформлен | нет | опосредованно |
+| Runtime prompts | `READY (local)` | 1.0 | `nura_app/core/prompts/runtime/`, resolver и metadata-aware consumers | Report/chat bundles разделены, version/hash/pinning/provenance проверяются; external content acceptance не выполнена | нет | опосредованно |
 | Product analytics | `PARTIAL` | 1.0 | `nura_app/core/services/attribution.py`, `nura_app/core/services/broadcast.py`, `AttributionLink`/`AttributionTouch`, `BroadcastCTAClick`, attribution/broadcast tests | Acquisition attribution и campaign delivery/click/last-click paid-order metrics есть; единого event registry и полного KPI funnel для всех доменов нет | нет | нет |
 | Support/admin | `READY` | operations | `nura_app/api/routes/admin_api.py`, `nura_app/admin_bot/` | Часть операций subscription-centric; production access/permissions отдельно не проверялись | нет | только operator/admin |
 | External sandbox | `NOT_EXECUTED` | release gate | [acceptance evidence router](../acceptance/README.md), local acceptance tools и [external sandbox runbook](../acceptance/telegram-first-sandbox.md) | Telegram test bot, YooKassa test shop, external AI/provider, HTTPS and legal/support evidence отсутствуют | не применимо | нет |
@@ -53,6 +53,10 @@
 ## Local broadcast-campaign update (2026-07-30)
 
 `READY (local)` for the NURA 1.0 minimal manual Telegram campaign contour. Campaign content and CTA destinations are validated and versioned; estimate and test-send are pinned to the launch version; launch materializes a bounded recipient snapshot and is idempotent; delivery attempts are fenced and persist partial media/text progress; opt-out, blocked-user suppression, frequency cap, clicks, audit and bounded last-click paid-order attribution are durable. The old direct broadcast endpoint/task fail closed, and legacy editorial/NURA 1.5 beat jobs are absent from the default schedule. This does not prove an external Telegram send, operator production permissions or product/legal approval of any content.
+
+## Local prompt-governance update (2026-07-31)
+
+`READY (local)`: active mini/full/kitchen report generation и free chat используют independent checked-in `report/v1` и `chat/v1` bundles с canonical manifests, strict inventory/SHA-256/placeholders, allowlisted resolver, explicit config versions и fail-closed boot validation. Nullable bounded JSONB provenance сохраняется для новых report/mini/chat outputs; legacy rows не получают ложную v1 attribution. Full/mini retry pinned к durable generation record, chat replay/delivery — к persisted response. Подробный контракт: [prompt governance](../prompt-governance.md). External AI content acceptance не выполнялась.
 
 ## Acceptance boundary
 
@@ -66,7 +70,7 @@
 
 1. Durable delivery retry/progress для Free-chat и client ACK для web-chat до полного delivery-aware quota contract.
 2. Внешняя Telegram/content acceptance полного отчёта text + PDF.
-3. Канонический runtime style layer отдельно для report и chat consumers.
+3. External report/chat content acceptance и вторая approved bundle version для config-only rollback.
 4. Migration disposition legacy 390/recurring вне закрытого broadcast beat bypass.
 5. Внешняя Telegram/YooKassa sandbox и production/legal/infrastructure acceptance.
 

@@ -21,7 +21,7 @@ from core.schemas.broadcast import CampaignAction, CampaignCreate, CampaignLaunc
 from core.services.broadcast import BroadcastCampaignService, BroadcastServiceError
 from core.services.broadcast_telegram import BroadcastTelegramError
 from api.deps import limiter
-from core.tasks import generate_full_report
+from core.tasks import active_report_prompt_identity, generate_full_report
 
 DOCKER_SOCK = "/var/run/docker.sock"
 
@@ -650,8 +650,13 @@ async def regenerate_user_matrix(user_id: str):
         await report_repo.delete(existing_report.id)
 
     new_token = ReportService.generate_token()
+    prompt_version, prompt_hash = active_report_prompt_identity()
     generate_full_report.delay(
-        user_id=str(user_uuid), birth_date=birth_date, report_token=new_token
+        user_id=str(user_uuid),
+        birth_date=birth_date,
+        report_token=new_token,
+        prompt_bundle_version=prompt_version,
+        prompt_bundle_hash=prompt_hash,
     )
 
     return {"ok": True}

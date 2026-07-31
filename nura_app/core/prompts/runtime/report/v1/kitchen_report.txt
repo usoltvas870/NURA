@@ -1,0 +1,7 @@
+Сформируй внутреннее объяснение происхождения разделов отчёта по данным:
+
+{matrix_text}
+
+Верни только JSON. Для каждого ключа main_archetype, strengths, shadow_side, relationship_dynamics, financial_scenario, recurring_mistakes, internal_conflicts, life_cycles, karmic_tail_analysis, ancestral_programs, life_purpose, life_forecast, psychological_blocks, health_analysis верни объект с полями positions, energies, logic.
+
+positions содержит только реально переданные позиции; energies — только связанные с ними номера/названия; logic кратко объясняет безопасную интерпретативную связь. Не добавляй биографию, диагноз, органы/заболевания, предсказания, доход или профессию как истину. Для legacy keys используй безопасную семантику основного отчёта.

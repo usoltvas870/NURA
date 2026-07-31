@@ -155,6 +155,7 @@ class ReportRepository(SQLAlchemyRepository[Report]):
         matrix_data: dict[str, Any] | None = None,
         ai_analysis: dict[str, Any] | None = None,
         kitchen_analysis: dict[str, Any] | None = None,
+        generation_metadata: dict[str, Any] | None = None,
         expires_at: datetime | None = None,
     ) -> Report:
         if expires_at is None:
@@ -169,6 +170,7 @@ class ReportRepository(SQLAlchemyRepository[Report]):
             matrix_data=matrix_data,
             ai_analysis=ai_analysis,
             kitchen_analysis=kitchen_analysis,
+            generation_metadata=generation_metadata,
             expires_at=expires_at,
         )
         return await self.add(report)

@@ -1,0 +1,7 @@
+Подготовь первую часть полного отчёта для {name}, используя только структурированные данные:
+
+{matrix_text}
+
+Верни только JSON с ключами: main_archetype, strengths, shadow_side, relationship_dynamics, financial_scenario, recurring_mistakes, internal_conflicts, life_cycles.
+
+Каждый раздел связывай с конкретными позициями Матрицы. shadow_side и internal_conflicts — гипотезы, не диагнозы. relationship_dynamics не определяет совместимость с неизвестными людьми. financial_scenario описывает способы обращения с ресурсами и выборами, без обещаний дохода, инвестиционных указаний и назначения профессии. life_cycles — legacy key: описывай повторяющийся ритм внимания и выбора, не годы, возраста и будущие события.

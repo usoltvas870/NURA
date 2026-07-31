@@ -31,6 +31,13 @@ from core.services.matrix_report_generator import (
     MatrixReportGenerator,
     MatrixReportGeneratorResult,
 )
+from core.services.prompt_governance import (
+    ResolvedPromptBundle,
+    finalize_generation_metadata,
+    input_hash,
+    resolve_active_bundle,
+    resolve_pinned_bundle,
+)
 from core.services.report import ReportService
 
 
@@ -98,7 +105,13 @@ class MatrixReportGenerationWorker:
         if not job_valid:
             return WorkerResult.terminal(ReportGenerationErrorCategory.UNKNOWN_INTERNAL)
 
-        claimed = await self._claim(report_id)
+        prompt_bundle = await self._resolve_prompt_bundle(report_id)
+        from core.config import settings
+
+        prompt_pin = prompt_bundle.pin("report.full")
+        prompt_pin["requested_model"] = settings.deepseek_model
+
+        claimed = await self._claim(report_id, prompt_pin)
         if claimed.disposition != GenerationDisposition.COMPLETED:
             return claimed
 
@@ -111,6 +124,7 @@ class MatrixReportGenerationWorker:
                 birth_date=generation_input.birth_date,
                 user_name=generation_input.user_name,
                 report_token=generation_input.report_token,
+                prompt_bundle=prompt_bundle,
             )
         except MatrixReportGenerationError as error:
             raw_category = error.error_category
@@ -148,6 +162,22 @@ class MatrixReportGenerationWorker:
 
         return WorkerResult.completed()
 
+    async def _resolve_prompt_bundle(self, report_id: uuid.UUID) -> ResolvedPromptBundle:
+        async with self._session_factory() as session:
+            report = await session.get(Report, report_id)
+            if report is None:
+                await session.rollback()
+                raise RuntimeError("report_not_found")
+            if isinstance(report.generation_metadata, dict):
+                bundle = resolve_pinned_bundle(
+                    "report.full", report.generation_metadata
+                )
+                await session.rollback()
+                return bundle
+            bundle = resolve_active_bundle("report.full")
+            await session.rollback()
+            return bundle
+
     async def _validate_job(
         self, job_id: uuid.UUID, report_id: uuid.UUID
     ) -> bool:
@@ -163,11 +193,13 @@ class MatrixReportGenerationWorker:
             await session.rollback()
             return valid
 
-    async def _claim(self, report_id: uuid.UUID) -> WorkerResult:
+    async def _claim(
+        self, report_id: uuid.UUID, generation_metadata: dict
+    ) -> WorkerResult:
         async with self._session_factory() as session:
             repository = ReportGenerationJobRepository(session)
             outcome, report, _ = await repository.claim_generation_run(
-                report_id, _now()
+                report_id, _now(), generation_metadata
             )
             if outcome == "claimed":
                 await session.commit()
@@ -287,6 +319,27 @@ class MatrixReportGenerationWorker:
             report.matrix_data = generator_result.matrix_data
             report.ai_analysis = generator_result.ai_analysis
             report.kitchen_analysis = generator_result.kitchen_analysis
+            pin = report.generation_metadata
+            if not isinstance(pin, dict):
+                raise RuntimeError("report_prompt_pin_missing")
+            details = generator_result.generation_details or {}
+            generation_source = details.get("generation_source")
+            if generation_source not in {"provider", "fallback"}:
+                generation_source = "fallback"
+            provider = details.get("provider")
+            model = details.get("model")
+            report.generation_metadata = finalize_generation_metadata(
+                pin,
+                provider=provider if isinstance(provider, str) else None,
+                model=model if isinstance(model, str) else None,
+                generation_source=generation_source,
+                structured_input_hash=input_hash(generator_result.matrix_data),
+                components=(
+                    details.get("components")
+                    if isinstance(details.get("components"), dict)
+                    else None
+                ),
+            )
             report.artifact_bytes = artifact
             report.artifact_sha256 = hashlib.sha256(artifact).hexdigest()
             report.artifact_size_bytes = len(artifact)

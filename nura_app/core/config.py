@@ -1,4 +1,5 @@
 import os
+import re
 import stat
 from pathlib import Path
 from urllib.parse import quote, quote_plus, urlsplit, urlunsplit
@@ -158,6 +159,8 @@ class Settings(BaseSettings):
     deepseek_api_key: str | None = None
     deepseek_base_url: str = "https://api.deepseek.com/v1"
     deepseek_model: str = "deepseek-chat"
+    report_prompt_bundle_version: str = "v1"
+    chat_prompt_bundle_version: str = "v1"
 
     # Chat
     chat_free_message_limit: int = Field(default=5, ge=1, le=100)
@@ -381,6 +384,13 @@ class Settings(BaseSettings):
             ZoneInfo(value)
         except (TypeError, ZoneInfoNotFoundError) as error:
             raise ValueError("invalid_timezone") from error
+        return value
+
+    @field_validator("report_prompt_bundle_version", "chat_prompt_bundle_version")
+    @classmethod
+    def _validate_prompt_bundle_version(cls, value: str) -> str:
+        if not re.fullmatch(r"v[1-9][0-9]*", value):
+            raise ValueError("invalid_prompt_bundle_version")
         return value
 
     @field_validator("broadcast_admin_telegram_ids")

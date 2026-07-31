@@ -21,6 +21,12 @@ from core.services.mini_report_generation import (
     build_mini_report_fingerprint,
 )
 from core.services.report import ReportService
+from core.services.prompt_governance import (
+    finalize_generation_metadata,
+    input_hash,
+    resolve_active_bundle,
+    resolve_pinned_bundle,
+)
 
 _MINI_CONTENT_FIELDS = frozenset(
     {"main_archetype", "core_strength", "emotional_conflict", "relationship_pattern", "financial_block"}
@@ -118,23 +124,52 @@ class MiniReportApplicationService:
                 error_code=generation.error_code or "generation_failed",
             )
 
+        if isinstance(generation.generation_metadata, dict):
+            bundle = resolve_pinned_bundle(
+                "report.mini", generation.generation_metadata
+            )
+            prompt_pin = bundle.pin("report.mini")
+            prompt_pin["requested_model"] = generation.generation_metadata.get(
+                "requested_model"
+            )
+        else:
+            from core.config import settings
+
+            bundle = resolve_active_bundle("report.mini")
+            prompt_pin = bundle.pin("report.mini")
+            prompt_pin["requested_model"] = settings.deepseek_model
         attempt_count = await self._generation_service.claim_generation(
-            generation.id, allow_retry=request.allow_retry
+            generation.id,
+            generation_metadata=prompt_pin,
+            allow_retry=request.allow_retry,
         )
         if attempt_count is None:
             return self._in_progress(generation.id)
 
         try:
             matrix = MatrixService.calculate(birth_date)
-            content = await AIService.generate_mini_analysis(birth_date, matrix)
-            if content == FALLBACK_MINI:
+            generated = await AIService.generate_mini_analysis_with_metadata(
+                birth_date, matrix, bundle=bundle
+            )
+            content = generated.content
+            if generated.generation_source == "fallback" or content == FALLBACK_MINI:
                 raise RuntimeError("mini_analysis_fallback")
+            if not isinstance(content, dict):
+                raise RuntimeError("mini_analysis_invalid")
             matrix_data = matrix.model_dump()
+            generation_metadata = finalize_generation_metadata(
+                prompt_pin,
+                provider=generated.provider,
+                model=generated.model,
+                generation_source=generated.generation_source,
+                structured_input_hash=input_hash(matrix_data),
+            )
             report_id = await self._generation_service.finalize_result(
                 generation.id,
                 expected_attempt_count=attempt_count,
                 matrix_data=matrix_data,
                 content=content,
+                generation_metadata=generation_metadata,
                 report_token=ReportService.generate_token(),
             )
         except ValueError:

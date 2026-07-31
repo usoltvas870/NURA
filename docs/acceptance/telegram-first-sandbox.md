@@ -117,6 +117,8 @@ evidence record. Production recipients remain outside this runbook proof.
 
 ## 6. Report generation and delivery scenarios
 
+Before any separately approved external AI scenario, record the active report/chat bundle ids, versions and aggregate hashes without copying prompt text. Verify that generated report/chat rows persist provider/model/source metadata and that a delivery retry reuses the persisted output. Local prompt contract tests and the sanitized human-review packet are prerequisites only; they are not external AI content acceptance. Do not use remote prompt editing or change an approved bundle in place during the run.
+
 - Confirm payment success persists before generation begins.
 - Verify one durable generation job and one canonical full PDF artifact.
 - Verify temporary AI/render failure is retryable without another payment.

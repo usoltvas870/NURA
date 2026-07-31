@@ -22,9 +22,11 @@ from api.routes.auth import router as auth_router
 
 from core.config import settings
 from core.database import get_async_sessionmaker, get_redis
+from core.services.prompt_governance import validate_active_prompt_bundles
 
 
 configure_uvicorn_access_redaction()
+validate_active_prompt_bundles()
 
 
 def payment_webhook_readiness_status() -> str:

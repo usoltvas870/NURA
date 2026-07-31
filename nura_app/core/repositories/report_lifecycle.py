@@ -570,7 +570,7 @@ class ReportGenerationJobRepository:
         return job
 
     async def claim_generation_run(
-        self, report_id: uuid.UUID, now: datetime
+        self, report_id: uuid.UUID, now: datetime, generation_metadata: dict
     ) -> tuple[str, Report | None, ReportGenerationJob | None]:
         from sqlalchemy import select as sa_select
 
@@ -589,6 +589,7 @@ class ReportGenerationJobRepository:
                             generation_state=ReportGenerationState.RUNNING,
                             generation_started_at=now,
                             generation_attempts=Report.generation_attempts + 1,
+                            generation_metadata=generation_metadata,
                         )
                     )
                 if claim_result.rowcount == 1:
@@ -617,6 +618,8 @@ class ReportGenerationJobRepository:
         report = await self._session.get(Report, report_id)
         if report is None:
             raise RuntimeError("generation_claim_lost_report")
+        if report.generation_metadata != generation_metadata:
+            raise ValueError("report_prompt_pin_mismatch")
         job = (
             await self._session.execute(
                 sa_select(ReportGenerationJob).where(

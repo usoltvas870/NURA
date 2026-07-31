@@ -31,6 +31,12 @@ from core.services.mini_report_application import (
 )
 from core.services.mini_report_generation import MiniReportGenerationService
 from core.services.report import ReportService
+from core.services.prompt_governance import (
+    finalize_generation_metadata,
+    input_hash,
+    prompt_registry,
+    resolve_active_bundle,
+)
 from core.services.telegram_report_delivery import MiniReportTelegramDeliveryService, TelegramDeliveryError
 from core.services.web_push import PushSubscriptionExpired, send_web_push
 
@@ -342,8 +348,17 @@ def deliver_repeated_mini_report(
     return _run_async(_run_delivery())
 
 
+def active_report_prompt_identity() -> tuple[str, str]:
+    bundle = resolve_active_bundle("report.full")
+    return bundle.bundle_version, bundle.aggregate_hash
+
+
 async def _process_full_report(
-    user_id: str, birth_date: str, report_token: str
+    user_id: str,
+    birth_date: str,
+    report_token: str,
+    prompt_bundle_version: str | None = None,
+    prompt_bundle_hash: str | None = None,
 ) -> dict:
     uid = uuid.UUID(user_id)
     session_factory = get_async_sessionmaker()
@@ -355,20 +370,59 @@ async def _process_full_report(
 
     matrix = MatrixService.calculate(birth_date)
     from asyncio import gather
-    from core.loop_specs.report_loop import generate_full_report_with_loop
-    analysis_task = generate_full_report_with_loop(birth_date, matrix, name=user_name)
-    kitchen_task = AIService.generate_kitchen_report(birth_date, matrix)
-    analysis, kitchen_analysis = await gather(analysis_task, kitchen_task)
+    from core.loop_specs.report_loop import generate_governed_full_report_with_loop
+
+    bundle = (
+        prompt_registry.resolve("report.full", prompt_bundle_version)
+        if prompt_bundle_version is not None
+        else resolve_active_bundle("report.full")
+    )
+    if prompt_bundle_hash is not None and bundle.aggregate_hash != prompt_bundle_hash:
+        raise RuntimeError("report_prompt_pin_mismatch")
+    prompt_pin = bundle.pin("report.full")
+    prompt_pin["requested_model"] = settings.deepseek_model
+    analysis_task = generate_governed_full_report_with_loop(
+        birth_date,
+        matrix,
+        name=user_name,
+        bundle=bundle,
+    )
+    kitchen_task = AIService.generate_kitchen_report_with_metadata(
+        birth_date, matrix, bundle=bundle
+    )
+    analysis_result, kitchen_result = await gather(analysis_task, kitchen_task)
+    analysis = dict(analysis_result.content)
+    kitchen_analysis = dict(kitchen_result.content)
     token = report_token or ReportService.generate_token()
 
     archetype_name = MatrixService.get_archetype_name(matrix.center)
 
     matrix_dict = matrix.model_dump()
+    generation_metadata = finalize_generation_metadata(
+        prompt_pin,
+        provider=analysis_result.provider,
+        model=analysis_result.model,
+        generation_source=analysis_result.generation_source,
+        structured_input_hash=input_hash(matrix_dict),
+        components={
+            "full_report": {
+                "provider": analysis_result.provider,
+                "model": analysis_result.model,
+                "generation_source": analysis_result.generation_source,
+            },
+            "kitchen_report": {
+                "provider": kitchen_result.provider,
+                "model": kitchen_result.model,
+                "generation_source": kitchen_result.generation_source,
+            },
+        },
+    )
 
     report_data = ReportService._build_v2_report_data(
         matrix_data=matrix_dict,
         analysis=analysis,
         kitchen_analysis=kitchen_analysis,
+        generation_metadata=generation_metadata,
         user_name=user_name,
         archetype_number=matrix.center,
         archetype_name=archetype_name,
@@ -389,6 +443,7 @@ async def _process_full_report(
         matrix_data=matrix_dict,
         ai_analysis=analysis,
         kitchen_analysis=kitchen_analysis,
+        generation_metadata=generation_metadata,
     )
 
     return {
@@ -409,9 +464,21 @@ async def _process_full_report(
     retry_backoff_max=180,
     retry_jitter=True,
 )
-def generate_full_report(user_id: str, birth_date: str, report_token: str) -> dict:
+def generate_full_report(
+    user_id: str,
+    birth_date: str,
+    report_token: str,
+    prompt_bundle_version: str | None = None,
+    prompt_bundle_hash: str | None = None,
+) -> dict:
     async def _run_all():
-        result = await _process_full_report(user_id, birth_date, report_token)
+        result = await _process_full_report(
+            user_id,
+            birth_date,
+            report_token,
+            prompt_bundle_version,
+            prompt_bundle_hash,
+        )
         telegram_id = await _get_user_telegram_id(user_id)
         if telegram_id:
             await _notify_full_report(telegram_id, result["token"])

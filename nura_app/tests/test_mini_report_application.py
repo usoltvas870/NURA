@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from core.models import MiniReportGenerationState
+from core.services.ai import GeneratedContentResult
 from core.services.mini_report_application import (
     GuestMiniReportSubject,
     MiniReportApplicationService,
@@ -71,9 +72,17 @@ async def test_user_generation_persists_once_and_marks_completed() -> None:
     with (
         patch("core.services.mini_report_application.MatrixService.calculate", return_value=matrix),
         patch(
-            "core.services.mini_report_application.AIService.generate_mini_analysis",
+            "core.services.mini_report_application.AIService.generate_mini_analysis_with_metadata",
             new_callable=AsyncMock,
-            return_value=analysis,
+            return_value=GeneratedContentResult(
+                content=analysis,
+                provider="deepseek",
+                model="deepseek-chat",
+                usage={},
+                duration_ms=1,
+                cached=False,
+                generation_source="provider",
+            ),
         ),
         patch("core.services.mini_report_application.ReportService.generate_token", return_value="token"),
     ):
@@ -87,6 +96,12 @@ async def test_user_generation_persists_once_and_marks_completed() -> None:
     assert result.report_id is not None
     reports.create.assert_not_called()
     generations.finalize_result.assert_awaited_once()
+    metadata = generations.finalize_result.await_args.kwargs["generation_metadata"]
+    assert metadata["prompt_consumer"] == "report.mini"
+    assert metadata["bundle_version"] == "v1"
+    assert metadata["provider"] == "deepseek"
+    assert metadata["generation_source"] == "provider"
+    assert len(metadata["structured_input_hash"]) == 64
 
 
 @pytest.mark.asyncio

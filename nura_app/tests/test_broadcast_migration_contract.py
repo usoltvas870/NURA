@@ -10,7 +10,7 @@ MIGRATION = ROOT / "alembic" / "versions" / "c6d7e8f9a0b1_add_broadcast_campaign
 
 def test_broadcast_migration_is_single_additive_head() -> None:
     script = ScriptDirectory.from_config(Config(str(ROOT / "alembic.ini")))
-    assert script.get_heads() == ["c6d7e8f9a0b1"]
+    assert script.get_heads() == ["d8e9f0a1b2c3"]
     revision = script.get_revision("c6d7e8f9a0b1")
     assert revision is not None and revision.down_revision == "c5d6e7f8a9b0"
 

@@ -30,7 +30,7 @@ from core.services.chat_quota import (  # noqa: E402
 
 
 PARENT = "d2e3f4a5b6c7"
-HEAD = "c6d7e8f9a0b1"
+HEAD = "d8e9f0a1b2c3"
 _URL = ""
 _ALEMBIC_LAUNCHER = (
     "from pydantic_settings.sources import DotEnvSettingsSource;"
@@ -124,6 +124,7 @@ def _assert_schema() -> None:
         "released_at": ("timestamp with time zone", "YES"),
         "release_reason": ("character varying", "YES"),
         "response_text": ("text", "YES"),
+        "generation_metadata": ("jsonb", "YES"),
         "error_code": ("character varying", "YES"),
         "result_ready_at": ("timestamp with time zone", "YES"),
         "updated_at": ("timestamp with time zone", "NO"),

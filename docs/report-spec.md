@@ -1,5 +1,7 @@
 # NURA Report System — Technical Specification
 
+> Prompt governance update (2026-07-31): active mini/full/kitchen consumers используют checked-in `report/v1`, а не shared legacy system prompt. Output keys и renderer compatibility сохранены; unsafe legacy key names имеют safe semantic mapping. Новые report outputs сохраняют nullable bounded provenance согласно [runtime prompt governance](prompt-governance.md). Historical rows остаются без v1 attribution.
+
 ## 1. Authority and scope
 
 Документ описывает реализованную систему отчётов и отделяет её от утверждённого target и compatibility-поверхностей.

@@ -1,5 +1,7 @@
 # NURA Telegram Bot — Technical Specification
 
+> Prompt governance update (2026-07-31): free chat использует independent checked-in `chat/v1` bundle, pin при durable reservation и metadata вместе с `result_ready`. Duplicate/delivery retry replays persisted text без второго AI call. Quota, safety disposition и Telegram delivery contract не изменены. См. [runtime prompt governance](prompt-governance.md).
+
 **Статус документа:** CURRENT TECHNICAL SPECIFICATION WITH TARGET CROSSWALK
 **Проверено:** 2026-07-28
 **Граница evidence:** локальный committed code baseline; external Telegram/YooKassa sandbox и production не подтверждены.
@@ -156,13 +158,14 @@ External Telegram sandbox, production operator permissions and content approval 
 
 ### 4.11. Runtime prompts
 
-`CURRENT — IMPLEMENTED` at loader level, but target contract remains partial.
+`CURRENT — IMPLEMENTED LOCALLY` for checked-in governance.
 
-- Report generation loads `system_prompt.txt` plus report-specific templates.
-- Chat loads `chat_system_prompt.txt` through a separate consumer.
-- The target requires two independently approved/versioned runtime style contracts with acceptance evidence. That canonical acceptance was not found.
+- Report generation resolves approved `report/v1` with one bundle pin for mini or full/kitchen retry paths.
+- Free chat resolves independent approved `chat/v1` and persists version/hash/provider-source metadata with its durable result.
+- Legacy Daily Card/Tarot/compatibility prompts remain outside the active report/chat defaults.
+- External AI/provider content acceptance remains `NOT EXECUTED`; local contract tests do not substitute for it.
 
-Status: `IMPLEMENTATION GAP` for the accepted/versioned report/chat runtime style layer; existing executable prompts are not moved into documentation.
+Executable prompt bodies remain only in `nura_app/core/prompts/`; documentation records contracts and evidence boundaries, not prompt snapshots.
 
 ### 4.12. Admin, support and observability
 

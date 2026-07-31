@@ -27,6 +27,7 @@ from bot.middlewares import (
 )
 from bot.middlewares.registration import LegacyTelegramAuthRetirementMiddleware
 from core.config import settings
+from core.services.prompt_governance import validate_active_prompt_bundles
 from core.database import (
     create_engine,
     dispose_async_database_state,
@@ -53,6 +54,7 @@ async def _verify_database_ready() -> None:
 
 
 async def _on_startup(**_: object) -> None:
+    validate_active_prompt_bundles()
     await _verify_database_ready()
     await get_redis().ping()
     logger.info("Bot runtime dependencies ready")

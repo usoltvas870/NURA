@@ -323,6 +323,7 @@ class ChatMessageUsage(Base):
     released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     release_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
     response_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    generation_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     result_ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delivery_status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="pending")
@@ -448,6 +449,7 @@ class Report(Base):
     matrix_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     ai_analysis: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     kitchen_analysis: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    generation_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -622,6 +624,7 @@ class MiniReportGeneration(Base):
     report_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("reports.id", ondelete="SET NULL"), nullable=True
     )
+    generation_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
