@@ -7,6 +7,12 @@
 > deploy или внешние provider calls. Каждая изменяющая host операция требует
 > отдельного актуального approval владельца.
 
+Production secret-file profile, offline preflight, exact migration chain и
+двухкоммитный authorization contract описаны в
+[production secret and migration transition](production-secret-and-migration-transition.md).
+Этот implementation milestone не создаёт target-bound manifest и потому не
+разрешает execution.
+
 ## 1. Зафиксированное решение и границы
 
 На текущем этапе отдельные sandbox VPS, hostname, bot и stack не создаются.
@@ -72,7 +78,8 @@ disposable только после проверенного backup и отдел
    Очистка существующей database/Redis не следует автоматически ни из одного
    выбора и требует отдельного approval после backup.
 9. **Migration выбранной database.** До apply сравнить current revision с
-   Alembic graph exact release и зафиксировать forward-only plan. Применить
+   exact hashed chain `d1e2f3a4b5c6 → d8e9f0a1b2c3`, отдельно проверить
+   tracked authorization manifest и зафиксировать forward-only plan. Применить
    migration только после отдельного approval. Этот runbook не обещает
    Alembic/database rollback.
 10. **Deploy exact reviewed SHA.** Использовать coordinated immutable release
@@ -84,10 +91,13 @@ disposable только после проверенного backup и отдел
     ID, совпадающий с `ADMIN_TELEGRAM_ID`. YooKassa shop/key/file settings
     намеренно отсутствуют и запрещены readiness; sandbox mode не
     используется.
+    Plaintext credentials в `.env` запрещены: используются только exact
+    per-service mounts из `/opt/nura/secrets/production/`.
 12. **Allowlist before polling.** До первого bot polling выполнить offline
-    readiness и проверить, что inbound/outbound restricted-access policy
-    видит только owner ID. При отрицательном результате bot остаётся
-    остановленным.
+    readiness, затем с polling off проверить `/ready` (DB/Redis/AI и
+    `payment_configuration=disabled`), worker ping, running Beat, exact OCI
+    revisions и runtime owner allowlist/YooKassa absence. При отрицательном
+    результате bot остаётся остановленным. Polling включается последним.
 13. **Smoke tests.** Только с allowlisted owner проверить `/start`, onboarding,
     profile, mini text/PDF, My Materials/resend, Daily Card, пять chat responses
     и quota/retry, governed prompts, admin-authenticated prelaunch full report

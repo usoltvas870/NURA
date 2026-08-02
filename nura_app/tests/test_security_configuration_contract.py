@@ -308,15 +308,17 @@ def test_redis_compose_uses_secret_files_and_non_sensitive_commands() -> None:
         {"source": "redis_password", "target": "redis_password", "mode": 0o444}
     ]
     assert compose["secrets"]["redis_password"] == {
-        "environment": "REDIS_PASSWORD"
+        "file": "/opt/nura/secrets/production/redis_password"
     }
 
     for service_name in ("api", "bot", "celery-worker", "celery-beat", "admin-bot"):
         service = compose["services"][service_name]
-        assert service["secrets"] == [
-            {"source": "redis_password", "target": "redis_password", "mode": 0o444}
-        ]
-        assert service["environment"]["REDIS_PASSWORD"] == ""
+        mounted = {
+            item if isinstance(item, str) else item["source"]
+            for item in service["secrets"]
+        }
+        assert "redis_password" in mounted
+        assert "REDIS_PASSWORD" not in service["environment"]
         assert service["environment"]["REDIS_PASSWORD_FILE"] == (
             "/run/secrets/redis_password"
         )

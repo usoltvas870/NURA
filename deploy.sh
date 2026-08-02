@@ -230,6 +230,7 @@ if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
   readonly STATE_HELPER="$EXECUTION_BUNDLE/scripts/prepare_atomic_release_host.py"
   readonly ENVIRONMENT_RECONCILE_HELPER="$EXECUTION_BUNDLE/scripts/environment_reconciliation.py"
   readonly P7B_HELPER="$EXECUTION_BUNDLE/scripts/p7b_rollout.py"
+  readonly PRELAUNCH_TRANSITION_HELPER="$EXECUTION_BUNDLE/scripts/current_vps_prelaunch_transition.py"
   readonly LOCK_HELPER="$EXECUTION_BUNDLE/scripts/release_lock.py"
 elif [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
   [[ "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]] \
@@ -244,11 +245,13 @@ elif [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
   readonly ARTIFACT_HELPER="$AUDITED_HELPER_ROOT/build_release_artifact.py"
   readonly STATIC_HELPER="$AUDITED_HELPER_ROOT/deploy_static_release.py"
   readonly P7B_HELPER="$REPO_ROOT/scripts/p7b_rollout.py"
+  readonly PRELAUNCH_TRANSITION_HELPER="$REPO_ROOT/scripts/current_vps_prelaunch_transition.py"
 else
   readonly ARTIFACT_HELPER="$REPO_ROOT/scripts/build_release_artifact.py"
   readonly STATIC_HELPER="$REPO_ROOT/scripts/deploy_static_release.py"
   readonly LOCK_HELPER="${NURA_RELEASE_LOCK_HELPER:-$REPO_ROOT/scripts/release_lock.py}"
   readonly P7B_HELPER="$REPO_ROOT/scripts/p7b_rollout.py"
+  readonly PRELAUNCH_TRANSITION_HELPER="$REPO_ROOT/scripts/current_vps_prelaunch_transition.py"
 fi
 if [[ -z "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
   readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
@@ -270,6 +273,8 @@ if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
   [[ -f "$P7B_HELPER" && ! -L "$P7B_HELPER" ]] || fail "P7B helper is missing or unsafe"
 fi
 [[ -f "$LOCK_HELPER" && ! -L "$LOCK_HELPER" ]] || fail "release lock helper is missing or unsafe"
+[[ -f "$PRELAUNCH_TRANSITION_HELPER" && ! -L "$PRELAUNCH_TRANSITION_HELPER" ]] \
+  || fail "prelaunch transition helper is missing or unsafe"
 [[ -f "$SCRIPT_PATH" && ! -L "$SCRIPT_PATH" ]] || fail "deploy launcher is missing or unsafe"
 [[ -d "$RELEASE_ROOT" && ! -L "$RELEASE_ROOT" ]] || fail "release root is not prepared; run the separately approved host transition"
 [[ -d "$STATE_ROOT" && ! -L "$STATE_ROOT" ]] || fail "state root is not prepared; run the separately approved host transition"
@@ -693,27 +698,41 @@ readonly RESOLVED_INCOMING_ROOT="$(readlink -f "$INCOMING_ROOT")"
 
 readonly MIGRATION_OUTPUT="$(git -C "$REPO_ROOT" diff --name-only "$CURRENT_SHA" "$TARGET_SHA" -- nura_app/alembic/versions)"
 if [[ -n "$MIGRATION_OUTPUT" ]]; then
-  [[ "$CURRENT_SHA" == "$AUDITED_MIGRATION_FROM_SHA" && "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]] \
-    || { echo "$MIGRATION_OUTPUT" >&2; fail "migration delta blocks deployment outside the audited transition"; }
-  [[ "${NURA_PREAPPLIED_MIGRATION_REVISION:-}" == "$AUDITED_MIGRATION_REVISION" ]] \
-    || fail "audited transition requires the exact pre-applied migration revision acknowledgement"
-  [[ "${NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA:-0}" == 1 ]] \
-    || fail "audited transition requires backward-compatible schema acknowledgement"
   readonly TARGET_ALEMBIC_HEAD="$(target_alembic_head)"
-  [[ "$TARGET_ALEMBIC_HEAD" == "$AUDITED_MIGRATION_REVISION" ]] \
-    || fail "audited migration revision does not equal the target Alembic head"
   readonly DATABASE_ALEMBIC_REVISION="$(
     docker compose --project-directory "$REPO_ROOT/nura_app" -f "$COMPOSE_BASE" exec -T postgres \
-      sh -lc 'PGPASSWORD="$POSTGRES_PASSWORD" exec psql -X -At -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version_num FROM alembic_version"'
+      sh -lc 'exec psql -X -At -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version_num FROM alembic_version"'
   )"
-  [[ "$DATABASE_ALEMBIC_REVISION" == "$AUDITED_MIGRATION_REVISION" ]] \
-    || fail "production database is not at the audited target revision"
-  log "verified the audited pre-applied backward-compatible migration"
+  if [[ "$CURRENT_SHA" == "$AUDITED_MIGRATION_FROM_SHA" && "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]]; then
+    [[ "${NURA_PREAPPLIED_MIGRATION_REVISION:-}" == "$AUDITED_MIGRATION_REVISION" ]] \
+      || fail "audited transition requires the exact pre-applied migration revision acknowledgement"
+    [[ "${NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA:-0}" == 1 ]] \
+      || fail "audited transition requires backward-compatible schema acknowledgement"
+    [[ "$TARGET_ALEMBIC_HEAD" == "$AUDITED_MIGRATION_REVISION" && "$DATABASE_ALEMBIC_REVISION" == "$AUDITED_MIGRATION_REVISION" ]] \
+      || fail "production database is not at the audited target revision"
+    log "verified the audited pre-applied backward-compatible migration"
+  else
+    readonly PRELAUNCH_AUTHORIZATION="${NURA_PRELAUNCH_TRANSITION_AUTHORIZATION:-}"
+    [[ -n "$PRELAUNCH_AUTHORIZATION" && -f "$PRELAUNCH_AUTHORIZATION" && ! -L "$PRELAUNCH_AUTHORIZATION" ]] \
+      || { echo "$MIGRATION_OUTPUT" >&2; fail "migration delta requires the tracked prelaunch authorization manifest"; }
+    [[ "$TARGET_ALEMBIC_HEAD" == "$DATABASE_ALEMBIC_REVISION" ]] \
+      || fail "production database is not at the authorized pre-applied target revision"
+    python3 "$PRELAUNCH_TRANSITION_HELPER" verify-deploy-authorization \
+      --manifest "$PRELAUNCH_AUTHORIZATION" \
+      --repo "$REPO_ROOT" \
+      --source-sha "$CURRENT_SHA" \
+      --target-sha "$TARGET_SHA" \
+      --database-revision "$DATABASE_ALEMBIC_REVISION" \
+      || fail "prelaunch migration authorization verification failed"
+    log "verified the manifest-authorized pre-applied migration"
+  fi
 else
   [[ -z "${NURA_PREAPPLIED_MIGRATION_REVISION:-}" ]] \
     || fail "pre-applied migration acknowledgement is invalid without a migration delta"
   [[ "${NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA:-0}" == 0 ]] \
     || fail "backward-compatible schema acknowledgement is invalid without a migration delta"
+  [[ -z "${NURA_PRELAUNCH_TRANSITION_AUTHORIZATION:-}" ]] \
+    || fail "prelaunch transition authorization is invalid without a migration delta"
 fi
 
 readonly CHECKOUT_HEAD="$(git -C "$REPO_ROOT" rev-parse HEAD)"
@@ -897,6 +916,10 @@ SUCCESS=1
 log "coordinated activation completed at $TARGET_SHA"
 log "static staging rename and current symlink replacement are filesystem-atomic; Docker and database are not"
 log "retention cleanup is best-effort under the common lock"
+if [[ -n "${NURA_PRELAUNCH_TRANSITION_AUTHORIZATION:-}" ]]; then
+  log "retention cleanup is disabled for the one-time prelaunch transition"
+  exit 0
+fi
 if CLEANUP_PLAN="$(python3 - "$RELEASES_DIR" "$STAGING_DIR" "$RELEASE_STATE_DIR" "$CURRENT_STATE" <<'PY'
 import json, pathlib, shutil, sys, time
 releases, staging, records, current_path = map(pathlib.Path, sys.argv[1:])

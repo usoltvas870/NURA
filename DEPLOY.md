@@ -19,6 +19,24 @@
 
 > **DO NOT DEPLOY.** Merge P4.2B2 сам по себе не разрешает host transition или production activation. До первого запуска обязательны P4.1B, migration/API compatibility review, отдельный dry-run перехода, финальный deploy-readiness audit и новое явное approval владельца.
 
+## Owner-prelaunch migration-aware transition
+
+Новый general production release по-прежнему fail closed при migration delta.
+Единственное расширение — отдельный one-time engine
+`scripts/current_vps_prelaunch_transition.py`, описанный в
+[production secret and migration transition](docs/production-secret-and-migration-transition.md).
+Он принимает только canonical tracked authorization manifest schema v2:
+`origin/main` обязан быть отдельным manifest-only commit поверх exact target
+base. Engine проверяет exact source/target/schema/artifact/engine identities,
+реальные backup artifacts, running fleet identity и уже применённый target head.
+Manifest с target `T` намеренно отсутствует в текущем implementation milestone;
+без последующего authorization commit deploy остаётся заблокирован.
+
+Base production Compose использует `RUN_MIGRATIONS=0`. Ни обычный workflow, ни
+`deploy.sh` не применяют Alembic upgrade/downgrade. После отдельно разрешённого
+engine apply `deploy.sh` допускает exact pre-applied delta только если helper
+повторно проверил tracked manifest; общий `allow_migrations` не существует.
+
 ## Разрешённые entrypoints
 
 Production release и rollback обычно запускаются только вручную из ветки `main` через защищённый GitHub Actions environment `production`:

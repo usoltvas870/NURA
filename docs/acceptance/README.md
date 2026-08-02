@@ -1,5 +1,14 @@
 # NURA Acceptance Evidence
 
+## Production secret/migration implementation (2026-07-31)
+
+Local code/tests define `production-files-v1`, an offline redacted preflight,
+an exact hashed `d1e2f3a4b5c6 → d8e9f0a1b2c3` chain and a manifest-only transition
+engine. Это `STATIC EVIDENCE` / `LOCAL UNIT/INTEGRATION`, не VPS inventory,
+backup, authorization manifest, migration, deploy или production proof. Target
+`T` ещё неизвестен; execution по контракту заблокирован до отдельного tracked
+authorization milestone.
+
 ## Owner-only prelaunch local evidence (2026-07-31)
 
 Owner decision заменяет ближайший execution path: отдельный external sandbox

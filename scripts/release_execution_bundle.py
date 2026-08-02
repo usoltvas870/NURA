@@ -26,8 +26,9 @@ BUNDLE_FILES = (
     "scripts/environment_reconciliation.py",
     "scripts/p7b_rollout.py",
     "scripts/p7_telegram_pilot_controller.py",
+    "scripts/current_vps_prelaunch_transition.py",
 )
-BUNDLE_SCHEMA = 2
+BUNDLE_SCHEMA = 3
 
 
 class BundleError(RuntimeError):

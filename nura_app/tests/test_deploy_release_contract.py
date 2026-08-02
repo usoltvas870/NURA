@@ -180,9 +180,9 @@ def test_root_engine_rejects_ambiguous_or_malformed_cli(arguments: list[str]) ->
     assert "usage" in result.stderr or "SHA" in result.stderr or "ambiguous" in result.stderr
 
 
-def test_root_engine_has_one_audited_preapplied_migration_transition() -> None:
+def test_root_engine_allows_only_pinned_or_manifest_authorized_migrations() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
-    assert "migration delta blocks deployment outside the audited transition" in script
+    assert "migration delta requires the tracked prelaunch authorization manifest" in script
     assert "ALLOW_MIGRATIONS" not in script
     assert "allow_migrations" not in script
     assert "alembic upgrade" not in script
@@ -193,6 +193,8 @@ def test_root_engine_has_one_audited_preapplied_migration_transition() -> None:
     assert "NURA_PREAPPLIED_MIGRATION_REVISION" in script
     assert "NURA_ACKNOWLEDGE_BACKWARD_COMPATIBLE_SCHEMA" in script
     assert "NURA_AUDITED_ENGINE_HELPER_ROOT" in script
+    assert "NURA_PRELAUNCH_TRANSITION_AUTHORIZATION" in script
+    assert "verify-deploy-authorization" in script
     assert 'ARTIFACT_HELPER="$AUDITED_HELPER_ROOT/build_release_artifact.py"' in script
     assert "target_alembic_head" in script
     assert "SELECT version_num FROM alembic_version" in script
@@ -750,7 +752,7 @@ def test_compose_and_entrypoint_migrations_are_overridden_not_executed() -> None
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
     entrypoint = ENTRYPOINT_PATH.read_text(encoding="utf-8")
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
-    assert 'RUN_MIGRATIONS: "1"' in compose
+    assert 'RUN_MIGRATIONS: "0"' in compose
     assert "alembic upgrade head" in entrypoint
     assert 'RUN_MIGRATIONS: "0"' in script
     assert "alembic upgrade" not in script

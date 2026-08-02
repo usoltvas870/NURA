@@ -1,5 +1,6 @@
-x-app-redis-environment: &app-redis-environment
-  REDIS_PASSWORD: ""
+x-app-base-environment: &app-base-environment
+  SECRET_KEY_FILE: /run/secrets/secret_key
+  DATABASE_URL_FILE: /run/secrets/database_url
   REDIS_PASSWORD_FILE: /run/secrets/redis_password
   REDIS_URL: redis://redis:6379/0
   CELERY_BROKER_URL: ""
@@ -13,8 +14,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_DB: ${POSTGRES_DB}
+    secrets:
+      - source: postgres_password
+        target: postgres_password
+        mode: 0444
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -65,12 +70,22 @@ services:
     env_file:
       - .env
     secrets:
-      - source: redis_password
-        target: redis_password
-        mode: 0444
+      - secret_key
+      - database_url
+      - redis_password
+      - telegram_bot_token
+      - deepseek_api_key
+      - vapid_private_key
+      - admin_token
+      - vk_client_secret
     environment:
-      <<: *app-redis-environment
-      RUN_MIGRATIONS: "1"
+      <<: *app-base-environment
+      TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
+      DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek_api_key
+      VAPID_PRIVATE_KEY_FILE: /run/secrets/vapid_private_key
+      ADMIN_TOKEN_FILE: /run/secrets/admin_token
+      VK_CLIENT_SECRET_FILE: /run/secrets/vk_client_secret
+      RUN_MIGRATIONS: "0"
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,11 +118,16 @@ services:
     env_file:
       - .env
     secrets:
-      - source: redis_password
-        target: redis_password
-        mode: 0444
+      - secret_key
+      - database_url
+      - redis_password
+      - telegram_bot_token
+      - deepseek_api_key
     environment:
-      <<: *app-redis-environment
+      <<: *app-base-environment
+      TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
+      DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek_api_key
+      NURA_TG_POLLING_ENABLED: ${NURA_TG_POLLING_ENABLED:-true}
     depends_on:
       postgres:
         condition: service_healthy
@@ -132,11 +152,21 @@ services:
     env_file:
       - .env
     secrets:
-      - source: redis_password
-        target: redis_password
-        mode: 0444
+      - secret_key
+      - database_url
+      - redis_password
+      - telegram_bot_token
+      - deepseek_api_key
+      - vapid_private_key
+      - admin_bot_token
+      - smtp_password
     environment:
-      <<: *app-redis-environment
+      <<: *app-base-environment
+      TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram_bot_token
+      DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek_api_key
+      VAPID_PRIVATE_KEY_FILE: /run/secrets/vapid_private_key
+      ADMIN_BOT_TOKEN_FILE: /run/secrets/admin_bot_token
+      SMTP_PASSWORD_FILE: /run/secrets/smtp_password
       PYTHONPATH: /app
     depends_on:
       postgres:
@@ -164,11 +194,11 @@ services:
     env_file:
       - .env
     secrets:
-      - source: redis_password
-        target: redis_password
-        mode: 0444
+      - secret_key
+      - database_url
+      - redis_password
     environment:
-      <<: *app-redis-environment
+      <<: *app-base-environment
       PYTHONPATH: /app
     depends_on:
       postgres:
@@ -194,11 +224,15 @@ services:
     env_file:
       - .env
     secrets:
-      - source: redis_password
-        target: redis_password
-        mode: 0444
+      - secret_key
+      - database_url
+      - redis_password
+      - admin_bot_token
+      - deepseek_api_key
     environment:
-      <<: *app-redis-environment
+      <<: *app-base-environment
+      ADMIN_BOT_TOKEN_FILE: /run/secrets/admin_bot_token
+      DEEPSEEK_API_KEY_FILE: /run/secrets/deepseek_api_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -217,7 +251,6 @@ services:
     networks:
       - nura_net
 
-
 volumes:
   postgres_data:
   redis_data:
@@ -228,5 +261,25 @@ networks:
     driver: bridge
 
 secrets:
+  postgres_password:
+    file: /opt/nura/secrets/production/postgres_password
+  secret_key:
+    file: /opt/nura/secrets/production/secret_key
+  database_url:
+    file: /opt/nura/secrets/production/database_url
   redis_password:
-    environment: REDIS_PASSWORD
+    file: /opt/nura/secrets/production/redis_password
+  telegram_bot_token:
+    file: /opt/nura/secrets/production/telegram_bot_token
+  deepseek_api_key:
+    file: /opt/nura/secrets/production/deepseek_api_key
+  vapid_private_key:
+    file: /opt/nura/secrets/production/vapid_private_key
+  admin_bot_token:
+    file: /opt/nura/secrets/production/admin_bot_token
+  admin_token:
+    file: /opt/nura/secrets/production/admin_token
+  smtp_password:
+    file: /opt/nura/secrets/production/smtp_password
+  vk_client_secret:
+    file: /opt/nura/secrets/production/vk_client_secret

@@ -1,5 +1,16 @@
 # NURA: текущее состояние реализации
 
+## Production secret/migration transition update (local, 2026-07-31)
+
+`READY (local contract)`: production Compose переведён на host-backed exact
+secret files для PostgreSQL, Redis и active application consumers; owner-only
+`.env` стал non-secret; добавлены strict multiline VAPID reader, alias/plaintext
+containment, offline redacted preflight, deterministic hashed migration chain и
+manifest-only transition engine с backup/capacity/stale-recovery gates,
+polling-last activation и no-downgrade compensation boundary. Отдельный
+target-bound authorization manifest не создан, поэтому execution остаётся
+`BLOCKED BY DESIGN`. Это не production evidence и не подтверждение VPS state.
+
 ## Локальный owner-only prelaunch milestone (2026-07-31)
 
 На clean baseline `main` / `88d64e5cf61df5210b44008ccdeb4045c049fd81`

@@ -20,6 +20,23 @@ NURA_TG_DATABASE_URL_FILE = "/run/secrets/database_url"
 NURA_TG_REDIS_PASSWORD_FILE = "/run/secrets/redis_password"
 SUPPORTED_RUNTIME_PROFILES = frozenset({"legacy", NURA_TG_RUNTIME_PROFILE})
 RUNTIME_PROFILE_ALIASES = {"pilot": NURA_TG_RUNTIME_PROFILE}
+MAX_SINGLE_LINE_SECRET_BYTES = 16 * 1024
+MAX_MULTILINE_SECRET_BYTES = 64 * 1024
+
+PRODUCTION_PLAINTEXT_SECRET_FIELDS = (
+    ("SECRET_KEY", "secret_key"),
+    ("DATABASE_URL", "database_url"),
+    ("POSTGRES_PASSWORD", "postgres_password"),
+    ("REDIS_PASSWORD", "redis_password"),
+    ("TELEGRAM_BOT_TOKEN", "telegram_bot_token"),
+    ("DEEPSEEK_API_KEY", "deepseek_api_key"),
+    ("VAPID_PRIVATE_KEY", "vapid_private_key"),
+    ("ADMIN_BOT_TOKEN", "admin_bot_token"),
+    ("ADMIN_TOKEN", "admin_token"),
+    ("SMTP_PASSWORD", "smtp_password"),
+    ("VK_CLIENT_SECRET", "vk_client_secret"),
+    ("YOOKASSA_SECRET_KEY", "yookassa_secret_key"),
+)
 
 
 def _read_secret_fd(path: str, label: str) -> str:
@@ -32,6 +49,7 @@ def _read_secret_fd(path: str, label: str) -> str:
             if (
                 not stat.S_ISREG(info.st_mode)
                 or info.st_nlink != 1
+                or info.st_size > MAX_SINGLE_LINE_SECRET_BYTES
                 or (
                     os.name != "nt"
                     and info.st_mode & (stat.S_IWGRP | stat.S_IWOTH)
@@ -52,6 +70,35 @@ def _read_secret_fd(path: str, label: str) -> str:
 
 def _read_secret_file(path: str, label: str) -> str:
     return _read_secret_fd(path, label)
+
+
+def _read_multiline_secret_file(path: str, label: str) -> str:
+    """Read bounded UTF-8 key material without exposing its content in errors."""
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(path, flags)
+        try:
+            info = os.fstat(descriptor)
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or info.st_nlink != 1
+                or info.st_size > MAX_MULTILINE_SECRET_BYTES
+                or (
+                    os.name != "nt"
+                    and info.st_mode & (stat.S_IWGRP | stat.S_IWOTH)
+                )
+            ):
+                raise ValueError(f"{label}_file_unsafe")
+            value = os.read(descriptor, info.st_size + 1).decode("utf-8")
+        finally:
+            os.close(descriptor)
+    except ValueError:
+        raise
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ValueError(f"{label}_file_unreadable") from exc
+    if not value or "\x00" in value or not value.strip():
+        raise ValueError(f"{label}_file_invalid")
+    return value
 
 
 def is_production_environment(app_env: str) -> bool:
@@ -215,6 +262,36 @@ class Settings(BaseSettings):
             if database_url_file != NURA_TG_DATABASE_URL_FILE:
                 raise ValueError("nura_tg_database_url_file_required")
         app_env = values.get("app_env", values.get("APP_ENV", "development"))
+        prelaunch_owner_only = values.get(
+            "prelaunch_owner_only",
+            values.get("PRELAUNCH_OWNER_ONLY", False),
+        )
+        if app_env == "production" and prelaunch_owner_only in (True, "true", "True", "1", 1):
+            for env_name, field_name in PRODUCTION_PLAINTEXT_SECRET_FIELDS:
+                direct_value = values.get(field_name, values.get(env_name))
+                harmless_default = (
+                    (field_name == "secret_key" and direct_value == "change-me" and values.get("secret_key_file", values.get("SECRET_KEY_FILE")))
+                    or (field_name == "postgres_password" and direct_value == "nura" and values.get("database_url_file", values.get("DATABASE_URL_FILE")))
+                )
+                if direct_value not in (None, "") and not harmless_default:
+                    raise ValueError(
+                        f"prelaunch_plaintext_{field_name}_forbidden"
+                    )
+            for env_name, field_name in (
+                ("SECRET_KEY_FILE", "secret_key_file"),
+                ("DATABASE_URL_FILE", "database_url_file"),
+                ("REDIS_PASSWORD_FILE", "redis_password_file"),
+            ):
+                if values.get(field_name, values.get(env_name)) in (None, ""):
+                    raise ValueError(f"prelaunch_{field_name}_required")
+            for env_name, field_name in (
+                ("REDIS_URL", "redis_url"),
+                ("NURA_CELERY_BROKER_URL", "celery_broker_url"),
+                ("NURA_CELERY_RESULT_BACKEND", "celery_result_backend"),
+            ):
+                raw_url = values.get(field_name, values.get(env_name))
+                if isinstance(raw_url, str) and redis_url_has_credentials(raw_url):
+                    raise ValueError("prelaunch_plaintext_redis_url_forbidden")
         if app_env == "sandbox":
             plaintext_fields = (
                 ("SECRET_KEY", "secret_key", "sandbox_plaintext_secret_key_forbidden"),
@@ -303,6 +380,7 @@ class Settings(BaseSettings):
 
     # Admin Bot
     admin_bot_token: str | None = None
+    admin_bot_token_file: str | None = None
     admin_telegram_id: int | None = None
 
     @property
@@ -497,12 +575,21 @@ class Settings(BaseSettings):
         file_fields = (
             ("secret_key_file", "secret_key", "secret_key"),
             ("deepseek_api_key_file", "deepseek_api_key", "deepseek_api_key"),
+            ("admin_bot_token_file", "admin_bot_token", "admin_bot_token"),
+            ("admin_token_file", "admin_token", "admin_token"),
+            ("smtp_password_file", "smtp_password", "smtp_password"),
+            ("vk_client_secret_file", "vk_client_secret", "vk_client_secret"),
             ("yookassa_secret_key_file", "yookassa_secret_key", "yookassa_secret_key"),
         )
         for path_field, value_field, label in file_fields:
             path = getattr(self, path_field)
             if path:
                 setattr(self, value_field, _read_secret_file(path, label))
+        if self.vapid_private_key_file:
+            self.vapid_private_key = _read_multiline_secret_file(
+                self.vapid_private_key_file,
+                "vapid_private_key",
+            )
         return self
 
     @model_validator(mode="after")
@@ -629,6 +716,7 @@ class Settings(BaseSettings):
 
     # Web Push (VAPID)
     vapid_private_key: str | None = None
+    vapid_private_key_file: str | None = None
     vapid_public_key: str | None = None
     vapid_claims_email: str = "admin@nura-ai.ru"
 
@@ -642,11 +730,13 @@ class Settings(BaseSettings):
     smtp_secure: bool = True
     smtp_user: str = "noreply@nura-ai.ru"
     smtp_password: str = ""
+    smtp_password_file: str | None = None
     smtp_from: str = "NURA <noreply@nura-ai.ru>"
     unisender_api_key: str = ""  # deprecated, replaced by SMTP
     sms_ru_api_id: str = ""  # deprecated, SMS auth removed
     vk_client_id: str = ""
     vk_client_secret: str = ""
+    vk_client_secret_file: str | None = None
     vk_redirect_uri: str = "https://nura-ai.ru/vk-callback.html"
     guest_profile_ttl_days: int = 30
     magic_link_ttl_minutes: int = 15
@@ -654,6 +744,7 @@ class Settings(BaseSettings):
 
     # Admin Panel
     admin_token: str | None = None
+    admin_token_file: str | None = None
 
     # Sentry
     sentry_dsn: str | None = None

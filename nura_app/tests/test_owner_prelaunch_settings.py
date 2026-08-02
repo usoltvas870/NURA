@@ -9,6 +9,17 @@ from api import main as api_main
 from core.config import Settings
 
 
+@pytest.fixture(autouse=True)
+def isolate_secret_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in (
+        "SECRET_KEY", "DATABASE_URL", "POSTGRES_PASSWORD", "REDIS_PASSWORD",
+        "TELEGRAM_BOT_TOKEN", "DEEPSEEK_API_KEY", "VAPID_PRIVATE_KEY",
+        "ADMIN_BOT_TOKEN", "ADMIN_TOKEN", "SMTP_PASSWORD", "VK_CLIENT_SECRET",
+        "YOOKASSA_SECRET_KEY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
 def production_security_values(**overrides: object) -> dict[str, object]:
     values: dict[str, object] = {
         "app_env": "production",
@@ -25,8 +36,20 @@ def production_security_values(**overrides: object) -> dict[str, object]:
     return values
 
 
-def owner_prelaunch_settings(**overrides: object) -> Settings:
+def owner_prelaunch_settings(tmp_path: Path, **overrides: object) -> Settings:
+    secret_key = tmp_path / "secret_key"
+    database_url = tmp_path / "database_url"
+    redis_password = tmp_path / "redis_password"
+    secret_key.write_text("test-only-non-default-secret-at-least-32-chars", encoding="utf-8")
+    database_url.write_text("postgresql+asyncpg://user:password@db/nura", encoding="utf-8")
+    redis_password.write_text("test-password", encoding="utf-8")
     values = production_security_values(
+        secret_key_file=str(secret_key),
+        database_url_file=str(database_url),
+        redis_password_file=str(redis_password),
+        redis_url="redis://redis:6379/0",
+        celery_broker_url="redis://redis:6379/1",
+        celery_result_backend="redis://redis:6379/2",
         prelaunch_owner_only=True,
         prelaunch_telegram_allowed_user_ids="101",
         admin_telegram_id=101,
@@ -39,6 +62,7 @@ def owner_prelaunch_settings(**overrides: object) -> Settings:
         yookassa_receipt_enabled=False,
     )
     values.update(overrides)
+    values.pop("secret_key", None)
     return Settings(_env_file=None, **values)
 
 
@@ -50,8 +74,8 @@ def test_prelaunch_is_off_by_default() -> None:
     assert settings.payments_enabled is True
 
 
-def test_owner_prelaunch_allows_current_production_ai_without_yookassa() -> None:
-    settings = owner_prelaunch_settings()
+def test_owner_prelaunch_allows_current_production_ai_without_yookassa(tmp_path: Path) -> None:
+    settings = owner_prelaunch_settings(tmp_path)
 
     assert settings.is_owner_prelaunch is True
     assert settings.prelaunch_telegram_allowed_ids == (101,)
@@ -102,11 +126,12 @@ def test_owner_prelaunch_allows_current_production_ai_without_yookassa() -> None
     ],
 )
 def test_owner_prelaunch_invalid_combinations_fail_closed(
+    tmp_path: Path,
     overrides: dict[str, object],
     error_code: str,
 ) -> None:
     with pytest.raises(ValidationError, match=error_code):
-        owner_prelaunch_settings(**overrides)
+        owner_prelaunch_settings(tmp_path, **overrides)
 
 
 def test_public_production_still_requires_payments_and_yookassa() -> None:
@@ -126,9 +151,10 @@ def test_public_production_still_requires_payments_and_yookassa() -> None:
 
 
 def test_owner_prelaunch_readiness_marks_payments_disabled_but_ready(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    runtime = owner_prelaunch_settings()
+    runtime = owner_prelaunch_settings(tmp_path)
     monkeypatch.setattr(api_main, "settings", runtime)
 
     assert api_main.payment_webhook_readiness_status() == "disabled"
