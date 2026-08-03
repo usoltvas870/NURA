@@ -205,6 +205,42 @@ def test_root_engine_allows_only_pinned_or_manifest_authorized_migrations() -> N
     assert 'frontend/test_pwa_release.mjs"' in script
 
 
+def test_clean_install_is_manifest_derived_and_starts_only_target_services_in_order() -> None:
+    script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    assert "readonly -a CLEAN_INSTALL_SERVICE_ORDER=(api celery-worker admin-bot celery-beat bot)" in script
+    assert "NURA_CLEAN_INSTALL_MODE" not in script
+    assert "clean-install authorization validation failed" in script
+    assert "clean-install mode requires a verified execution bundle" in script
+    assert "clean-install mode requires an engine handoff" in script
+    assert "verify-clean-install-handoff" in script
+    assert "--consume" in script
+    assert script.index("validate-authorization") < script.index(
+        "current release rollback image is missing before activation"
+    )
+    assert script.index("verify-clean-install-handoff") < script.index(
+        "CLEAN_INSTALL_MODE=1"
+    )
+    assert 'for service_name in "${CLEAN_INSTALL_SERVICE_ORDER[@]}"' in script
+    assert 'run_compose up -d --no-build --no-deps --wait --wait-timeout 180 "$service_name"' in script
+    assert 'run_compose stop "${APPLICATION_SERVICES[@]}"' in script
+    assert 'run_compose rm -f "${APPLICATION_SERVICES[@]}"' in script
+    assert 'run_compose rm -f -v' not in script
+
+
+def test_rollback_rejects_clean_install_authorization_before_host_access() -> None:
+    environment = os.environ.copy()
+    environment["NURA_PRELAUNCH_TRANSITION_AUTHORIZATION"] = "manifest.json"
+    result = subprocess.run(
+        [_bash_executable(), str(DEPLOY_SCRIPT), "rollback", "0" * 40],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=environment,
+    )
+    assert result.returncode != 0
+    assert "authorization is valid only for deploy" in result.stderr
+
+
 def test_audited_p6b_wrapper_reaches_exact_immutable_target() -> None:
     source = AUDITED_P6B_SCRIPT.read_text(encoding="utf-8")
     assert "TARGET_SHA='9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532'" in source

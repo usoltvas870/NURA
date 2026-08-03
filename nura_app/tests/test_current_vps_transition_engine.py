@@ -1,6 +1,7 @@
 """Manifest-only preconditions, ordering, and honest compensation boundaries."""
 
 import importlib.util
+import inspect
 import os
 import subprocess
 import sys
@@ -18,13 +19,14 @@ sys.modules[SPEC.name] = transition
 SPEC.loader.exec_module(transition)
 
 
-def authorization() -> dict[str, object]:
+def authorization(**overrides: object) -> dict[str, object]:
     now = datetime.now(timezone.utc)
     payload: dict[str, object] = {
         "schema_version": transition.AUTHORIZATION_SCHEMA,
         "authorization_base_commit_sha": "a" * 40,
         "authorization_manifest_path": "docs/operations/authorizations/current-vps-prelaunch-example.json",
         "source_application_sha": transition.SOURCE_APPLICATION_SHA,
+        "source_static_sha": transition.SOURCE_APPLICATION_SHA,
         "target_application_sha": "a" * 40,
         "engine_commit_sha": "a" * 40,
         "engine_file_sha256": transition.hashlib.sha256(SCRIPT.read_bytes()).hexdigest(),
@@ -34,19 +36,35 @@ def authorization() -> dict[str, object]:
         "migration_chain_digest": transition.MIGRATION_CHAIN_DIGEST,
         "required_secret_profile_version": transition.SECRET_PROFILE_VERSION,
         "backup_evidence_schema": 1,
+        "backup_evidence_checksum": "b" * 64,
+        "backup_evidence_sha256": "c" * 64,
+        "application_layer_removal_evidence_schema": transition.REMOVAL_EVIDENCE_SCHEMA,
+        "application_layer_removal_evidence_checksum": "f" * 64,
+        "application_layer_removal_evidence_sha256": "1" * 64,
+        "expected_database_counts": {
+            "guest_profiles": 5,
+            "payments": 0,
+            "reports": 2,
+            "users": 2,
+        },
         "capacity_acknowledgement": {
             "allowed_modes": ["available_ram", "precreated_swap"],
             "minimum_available_ram_bytes": transition.MIN_AVAILABLE_RAM_BYTES,
             "minimum_active_swap_bytes": transition.MIN_ACTIVE_SWAP_BYTES,
         },
-        "backward_compatible_schema_acknowledgement": True,
+        "source_runtime_mode": transition.SOURCE_RUNTIME_MODE,
+        "installation_mode": transition.INSTALLATION_MODE,
+        "allow_source_fleet_start": False,
+        "require_application_layer_removal_evidence": True,
+        "post_migration_failure_mode": transition.POST_MIGRATION_FAILURE_MODE,
         "database_downgrade_acknowledgement": "not-supported",
-        "owner_approval_identifiers": ["approval-owner-20260731"],
+        "owner_approval_identifiers": [transition.OWNER_APPROVAL],
         "valid_from": (now - timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
         "expires_at": (now + timedelta(minutes=55)).isoformat().replace("+00:00", "Z"),
         "target_artifact_sha256": "d" * 64,
         "target_manifest_sha256": "e" * 64,
     }
+    payload.update(overrides)
     payload["checksum"] = transition.payload_checksum(payload)
     return payload
 
@@ -63,26 +81,35 @@ class FakeAdapter:
 
     def build_migration_candidate(self, _target: str) -> None: self._call("build")
     def revalidate_backup_evidence(self) -> None: self._call("backup_revalidate")
-    def stop_writers(self) -> None: self._call("stop")
+    def revalidate_removal_evidence(self) -> None: self._call("removal_revalidate")
+    def verify_application_layer_absent(self) -> None: self._call("verify_absent")
     def apply_migrations(self, _target: str) -> None: self._call("migrate")
     def activate_target_with_polling_disabled(self, _target: str) -> None: self._call("activate_without_polling")
     def verify_target_without_polling(self, _target: str) -> None: self._call("verify_without_polling")
     def verify_owner_only_without_polling(self, _target: str) -> None: self._call("owner_safe_without_polling")
     def activate_bot_polling(self) -> None: self._call("bot_polling")
     def verify_bot_polling(self, _target: str) -> None: self._call("polling_smoke")
-    def compensate_application_only(self, _source: str) -> None: self._call("app_compensate")
-    def verify_source_fleet_at_target_schema(self, _source: str) -> None: self._call("source_at_target_schema")
+    def leave_application_stopped(self, _source: str, _target: str) -> None: self._call("leave_stopped")
+    def verify_application_stopped(self, _source: str, _revision: str | None) -> None: self._call("verify_stopped")
     def record(self, phase: str, _payload: object) -> None: self.calls.append(f"record:{phase}")
 
 
 def good_preconditions(**overrides: object):
     values = {
         "current_application_sha": transition.SOURCE_APPLICATION_SHA,
+        "current_static_sha": transition.SOURCE_APPLICATION_SHA,
         "current_db_revision": transition.CURRENT_REVISION,
+        "current_database_counts": (2, 5, 2, 0),
+        "database_other_sessions": 0,
         "current_release_successful": True,
-        "staged_transaction_present": False,
-        "duplicate_fleet_present": False,
-        "source_fleet_identity_verified": True,
+        "active_transaction_present": False,
+        "application_containers_present": False,
+        "application_process_present": False,
+        "data_services_healthy": True,
+        "protected_volumes_present": True,
+        "owner_allowlist_exact": True,
+        "payments_disabled": True,
+        "yookassa_absent": True,
         "preflight_result": "READY_FOR_HOST_BACKUP_AND_RECOVERY",
         "artifact_sha256": "d" * 64,
         "manifest_sha256": "e" * 64,
@@ -101,6 +128,19 @@ def test_authorization_manifest_is_canonical_and_checksum_bound(tmp_path: Path) 
     path.write_bytes(transition.canonical_json(value))
     with pytest.raises(transition.TransitionError, match="checksum_mismatch"):
         transition.validate_authorization_manifest(path, verify_git=False)
+
+
+def test_schema_v2_and_inexact_clean_install_fields_are_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "authorization.json"
+    for override in (
+        {"schema_version": 2},
+        {"allow_source_fleet_start": True},
+        {"installation_mode": "legacy-transition"},
+        {"post_migration_failure_mode": "rollback-source"},
+    ):
+        path.write_bytes(transition.canonical_json(authorization(**override)))
+        with pytest.raises(transition.TransitionError, match="schema_invalid|transition_mismatch"):
+            transition.validate_authorization_manifest(path, verify_git=False)
 
 
 def test_authorization_manifest_preserves_tracked_blob_bytes(tmp_path: Path) -> None:
@@ -184,10 +224,18 @@ def test_authorization_manifest_preserves_tracked_blob_bytes(tmp_path: Path) -> 
     ("override", "error"),
     [
         ({"current_application_sha": "f" * 40}, "current_application_mismatch"),
+        ({"current_static_sha": "f" * 40}, "current_static_mismatch"),
         ({"current_db_revision": "wrong"}, "current_database_revision_mismatch"),
-        ({"staged_transaction_present": True}, "stale_transaction_not_recovered"),
-        ({"duplicate_fleet_present": True}, "duplicate_fleet_detected"),
-        ({"source_fleet_identity_verified": False}, "source_fleet_identity_mismatch"),
+        ({"current_database_counts": (3, 5, 2, 0)}, "current_database_counts_mismatch"),
+        ({"database_other_sessions": 1}, "application_database_session_present"),
+        ({"active_transaction_present": True}, "active_transaction_present"),
+        ({"application_containers_present": True}, "application_container_present"),
+        ({"application_process_present": True}, "application_process_present"),
+        ({"data_services_healthy": False}, "data_services_not_healthy"),
+        ({"protected_volumes_present": False}, "protected_volume_missing"),
+        ({"owner_allowlist_exact": False}, "owner_allowlist_invalid"),
+        ({"payments_disabled": False}, "payments_not_disabled"),
+        ({"yookassa_absent": False}, "yookassa_present"),
         ({"preflight_result": "BLOCKED"}, "offline_preflight_failed"),
         ({"artifact_sha256": "0" * 64}, "target_artifact_identity_mismatch"),
         ({"capacity": transition.CapacitySnapshot(1, 0, transition.MIN_DISK_FREE_BYTES, transition.MIN_FREE_INODES)}, "capacity_memory_insufficient"),
@@ -200,7 +248,7 @@ def test_every_failed_gate_prevents_all_mutations(override: dict[str, object], e
             authorization=authorization(),
             preconditions=good_preconditions(**override),
             backup_evidence={"schema_version": 1},
-            recovery_evidence={"status": "canonical_recovery_verified"},
+            removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
         )
     assert adapter.calls == []
 
@@ -211,13 +259,14 @@ def test_success_order_keeps_bot_last_and_never_cleans_up() -> None:
         authorization=authorization(),
         preconditions=good_preconditions(),
         backup_evidence={"schema_version": 1},
-        recovery_evidence={"status": "canonical_recovery_verified"},
+        removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
     )
     assert adapter.calls == [
         "record:all_preconditions_passed",
         "build",
         "backup_revalidate",
-        "stop",
+        "removal_revalidate",
+        "verify_absent",
         "migrate",
         "activate_without_polling",
         "verify_without_polling",
@@ -237,14 +286,14 @@ def test_execution_entrypoint_reuses_the_common_release_lock() -> None:
     assert "pass_fds=inherited_fds" in source
 
 
-def test_backup_is_revalidated_after_build_and_before_writer_stop() -> None:
+def test_backup_is_revalidated_after_build_and_before_absence_recheck() -> None:
     adapter = FakeAdapter("backup_revalidate")
     with pytest.raises(RuntimeError, match="backup_revalidate"):
         transition.TransitionEngine(adapter).execute(
             authorization=authorization(),
             preconditions=good_preconditions(),
             backup_evidence={"schema_version": 1},
-            recovery_evidence={"status": "canonical_recovery_verified"},
+            removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
         )
     assert adapter.calls == [
         "record:all_preconditions_passed",
@@ -260,14 +309,17 @@ def test_migration_failure_never_downgrades_or_activates() -> None:
             authorization=authorization(),
             preconditions=good_preconditions(),
             backup_evidence={"schema_version": 1},
-            recovery_evidence={"status": "canonical_recovery_verified"},
+            removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
         )
     assert adapter.calls == [
         "record:all_preconditions_passed",
         "build",
         "backup_revalidate",
-        "stop",
+        "removal_revalidate",
+        "verify_absent",
         "migrate",
+        "leave_stopped",
+        "verify_stopped",
         "record:migration_failed",
     ]
 
@@ -279,12 +331,12 @@ def test_post_migration_activation_failure_rolls_back_only_application() -> None
             authorization=authorization(),
             preconditions=good_preconditions(),
             backup_evidence={"schema_version": 1},
-            recovery_evidence={"status": "canonical_recovery_verified"},
+        removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
         )
-    assert "app_compensate" in adapter.calls
-    assert "source_at_target_schema" in adapter.calls
+    assert "leave_stopped" in adapter.calls
+    assert "verify_stopped" in adapter.calls
     assert "bot_polling" not in adapter.calls
-    assert adapter.calls[-1] == "record:application_rollback_verified"
+    assert adapter.calls[-1] == "record:application_stopped_verified"
 
 
 def test_backup_evidence_rehashes_each_real_artifact(tmp_path: Path) -> None:
@@ -310,12 +362,16 @@ def test_backup_evidence_rehashes_each_real_artifact(tmp_path: Path) -> None:
     payload["checksum"] = transition.payload_checksum(payload)
     evidence = backup_root / "backup-evidence.json"
     evidence.write_bytes(transition.canonical_json(payload))
+    manifest = authorization(
+        backup_evidence_checksum=payload["checksum"],
+        backup_evidence_sha256=transition.hashlib.sha256(evidence.read_bytes()).hexdigest(),
+    )
 
     transition.validate_evidence(
         evidence,
         kind="backup",
         schema=transition.BACKUP_EVIDENCE_SCHEMA,
-        manifest=authorization(),
+        manifest=manifest,
         backup_root=backup_root,
     )
     (backup_root / "redis.backup").write_bytes(b"tampered")
@@ -324,12 +380,76 @@ def test_backup_evidence_rehashes_each_real_artifact(tmp_path: Path) -> None:
             evidence,
             kind="backup",
             schema=transition.BACKUP_EVIDENCE_SCHEMA,
-            manifest=authorization(),
+            manifest=manifest,
             backup_root=backup_root,
         )
 
 
-def test_concrete_activation_and_compensation_use_exact_target_bundle(
+def test_removal_evidence_is_identity_bound_and_fail_closed(tmp_path: Path) -> None:
+    payload: dict[str, object] = {
+        "schema_version": transition.REMOVAL_EVIDENCE_SCHEMA,
+        "kind": "legacy_application_layer_removal_evidence",
+        "phase": "complete",
+        "result": "APPLICATION_LAYER_RESET_PASS",
+        "application_containers_after": [],
+        "application_services_running": False,
+        "active_transactions_after": [],
+        "provider_calls": 0,
+        "migrations_applied": 0,
+        "deploy_performed": False,
+        "volumes_deleted": 0,
+        "images_deleted": 0,
+        "releases_deleted": 0,
+        "static_switched": False,
+        "database_mutated_by_cleanup": False,
+        "processes_after": {"application": 0, "controllers": 0, "provider_facing": 0},
+        "protected_containers_after": [
+            {"compose_service": service, "state": "running", "health": "healthy"}
+            for service in transition.DATA_SERVICES
+        ],
+        "protected_volumes_after": [
+            {"name": name} for name in transition.PROTECTED_VOLUMES
+        ],
+        "database_after": {
+            "revision": transition.CURRENT_REVISION,
+            "users": 2,
+            "guest_profiles": 5,
+            "reports": 2,
+            "payments": 0,
+            "other_sessions": 0,
+        },
+        "release_state_after": {
+            "canonical_sha": transition.SOURCE_APPLICATION_SHA,
+            "static_sha": transition.SOURCE_APPLICATION_SHA,
+        },
+    }
+    payload["checksum"] = transition.compact_payload_checksum(payload)
+    evidence = tmp_path / "removal.json"
+    evidence.write_bytes(transition.canonical_json(payload))
+    manifest = authorization(
+        application_layer_removal_evidence_checksum=payload["checksum"],
+        application_layer_removal_evidence_sha256=transition.hashlib.sha256(
+            evidence.read_bytes()
+        ).hexdigest(),
+    )
+    transition.validate_removal_evidence(evidence, manifest=manifest)
+
+    payload["result"] = "FAILED"
+    payload["checksum"] = transition.compact_payload_checksum(
+        {key: value for key, value in payload.items() if key != "checksum"}
+    )
+    evidence.write_bytes(transition.canonical_json(payload))
+    tampered_manifest = authorization(
+        application_layer_removal_evidence_checksum=payload["checksum"],
+        application_layer_removal_evidence_sha256=transition.hashlib.sha256(
+            evidence.read_bytes()
+        ).hexdigest(),
+    )
+    with pytest.raises(transition.TransitionError, match="removal_evidence_identity_invalid"):
+        transition.validate_removal_evidence(evidence, manifest=tampered_manifest)
+
+
+def test_concrete_activation_uses_exact_target_bundle(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -349,6 +469,7 @@ def test_concrete_activation_and_compensation_use_exact_target_bundle(
         public_manifest=tmp_path / "manifest.json",
         evidence_directory=evidence,
         backup_evidence=tmp_path / "authorization.json",
+        removal_evidence=tmp_path / "authorization.json",
         backup_root=tmp_path,
         authorization=authorization(),
     )
@@ -367,10 +488,184 @@ def test_concrete_activation_and_compensation_use_exact_target_bundle(
 
     monkeypatch.setattr(adapter, "_run", capture)
     monkeypatch.setattr(transition, "_git", lambda *_args: "a" * 40)
+    monkeypatch.setattr(
+        transition,
+        "_read_canonical_json",
+        lambda *_args: {"sha": transition.SOURCE_APPLICATION_SHA},
+    )
     adapter.activate_target_with_polling_disabled("a" * 40)
-    adapter.compensate_application_only(transition.SOURCE_APPLICATION_SHA)
 
-    assert all(call[0][1] == str(bundle / "deploy.sh") for call in calls)
-    assert all(call[1]["NURA_RELEASE_EXECUTION_BUNDLE"] == str(bundle) for call in calls)
+    assert calls[0][0][1] == str(bundle / "deploy.sh")
+    assert calls[0][1]["NURA_RELEASE_EXECUTION_BUNDLE"] == str(bundle)
     assert calls[0][1]["NURA_TG_POLLING_ENABLED"] == "false"
-    assert calls[1][1]["NURA_TG_POLLING_ENABLED"] == "false"
+
+
+def test_source_fleet_is_never_started_by_clean_install_engine() -> None:
+    source = inspect.getsource(transition.TransitionEngine)
+    assert "activate_from_state" not in source
+    assert "compensate_application_only" not in source
+    assert "verify_source_fleet" not in source
+    assert "leave_application_stopped" in source
+
+
+def test_application_container_probe_is_project_agnostic(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        (
+            subprocess.CompletedProcess([], 0, "container-1\n", ""),
+            subprocess.CompletedProcess(
+                [],
+                0,
+                f"bot|{transition.SOURCE_APPLICATION_SHA}|nura-release:{transition.SOURCE_APPLICATION_SHA}\n",
+                "",
+            ),
+        )
+    )
+    monkeypatch.setattr(transition.subprocess, "run", lambda *_args, **_kwargs: next(responses))
+    assert transition._application_containers_present() is True
+
+
+def test_raw_nura_release_container_without_compose_labels_is_detected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = iter(
+        (
+            subprocess.CompletedProcess([], 0, "raw-container\n", ""),
+            subprocess.CompletedProcess(
+                [],
+                0,
+                f"|{transition.SOURCE_APPLICATION_SHA}|nura-release:{transition.SOURCE_APPLICATION_SHA}\n",
+                "",
+            ),
+        )
+    )
+    monkeypatch.setattr(transition.subprocess, "run", lambda *_args, **_kwargs: next(responses))
+    assert transition._application_containers_present() is True
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        "nura-release:" + "a" * 40,
+        "nura-release-candidate:" + "a" * 40 + "-run",
+        "nura-prelaunch-migration:" + "a" * 40,
+    ],
+)
+def test_concrete_adapter_classifies_raw_nura_images(image: str) -> None:
+    assert transition._is_application_container("", "", image) is True
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python -m bot.main",
+        "python3 -m admin_bot.main",
+        "uvicorn api.main:app --host 0.0.0.0",
+        "celery -A core.tasks worker --loglevel=info",
+        "celery -A core.tasks beat --loglevel=info",
+    ],
+)
+def test_application_process_probe_covers_real_compose_commands(
+    command: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        transition.subprocess,
+        "run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0, f"{command}\n", ""),
+    )
+    assert transition._application_process_present() is True
+
+
+@pytest.mark.parametrize(
+    "phase",
+    sorted(
+        {
+            "prepared",
+            "baseline_ready",
+            "stage1_intent",
+            "stage1_verified",
+            "stage2_intent",
+            "stage2_verified",
+            "smoke_verified",
+            "finalizing",
+            "stale_recovery_intent",
+            "unknown_future_phase",
+        }
+    ),
+)
+def test_unresolved_or_unknown_p7b_phases_fail_closed(tmp_path: Path, phase: str) -> None:
+    transaction = tmp_path / "transaction.json"
+    transaction.write_bytes(transition.canonical_json({"payload": {"phase": phase}}))
+    assert transition._active_transaction_present(tmp_path) is True
+
+
+@pytest.mark.parametrize("phase", sorted(transition.P7B_TERMINAL_PHASES))
+def test_terminal_p7b_phases_are_not_active(tmp_path: Path, phase: str) -> None:
+    transaction = tmp_path / "transaction.json"
+    transaction.write_bytes(transition.canonical_json({"payload": {"phase": phase}}))
+    assert transition._active_transaction_present(tmp_path) is False
+
+
+def test_static_current_rejects_same_basename_outside_release_root(tmp_path: Path) -> None:
+    release_root = tmp_path / "canonical" / "releases"
+    release_root.mkdir(parents=True)
+    outside = tmp_path / "untrusted" / transition.SOURCE_APPLICATION_SHA
+    outside.mkdir(parents=True)
+    current = release_root.parent / "current"
+    try:
+        current.symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink creation is unavailable")
+    with pytest.raises(transition.TransitionError, match="current_static_link_invalid"):
+        transition._validate_static_current(
+            current,
+            transition.SOURCE_APPLICATION_SHA,
+            tmp_path / "helper.py",
+        )
+
+
+def test_compensation_removes_target_source_and_unlabelled_revision_containers(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "target"
+    evidence = tmp_path / "evidence"
+    (target / "nura_app").mkdir(parents=True)
+    evidence.mkdir()
+    fixture = tmp_path / "fixture"
+    fixture.write_text("fixture", encoding="utf-8")
+    adapter = transition.HostMutationAdapter(
+        target_source=target,
+        authorization_manifest=fixture,
+        archive=fixture,
+        checksum=fixture,
+        public_manifest=fixture,
+        evidence_directory=evidence,
+        backup_evidence=fixture,
+        removal_evidence=fixture,
+        backup_root=tmp_path,
+        authorization=authorization(),
+    )
+    rows = [
+        ("target", "running", "a" * 40),
+        ("source", "running", transition.SOURCE_APPLICATION_SHA),
+        ("missing-revision", "running", ""),
+    ]
+    monkeypatch.setattr(adapter, "_application_containers", lambda: rows)
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        adapter,
+        "_run",
+        lambda command, **_kwargs: commands.append(list(command)) or "",
+    )
+    adapter._stop_and_remove_application_containers()
+    assert commands == [
+        ["docker", "stop", "target"],
+        ["docker", "stop", "source"],
+        ["docker", "stop", "missing-revision"],
+        ["docker", "rm", "target"],
+        ["docker", "rm", "source"],
+        ["docker", "rm", "missing-revision"],
+    ]

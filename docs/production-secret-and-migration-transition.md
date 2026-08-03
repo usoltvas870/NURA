@@ -103,9 +103,9 @@ Aggregate contract digest:
 `0277a4602fcc948e60450c80ec55121529f14443ee9616b38d3a4ead2549d0ad`.
 `tools/current_vps_migration_contract.py` проверяет full graph single head,
 parent order, filenames и SHA-256 каждого migration file. Цепочка reviewed как
-additive/backward-compatible для exact application fleet `9da6ad8…`; это
-разрешает только application/static compensation после migrated DB. Database
-downgrade не обещается и engine его не выполняет.
+additive, но clean-install contract не использует это как разрешение на запуск
+source fleet после migrated DB. Database downgrade не поддерживается и engine
+его не выполняет.
 
 ## 5. Two-commit authorization
 
@@ -114,11 +114,13 @@ downgrade не обещается и engine его не выполняет.
 становится target `T`. Отдельный маленький milestone создаёт tracked canonical
 manifest по пути `docs/operations/authorizations/current-vps-prelaunch-*.json`.
 
-Manifest schema v2 фиксирует authorization base/source/target/engine commits,
-engine file SHA-256, current/target DB revisions, ordered migrations,
-aggregate digest, secret profile, backup evidence schema, capacity thresholds,
-backward-compatibility/no-downgrade acknowledgements, opaque owner approval IDs,
-bounded UTC window, artifact/manifest SHA-256 и checksum. Manifest не содержит
+Manifest schema v3 фиксирует authorization base/source/target/engine commits,
+engine file SHA-256, current/target DB revisions и counts, ordered migrations,
+aggregate digest, secret profile, exact backup/removal evidence identities,
+capacity thresholds и clean-install failure boundary. Обязательны
+`source_runtime_mode=application-layer-absent`, `installation_mode=clean-install`,
+`allow_source_fleet_start=false`, removal evidence и
+`post_migration_failure_mode=leave-application-stopped`. Manifest не содержит
 secrets, DSN, Telegram IDs или PII. Из-за невозможности включить SHA commit в
 его собственный blob manifest фиксирует `authorization_base_commit_sha=T`.
 Engine выводит authorization commit как exact `origin/main`, требует его
@@ -128,16 +130,18 @@ path и сравнивает tracked blob побайтно. Arbitrary CLI transi
 
 ## 6. Preconditions and capacity
 
-До build, service stop или database mutation engine требует:
+До build или database mutation engine требует:
 
-- отдельный `recover-stale` уже вернул P7B к canonical `9da6ad8…`;
-- successful release state, отсутствие staged transaction и duplicate fleet;
+- validated application-layer removal evidence и backup evidence;
+- отсутствие всех application containers/processes и active transactions;
+- healthy existing PostgreSQL/Redis и все protected volumes;
+- successful canonical/static source `9da6ad8…`;
 - clean canonical `main` checkout, который является ancestor exact target, и
   доказанный `source_application_sha → target_application_sha` fast-forward;
 - exact DB revision `d1e2f3a4b5c6`;
 - checksummed verified PostgreSQL, Redis, configuration и release-state evidence:
   каждый record содержит absolute path внутри approved backup root, а engine
-  после candidate build и непосредственно перед writer stop повторно открывает
+  после candidate build и непосредственно перед migration повторно открывает
   direct-child artifact через `O_NOFOLLOW`/backup-root descriptor, проверяет
   same-fd metadata до/после чтения, path inode, owner/mode/link count,
   фактический размер и streaming SHA-256;
@@ -153,20 +157,28 @@ remediation. Prebuilt-image mode не реализован и не может б
 
 ## 7. Execution and failure boundary
 
-Порядок: verified stale recovery → all read-only gates, включая exact running
-fleet image IDs/tags/OCI revisions → candidate build и exact-target execution
-bundle → stop writers → exact migration → target activation с polling off →
+Порядок: validated application-layer removal → all read-only gates при полном
+отсутствии source application layer → candidate build и exact-target execution
+bundle → exact migration → последовательное создание только target API, worker,
+admin-bot, Beat и bot с polling off →
 `/ready`, worker ping, running Beat и payment-disabled verification →
 owner-only/YooKassa-free local identity при polling off → bot polling last →
 polling verification → immutable receipt. Backup evidence требуется уже до первой
 mutation; это намеренно строже старого checklist.
 
-Failure до migration оставляет application/database без transition. Migration
-failure останавливает процесс, сохраняет evidence и не вызывает downgrade.
-Failure activation после successful migration вызывает только coordinated
-application/static compensation к exact `9da6ad8…`; DB остаётся на
-`d8e9f0a1b2c3`, после чего old fleet повторно проверяется. Cleanup отсутствует и
-требует отдельного approval.
+После всех gates и exact migration engine создаёт одноразовый canonical handoff,
+привязанный к manifest, backup/removal evidence и exact source/target. `deploy.sh`
+принимает clean-install semantics только внутри verified execution bundle,
+проверяет и потребляет handoff до mutation; tracked manifest сам по себе не
+разрешает прямой deploy или rollback.
+
+Failure до migration оставляет PostgreSQL/Redis и отсутствующий application
+layer без изменений. Migration failure сохраняет evidence, не вызывает
+downgrade и оставляет application layer отсутствующим. Failure activation после
+successful migration останавливает/удаляет только target application containers,
+возвращает static/current к `9da6ad8…`, оставляет DB на `d8e9f0a1b2c3` и никогда
+не запускает source application fleet. Cleanup старых images/releases отсутствует
+и требует отдельного approval.
 
 ## 8. Approval points
 

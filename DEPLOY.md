@@ -25,12 +25,21 @@
 Единственное расширение — отдельный one-time engine
 `scripts/current_vps_prelaunch_transition.py`, описанный в
 [production secret and migration transition](docs/production-secret-and-migration-transition.md).
-Он принимает только canonical tracked authorization manifest schema v2:
+Он принимает только canonical tracked authorization manifest schema v3:
 `origin/main` обязан быть отдельным manifest-only commit поверх exact target
 base. Engine проверяет exact source/target/schema/artifact/engine identities,
-реальные backup artifacts, running fleet identity и уже применённый target head.
+реальные backup/removal artifacts, отсутствие application containers/processes,
+healthy protected data services/volumes и уже применённый target head.
 Manifest с target `T` намеренно отсутствует в текущем implementation milestone;
 без последующего authorization commit deploy остаётся заблокирован.
+
+Clean-install path никогда не запускает source application fleet. При failure
+после migration target application containers останавливаются/удаляются,
+static/current возвращается на source, DB остаётся на target head, а automatic
+downgrade запрещён.
+`deploy.sh` включает этот режим только из verified execution bundle по
+одноразовому canonical handoff, который engine создаёт после всех gates и exact
+migration; прямой deploy с одним лишь tracked manifest блокируется.
 
 Base production Compose использует `RUN_MIGRATIONS=0`. Ни обычный workflow, ни
 `deploy.sh` не применяют Alembic upgrade/downgrade. После отдельно разрешённого

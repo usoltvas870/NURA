@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 readonly SHA_PATTERN='^[0-9a-f]{40}$'
 readonly -a APPLICATION_SERVICES=(api bot celery-worker celery-beat admin-bot)
+readonly -a CLEAN_INSTALL_SERVICE_ORDER=(api celery-worker admin-bot celery-beat bot)
 readonly -a DATA_SERVICES=(postgres redis)
 readonly AUDITED_MIGRATION_FROM_SHA='d0d39ae8717ceb0920d98f27dd9092f746755c6c'
 readonly AUDITED_MIGRATION_TARGET_SHA='9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532'
@@ -181,6 +182,12 @@ case "$COMMAND:$#" in
     ;;
   *) fail "ambiguous arguments; use an explicit deploy or rollback subcommand" ;;
 esac
+if [[ -n "${NURA_PRELAUNCH_TRANSITION_AUTHORIZATION:-}" && "$COMMAND" != deploy ]]; then
+  fail "prelaunch transition authorization is valid only for deploy"
+fi
+if [[ -n "${NURA_CLEAN_INSTALL_HANDOFF:-}" && -z "${NURA_PRELAUNCH_TRANSITION_AUTHORIZATION:-}" ]]; then
+  fail "clean-install handoff requires prelaunch transition authorization"
+fi
 
 case "${NURA_DEPLOY_TEST_MODE:-0}" in
   0)
@@ -558,6 +565,7 @@ STATE_STAGED=0
 APP_MUTATED=0
 STATIC_SWITCHED=0
 SUCCESS=0
+CLEAN_INSTALL_MODE=0
 PREVIOUS_RELEASE_PATH=""
 TARGET_STATE_SNAPSHOT=""
 ENVIRONMENT_RECONCILED=0
@@ -572,16 +580,21 @@ cleanup() {
       fi
     fi
     if [[ $APP_MUTATED -eq 1 ]]; then
-      if [[ $ENVIRONMENT_RECONCILED -eq 1 ]] && ! python3 "$ENVIRONMENT_RECONCILE_HELPER" restore --target-sha "$TARGET_SHA" --environment "$ENVIRONMENT_FILE" --state-root "$STATE_ROOT" --p7b-root "$P7B_STATE_ROOT"; then compensation_ok=0; fi
-      if ! activate_from_state "$PREVIOUS_STATE_FILE" "$CURRENT_SHA"; then
-        compensation_ok=0
+      if [[ $CLEAN_INSTALL_MODE -eq 1 ]]; then
+        run_compose stop "${APPLICATION_SERVICES[@]}" >/dev/null 2>&1 || compensation_ok=0
+        run_compose rm -f "${APPLICATION_SERVICES[@]}" >/dev/null 2>&1 || compensation_ok=0
+      else
+        if [[ $ENVIRONMENT_RECONCILED -eq 1 ]] && ! python3 "$ENVIRONMENT_RECONCILE_HELPER" restore --target-sha "$TARGET_SHA" --environment "$ENVIRONMENT_FILE" --state-root "$STATE_ROOT" --p7b-root "$P7B_STATE_ROOT"; then compensation_ok=0; fi
+        if ! activate_from_state "$PREVIOUS_STATE_FILE" "$CURRENT_SHA"; then
+          compensation_ok=0
+        fi
       fi
     fi
     if [[ $STATIC_SWITCHED -eq 1 || $APP_MUTATED -eq 1 ]]; then
       if ! python3 "$ARTIFACT_HELPER" validate-current --current "$CURRENT_LINK" --expected-sha "$CURRENT_SHA" >/dev/null; then
         compensation_ok=0
       fi
-      if ! public_smoke "$CURRENT_SHA"; then
+      if [[ $CLEAN_INSTALL_MODE -ne 1 ]] && ! public_smoke "$CURRENT_SHA"; then
         compensation_ok=0
       fi
     fi
@@ -618,15 +631,39 @@ cleanup() {
   exit "$exit_code"
 }
 trap cleanup EXIT
+if [[ -n "${NURA_PRELAUNCH_TRANSITION_AUTHORIZATION:-}" ]]; then
+  [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]] \
+    || fail "clean-install mode requires a verified execution bundle"
+  [[ -n "${NURA_CLEAN_INSTALL_HANDOFF:-}" \
+    && -f "${NURA_CLEAN_INSTALL_HANDOFF}" \
+    && ! -L "${NURA_CLEAN_INSTALL_HANDOFF}" ]] \
+    || fail "clean-install mode requires an engine handoff"
+  python3 "$PRELAUNCH_TRANSITION_HELPER" validate-authorization \
+    --manifest "$NURA_PRELAUNCH_TRANSITION_AUTHORIZATION" \
+    --repo "$REPO_ROOT" >/dev/null \
+    || fail "clean-install authorization validation failed"
+  python3 "$PRELAUNCH_TRANSITION_HELPER" verify-clean-install-handoff \
+    --handoff "$NURA_CLEAN_INSTALL_HANDOFF" \
+    --manifest "$NURA_PRELAUNCH_TRANSITION_AUTHORIZATION" \
+    --repo "$REPO_ROOT" \
+    --source-sha "$CURRENT_SHA" \
+    --target-sha "$TARGET_SHA" \
+    --consume >/dev/null \
+    || fail "clean-install engine handoff validation failed"
+  CLEAN_INSTALL_MODE=1
+  log "validated schema-v3 application-layer clean-install mode"
+fi
 python3 "$ARTIFACT_HELPER" validate-current --current "$CURRENT_LINK" --expected-sha "$CURRENT_SHA" >/dev/null
-for service_name in "${APPLICATION_SERVICES[@]}"; do
-  previous_tag="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["per_service_image_mapping"][sys.argv[2]])' "$PREVIOUS_STATE_FILE" "$service_name")"
-  recorded_previous_id="$(recorded_service_image_id "$PREVIOUS_STATE_FILE" "$service_name")"
-  actual_previous_id="$(docker image inspect --format '{{.Id}}' "$previous_tag")" \
-    || fail "current release rollback image is missing before activation: $service_name"
-  [[ "$actual_previous_id" == "$recorded_previous_id" ]] \
-    || fail "current rollback tag does not match its recorded immutable image ID: $service_name"
-done
+if [[ $CLEAN_INSTALL_MODE -ne 1 ]]; then
+  for service_name in "${APPLICATION_SERVICES[@]}"; do
+    previous_tag="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["per_service_image_mapping"][sys.argv[2]])' "$PREVIOUS_STATE_FILE" "$service_name")"
+    recorded_previous_id="$(recorded_service_image_id "$PREVIOUS_STATE_FILE" "$service_name")"
+    actual_previous_id="$(docker image inspect --format '{{.Id}}' "$previous_tag")" \
+      || fail "current release rollback image is missing before activation: $service_name"
+    [[ "$actual_previous_id" == "$recorded_previous_id" ]] \
+      || fail "current rollback tag does not match its recorded immutable image ID: $service_name"
+  done
+fi
 git -C "$REPO_ROOT" show "$TARGET_SHA:nura_app/docker-compose.yml" > "$COMPOSE_BASE"
 verify_data_services
 
@@ -899,7 +936,13 @@ COMPOSE_OVERRIDE="$(mktemp "${TMPDIR:-/tmp}/nura-target-compose.XXXXXX.yml")"
 compose_override_for_map "$COMPOSE_OVERRIDE" "$RELEASE_STATE_DIR/$TARGET_SHA.json"
 write_state activating "" "" "$CURRENT_SHA"
 APP_MUTATED=1
-run_compose up -d --no-build --no-deps --wait --wait-timeout 180 "${APPLICATION_SERVICES[@]}"
+if [[ $CLEAN_INSTALL_MODE -eq 1 ]]; then
+  for service_name in "${CLEAN_INSTALL_SERVICE_ORDER[@]}"; do
+    run_compose up -d --no-build --no-deps --wait --wait-timeout 180 "$service_name"
+  done
+else
+  run_compose up -d --no-build --no-deps --wait --wait-timeout 180 "${APPLICATION_SERVICES[@]}"
+fi
 verify_application_fleet "$IMAGE_TAG" "$TARGET_IMAGE_ID" "$TARGET_SHA"
 verify_data_services
 
