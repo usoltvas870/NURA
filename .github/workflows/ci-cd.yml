@@ -86,12 +86,15 @@ jobs:
         env:
           LEGACY_RELEASE_SHA: d0d39ae8717ceb0920d98f27dd9092f746755c6c
           AUDITED_ENGINE_SHA: f8716a7ca08190255a58b42fa420ce6aacc793e7
+          SOURCE_APPLICATION_SHA: 9da6ad8cf0146b26bdd2b60ebf99b54a58ccd532
         run: |
           git fetch --no-tags --depth=1 origin \
             "$LEGACY_RELEASE_SHA" \
-            "$AUDITED_ENGINE_SHA"
+            "$AUDITED_ENGINE_SHA" \
+            "$SOURCE_APPLICATION_SHA"
           git cat-file -e "${LEGACY_RELEASE_SHA}^{tree}"
           git cat-file -e "${AUDITED_ENGINE_SHA}:scripts/build_release_artifact.py"
+          git cat-file -e "${SOURCE_APPLICATION_SHA}^{commit}"
 
       - name: Set up Python 3.11.9
         uses: actions/setup-python@v6

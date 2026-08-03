@@ -119,6 +119,14 @@ def test_authorization_manifest_preserves_tracked_blob_bytes(tmp_path: Path) -> 
         )
         return result.stdout.strip()
 
+    git(
+        "fetch",
+        "--no-tags",
+        "--depth=1",
+        "origin",
+        transition.SOURCE_APPLICATION_SHA,
+    )
+    git("cat-file", "-e", f"{transition.SOURCE_APPLICATION_SHA}^{{commit}}")
     git("checkout", "-B", "main", transition.SOURCE_APPLICATION_SHA)
     git("config", "user.name", "NURA Test")
     git("config", "user.email", "nura-test@example.invalid")
