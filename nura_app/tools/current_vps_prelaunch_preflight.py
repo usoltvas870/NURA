@@ -8,6 +8,7 @@ import json
 import os
 import re
 import stat
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -15,9 +16,29 @@ from urllib.parse import unquote, urlsplit
 
 import yaml
 
-from core.config import Settings, _read_multiline_secret_file, _read_secret_file
-from core.services.prompt_governance import prompt_registry
-from tools.current_vps_migration_contract import validate_migration_contract
+
+APP_ROOT = Path(__file__).resolve().parents[1]
+if str(APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(APP_ROOT))
+
+from tools.current_vps_migration_contract import validate_migration_contract  # noqa: E402
+from tools.offline_module_loader import load_offline_module  # noqa: E402
+
+
+OFFLINE_CONFIG_MODULE = load_offline_module(
+    APP_ROOT,
+    module_name="_nura_offline_config",
+    relative_path="core/config.py",
+)
+OFFLINE_PROMPT_GOVERNANCE_MODULE = load_offline_module(
+    APP_ROOT,
+    module_name="_nura_offline_prompt_governance",
+    relative_path="core/services/prompt_governance.py",
+)
+Settings = OFFLINE_CONFIG_MODULE.Settings
+_read_secret_file = OFFLINE_CONFIG_MODULE._read_secret_file
+_read_multiline_secret_file = OFFLINE_CONFIG_MODULE._read_multiline_secret_file
+prompt_registry = OFFLINE_PROMPT_GOVERNANCE_MODULE.prompt_registry
 
 
 SECRET_PROFILE_VERSION = "production-files-v1"

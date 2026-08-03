@@ -36,12 +36,6 @@ from tools.current_vps_migration_contract import (  # noqa: E402
     TARGET_REVISION,
     validate_migration_contract,
 )
-from tools.current_vps_prelaunch_preflight import (  # noqa: E402
-    SECRET_PROFILE_VERSION,
-    run_preflight,
-)
-
-
 SHA_RE = re.compile(r"[0-9a-f]{40}\Z")
 DIGEST_RE = re.compile(r"[0-9a-f]{64}\Z")
 APP_SERVICES = ("api", "bot", "celery-worker", "celery-beat", "admin-bot")
@@ -64,7 +58,8 @@ REMOVAL_EVIDENCE_SCHEMA = "1.0"
 SOURCE_RUNTIME_MODE = "application-layer-absent"
 INSTALLATION_MODE = "clean-install"
 POST_MIGRATION_FAILURE_MODE = "leave-application-stopped"
-OWNER_APPROVAL = "approval-owner-prelaunch-clean-install-v1"
+OWNER_APPROVAL = "approval-owner-prelaunch-clean-install-v2"
+SECRET_PROFILE_VERSION = "production-files-v1"
 MIN_AVAILABLE_RAM_BYTES = 3 * 1024**3
 MIN_ACTIVE_SWAP_BYTES = 2 * 1024**3
 MIN_DISK_FREE_BYTES = 6 * 1024**3
@@ -341,6 +336,35 @@ def validate_execution_checkout(repo: Path, manifest: Mapping[str, object]) -> N
     if _git(repo, "rev-parse", f"{target}^{{commit}}") != target:
         raise TransitionError("execution_target_object_invalid")
     _git(repo, "merge-base", "--is-ancestor", head, target)
+
+
+def validate_target_source_checkout(
+    target_source: Path,
+    manifest: Mapping[str, object],
+    *,
+    engine_root: Path = REPO_ROOT,
+) -> None:
+    """Prove offline modules come from the exact clean target checkout."""
+
+    try:
+        source = target_source.resolve(strict=True)
+        root = engine_root.resolve(strict=True)
+    except OSError as exc:
+        raise TransitionError("target_source_identity_mismatch") from exc
+    if target_source.is_symlink() or source != root:
+        raise TransitionError("target_source_identity_mismatch")
+    try:
+        git_root = Path(_git(source, "rev-parse", "--show-toplevel")).resolve(
+            strict=True
+        )
+    except OSError as exc:
+        raise TransitionError("target_source_identity_mismatch") from exc
+    if git_root != source:
+        raise TransitionError("target_source_identity_mismatch")
+    if _git(source, "rev-parse", "HEAD") != manifest["target_application_sha"]:
+        raise TransitionError("target_source_identity_mismatch")
+    if _git(source, "status", "--porcelain", "--untracked-files=normal"):
+        raise TransitionError("target_source_identity_mismatch")
 
 
 def validate_evidence(
@@ -1580,6 +1604,10 @@ def execute_from_cli(args: argparse.Namespace) -> None:
     repo = args.repo.resolve(strict=True)
     manifest = validate_authorization_manifest(args.manifest, repo=repo)
     validate_execution_checkout(repo, manifest)
+    validate_target_source_checkout(args.target_source, manifest)
+
+    from tools.current_vps_prelaunch_preflight import run_preflight
+
     validate_migration_contract(args.target_source / "nura_app" / "alembic" / "versions")
     backup = validate_evidence(
         args.backup_evidence,

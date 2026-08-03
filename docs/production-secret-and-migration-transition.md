@@ -41,6 +41,13 @@ paths задаёт Compose per-service, поэтому отсутствие moun
 offline preflight дополнительно отклоняет direct secret keys, `*_FILE` aliases в
 `.env` и конфликтующие upper/lowercase aliases.
 
+Offline tooling loads only the exact tracked-at-HEAD `core/config.py` and
+`core/services/prompt_governance.py` files under private module names. The
+path-bound loader verifies the local Git blob, rejects dirty files, module-name
+collisions, symlinks, and path escapes, and does not initialize `core/__init__.py`
+or import database, repository, or application runtime packages. The transition
+engine proves the clean target checkout before importing either module.
+
 `database_url` заранее формирует оператор внутри private owner-only staging
 boundary из отдельно ротированного PostgreSQL password. Значение записывается
 атомарно с restrictive umask прямо в secret file, не передаётся CLI argument,

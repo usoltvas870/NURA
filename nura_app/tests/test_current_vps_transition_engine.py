@@ -220,6 +220,43 @@ def test_authorization_manifest_preserves_tracked_blob_bytes(tmp_path: Path) -> 
         )
 
 
+def test_target_source_is_clean_and_exact_before_offline_import(tmp_path: Path) -> None:
+    repo = tmp_path / "target"
+    repo.mkdir()
+    subprocess.run(["git", "init", "--quiet", str(repo)], check=True)
+    tracked = repo / "tracked.txt"
+    tracked.write_text("target\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "tracked.txt"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.name=NURA Test",
+            "-c",
+            "user.email=nura-test@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "target",
+        ],
+        check=True,
+    )
+    target = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    manifest = {"target_application_sha": target}
+    transition.validate_target_source_checkout(repo, manifest, engine_root=repo)
+
+    tracked.write_text("tampered\n", encoding="utf-8")
+    with pytest.raises(transition.TransitionError, match="target_source_identity_mismatch"):
+        transition.validate_target_source_checkout(repo, manifest, engine_root=repo)
+
+
 @pytest.mark.parametrize(
     ("override", "error"),
     [

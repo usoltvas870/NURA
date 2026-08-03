@@ -1,6 +1,7 @@
 """Offline production owner-prelaunch readiness and Compose secret topology."""
 
 import os
+import socket
 from pathlib import Path
 
 from tools.current_vps_prelaunch_preflight import SECRET_CONTRACTS, run_preflight
@@ -63,6 +64,34 @@ def test_valid_owner_prelaunch_is_offline_ready(tmp_path: Path) -> None:
     serialized = repr(result)
     assert "s" * 48 not in serialized
     assert "/opt/nura/secrets" not in serialized
+
+
+def test_valid_preflight_performs_no_network_calls(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    def blocked_connect(*_args, **_kwargs):
+        raise AssertionError("offline preflight attempted a network call")
+
+    monkeypatch.setattr(socket.socket, "connect", blocked_connect)
+    result = preflight(
+        tmp_path,
+        materialize_environment(tmp_path),
+        materialize_secrets(tmp_path),
+    )
+    assert result["result"] == "READY_FOR_HOST_BACKUP_AND_RECOVERY"
+
+
+def test_invalid_prompt_bundle_remains_blocked(tmp_path: Path) -> None:
+    environment = materialize_environment(tmp_path)
+    environment.write_text(
+        environment.read_text(encoding="utf-8").replace(
+            "REPORT_PROMPT_BUNDLE_VERSION=v1",
+            "REPORT_PROMPT_BUNDLE_VERSION=v999",
+        ),
+        encoding="utf-8",
+    )
+    result = preflight(tmp_path, environment, materialize_secrets(tmp_path))
+    assert result["result"] == "BLOCKED"
 
 
 def test_missing_or_unsafe_secret_blocks(tmp_path: Path) -> None:
