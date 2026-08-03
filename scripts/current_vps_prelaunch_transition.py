@@ -69,7 +69,9 @@ MIN_AVAILABLE_RAM_BYTES = 3 * 1024**3
 MIN_ACTIVE_SWAP_BYTES = 2 * 1024**3
 MIN_DISK_FREE_BYTES = 6 * 1024**3
 MIN_FREE_INODES = 50_000
-P7B_TERMINAL_PHASES = {
+P7B_QUIESCENT_PHASES = {
+    "prepared",
+    "baseline_ready",
     "complete",
     "stage1_compensated",
     "stage2_compensated",
@@ -1567,7 +1569,7 @@ def _active_transaction_present(directory: Path) -> bool:
         for path in directory.glob("*.json"):
             value = _read_canonical_json(path, "p7b_transaction")
             phase = value.get("payload", value).get("phase")
-            if not isinstance(phase, str) or phase not in P7B_TERMINAL_PHASES:
+            if not isinstance(phase, str) or phase not in P7B_QUIESCENT_PHASES:
                 return True
     except AttributeError as exc:
         raise TransitionError("p7b_transaction_schema_invalid") from exc

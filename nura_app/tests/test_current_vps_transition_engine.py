@@ -582,8 +582,6 @@ def test_application_process_probe_covers_real_compose_commands(
     "phase",
     sorted(
         {
-            "prepared",
-            "baseline_ready",
             "stage1_intent",
             "stage1_verified",
             "stage2_intent",
@@ -601,8 +599,8 @@ def test_unresolved_or_unknown_p7b_phases_fail_closed(tmp_path: Path, phase: str
     assert transition._active_transaction_present(tmp_path) is True
 
 
-@pytest.mark.parametrize("phase", sorted(transition.P7B_TERMINAL_PHASES))
-def test_terminal_p7b_phases_are_not_active(tmp_path: Path, phase: str) -> None:
+@pytest.mark.parametrize("phase", sorted(transition.P7B_QUIESCENT_PHASES))
+def test_quiescent_p7b_phases_are_not_active(tmp_path: Path, phase: str) -> None:
     transaction = tmp_path / "transaction.json"
     transaction.write_bytes(transition.canonical_json({"payload": {"phase": phase}}))
     assert transition._active_transaction_present(tmp_path) is False
