@@ -238,6 +238,7 @@ if [[ -n "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
   readonly ENVIRONMENT_RECONCILE_HELPER="$EXECUTION_BUNDLE/scripts/environment_reconciliation.py"
   readonly P7B_HELPER="$EXECUTION_BUNDLE/scripts/p7b_rollout.py"
   readonly PRELAUNCH_TRANSITION_HELPER="$EXECUTION_BUNDLE/scripts/current_vps_prelaunch_transition.py"
+  readonly POSTGRES_PROBE_HELPER="$EXECUTION_BUNDLE/scripts/postgres_probe.py"
   readonly LOCK_HELPER="$EXECUTION_BUNDLE/scripts/release_lock.py"
 elif [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
   [[ "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]] \
@@ -253,12 +254,14 @@ elif [[ -n "${NURA_AUDITED_ENGINE_HELPER_ROOT:-}" ]]; then
   readonly STATIC_HELPER="$AUDITED_HELPER_ROOT/deploy_static_release.py"
   readonly P7B_HELPER="$REPO_ROOT/scripts/p7b_rollout.py"
   readonly PRELAUNCH_TRANSITION_HELPER="$REPO_ROOT/scripts/current_vps_prelaunch_transition.py"
+  readonly POSTGRES_PROBE_HELPER="$AUDITED_HELPER_ROOT/postgres_probe.py"
 else
   readonly ARTIFACT_HELPER="$REPO_ROOT/scripts/build_release_artifact.py"
   readonly STATIC_HELPER="$REPO_ROOT/scripts/deploy_static_release.py"
   readonly LOCK_HELPER="${NURA_RELEASE_LOCK_HELPER:-$REPO_ROOT/scripts/release_lock.py}"
   readonly P7B_HELPER="$REPO_ROOT/scripts/p7b_rollout.py"
   readonly PRELAUNCH_TRANSITION_HELPER="$REPO_ROOT/scripts/current_vps_prelaunch_transition.py"
+  readonly POSTGRES_PROBE_HELPER="$REPO_ROOT/scripts/postgres_probe.py"
 fi
 if [[ -z "${NURA_RELEASE_EXECUTION_BUNDLE:-}" ]]; then
   readonly STATE_HELPER="$REPO_ROOT/scripts/prepare_atomic_release_host.py"
@@ -282,6 +285,8 @@ fi
 [[ -f "$LOCK_HELPER" && ! -L "$LOCK_HELPER" ]] || fail "release lock helper is missing or unsafe"
 [[ -f "$PRELAUNCH_TRANSITION_HELPER" && ! -L "$PRELAUNCH_TRANSITION_HELPER" ]] \
   || fail "prelaunch transition helper is missing or unsafe"
+[[ -f "$POSTGRES_PROBE_HELPER" && ! -L "$POSTGRES_PROBE_HELPER" ]] \
+  || fail "PostgreSQL probe helper is missing or unsafe"
 [[ -f "$SCRIPT_PATH" && ! -L "$SCRIPT_PATH" ]] || fail "deploy launcher is missing or unsafe"
 [[ -d "$RELEASE_ROOT" && ! -L "$RELEASE_ROOT" ]] || fail "release root is not prepared; run the separately approved host transition"
 [[ -d "$STATE_ROOT" && ! -L "$STATE_ROOT" ]] || fail "state root is not prepared; run the separately approved host transition"
@@ -737,8 +742,7 @@ readonly MIGRATION_OUTPUT="$(git -C "$REPO_ROOT" diff --name-only "$CURRENT_SHA"
 if [[ -n "$MIGRATION_OUTPUT" ]]; then
   readonly TARGET_ALEMBIC_HEAD="$(target_alembic_head)"
   readonly DATABASE_ALEMBIC_REVISION="$(
-    docker compose --project-directory "$REPO_ROOT/nura_app" -f "$COMPOSE_BASE" exec -T postgres \
-      sh -lc 'exec psql -X -At -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version_num FROM alembic_version"'
+    python3 "$POSTGRES_PROBE_HELPER" revision --compose-file "$COMPOSE_BASE"
   )"
   if [[ "$CURRENT_SHA" == "$AUDITED_MIGRATION_FROM_SHA" && "$TARGET_SHA" == "$AUDITED_MIGRATION_TARGET_SHA" ]]; then
     [[ "${NURA_PREAPPLIED_MIGRATION_REVISION:-}" == "$AUDITED_MIGRATION_REVISION" ]] \

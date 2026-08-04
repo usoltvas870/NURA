@@ -19,6 +19,7 @@ AUDITED_P6B_SCRIPT = REPO_ROOT / "scripts" / "deploy_audited_p6b_transition.sh"
 STATIC_HELPER_PATH = REPO_ROOT / "scripts" / "deploy_static_release.py"
 ARTIFACT_HELPER_PATH = REPO_ROOT / "scripts" / "build_release_artifact.py"
 BUNDLE_HELPER_PATH = REPO_ROOT / "scripts" / "release_execution_bundle.py"
+POSTGRES_HELPER_PATH = REPO_ROOT / "scripts" / "postgres_probe.py"
 DEPLOY_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "deploy.yml"
 ROLLBACK_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "rollback.yml"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci-cd.yml"
@@ -182,6 +183,7 @@ def test_root_engine_rejects_ambiguous_or_malformed_cli(arguments: list[str]) ->
 
 def test_root_engine_allows_only_pinned_or_manifest_authorized_migrations() -> None:
     script = DEPLOY_SCRIPT.read_text(encoding="utf-8")
+    postgres_helper = POSTGRES_HELPER_PATH.read_text(encoding="utf-8")
     assert "migration delta requires the tracked prelaunch authorization manifest" in script
     assert "ALLOW_MIGRATIONS" not in script
     assert "allow_migrations" not in script
@@ -197,7 +199,8 @@ def test_root_engine_allows_only_pinned_or_manifest_authorized_migrations() -> N
     assert "verify-deploy-authorization" in script
     assert 'ARTIFACT_HELPER="$AUDITED_HELPER_ROOT/build_release_artifact.py"' in script
     assert "target_alembic_head" in script
-    assert "SELECT version_num FROM alembic_version" in script
+    assert "SELECT version_num FROM alembic_version" not in script
+    assert "SELECT version_num FROM alembic_version" in postgres_helper
     assert 'RUN_MIGRATIONS: "0"' in script
     assert script.index("MIGRATION_OUTPUT") < script.index("extract --archive")
     assert script.index("MIGRATION_OUTPUT") < script.index("docker build")
@@ -361,6 +364,7 @@ def test_p7b_workflow_and_prepare_use_the_exact_target_controller() -> None:
     assert 'NURA_RELEASE_EXECUTION_BUNDLE="$bundle" NURA_WORKFLOW_SHA="$WORKFLOW_SHA"' in workflow
     assert 'git show "$TARGET_SHA:scripts/p7b_rollout.py"' not in workflow
     assert "scripts/p7b_rollout.py" in bundle_helper.BUNDLE_FILES
+    assert "scripts/postgres_probe.py" in bundle_helper.BUNDLE_FILES
     assert 'readonly P7B_HELPER="$EXECUTION_BUNDLE/scripts/p7b_rollout.py"' in script
     assert 'python3 "$P7B_HELPER" prepare-handoff' in script
     assert 'execution bundle target must match workflow SHA' in script
@@ -605,6 +609,17 @@ def test_trusted_deploy_bundle_includes_all_runtime_controllers_and_ignores_base
     assert result.returncode == 0, result.stderr
     assert (bundle / "scripts" / "environment_reconciliation.py").is_file()
     assert (bundle / "scripts" / "deploy_static_release.py").is_file()
+    bundled_probe = bundle / "scripts" / "postgres_probe.py"
+    assert bundled_probe.read_bytes() == POSTGRES_HELPER_PATH.read_bytes()
+    probe_help = subprocess.run(
+        [sys.executable, str(bundled_probe), "--help"],
+        cwd=baseline,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert probe_help.returncode == 0, probe_help.stderr
 
 
 def test_trusted_bundle_rejects_a_non_executable_launcher_in_the_exact_commit(tmp_path: Path) -> None:

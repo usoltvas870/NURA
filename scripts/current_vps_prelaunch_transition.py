@@ -58,7 +58,7 @@ REMOVAL_EVIDENCE_SCHEMA = "1.0"
 SOURCE_RUNTIME_MODE = "application-layer-absent"
 INSTALLATION_MODE = "clean-install"
 POST_MIGRATION_FAILURE_MODE = "leave-application-stopped"
-OWNER_APPROVAL = "approval-owner-prelaunch-clean-install-v2"
+OWNER_APPROVAL = "approval-owner-prelaunch-clean-install-v3"
 SECRET_PROFILE_VERSION = "production-files-v1"
 MIN_AVAILABLE_RAM_BYTES = 3 * 1024**3
 MIN_ACTIVE_SWAP_BYTES = 2 * 1024**3
@@ -1446,18 +1446,11 @@ def _verify_backup_artifact(
 def _current_database_snapshot(compose_file: Path) -> dict[str, object]:
     result = subprocess.run(
         [
-            "docker",
-            "compose",
-            "--project-directory",
-            str(compose_file.parent),
-            "-f",
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "postgres_probe.py"),
+            "snapshot",
+            "--compose-file",
             str(compose_file),
-            "exec",
-            "-T",
-            "postgres",
-            "sh",
-            "-lc",
-            'exec psql -X -At -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version_num FROM alembic_version; SELECT count(*) FROM users; SELECT count(*) FROM guest_profiles; SELECT count(*) FROM reports; SELECT count(*) FROM payments; SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()"',
         ],
         capture_output=True,
         text=True,

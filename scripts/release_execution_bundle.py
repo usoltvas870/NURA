@@ -27,6 +27,7 @@ BUNDLE_FILES = (
     "scripts/p7b_rollout.py",
     "scripts/p7_telegram_pilot_controller.py",
     "scripts/current_vps_prelaunch_transition.py",
+    "scripts/postgres_probe.py",
 )
 BUNDLE_SCHEMA = 3
 

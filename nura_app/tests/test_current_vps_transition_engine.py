@@ -615,6 +615,57 @@ def test_application_process_probe_covers_real_compose_commands(
     assert transition._application_process_present() is True
 
 
+def test_database_snapshot_delegates_to_exact_probe_helper(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compose = tmp_path / "docker-compose.yml"
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
+    def run(command, **kwargs):
+        calls.append((list(command), dict(kwargs)))
+        return subprocess.CompletedProcess(
+            command,
+            0,
+            "d1e2f3a4b5c6\n2\n5\n2\n0\n0\n",
+            "",
+        )
+
+    monkeypatch.setattr(transition.subprocess, "run", run)
+    assert transition._current_database_snapshot(compose) == {
+        "revision": "d1e2f3a4b5c6",
+        "users": 2,
+        "guest_profiles": 5,
+        "reports": 2,
+        "payments": 0,
+        "other_sessions": 0,
+    }
+    assert calls[0][0] == [
+        sys.executable,
+        str(transition.REPO_ROOT / "scripts" / "postgres_probe.py"),
+        "snapshot",
+        "--compose-file",
+        str(compose),
+    ]
+    assert "env" not in calls[0][1]
+
+
+def test_database_snapshot_failure_is_content_free(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    marker = "fixture-password-must-not-escape"
+    monkeypatch.setattr(
+        transition.subprocess,
+        "run",
+        lambda command, **kwargs: subprocess.CompletedProcess(command, 1, "", marker),
+    )
+    with pytest.raises(transition.TransitionError) as raised:
+        transition._current_database_snapshot(tmp_path / "docker-compose.yml")
+    assert str(raised.value) == "database_revision_probe_failed"
+    assert marker not in str(raised.value)
+
+
 @pytest.mark.parametrize(
     "phase",
     sorted(
