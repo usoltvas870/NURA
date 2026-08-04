@@ -970,8 +970,14 @@ def _create_exact_target_fixture(tmp_path: Path) -> tuple[Path, str, Path, Path]
 
 def test_target_compose_handoff_binds_git_blob_override_env_and_project(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo, target_sha, evidence, env_file = _create_exact_target_fixture(tmp_path)
+    monkeypatch.setattr(
+        transition,
+        "_validate_root_owned_private_directory",
+        lambda path, _label: path.resolve(strict=True),
+    )
     handoff = evidence / "target-compose-handoff.json"
     override = evidence / "target-image.override.yml"
     image_id = "sha256:" + "f" * 64
@@ -1013,6 +1019,11 @@ def test_every_target_compose_command_uses_one_exact_context(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo, target_sha, evidence, env_file = _create_exact_target_fixture(tmp_path)
+    monkeypatch.setattr(
+        transition,
+        "_validate_root_owned_private_directory",
+        lambda path, _label: path.resolve(strict=True),
+    )
     fixture = tmp_path / "fixture"
     fixture.write_text("fixture", encoding="utf-8")
     handoff = evidence / "target-compose-handoff.json"
