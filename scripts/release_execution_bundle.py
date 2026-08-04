@@ -28,8 +28,9 @@ BUNDLE_FILES = (
     "scripts/p7_telegram_pilot_controller.py",
     "scripts/current_vps_prelaunch_transition.py",
     "scripts/postgres_probe.py",
+    "nura_app/tools/current_vps_migration_contract.py",
 )
-BUNDLE_SCHEMA = 3
+BUNDLE_SCHEMA = 4
 
 
 class BundleError(RuntimeError):

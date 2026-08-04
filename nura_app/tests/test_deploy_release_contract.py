@@ -622,6 +622,22 @@ def test_trusted_deploy_bundle_includes_all_runtime_controllers_and_ignores_base
     assert result.returncode == 0, result.stderr
     assert (bundle / "scripts" / "environment_reconciliation.py").is_file()
     assert (bundle / "scripts" / "deploy_static_release.py").is_file()
+    bundled_transition = bundle / "scripts" / "current_vps_prelaunch_transition.py"
+    bundled_migration_contract = (
+        bundle / "nura_app" / "tools" / "current_vps_migration_contract.py"
+    )
+    assert bundled_migration_contract.read_bytes() == (
+        REPO_ROOT / "nura_app" / "tools" / "current_vps_migration_contract.py"
+    ).read_bytes()
+    transition_help = subprocess.run(
+        [sys.executable, str(bundled_transition), "--help"],
+        cwd=baseline,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert transition_help.returncode == 0, transition_help.stderr
     bundled_probe = bundle / "scripts" / "postgres_probe.py"
     assert bundled_probe.read_bytes() == POSTGRES_HELPER_PATH.read_bytes()
     probe_help = subprocess.run(
