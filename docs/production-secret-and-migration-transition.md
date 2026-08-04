@@ -64,9 +64,10 @@ Redis/Celery URLs до Settings load не содержат credentials; Settings
 percent-encoded password только в памяти.
 
 Каждый service монтирует только перечисленные в matrix secrets. YooKassa secret
-отсутствует. Base Compose задаёт `RUN_MIGRATIONS=0`: migrations может применять
-только one-time engine после всех gates. Bot polling параметризован и при
-transition остаётся выключенным до финальной отдельной activation.
+отсутствует. Base Compose и exact-target image override задают
+`RUN_MIGRATIONS=0`; post-migration resume engine не содержит migration action.
+Bot polling параметризован и остаётся выключенным до финальной отдельной
+activation.
 
 Rotation выполняет оператор после verified backup и до offline readiness. Engine
 не генерирует, не копирует и не изменяет secret values. `docker compose config`
@@ -90,7 +91,8 @@ Redis/Celery contract и target Alembic head. Execution mode дополните�
 
 ## 4. Exact migration contract
 
-Current revision: `d1e2f3a4b5c6`. Target head: `d8e9f0a1b2c3`.
+Original revision: `d1e2f3a4b5c6`. Current and target head after the completed
+migration: `d8e9f0a1b2c3`.
 
 Ordered forward chain:
 
@@ -121,15 +123,19 @@ source fleet после migrated DB. Database downgrade не поддержив�
 становится target `T`. Отдельный маленький milestone создаёт tracked canonical
 manifest по пути `docs/operations/authorizations/current-vps-prelaunch-*.json`.
 
-Manifest schema v3 фиксирует authorization base/source/target/engine commits,
-engine file SHA-256, current/target DB revisions и counts, ordered migrations,
-aggregate digest, secret profile, exact backup/removal evidence identities,
-capacity thresholds и clean-install failure boundary. Обязательны
-`source_runtime_mode=application-layer-absent`, `installation_mode=clean-install`,
-`allow_source_fleet_start=false`, removal evidence и
-`post_migration_failure_mode=leave-application-stopped`. Manifest не содержит
-secrets, DSN, Telegram IDs или PII. Из-за невозможности включить SHA commit в
-его собственный blob manifest фиксирует `authorization_base_commit_sha=T`.
+Manifest schema v4 фиксирует authorization base/source/target/engine commits,
+engine file SHA-256, original/current/target DB revisions и counts, ordered
+migrations, aggregate digest, secret profile, exact original backup/removal,
+migration-completion и migrated-checkpoint evidence identities, capacity
+thresholds и post-migration activation boundary. Обязательны
+`source_runtime_mode=application-layer-absent`,
+`installation_mode=clean-install-resume-post-migration`,
+`activation_compose_mode=exact-target-only`, `migration_status=preapplied-and-verified`,
+`allow_migration_execution=false`, `allow_source_fleet_start=false` и
+`post_activation_failure_mode=leave-application-stopped`. Schema v3 для нового
+target отклоняется. Manifest не содержит secrets, DSN, Telegram IDs или PII.
+Из-за невозможности включить SHA commit в его собственный blob manifest
+фиксирует `authorization_base_commit_sha=T`.
 Engine выводит authorization commit как exact `origin/main`, требует его
 единственным родителем `T`, разрешает в нём изменение только exact manifest
 path и сравнивает tracked blob побайтно. Arbitrary CLI transition override не
@@ -137,18 +143,19 @@ path и сравнивает tracked blob побайтно. Arbitrary CLI transi
 
 ## 6. Preconditions and capacity
 
-До build или database mutation engine требует:
+До build или application mutation engine требует:
 
-- validated application-layer removal evidence и backup evidence;
+- validated application-layer removal, original backup, migration-completion и
+  post-migration PostgreSQL checkpoint evidence;
 - отсутствие всех application containers/processes и active transactions;
 - healthy existing PostgreSQL/Redis и все protected volumes;
 - successful canonical/static source `9da6ad8…`;
 - clean canonical `main` checkout, который является ancestor exact target, и
   доказанный `source_application_sha → target_application_sha` fast-forward;
-- exact DB revision `d1e2f3a4b5c6`;
+- exact DB revision `d8e9f0a1b2c3` и `allow_migration_execution=false`;
 - checksummed verified PostgreSQL, Redis, configuration и release-state evidence:
   каждый record содержит absolute path внутри approved backup root, а engine
-  после candidate build и непосредственно перед migration повторно открывает
+  после target preparation и непосредственно перед activation повторно открывает
   direct-child artifact через `O_NOFOLLOW`/backup-root descriptor, проверяет
   same-fd metadata до/после чтения, path inode, owner/mode/link count,
   фактический размер и streaming SHA-256;
@@ -164,25 +171,26 @@ remediation. Prebuilt-image mode не реализован и не может б
 
 ## 7. Execution and failure boundary
 
-Порядок: validated application-layer removal → all read-only gates при полном
-отсутствии source application layer → candidate build и exact-target execution
-bundle → exact migration → последовательное создание только target API, worker,
-admin-bot, Beat и bot с polling off →
+Порядок: validated application-layer removal, migration evidence и migrated DB
+checkpoint → all read-only gates при полном отсутствии source application layer →
+exact-target execution bundle и image → canonical exact-target Compose handoff →
+последовательное создание только target API, worker, admin-bot, Beat и bot с
+polling off →
 `/ready`, worker ping, running Beat и payment-disabled verification →
 owner-only/YooKassa-free local identity при polling off → bot polling last →
 polling verification → immutable receipt. Backup evidence требуется уже до первой
 mutation; это намеренно строже старого checklist.
 
-После всех gates и exact migration engine создаёт одноразовый canonical handoff,
-привязанный к manifest, backup/removal evidence и exact source/target. `deploy.sh`
-принимает clean-install semantics только внутри verified execution bundle,
-проверяет и потребляет handoff до mutation; tracked manifest сам по себе не
-разрешает прямой deploy или rollback.
+После всех gates engine создаёт одноразовый canonical deploy handoff, привязанный
+к manifest и всем evidence. `deploy.sh` создаёт отдельный secret-free target
+Compose handoff с exact target Git blob hash, image override hash, final image
+tag/ID/revision, project `nura_app`, bounded non-secret `.env` metadata и polling
+state `false`. Этот handoff повторно проверяется перед каждой target Compose
+action. Tracked manifest сам по себе не разрешает прямой deploy или rollback.
 
-Failure до migration оставляет PostgreSQL/Redis и отсутствующий application
-layer без изменений. Migration failure сохраняет evidence, не вызывает
-downgrade и оставляет application layer отсутствующим. Failure activation после
-successful migration останавливает/удаляет только target application containers,
+Failure до activation оставляет PostgreSQL/Redis и отсутствующий application
+layer без изменений. Resume engine никогда не запускает migration или downgrade.
+Failure activation останавливает/удаляет только exact inspected application containers,
 возвращает static/current к `9da6ad8…`, оставляет DB на `d8e9f0a1b2c3` и никогда
 не запускает source application fleet. Cleanup старых images/releases отсутствует
 и требует отдельного approval.

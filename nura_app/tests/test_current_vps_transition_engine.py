@@ -5,6 +5,7 @@ import inspect
 import os
 import subprocess
 import sys
+from argparse import Namespace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -30,14 +31,23 @@ def authorization(**overrides: object) -> dict[str, object]:
         "target_application_sha": "a" * 40,
         "engine_commit_sha": "a" * 40,
         "engine_file_sha256": transition.hashlib.sha256(SCRIPT.read_bytes()).hexdigest(),
-        "current_db_revision": transition.CURRENT_REVISION,
+        "current_db_revision": transition.TARGET_REVISION,
         "target_db_revision": transition.TARGET_REVISION,
+        "original_db_revision": transition.CURRENT_REVISION,
         "ordered_migration_revisions": [item.revision for item in transition.EXPECTED_MIGRATIONS],
         "migration_chain_digest": transition.MIGRATION_CHAIN_DIGEST,
+        "migration_status": transition.MIGRATION_STATUS,
+        "allow_migration_execution": False,
         "required_secret_profile_version": transition.SECRET_PROFILE_VERSION,
-        "backup_evidence_schema": 1,
-        "backup_evidence_checksum": "b" * 64,
-        "backup_evidence_sha256": "c" * 64,
+        "original_backup_evidence_schema": 1,
+        "original_backup_evidence_checksum": "b" * 64,
+        "original_backup_evidence_sha256": "c" * 64,
+        "migration_evidence_schema": 1,
+        "migration_evidence_checksum": "2" * 64,
+        "migration_evidence_sha256": "3" * 64,
+        "post_migration_backup_evidence_schema": 1,
+        "post_migration_backup_evidence_checksum": "4" * 64,
+        "post_migration_backup_evidence_sha256": "5" * 64,
         "application_layer_removal_evidence_schema": transition.REMOVAL_EVIDENCE_SCHEMA,
         "application_layer_removal_evidence_checksum": "f" * 64,
         "application_layer_removal_evidence_sha256": "1" * 64,
@@ -54,9 +64,10 @@ def authorization(**overrides: object) -> dict[str, object]:
         },
         "source_runtime_mode": transition.SOURCE_RUNTIME_MODE,
         "installation_mode": transition.INSTALLATION_MODE,
+        "activation_compose_mode": transition.ACTIVATION_COMPOSE_MODE,
         "allow_source_fleet_start": False,
         "require_application_layer_removal_evidence": True,
-        "post_migration_failure_mode": transition.POST_MIGRATION_FAILURE_MODE,
+        "post_activation_failure_mode": transition.POST_ACTIVATION_FAILURE_MODE,
         "database_downgrade_acknowledgement": "not-supported",
         "owner_approval_identifiers": [transition.OWNER_APPROVAL],
         "valid_from": (now - timedelta(minutes=5)).isoformat().replace("+00:00", "Z"),
@@ -79,11 +90,12 @@ class FakeAdapter:
         if self.fail_at == name:
             raise RuntimeError(name)
 
-    def build_migration_candidate(self, _target: str) -> None: self._call("build")
-    def revalidate_backup_evidence(self) -> None: self._call("backup_revalidate")
+    def prepare_target_execution(self, _target: str) -> None: self._call("prepare")
+    def revalidate_original_backup_evidence(self) -> None: self._call("backup_revalidate")
     def revalidate_removal_evidence(self) -> None: self._call("removal_revalidate")
+    def revalidate_migration_evidence(self) -> None: self._call("migration_evidence_revalidate")
+    def revalidate_post_migration_backup_evidence(self) -> None: self._call("checkpoint_revalidate")
     def verify_application_layer_absent(self) -> None: self._call("verify_absent")
-    def apply_migrations(self, _target: str) -> None: self._call("migrate")
     def activate_target_with_polling_disabled(self, _target: str) -> None: self._call("activate_without_polling")
     def verify_target_without_polling(self, _target: str) -> None: self._call("verify_without_polling")
     def verify_owner_only_without_polling(self, _target: str) -> None: self._call("owner_safe_without_polling")
@@ -98,7 +110,7 @@ def good_preconditions(**overrides: object):
     values = {
         "current_application_sha": transition.SOURCE_APPLICATION_SHA,
         "current_static_sha": transition.SOURCE_APPLICATION_SHA,
-        "current_db_revision": transition.CURRENT_REVISION,
+        "current_db_revision": transition.TARGET_REVISION,
         "current_database_counts": (2, 5, 2, 0),
         "database_other_sessions": 0,
         "current_release_successful": True,
@@ -130,13 +142,15 @@ def test_authorization_manifest_is_canonical_and_checksum_bound(tmp_path: Path) 
         transition.validate_authorization_manifest(path, verify_git=False)
 
 
-def test_schema_v2_and_inexact_clean_install_fields_are_rejected(tmp_path: Path) -> None:
+def test_schema_v3_and_inexact_resume_fields_are_rejected(tmp_path: Path) -> None:
     path = tmp_path / "authorization.json"
     for override in (
-        {"schema_version": 2},
+        {"schema_version": 3},
         {"allow_source_fleet_start": True},
         {"installation_mode": "legacy-transition"},
-        {"post_migration_failure_mode": "rollback-source"},
+        {"post_activation_failure_mode": "rollback-source"},
+        {"allow_migration_execution": True},
+        {"activation_compose_mode": "mutable-current"},
     ):
         path.write_bytes(transition.canonical_json(authorization(**override)))
         with pytest.raises(transition.TransitionError, match="schema_invalid|transition_mismatch"):
@@ -281,30 +295,39 @@ def test_target_source_is_clean_and_exact_before_offline_import(tmp_path: Path) 
 def test_every_failed_gate_prevents_all_mutations(override: dict[str, object], error: str) -> None:
     adapter = FakeAdapter()
     with pytest.raises(transition.TransitionError, match=error):
-        transition.TransitionEngine(adapter).execute(
+        transition.TransitionEngine(adapter).execute_resume_post_migration(
             authorization=authorization(),
             preconditions=good_preconditions(**override),
-            backup_evidence={"schema_version": 1},
+            original_backup_evidence={"schema_version": 1},
             removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
+            migration_evidence={"kind": "post_migration_completion_evidence"},
+            post_migration_backup_evidence={
+                "kind": "post_migration_postgresql_checkpoint"
+            },
         )
     assert adapter.calls == []
 
 
 def test_success_order_keeps_bot_last_and_never_cleans_up() -> None:
     adapter = FakeAdapter()
-    transition.TransitionEngine(adapter).execute(
+    transition.TransitionEngine(adapter).execute_resume_post_migration(
         authorization=authorization(),
         preconditions=good_preconditions(),
-        backup_evidence={"schema_version": 1},
+        original_backup_evidence={"schema_version": 1},
         removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
+        migration_evidence={"kind": "post_migration_completion_evidence"},
+        post_migration_backup_evidence={
+            "kind": "post_migration_postgresql_checkpoint"
+        },
     )
     assert adapter.calls == [
         "record:all_preconditions_passed",
-        "build",
+        "prepare",
         "backup_revalidate",
         "removal_revalidate",
+        "migration_evidence_revalidate",
+        "checkpoint_revalidate",
         "verify_absent",
-        "migrate",
         "activate_without_polling",
         "verify_without_polling",
         "owner_safe_without_polling",
@@ -326,54 +349,101 @@ def test_execution_entrypoint_reuses_the_common_release_lock() -> None:
 def test_backup_is_revalidated_after_build_and_before_absence_recheck() -> None:
     adapter = FakeAdapter("backup_revalidate")
     with pytest.raises(RuntimeError, match="backup_revalidate"):
-        transition.TransitionEngine(adapter).execute(
+        transition.TransitionEngine(adapter).execute_resume_post_migration(
             authorization=authorization(),
             preconditions=good_preconditions(),
-            backup_evidence={"schema_version": 1},
+            original_backup_evidence={"schema_version": 1},
             removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
+            migration_evidence={"kind": "post_migration_completion_evidence"},
+            post_migration_backup_evidence={
+                "kind": "post_migration_postgresql_checkpoint"
+            },
         )
     assert adapter.calls == [
         "record:all_preconditions_passed",
-        "build",
+        "prepare",
         "backup_revalidate",
     ]
 
 
-def test_migration_failure_never_downgrades_or_activates() -> None:
-    adapter = FakeAdapter("migrate")
-    with pytest.raises(RuntimeError, match="migrate"):
-        transition.TransitionEngine(adapter).execute(
+def test_resume_mode_has_no_migration_method_or_call() -> None:
+    adapter = FakeAdapter()
+    transition.TransitionEngine(adapter).execute_resume_post_migration(
+        authorization=authorization(),
+        preconditions=good_preconditions(),
+        original_backup_evidence={"schema_version": 1},
+        removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
+        migration_evidence={"kind": "post_migration_completion_evidence"},
+        post_migration_backup_evidence={
+            "kind": "post_migration_postgresql_checkpoint"
+        },
+    )
+    assert "migrate" not in adapter.calls
+    assert "apply_migrations" not in inspect.getsource(transition.TransitionEngine)
+    source = SCRIPT.read_text(encoding="utf-8")
+    assert "alembic upgrade" not in source
+    assert 'subparsers.add_parser("execute")' not in source
+    assert 'subparsers.add_parser("clean-install-resume-post-migration")' in source
+
+
+def test_resume_mode_rejects_missing_migration_evidence_before_mutation() -> None:
+    adapter = FakeAdapter()
+    with pytest.raises(transition.TransitionError, match="migration_evidence_missing"):
+        transition.TransitionEngine(adapter).execute_resume_post_migration(
             authorization=authorization(),
             preconditions=good_preconditions(),
-            backup_evidence={"schema_version": 1},
+            original_backup_evidence={"schema_version": 1},
             removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
+            migration_evidence={},
+            post_migration_backup_evidence={
+                "kind": "post_migration_postgresql_checkpoint"
+            },
         )
-    assert adapter.calls == [
-        "record:all_preconditions_passed",
-        "build",
-        "backup_revalidate",
-        "removal_revalidate",
-        "verify_absent",
-        "migrate",
-        "leave_stopped",
-        "verify_stopped",
-        "record:migration_failed",
-    ]
+    assert adapter.calls == []
 
 
 def test_post_migration_activation_failure_rolls_back_only_application() -> None:
     adapter = FakeAdapter("verify_without_polling")
     with pytest.raises(RuntimeError, match="verify_without_polling"):
-        transition.TransitionEngine(adapter).execute(
+        transition.TransitionEngine(adapter).execute_resume_post_migration(
             authorization=authorization(),
             preconditions=good_preconditions(),
-            backup_evidence={"schema_version": 1},
-        removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
+            original_backup_evidence={"schema_version": 1},
+            removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
+            migration_evidence={"kind": "post_migration_completion_evidence"},
+            post_migration_backup_evidence={
+                "kind": "post_migration_postgresql_checkpoint"
+            },
         )
     assert "leave_stopped" in adapter.calls
     assert "verify_stopped" in adapter.calls
     assert "bot_polling" not in adapter.calls
     assert adapter.calls[-1] == "record:application_stopped_verified"
+
+
+def test_compensation_failure_still_verifies_and_records_recovery_required() -> None:
+    adapter = FakeAdapter("leave_stopped")
+    adapter.fail_at = "verify_without_polling"
+
+    def fail_activation_and_compensation(name: str) -> None:
+        adapter.calls.append(name)
+        if name in {"verify_without_polling", "leave_stopped"}:
+            raise RuntimeError(name)
+
+    adapter._call = fail_activation_and_compensation  # type: ignore[method-assign]
+    with pytest.raises(transition.TransitionError, match="application_compensation_incomplete"):
+        transition.TransitionEngine(adapter).execute_resume_post_migration(
+            authorization=authorization(),
+            preconditions=good_preconditions(),
+            original_backup_evidence={"schema_version": 1},
+            removal_evidence={"result": "APPLICATION_LAYER_RESET_PASS"},
+            migration_evidence={"kind": "post_migration_completion_evidence"},
+            post_migration_backup_evidence={
+                "kind": "post_migration_postgresql_checkpoint"
+            },
+        )
+    assert "verify_stopped" in adapter.calls
+    assert adapter.calls[-1] == "record:application_compensation_failed"
 
 
 def test_backup_evidence_rehashes_each_real_artifact(tmp_path: Path) -> None:
@@ -400,13 +470,15 @@ def test_backup_evidence_rehashes_each_real_artifact(tmp_path: Path) -> None:
     evidence = backup_root / "backup-evidence.json"
     evidence.write_bytes(transition.canonical_json(payload))
     manifest = authorization(
-        backup_evidence_checksum=payload["checksum"],
-        backup_evidence_sha256=transition.hashlib.sha256(evidence.read_bytes()).hexdigest(),
+        original_backup_evidence_checksum=payload["checksum"],
+        original_backup_evidence_sha256=transition.hashlib.sha256(
+            evidence.read_bytes()
+        ).hexdigest(),
     )
 
     transition.validate_evidence(
         evidence,
-        kind="backup",
+        kind="original_backup",
         schema=transition.BACKUP_EVIDENCE_SCHEMA,
         manifest=manifest,
         backup_root=backup_root,
@@ -415,7 +487,7 @@ def test_backup_evidence_rehashes_each_real_artifact(tmp_path: Path) -> None:
     with pytest.raises(transition.TransitionError, match="artifact_mismatch"):
         transition.validate_evidence(
             evidence,
-            kind="backup",
+            kind="original_backup",
             schema=transition.BACKUP_EVIDENCE_SCHEMA,
             manifest=manifest,
             backup_root=backup_root,
@@ -505,9 +577,12 @@ def test_concrete_activation_uses_exact_target_bundle(
         checksum=tmp_path / "archive.sha256",
         public_manifest=tmp_path / "manifest.json",
         evidence_directory=evidence,
-        backup_evidence=tmp_path / "authorization.json",
+        original_backup_evidence=tmp_path / "authorization.json",
         removal_evidence=tmp_path / "authorization.json",
-        backup_root=tmp_path,
+        migration_evidence=tmp_path / "authorization.json",
+        post_migration_backup_evidence=tmp_path / "authorization.json",
+        original_backup_root=tmp_path,
+        post_migration_backup_root=tmp_path,
         authorization=authorization(),
     )
     adapter.execution_bundle = bundle
@@ -545,7 +620,7 @@ def test_source_fleet_is_never_started_by_clean_install_engine() -> None:
     assert "leave_application_stopped" in source
 
 
-def test_application_container_probe_is_project_agnostic(
+def test_application_container_probe_uses_exact_project_and_service(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     responses = iter(
@@ -554,7 +629,7 @@ def test_application_container_probe_is_project_agnostic(
             subprocess.CompletedProcess(
                 [],
                 0,
-                f"bot|{transition.SOURCE_APPLICATION_SHA}|nura-release:{transition.SOURCE_APPLICATION_SHA}\n",
+                f"nura_app|bot|{transition.SOURCE_APPLICATION_SHA}|nura-legacy:bot-d0d39ae8717c\n",
                 "",
             ),
         )
@@ -572,7 +647,7 @@ def test_raw_nura_release_container_without_compose_labels_is_detected(
             subprocess.CompletedProcess(
                 [],
                 0,
-                f"|{transition.SOURCE_APPLICATION_SHA}|nura-release:{transition.SOURCE_APPLICATION_SHA}\n",
+                f"||{transition.SOURCE_APPLICATION_SHA}|nura-release:{transition.SOURCE_APPLICATION_SHA}\n",
                 "",
             ),
         )
@@ -590,7 +665,7 @@ def test_raw_nura_release_container_without_compose_labels_is_detected(
     ],
 )
 def test_concrete_adapter_classifies_raw_nura_images(image: str) -> None:
-    assert transition._is_application_container("", "", image) is True
+    assert transition._is_application_container("", "", "", image) is True
 
 
 @pytest.mark.parametrize(
@@ -729,9 +804,12 @@ def test_compensation_removes_target_source_and_unlabelled_revision_containers(
         checksum=fixture,
         public_manifest=fixture,
         evidence_directory=evidence,
-        backup_evidence=fixture,
+        original_backup_evidence=fixture,
         removal_evidence=fixture,
-        backup_root=tmp_path,
+        migration_evidence=fixture,
+        post_migration_backup_evidence=fixture,
+        original_backup_root=tmp_path,
+        post_migration_backup_root=tmp_path,
         authorization=authorization(),
     )
     rows = [
@@ -755,3 +833,479 @@ def test_compensation_removes_target_source_and_unlabelled_revision_containers(
         ["docker", "rm", "source"],
         ["docker", "rm", "missing-revision"],
     ]
+    flattened = " ".join(" ".join(command) for command in commands)
+    assert " -v" not in flattened
+    assert " image " not in f" {flattened} "
+    assert " compose down" not in flattened
+
+
+def test_compensation_attempts_static_and_state_restore_after_cleanup_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "target"
+    evidence = tmp_path / "evidence"
+    (target / "nura_app").mkdir(parents=True)
+    evidence.mkdir()
+    fixture = tmp_path / "fixture"
+    fixture.write_text("fixture", encoding="utf-8")
+    adapter = transition.HostMutationAdapter(
+        target_source=target,
+        authorization_manifest=fixture,
+        archive=fixture,
+        checksum=fixture,
+        public_manifest=fixture,
+        evidence_directory=evidence,
+        original_backup_evidence=fixture,
+        removal_evidence=fixture,
+        migration_evidence=fixture,
+        post_migration_backup_evidence=fixture,
+        original_backup_root=tmp_path,
+        post_migration_backup_root=tmp_path,
+        authorization=authorization(),
+    )
+    attempted: list[str] = []
+
+    def cleanup() -> None:
+        attempted.append("cleanup")
+        raise transition.TransitionError("cleanup_failed")
+
+    monkeypatch.setattr(adapter, "_stop_and_remove_application_containers", cleanup)
+    monkeypatch.setattr(
+        adapter,
+        "_restore_source_static",
+        lambda _source: attempted.append("static"),
+    )
+    monkeypatch.setattr(
+        adapter,
+        "_restore_source_release_state",
+        lambda _source, _target: attempted.append("state"),
+    )
+    with pytest.raises(transition.TransitionError, match="application_compensation_incomplete"):
+        adapter.leave_application_stopped(transition.SOURCE_APPLICATION_SHA, "a" * 40)
+    assert attempted == ["cleanup", "static", "state"]
+
+
+@pytest.mark.parametrize("service", transition.APP_SERVICES)
+def test_exact_nura_project_labels_classify_all_application_services(
+    service: str,
+) -> None:
+    assert (
+        transition._is_application_container(
+            "nura_app",
+            service,
+            "",
+            "nura-legacy:bot-d0d39ae8717c",
+        )
+        is True
+    )
+
+
+@pytest.mark.parametrize("service", transition.DATA_SERVICES)
+def test_protected_data_services_are_never_application_containers(service: str) -> None:
+    assert (
+        transition._is_application_container(
+            "nura_app",
+            service,
+            "a" * 40,
+            "nura-release:" + "a" * 40,
+        )
+        is False
+    )
+
+
+def test_unrelated_project_bot_is_not_classified() -> None:
+    assert (
+        transition._is_application_container(
+            "foreign",
+            "bot",
+            "a" * 40,
+            "nura-legacy:bot-d0d39ae8717c",
+        )
+        is False
+    )
+
+
+def _create_exact_target_fixture(tmp_path: Path) -> tuple[Path, str, Path, Path]:
+    repo = tmp_path / "target"
+    app = repo / "nura_app"
+    evidence = tmp_path / "evidence"
+    app.mkdir(parents=True)
+    evidence.mkdir()
+    compose = app / "docker-compose.yml"
+    compose.write_text("services:\n  api: {}\n", encoding="utf-8")
+    env_file = app / ".env"
+    env_file.write_text("APP_ENV=production\nPAYMENTS_ENABLED=false\n", encoding="utf-8")
+    subprocess.run(["git", "init", "--quiet", str(repo)], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "config", "core.autocrlf", "false"], check=True
+    )
+    subprocess.run(
+        ["git", "-C", str(repo), "add", "nura_app/docker-compose.yml"], check=True
+    )
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.name=NURA Test",
+            "-c",
+            "user.email=nura-test@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "target",
+        ],
+        check=True,
+    )
+    target_sha = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    return repo, target_sha, evidence, env_file
+
+
+def test_target_compose_handoff_binds_git_blob_override_env_and_project(
+    tmp_path: Path,
+) -> None:
+    repo, target_sha, evidence, env_file = _create_exact_target_fixture(tmp_path)
+    handoff = evidence / "target-compose-handoff.json"
+    override = evidence / "target-image.override.yml"
+    image_id = "sha256:" + "f" * 64
+    transition.create_target_compose_handoff(
+        handoff,
+        image_override=override,
+        repo=repo,
+        env_file=env_file,
+        target_sha=target_sha,
+        image_tag=f"nura-release:{target_sha}",
+        image_id=image_id,
+        oci_revision=target_sha,
+    )
+    context = transition.validate_target_compose_handoff(
+        handoff,
+        manifest={"target_application_sha": target_sha},
+        target_source=repo,
+        env_file=env_file,
+    )
+    assert context.project_directory == repo / "nura_app"
+    assert context.compose_file == repo / "nura_app" / "docker-compose.yml"
+    assert context.image_override == override
+    assert context.image_tag == f"nura-release:{target_sha}"
+    assert context.image_id == image_id
+    assert b"nura-legacy" not in override.read_bytes()
+
+    override.write_text("services:\n  bot:\n    image: nura-legacy:bot-d0d39ae8717c\n")
+    with pytest.raises(transition.TransitionError, match="target_compose_override_mismatch"):
+        transition.validate_target_compose_handoff(
+            handoff,
+            manifest={"target_application_sha": target_sha},
+            target_source=repo,
+            env_file=env_file,
+        )
+
+
+def test_every_target_compose_command_uses_one_exact_context(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo, target_sha, evidence, env_file = _create_exact_target_fixture(tmp_path)
+    fixture = tmp_path / "fixture"
+    fixture.write_text("fixture", encoding="utf-8")
+    handoff = evidence / "target-compose-handoff.json"
+    override = evidence / "target-image.override.yml"
+    transition.create_target_compose_handoff(
+        handoff,
+        image_override=override,
+        repo=repo,
+        env_file=env_file,
+        target_sha=target_sha,
+        image_tag=f"nura-release:{target_sha}",
+        image_id="sha256:" + "e" * 64,
+        oci_revision=target_sha,
+    )
+    adapter = transition.HostMutationAdapter(
+        target_source=repo,
+        authorization_manifest=fixture,
+        archive=fixture,
+        checksum=fixture,
+        public_manifest=fixture,
+        evidence_directory=evidence,
+        original_backup_evidence=fixture,
+        removal_evidence=fixture,
+        migration_evidence=fixture,
+        post_migration_backup_evidence=fixture,
+        original_backup_root=tmp_path,
+        post_migration_backup_root=tmp_path,
+        authorization={"target_application_sha": target_sha},
+    )
+    adapter.current_app = repo / "nura_app"
+    captured: list[str] = []
+    monkeypatch.setattr(
+        adapter,
+        "_run",
+        lambda command, **_kwargs: captured.extend(command) or "",
+    )
+    adapter._target_compose("config", "--quiet", polling="false")
+    assert captured[:4] == ["docker", "compose", "--project-name", "nura_app"]
+    assert captured[captured.index("--project-directory") + 1] == str(repo / "nura_app")
+    assert captured[captured.index("--env-file") + 1] == str(env_file)
+    compose_inputs = [captured[index + 1] for index, item in enumerate(captured) if item == "-f"]
+    assert compose_inputs == [str(repo / "nura_app" / "docker-compose.yml"), str(override)]
+    assert "/opt/nura/nura_app/docker-compose.yml" not in captured
+
+
+def test_post_activation_methods_never_select_current_compose() -> None:
+    for name in (
+        "_verify_fleet_revision",
+        "verify_target_without_polling",
+        "verify_owner_only_without_polling",
+        "activate_bot_polling",
+        "verify_bot_polling",
+    ):
+        source = inspect.getsource(getattr(transition.HostMutationAdapter, name))
+        assert "_target_compose" in source
+        assert "self.current_app," not in source
+
+
+def test_polling_activation_recreates_only_exact_target_bot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target = tmp_path / "target"
+    evidence = tmp_path / "evidence"
+    (target / "nura_app").mkdir(parents=True)
+    evidence.mkdir()
+    fixture = tmp_path / "fixture"
+    fixture.write_text("fixture", encoding="utf-8")
+    target_sha = "a" * 40
+    image_id = "sha256:" + "b" * 64
+    adapter = transition.HostMutationAdapter(
+        target_source=target,
+        authorization_manifest=fixture,
+        archive=fixture,
+        checksum=fixture,
+        public_manifest=fixture,
+        evidence_directory=evidence,
+        original_backup_evidence=fixture,
+        removal_evidence=fixture,
+        migration_evidence=fixture,
+        post_migration_backup_evidence=fixture,
+        original_backup_root=tmp_path,
+        post_migration_backup_root=tmp_path,
+        authorization={"target_application_sha": target_sha},
+    )
+    context = transition.TargetComposeContext(
+        target_sha=target_sha,
+        project_directory=target / "nura_app",
+        compose_file=target / "nura_app" / "docker-compose.yml",
+        image_override=evidence / "target-image.override.yml",
+        env_file=target / "nura_app" / ".env",
+        image_tag=f"nura-release:{target_sha}",
+        image_id=image_id,
+    )
+    monkeypatch.setattr(
+        transition,
+        "validate_target_compose_handoff",
+        lambda *_args, **_kwargs: context,
+    )
+    compose_responses = iter(("old-target-bot", "false", "", "new-target-bot"))
+    compose_calls: list[tuple[tuple[str, ...], str | None]] = []
+
+    def target_compose(*arguments: str, polling: str | None = None) -> str:
+        compose_calls.append((arguments, polling))
+        return next(compose_responses)
+
+    inspect_responses = iter(
+        (
+            f"nura_app|bot|nura-release:{target_sha}|{image_id}|{target_sha}",
+            f"nura-release:{target_sha}|{image_id}|{target_sha}",
+        )
+    )
+    monkeypatch.setattr(adapter, "_target_compose", target_compose)
+    monkeypatch.setattr(
+        adapter,
+        "_run",
+        lambda _command, **_kwargs: next(inspect_responses),
+    )
+    adapter.activate_bot_polling()
+    assert adapter.polling_bot_identity == ("new-target-bot", image_id, target_sha)
+    assert compose_calls[2] == (
+        ("up", "-d", "--no-deps", "--force-recreate", "bot"),
+        "true",
+    )
+    assert "nura-legacy:bot-d0d39ae8717c" not in repr(compose_calls)
+
+
+def test_migration_completion_evidence_binds_incident_and_target_head(
+    tmp_path: Path,
+) -> None:
+    incident = tmp_path / "003-manual-activation-failure-containment.json"
+    incident.write_bytes(transition.canonical_json({"status": "contained"}))
+    payload: dict[str, object] = {
+        "schema_version": transition.MIGRATION_EVIDENCE_SCHEMA,
+        "kind": "post_migration_completion_evidence",
+        "original_db_revision": transition.CURRENT_REVISION,
+        "current_db_revision": transition.TARGET_REVISION,
+        "target_db_revision": transition.TARGET_REVISION,
+        "ordered_migration_revisions": [
+            item.revision for item in transition.EXPECTED_MIGRATIONS
+        ],
+        "migration_chain_digest": transition.MIGRATION_CHAIN_DIGEST,
+        "migration_completed_at": "2026-08-03T07:00:00Z",
+        "database_counts": {
+            "guest_profiles": 5,
+            "payments": 0,
+            "reports": 2,
+            "users": 2,
+        },
+        "application_containers": 0,
+        "application_processes": 0,
+        "automatic_downgrade": False,
+        "source_fleet_started": False,
+        "legacy_bot_incident": {
+            "contained": True,
+            "evidence_path": str(incident),
+            "evidence_sha256": transition.hashlib.sha256(incident.read_bytes()).hexdigest(),
+        },
+        "provider_call_certainty": "unknown-for-contained-legacy-polling-interval",
+        "current_safe_state": "application-layer-absent",
+    }
+    payload["checksum"] = transition.payload_checksum(payload)
+    evidence = tmp_path / "migration.json"
+    evidence.write_bytes(transition.canonical_json(payload))
+    manifest = authorization(
+        migration_evidence_checksum=payload["checksum"],
+        migration_evidence_sha256=transition.hashlib.sha256(
+            evidence.read_bytes()
+        ).hexdigest(),
+    )
+    transition.validate_migration_evidence(evidence, manifest=manifest)
+
+    payload["provider_call_certainty"] = "zero"
+    payload["checksum"] = transition.payload_checksum(
+        {key: value for key, value in payload.items() if key != "checksum"}
+    )
+    evidence.write_bytes(transition.canonical_json(payload))
+    with pytest.raises(transition.TransitionError, match="migration_evidence_identity_invalid"):
+        transition.validate_migration_evidence(
+            evidence,
+            manifest=authorization(
+                migration_evidence_checksum=payload["checksum"],
+                migration_evidence_sha256=transition.hashlib.sha256(
+                    evidence.read_bytes()
+                ).hexdigest(),
+            ),
+        )
+
+
+def test_post_migration_checkpoint_is_exact_private_postgresql_custom_backup(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "checkpoint"
+    root.mkdir()
+    if os.name != "nt":
+        root.chmod(0o700)
+    dump = root / "postgresql-d8e9.dump"
+    dump.write_bytes(b"PGDMP fixture")
+    if os.name != "nt":
+        dump.chmod(0o600)
+    payload: dict[str, object] = {
+        "schema_version": transition.POST_MIGRATION_BACKUP_EVIDENCE_SCHEMA,
+        "kind": "post_migration_postgresql_checkpoint",
+        "source_application_sha": transition.SOURCE_APPLICATION_SHA,
+        "target_application_sha": "a" * 40,
+        "current_db_revision": transition.TARGET_REVISION,
+        "database_counts": {
+            "guest_profiles": 5,
+            "payments": 0,
+            "reports": 2,
+            "users": 2,
+        },
+        "postgresql": {
+            "format": "custom",
+            "major_version": 16,
+            "no_owner_acl": True,
+            "path": str(dump),
+            "restore_list_verified": True,
+            "sha256": transition.hashlib.sha256(dump.read_bytes()).hexdigest(),
+            "size_bytes": dump.stat().st_size,
+        },
+        "created_at": "2026-08-04T00:00:00Z",
+    }
+    payload["checksum"] = transition.payload_checksum(payload)
+    evidence = root / "checkpoint-evidence.json"
+    evidence.write_bytes(transition.canonical_json(payload))
+    if os.name != "nt":
+        evidence.chmod(0o600)
+    manifest = authorization(
+        post_migration_backup_evidence_checksum=payload["checksum"],
+        post_migration_backup_evidence_sha256=transition.hashlib.sha256(
+            evidence.read_bytes()
+        ).hexdigest(),
+    )
+    transition.validate_post_migration_backup_evidence(
+        evidence,
+        manifest=manifest,
+        backup_root=root,
+    )
+
+
+def test_resume_evidence_timeline_requires_migration_then_checkpoint_then_auth() -> None:
+    manifest = authorization(valid_from="2026-08-04T03:00:00Z")
+    migration = {"migration_completed_at": "2026-08-03T07:00:00Z"}
+    checkpoint = {"created_at": "2026-08-04T02:00:00Z"}
+    transition.validate_resume_evidence_timeline(migration, checkpoint, manifest)
+
+    with pytest.raises(transition.TransitionError, match="resume_evidence_timeline_invalid"):
+        transition.validate_resume_evidence_timeline(
+            migration,
+            {"created_at": "2026-08-03T06:59:59Z"},
+            manifest,
+        )
+    with pytest.raises(transition.TransitionError, match="resume_evidence_timeline_invalid"):
+        transition.validate_resume_evidence_timeline(
+            migration,
+            {"created_at": "2026-08-04T03:00:01Z"},
+            manifest,
+        )
+
+
+def test_resume_cli_rejects_alternate_env_or_compose_before_preflight(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path.resolve()
+    args = Namespace(
+        target_source=repo,
+        env_file=repo / "alternate.env",
+        current_compose=repo / "nura_app" / "docker-compose.yml",
+        current_release_state=transition.CURRENT_RELEASE_STATE,
+        current_static_link=transition.CURRENT_STATIC_LINK,
+        p7b_transaction_directory=transition.P7B_TRANSACTION_DIRECTORY,
+        secrets_dir=transition.PRODUCTION_SECRETS_DIRECTORY,
+        evidence_directory=repo / "evidence",
+    )
+    with pytest.raises(transition.TransitionError, match="resume_runtime_path_invalid"):
+        transition._validate_resume_cli_paths(args, repo)
+    args.current_compose = repo / "nura_app" / "docker-compose.yml"
+    args.secrets_dir = repo / "alternate-secrets"
+    with pytest.raises(transition.TransitionError, match="resume_runtime_path_invalid"):
+        transition._validate_resume_cli_paths(args, repo)
+    args.env_file = repo / "nura_app" / ".env"
+    args.current_compose = repo / "alternate-compose.yml"
+    with pytest.raises(transition.TransitionError, match="resume_runtime_path_invalid"):
+        transition._validate_resume_cli_paths(args, repo)
+
+
+def test_private_handoff_contract_requires_root_owned_directory_and_files() -> None:
+    source = inspect.getsource(transition._validate_root_owned_private_directory)
+    handoff_source = inspect.getsource(transition.validate_target_compose_handoff)
+    assert "effective_uid != 0" in source
+    assert "metadata.st_uid != effective_uid" in source
+    assert "0o700" in source
+    assert "handoff_metadata.st_uid != effective_uid" in handoff_source
+    assert "override_metadata.st_uid != effective_uid" in handoff_source
+    assert "st_nlink != 1" in handoff_source

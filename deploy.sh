@@ -457,13 +457,25 @@ PY
 }
 
 run_compose() {
-  docker compose --project-directory "$REPO_ROOT/nura_app" -f "$COMPOSE_BASE" -f "$COMPOSE_OVERRIDE" "$@"
+  if [[ $CLEAN_INSTALL_MODE -eq 1 ]]; then
+    python3 "$PRELAUNCH_TRANSITION_HELPER" validate-target-compose-handoff \
+      --handoff "$NURA_TARGET_COMPOSE_HANDOFF" \
+      --manifest "$NURA_PRELAUNCH_TRANSITION_AUTHORIZATION" \
+      --target-source "$REPO_ROOT" \
+      --env-file "$REPO_ROOT/nura_app/.env" \
+      --repo "$REPO_ROOT" >/dev/null \
+      || fail "exact target Compose handoff validation failed"
+  fi
+  docker compose --project-name nura_app \
+    --project-directory "$REPO_ROOT/nura_app" \
+    --env-file "$REPO_ROOT/nura_app/.env" \
+    -f "$ACTIVE_COMPOSE_BASE" -f "$COMPOSE_OVERRIDE" "$@"
 }
 
 verify_data_services() {
   local service container inspection
   for service in "${DATA_SERVICES[@]}"; do
-    container="$(docker compose --project-directory "$REPO_ROOT/nura_app" -f "$COMPOSE_BASE" ps -q --all "$service")"
+    container="$(docker compose --project-name nura_app --project-directory "$REPO_ROOT/nura_app" --env-file "$REPO_ROOT/nura_app/.env" -f "$COMPOSE_BASE" ps -q --all "$service")"
     [[ -n "$container" && "$container" != *$'\n'* ]] || fail "data service is missing or ambiguous: $service"
     inspection="$(docker inspect --format '{{.State.Running}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container")"
     [[ "$inspection" == true\|* && "$inspection" != *\|unhealthy ]] || fail "data service is not healthy: $service"
@@ -559,6 +571,7 @@ PY
 # Compose resolves relative bind mounts from its first file, so keep this
 # generated base beside the tracked application compose file.
 COMPOSE_BASE="$(mktemp "$REPO_ROOT/nura_app/.nura-compose-base.XXXXXX.yml")"
+ACTIVE_COMPOSE_BASE="$COMPOSE_BASE"
 COMPOSE_OVERRIDE=""
 STAGING_PATH=""
 INCOMING_DIR=""
@@ -571,6 +584,7 @@ APP_MUTATED=0
 STATIC_SWITCHED=0
 SUCCESS=0
 CLEAN_INSTALL_MODE=0
+CLEAN_INSTALL_EVIDENCE_DIR=""
 PREVIOUS_RELEASE_PATH=""
 TARGET_STATE_SNAPSHOT=""
 ENVIRONMENT_RECONCILED=0
@@ -625,7 +639,9 @@ cleanup() {
   fi
   cleanup_incoming "$SUCCESS" || log "WARNING: incoming artifact cleanup was incomplete"
   [[ -z "$STAGING_PATH" || ! -d "$STAGING_PATH" ]] || true
-  [[ -z "$COMPOSE_OVERRIDE" ]] || rm -f -- "$COMPOSE_OVERRIDE"
+  if [[ $CLEAN_INSTALL_MODE -ne 1 ]]; then
+    [[ -z "$COMPOSE_OVERRIDE" ]] || rm -f -- "$COMPOSE_OVERRIDE"
+  fi
   if [[ -n "$CANDIDATE_TAG" ]] && docker image inspect "$CANDIDATE_TAG" >/dev/null 2>&1; then
     docker image rm "$CANDIDATE_TAG" >/dev/null || true
   fi
@@ -643,6 +659,10 @@ if [[ -n "${NURA_PRELAUNCH_TRANSITION_AUTHORIZATION:-}" ]]; then
     && -f "${NURA_CLEAN_INSTALL_HANDOFF}" \
     && ! -L "${NURA_CLEAN_INSTALL_HANDOFF}" ]] \
     || fail "clean-install mode requires an engine handoff"
+  CLEAN_INSTALL_EVIDENCE_DIR="$(dirname "$NURA_CLEAN_INSTALL_HANDOFF")"
+  [[ "${NURA_TARGET_COMPOSE_HANDOFF:-}" == "$CLEAN_INSTALL_EVIDENCE_DIR/target-compose-handoff.json" \
+    && "${NURA_TARGET_IMAGE_OVERRIDE:-}" == "$CLEAN_INSTALL_EVIDENCE_DIR/target-image.override.yml" ]] \
+    || fail "clean-install target Compose destinations are not bounded"
   python3 "$PRELAUNCH_TRANSITION_HELPER" validate-authorization \
     --manifest "$NURA_PRELAUNCH_TRANSITION_AUTHORIZATION" \
     --repo "$REPO_ROOT" >/dev/null \
@@ -656,7 +676,7 @@ if [[ -n "${NURA_PRELAUNCH_TRANSITION_AUTHORIZATION:-}" ]]; then
     --consume >/dev/null \
     || fail "clean-install engine handoff validation failed"
   CLEAN_INSTALL_MODE=1
-  log "validated schema-v3 application-layer clean-install mode"
+  log "validated schema-v4 post-migration clean-install resume mode"
 fi
 python3 "$ARTIFACT_HELPER" validate-current --current "$CURRENT_LINK" --expected-sha "$CURRENT_SHA" >/dev/null
 if [[ $CLEAN_INSTALL_MODE -ne 1 ]]; then
@@ -936,8 +956,23 @@ if [[ "$COMMAND" == prepare-p7b ]]; then
   log "P7B prepare handoff persisted at exact target $TARGET_SHA; application and data services were not mutated"
   exit 0
 fi
-COMPOSE_OVERRIDE="$(mktemp "${TMPDIR:-/tmp}/nura-target-compose.XXXXXX.yml")"
-compose_override_for_map "$COMPOSE_OVERRIDE" "$RELEASE_STATE_DIR/$TARGET_SHA.json"
+if [[ $CLEAN_INSTALL_MODE -eq 1 ]]; then
+  ACTIVE_COMPOSE_BASE="$REPO_ROOT/nura_app/docker-compose.yml"
+  COMPOSE_OVERRIDE="$NURA_TARGET_IMAGE_OVERRIDE"
+  python3 "$PRELAUNCH_TRANSITION_HELPER" create-target-compose-handoff \
+    --handoff "$NURA_TARGET_COMPOSE_HANDOFF" \
+    --image-override "$COMPOSE_OVERRIDE" \
+    --repo "$REPO_ROOT" \
+    --env-file "$REPO_ROOT/nura_app/.env" \
+    --target-sha "$TARGET_SHA" \
+    --image-tag "$IMAGE_TAG" \
+    --image-id "$TARGET_IMAGE_ID" \
+    --oci-revision "$TARGET_SHA" >/dev/null \
+    || fail "exact target Compose handoff creation failed"
+else
+  COMPOSE_OVERRIDE="$(mktemp "${TMPDIR:-/tmp}/nura-target-compose.XXXXXX.yml")"
+  compose_override_for_map "$COMPOSE_OVERRIDE" "$RELEASE_STATE_DIR/$TARGET_SHA.json"
+fi
 write_state activating "" "" "$CURRENT_SHA"
 APP_MUTATED=1
 if [[ $CLEAN_INSTALL_MODE -eq 1 ]]; then

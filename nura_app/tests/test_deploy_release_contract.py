@@ -228,6 +228,19 @@ def test_clean_install_is_manifest_derived_and_starts_only_target_services_in_or
     assert 'run_compose stop "${APPLICATION_SERVICES[@]}"' in script
     assert 'run_compose rm -f "${APPLICATION_SERVICES[@]}"' in script
     assert 'run_compose rm -f -v' not in script
+    assert "create-target-compose-handoff" in script
+    assert "validate-target-compose-handoff" in script
+    assert '--project-name nura_app' in script
+    assert '--env-file "$REPO_ROOT/nura_app/.env"' in script
+    assert 'ACTIVE_COMPOSE_BASE="$REPO_ROOT/nura_app/docker-compose.yml"' in script
+    assert 'COMPOSE_OVERRIDE="$NURA_TARGET_IMAGE_OVERRIDE"' in script
+    create = script.index("create-target-compose-handoff")
+    activate = script.index('for service_name in "${CLEAN_INSTALL_SERVICE_ORDER[@]}"')
+    assert create < activate
+    run_compose = script[script.index("run_compose()") : script.index("verify_data_services()")]
+    assert run_compose.index("validate-target-compose-handoff") < run_compose.index(
+        "docker compose"
+    )
 
 
 def test_rollback_rejects_clean_install_authorization_before_host_access() -> None:

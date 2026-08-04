@@ -52,13 +52,18 @@ PROTECTED_VOLUMES = (
     "nura_app_redis_data",
     "nura_app_reports_output",
 )
-AUTHORIZATION_SCHEMA = 3
+AUTHORIZATION_SCHEMA = 4
 BACKUP_EVIDENCE_SCHEMA = 1
+MIGRATION_EVIDENCE_SCHEMA = 1
+POST_MIGRATION_BACKUP_EVIDENCE_SCHEMA = 1
+TARGET_COMPOSE_HANDOFF_SCHEMA = 1
 REMOVAL_EVIDENCE_SCHEMA = "1.0"
 SOURCE_RUNTIME_MODE = "application-layer-absent"
-INSTALLATION_MODE = "clean-install"
-POST_MIGRATION_FAILURE_MODE = "leave-application-stopped"
-OWNER_APPROVAL = "approval-owner-prelaunch-clean-install-v3"
+INSTALLATION_MODE = "clean-install-resume-post-migration"
+ACTIVATION_COMPOSE_MODE = "exact-target-only"
+MIGRATION_STATUS = "preapplied-and-verified"
+POST_ACTIVATION_FAILURE_MODE = "leave-application-stopped"
+OWNER_APPROVAL = "approval-owner-prelaunch-activation-resume-v4"
 SECRET_PROFILE_VERSION = "production-files-v1"
 MIN_AVAILABLE_RAM_BYTES = 3 * 1024**3
 MIN_ACTIVE_SWAP_BYTES = 2 * 1024**3
@@ -72,18 +77,32 @@ P7B_QUIESCENT_PHASES = {
     "stage2_compensated",
     "stale_stage2_recovered",
 }
+CURRENT_RELEASE_STATE = Path("/var/lib/nura-release-state/current.json")
+CURRENT_STATIC_LINK = Path("/var/www/nura-releases/current")
+P7B_TRANSACTION_DIRECTORY = Path("/var/lib/nura-release-state/p7b/transactions")
+PRODUCTION_SECRETS_DIRECTORY = Path("/opt/nura/secrets/production")
 
 
-def _is_application_container(service: str, revision: str, image: str) -> bool:
+def _is_application_container(
+    project: str,
+    service: str,
+    revision: str,
+    image: str,
+) -> bool:
+    if service in DATA_SERVICES:
+        return False
+    if project == "nura_app" and service in APP_SERVICES:
+        return True
+    if project:
+        return False
     known_nura_image = (
         image == "nura-release"
         or image.startswith("nura-release:")
         or image.startswith("nura-release-candidate:")
         or image.startswith("nura-prelaunch-migration:")
+        or image.startswith("nura-legacy:")
     )
-    return known_nura_image or (
-        service in APP_SERVICES and SHA_RE.fullmatch(revision) is not None
-    )
+    return known_nura_image or (service in APP_SERVICES and SHA_RE.fullmatch(revision) is not None)
 
 
 class TransitionError(RuntimeError):
@@ -134,6 +153,59 @@ def _validate_checksum(
         raise TransitionError(f"{label}_checksum_mismatch")
 
 
+def _validate_root_owned_private_directory(path: Path, label: str) -> Path:
+    try:
+        resolved = path.resolve(strict=True)
+        metadata = path.lstat()
+    except OSError as exc:
+        raise TransitionError(f"{label}_unsafe") from exc
+    effective_uid = getattr(os, "geteuid", lambda: None)()
+    if (
+        not path.is_absolute()
+        or path.is_symlink()
+        or path != resolved
+        or not stat.S_ISDIR(metadata.st_mode)
+        or (
+            os.name == "posix"
+            and (
+                effective_uid != 0
+                or metadata.st_uid != effective_uid
+                or stat.S_IMODE(metadata.st_mode) != 0o700
+            )
+        )
+    ):
+        raise TransitionError(f"{label}_unsafe")
+    return resolved
+
+
+def _validate_resume_cli_paths(args: argparse.Namespace, repo: Path) -> None:
+    """Reject alternate runtime/state inputs before any preflight or DB probe."""
+
+    expected = {
+        "target_source": repo,
+        "env_file": repo / "nura_app" / ".env",
+        "current_compose": repo / "nura_app" / "docker-compose.yml",
+        "current_release_state": CURRENT_RELEASE_STATE,
+        "current_static_link": CURRENT_STATIC_LINK,
+        "p7b_transaction_directory": P7B_TRANSACTION_DIRECTORY,
+        "secrets_dir": PRODUCTION_SECRETS_DIRECTORY,
+    }
+    if os.name == "posix" and repo != Path("/opt/nura"):
+        raise TransitionError("resume_runtime_path_invalid")
+    for name, exact in expected.items():
+        value = getattr(args, name)
+        if not isinstance(value, Path) or not value.is_absolute() or value != exact:
+            raise TransitionError("resume_runtime_path_invalid")
+    evidence = _validate_root_owned_private_directory(
+        args.evidence_directory,
+        "evidence_directory",
+    )
+    try:
+        evidence.relative_to(Path("/var/lib/nura-release-state/prelaunch-evidence"))
+    except ValueError as exc:
+        raise TransitionError("evidence_directory_unsafe") from exc
+
+
 def _git(repo: Path, *arguments: str) -> str:
     result = subprocess.run(
         ["git", "-C", str(repo), *arguments],
@@ -179,12 +251,21 @@ def validate_authorization_manifest(
         "engine_file_sha256",
         "current_db_revision",
         "target_db_revision",
+        "original_db_revision",
         "ordered_migration_revisions",
         "migration_chain_digest",
+        "migration_status",
+        "allow_migration_execution",
         "required_secret_profile_version",
-        "backup_evidence_schema",
-        "backup_evidence_checksum",
-        "backup_evidence_sha256",
+        "original_backup_evidence_schema",
+        "original_backup_evidence_checksum",
+        "original_backup_evidence_sha256",
+        "migration_evidence_schema",
+        "migration_evidence_checksum",
+        "migration_evidence_sha256",
+        "post_migration_backup_evidence_schema",
+        "post_migration_backup_evidence_checksum",
+        "post_migration_backup_evidence_sha256",
         "application_layer_removal_evidence_schema",
         "application_layer_removal_evidence_checksum",
         "application_layer_removal_evidence_sha256",
@@ -192,9 +273,10 @@ def validate_authorization_manifest(
         "capacity_acknowledgement",
         "source_runtime_mode",
         "installation_mode",
+        "activation_compose_mode",
         "allow_source_fleet_start",
         "require_application_layer_removal_evidence",
-        "post_migration_failure_mode",
+        "post_activation_failure_mode",
         "database_downgrade_acknowledgement",
         "owner_approval_identifiers",
         "valid_from",
@@ -218,8 +300,12 @@ def validate_authorization_manifest(
         "migration_chain_digest",
         "target_artifact_sha256",
         "target_manifest_sha256",
-        "backup_evidence_checksum",
-        "backup_evidence_sha256",
+        "original_backup_evidence_checksum",
+        "original_backup_evidence_sha256",
+        "migration_evidence_checksum",
+        "migration_evidence_sha256",
+        "post_migration_backup_evidence_checksum",
+        "post_migration_backup_evidence_sha256",
         "application_layer_removal_evidence_checksum",
         "application_layer_removal_evidence_sha256",
     ):
@@ -232,20 +318,27 @@ def validate_authorization_manifest(
         or manifest["target_application_sha"] == SOURCE_APPLICATION_SHA
         or manifest["engine_commit_sha"] != manifest["target_application_sha"]
         or manifest["authorization_base_commit_sha"] != manifest["target_application_sha"]
-        or manifest["current_db_revision"] != CURRENT_REVISION
+        or manifest["current_db_revision"] != TARGET_REVISION
         or manifest["target_db_revision"] != TARGET_REVISION
+        or manifest["original_db_revision"] != CURRENT_REVISION
         or manifest["ordered_migration_revisions"] != expected_revisions
         or manifest["migration_chain_digest"] != MIGRATION_CHAIN_DIGEST
+        or manifest["migration_status"] != MIGRATION_STATUS
+        or manifest["allow_migration_execution"] is not False
         or manifest["required_secret_profile_version"] != SECRET_PROFILE_VERSION
-        or manifest["backup_evidence_schema"] != BACKUP_EVIDENCE_SCHEMA
+        or manifest["original_backup_evidence_schema"] != BACKUP_EVIDENCE_SCHEMA
+        or manifest["migration_evidence_schema"] != MIGRATION_EVIDENCE_SCHEMA
+        or manifest["post_migration_backup_evidence_schema"]
+        != POST_MIGRATION_BACKUP_EVIDENCE_SCHEMA
         or manifest["application_layer_removal_evidence_schema"] != REMOVAL_EVIDENCE_SCHEMA
         or manifest["expected_database_counts"]
         != {"guest_profiles": 5, "payments": 0, "reports": 2, "users": 2}
         or manifest["source_runtime_mode"] != SOURCE_RUNTIME_MODE
         or manifest["installation_mode"] != INSTALLATION_MODE
+        or manifest["activation_compose_mode"] != ACTIVATION_COMPOSE_MODE
         or manifest["allow_source_fleet_start"] is not False
         or manifest["require_application_layer_removal_evidence"] is not True
-        or manifest["post_migration_failure_mode"] != POST_MIGRATION_FAILURE_MODE
+        or manifest["post_activation_failure_mode"] != POST_ACTIVATION_FAILURE_MODE
         or manifest["database_downgrade_acknowledgement"] != "not-supported"
     ):
         raise TransitionError("authorization_manifest_transition_mismatch")
@@ -383,13 +476,13 @@ def validate_evidence(
         raise TransitionError(f"{kind}_evidence_source_mismatch")
     if value.get("current_db_revision") != CURRENT_REVISION:
         raise TransitionError(f"{kind}_evidence_revision_mismatch")
-    if kind == "backup":
+    if kind == "original_backup":
         if (
-            value.get("checksum") != manifest["backup_evidence_checksum"]
+            value.get("checksum") != manifest["original_backup_evidence_checksum"]
             or hashlib.sha256(path.read_bytes()).hexdigest()
-            != manifest["backup_evidence_sha256"]
+            != manifest["original_backup_evidence_sha256"]
         ):
-            raise TransitionError("backup_evidence_identity_mismatch")
+            raise TransitionError("original_backup_evidence_identity_mismatch")
         if backup_root is None:
             raise TransitionError("backup_root_required")
         try:
@@ -428,6 +521,195 @@ def validate_evidence(
     else:
         raise TransitionError("evidence_kind_invalid")
     return value
+
+
+def validate_migration_evidence(
+    path: Path,
+    *,
+    manifest: Mapping[str, object],
+) -> dict[str, object]:
+    """Validate the exact prior migration completion and contained incident."""
+
+    value = _read_canonical_json(path, "migration_evidence")
+    _validate_checksum(value, "migration_evidence")
+    required = {
+        "schema_version",
+        "kind",
+        "original_db_revision",
+        "current_db_revision",
+        "target_db_revision",
+        "ordered_migration_revisions",
+        "migration_chain_digest",
+        "migration_completed_at",
+        "database_counts",
+        "application_containers",
+        "application_processes",
+        "automatic_downgrade",
+        "source_fleet_started",
+        "legacy_bot_incident",
+        "provider_call_certainty",
+        "current_safe_state",
+        "checksum",
+    }
+    expected_counts = manifest["expected_database_counts"]
+    if (
+        set(value) != required
+        or value.get("schema_version") != MIGRATION_EVIDENCE_SCHEMA
+        or value.get("kind") != "post_migration_completion_evidence"
+        or value.get("original_db_revision") != CURRENT_REVISION
+        or value.get("current_db_revision") != TARGET_REVISION
+        or value.get("target_db_revision") != TARGET_REVISION
+        or value.get("ordered_migration_revisions")
+        != [item.revision for item in EXPECTED_MIGRATIONS]
+        or value.get("migration_chain_digest") != MIGRATION_CHAIN_DIGEST
+        or value.get("database_counts") != expected_counts
+        or value.get("application_containers") != 0
+        or value.get("application_processes") != 0
+        or value.get("automatic_downgrade") is not False
+        or value.get("source_fleet_started") is not False
+        or value.get("provider_call_certainty")
+        != "unknown-for-contained-legacy-polling-interval"
+        or value.get("current_safe_state") != "application-layer-absent"
+        or value.get("checksum") != manifest["migration_evidence_checksum"]
+        or hashlib.sha256(path.read_bytes()).hexdigest()
+        != manifest["migration_evidence_sha256"]
+    ):
+        raise TransitionError("migration_evidence_identity_invalid")
+    try:
+        completed = datetime.fromisoformat(
+            str(value["migration_completed_at"]).replace("Z", "+00:00")
+        )
+    except ValueError as exc:
+        raise TransitionError("migration_evidence_timestamp_invalid") from exc
+    if completed.tzinfo is None:
+        raise TransitionError("migration_evidence_timestamp_invalid")
+    incident = value.get("legacy_bot_incident")
+    if (
+        not isinstance(incident, dict)
+        or set(incident) != {"contained", "evidence_path", "evidence_sha256"}
+        or incident.get("contained") is not True
+        or not isinstance(incident.get("evidence_path"), str)
+        or not isinstance(incident.get("evidence_sha256"), str)
+        or DIGEST_RE.fullmatch(str(incident["evidence_sha256"])) is None
+    ):
+        raise TransitionError("migration_evidence_incident_invalid")
+    incident_path = Path(str(incident["evidence_path"]))
+    if (
+        not incident_path.is_absolute()
+        or _sha256(incident_path) != incident["evidence_sha256"]
+    ):
+        raise TransitionError("migration_evidence_incident_invalid")
+    return value
+
+
+def validate_post_migration_backup_evidence(
+    path: Path,
+    *,
+    manifest: Mapping[str, object],
+    backup_root: Path,
+) -> dict[str, object]:
+    """Validate the private PostgreSQL 16 checkpoint made after migration."""
+
+    value = _read_canonical_json(path, "post_migration_backup_evidence")
+    _validate_checksum(value, "post_migration_backup_evidence")
+    required = {
+        "schema_version",
+        "kind",
+        "source_application_sha",
+        "target_application_sha",
+        "current_db_revision",
+        "database_counts",
+        "postgresql",
+        "created_at",
+        "checksum",
+    }
+    if (
+        set(value) != required
+        or value.get("schema_version") != POST_MIGRATION_BACKUP_EVIDENCE_SCHEMA
+        or value.get("kind") != "post_migration_postgresql_checkpoint"
+        or value.get("source_application_sha") != manifest["source_application_sha"]
+        or value.get("target_application_sha") != manifest["target_application_sha"]
+        or value.get("current_db_revision") != TARGET_REVISION
+        or value.get("database_counts") != manifest["expected_database_counts"]
+        or value.get("checksum")
+        != manifest["post_migration_backup_evidence_checksum"]
+        or hashlib.sha256(path.read_bytes()).hexdigest()
+        != manifest["post_migration_backup_evidence_sha256"]
+    ):
+        raise TransitionError("post_migration_backup_evidence_identity_invalid")
+    record = value.get("postgresql")
+    if (
+        not isinstance(record, dict)
+        or set(record)
+        != {
+            "format",
+            "major_version",
+            "no_owner_acl",
+            "path",
+            "restore_list_verified",
+            "sha256",
+            "size_bytes",
+        }
+        or record.get("format") != "custom"
+        or record.get("major_version") != 16
+        or record.get("no_owner_acl") is not True
+        or record.get("restore_list_verified") is not True
+        or not isinstance(record.get("path"), str)
+        or not isinstance(record.get("sha256"), str)
+        or DIGEST_RE.fullmatch(str(record["sha256"])) is None
+        or not isinstance(record.get("size_bytes"), int)
+        or int(record["size_bytes"]) <= 0
+    ):
+        raise TransitionError("post_migration_backup_artifact_invalid")
+    try:
+        resolved_root = backup_root.resolve(strict=True)
+        root_metadata = backup_root.lstat()
+    except OSError as exc:
+        raise TransitionError("post_migration_backup_root_unsafe") from exc
+    if (
+        not backup_root.is_absolute()
+        or backup_root.is_symlink()
+        or backup_root != resolved_root
+        or not stat.S_ISDIR(root_metadata.st_mode)
+        or (os.name == "posix" and stat.S_IMODE(root_metadata.st_mode) != 0o700)
+    ):
+        raise TransitionError("post_migration_backup_root_unsafe")
+    _verify_backup_artifact(Path(str(record["path"])), record, resolved_root)
+    try:
+        created = datetime.fromisoformat(str(value["created_at"]).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise TransitionError("post_migration_backup_timestamp_invalid") from exc
+    if created.tzinfo is None:
+        raise TransitionError("post_migration_backup_timestamp_invalid")
+    return value
+
+
+def validate_resume_evidence_timeline(
+    migration_evidence: Mapping[str, object],
+    post_migration_backup_evidence: Mapping[str, object],
+    authorization: Mapping[str, object],
+) -> None:
+    """Prove migration preceded its checkpoint and both preceded authorization."""
+
+    try:
+        migration_completed = datetime.fromisoformat(
+            str(migration_evidence["migration_completed_at"]).replace("Z", "+00:00")
+        )
+        checkpoint_created = datetime.fromisoformat(
+            str(post_migration_backup_evidence["created_at"]).replace("Z", "+00:00")
+        )
+        authorization_created = datetime.fromisoformat(
+            str(authorization["valid_from"]).replace("Z", "+00:00")
+        )
+    except (KeyError, ValueError) as exc:
+        raise TransitionError("resume_evidence_timeline_invalid") from exc
+    if (
+        migration_completed.tzinfo is None
+        or checkpoint_created.tzinfo is None
+        or authorization_created.tzinfo is None
+        or not migration_completed <= checkpoint_created <= authorization_created
+    ):
+        raise TransitionError("resume_evidence_timeline_invalid")
 
 
 def validate_removal_evidence(
@@ -541,11 +823,12 @@ def read_capacity(path: Path = Path("/proc/meminfo"), filesystem: Path = Path("/
 
 
 class MutationAdapter(Protocol):
-    def build_migration_candidate(self, target_sha: str) -> None: ...
-    def revalidate_backup_evidence(self) -> None: ...
+    def prepare_target_execution(self, target_sha: str) -> None: ...
+    def revalidate_original_backup_evidence(self) -> None: ...
     def revalidate_removal_evidence(self) -> None: ...
+    def revalidate_migration_evidence(self) -> None: ...
+    def revalidate_post_migration_backup_evidence(self) -> None: ...
     def verify_application_layer_absent(self) -> None: ...
-    def apply_migrations(self, target_revision: str) -> None: ...
     def activate_target_with_polling_disabled(self, target_sha: str) -> None: ...
     def verify_target_without_polling(self, target_sha: str) -> None: ...
     def verify_owner_only_without_polling(self, target_sha: str) -> None: ...
@@ -588,13 +871,15 @@ class TransitionEngine:
     def __init__(self, adapter: MutationAdapter) -> None:
         self.adapter = adapter
 
-    def execute(
+    def execute_resume_post_migration(
         self,
         *,
         authorization: Mapping[str, object],
         preconditions: Preconditions,
-        backup_evidence: Mapping[str, object],
+        original_backup_evidence: Mapping[str, object],
         removal_evidence: Mapping[str, object],
+        migration_evidence: Mapping[str, object],
+        post_migration_backup_evidence: Mapping[str, object],
     ) -> None:
         if preconditions.current_application_sha != authorization["source_application_sha"]:
             raise TransitionError("current_application_mismatch")
@@ -634,42 +919,66 @@ class TransitionEngine:
             raise TransitionError("offline_preflight_failed")
         if preconditions.artifact_sha256 != authorization["target_artifact_sha256"] or preconditions.manifest_sha256 != authorization["target_manifest_sha256"]:
             raise TransitionError("target_artifact_identity_mismatch")
-        if backup_evidence.get("schema_version") != BACKUP_EVIDENCE_SCHEMA:
-            raise TransitionError("backup_evidence_missing")
+        if original_backup_evidence.get("schema_version") != BACKUP_EVIDENCE_SCHEMA:
+            raise TransitionError("original_backup_evidence_missing")
         if removal_evidence.get("result") != "APPLICATION_LAYER_RESET_PASS":
             raise TransitionError("removal_evidence_missing")
+        if migration_evidence.get("kind") != "post_migration_completion_evidence":
+            raise TransitionError("migration_evidence_missing")
+        if (
+            post_migration_backup_evidence.get("kind")
+            != "post_migration_postgresql_checkpoint"
+        ):
+            raise TransitionError("post_migration_backup_evidence_missing")
+        if authorization.get("allow_migration_execution") is not False:
+            raise TransitionError("migration_execution_not_disabled")
         capacity_mode = preconditions.capacity.validate()
 
         target_sha = str(authorization["target_application_sha"])
         self.adapter.record("all_preconditions_passed", {"capacity_mode": capacity_mode})
-        self.adapter.build_migration_candidate(target_sha)
-        self.adapter.revalidate_backup_evidence()
+        self.adapter.prepare_target_execution(target_sha)
+        self.adapter.revalidate_original_backup_evidence()
         self.adapter.revalidate_removal_evidence()
+        self.adapter.revalidate_migration_evidence()
+        self.adapter.revalidate_post_migration_backup_evidence()
         self.adapter.verify_application_layer_absent()
-        try:
-            self.adapter.apply_migrations(TARGET_REVISION)
-        except Exception:
-            self.adapter.leave_application_stopped(SOURCE_APPLICATION_SHA, target_sha)
-            self.adapter.verify_application_stopped(SOURCE_APPLICATION_SHA, None)
-            self.adapter.record("migration_failed", {"database_rollback": False})
-            raise
         try:
             self.adapter.activate_target_with_polling_disabled(target_sha)
             self.adapter.verify_target_without_polling(target_sha)
             self.adapter.verify_owner_only_without_polling(target_sha)
             self.adapter.activate_bot_polling()
             self.adapter.verify_bot_polling(target_sha)
-        except Exception:
-            self.adapter.leave_application_stopped(SOURCE_APPLICATION_SHA, target_sha)
-            self.adapter.verify_application_stopped(SOURCE_APPLICATION_SHA, TARGET_REVISION)
-            self.adapter.record(
-                "application_stopped_verified",
-                {
-                    "database_revision": TARGET_REVISION,
-                    "database_rollback": False,
-                    "source_fleet_started": False,
-                },
+        except Exception as activation_error:
+            compensation_failed = False
+            try:
+                self.adapter.leave_application_stopped(SOURCE_APPLICATION_SHA, target_sha)
+            except Exception:
+                compensation_failed = True
+            try:
+                self.adapter.verify_application_stopped(
+                    SOURCE_APPLICATION_SHA,
+                    TARGET_REVISION,
+                )
+            except Exception:
+                compensation_failed = True
+            phase = (
+                "application_compensation_failed"
+                if compensation_failed
+                else "application_stopped_verified"
             )
+            try:
+                self.adapter.record(
+                    phase,
+                    {
+                        "database_revision": TARGET_REVISION,
+                        "database_rollback": False,
+                        "source_fleet_started": False,
+                    },
+                )
+            except Exception:
+                compensation_failed = True
+            if compensation_failed:
+                raise TransitionError("application_compensation_incomplete") from activation_error
             raise
         self.adapter.record(
             "transition_succeeded",
@@ -689,9 +998,12 @@ class HostMutationAdapter:
         checksum: Path,
         public_manifest: Path,
         evidence_directory: Path,
-        backup_evidence: Path,
+        original_backup_evidence: Path,
         removal_evidence: Path,
-        backup_root: Path,
+        migration_evidence: Path,
+        post_migration_backup_evidence: Path,
+        original_backup_root: Path,
+        post_migration_backup_root: Path,
         authorization: Mapping[str, object],
     ) -> None:
         self.target_source = target_source.resolve(strict=True)
@@ -701,14 +1013,24 @@ class HostMutationAdapter:
         self.checksum = checksum.resolve(strict=True)
         self.public_manifest = public_manifest.resolve(strict=True)
         self.evidence_directory = evidence_directory.resolve(strict=True)
-        self.backup_evidence = backup_evidence.resolve(strict=True)
+        self.original_backup_evidence = original_backup_evidence.resolve(strict=True)
         self.removal_evidence = removal_evidence.resolve(strict=True)
-        self.backup_root = backup_root.resolve(strict=True)
+        self.migration_evidence = migration_evidence.resolve(strict=True)
+        self.post_migration_backup_evidence = post_migration_backup_evidence.resolve(
+            strict=True
+        )
+        self.original_backup_root = original_backup_root.resolve(strict=True)
+        self.post_migration_backup_root = post_migration_backup_root.resolve(strict=True)
         self.authorization = dict(authorization)
         self.current_app = Path("/opt/nura/nura_app")
-        self.candidate_tag = ""
-        self.override = self.evidence_directory / "migration-image.override.yml"
         self.execution_bundle: Path | None = None
+        self.target_compose_handoff = (
+            self.evidence_directory / "target-compose-handoff.json"
+        )
+        self.target_image_override = (
+            self.evidence_directory / "target-image.override.yml"
+        )
+        self.polling_bot_identity: tuple[str, str, str] | None = None
         self.source_current_snapshot = (
             self.evidence_directory / "source-current-before-activation.json"
         )
@@ -737,13 +1059,33 @@ class HostMutationAdapter:
             raise TransitionError("transition_command_failed")
         return result.stdout.strip()
 
-    def _compose(self, app: Path, *arguments: str, polling: str | None = None) -> str:
+    def _target_compose(self, *arguments: str, polling: str | None = None) -> str:
+        context = validate_target_compose_handoff(
+            self.target_compose_handoff,
+            manifest=self.authorization,
+            target_source=self.target_source,
+            env_file=self.current_app / ".env",
+        )
         environment = os.environ.copy()
         if polling is not None:
             environment["NURA_TG_POLLING_ENABLED"] = polling
         return self._run(
-            ["docker", "compose", "--project-directory", str(app), "-f", str(app / "docker-compose.yml"), *arguments],
-            cwd=app,
+            [
+                "docker",
+                "compose",
+                "--project-name",
+                "nura_app",
+                "--project-directory",
+                str(context.project_directory),
+                "--env-file",
+                str(context.env_file),
+                "-f",
+                str(context.compose_file),
+                "-f",
+                str(context.image_override),
+                *arguments,
+            ],
+            cwd=context.project_directory,
             environment=environment,
         )
 
@@ -756,12 +1098,12 @@ class HostMutationAdapter:
                     "docker",
                     "inspect",
                     "--format",
-                    '{{index .Config.Labels "com.docker.compose.service"}}|{{.State.Status}}|{{index .Config.Labels "org.opencontainers.image.revision"}}|{{.Config.Image}}',
+                    '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{.State.Status}}|{{index .Config.Labels "org.opencontainers.image.revision"}}|{{.Config.Image}}',
                     container,
                 ]
             )
-            service, state, revision, image = inspection.split("|", 3)
-            if _is_application_container(service, revision, image):
+            project, service, state, revision, image = inspection.split("|", 4)
+            if _is_application_container(project, service, revision, image):
                 rows.append((container, state, revision))
         return rows
 
@@ -774,8 +1116,7 @@ class HostMutationAdapter:
 
     def _verify_fleet_revision(self, expected_sha: str, *, polling: str) -> None:
         for service in APP_SERVICES:
-            container = self._compose(
-                self.current_app,
+            container = self._target_compose(
                 "ps",
                 "--status",
                 "running",
@@ -785,44 +1126,34 @@ class HostMutationAdapter:
             )
             if not container or "\n" in container:
                 raise TransitionError("fleet_identity_invalid")
-            revision = self._run(
+            identity = self._run(
                 [
                     "docker",
                     "inspect",
                     "--format",
-                    '{{index .Config.Labels "org.opencontainers.image.revision"}}',
+                    '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{.Config.Image}}|{{.Image}}|{{index .Config.Labels "org.opencontainers.image.revision"}}',
                     container,
                 ]
             )
-            if revision != expected_sha:
+            project, actual_service, image, image_id, revision = identity.split("|", 4)
+            context = validate_target_compose_handoff(
+                self.target_compose_handoff,
+                manifest=self.authorization,
+                target_source=self.target_source,
+                env_file=self.current_app / ".env",
+            )
+            if (
+                project != "nura_app"
+                or actual_service != service
+                or image != context.image_tag
+                or image_id != context.image_id
+                or revision != expected_sha
+            ):
                 raise TransitionError("fleet_identity_invalid")
 
-    def build_migration_candidate(self, target_sha: str) -> None:
+    def prepare_target_execution(self, target_sha: str) -> None:
         if _git(self.target_source, "rev-parse", "HEAD") != target_sha or _git(self.target_source, "status", "--porcelain"):
             raise TransitionError("target_source_identity_mismatch")
-        self.candidate_tag = f"nura-prelaunch-migration:{target_sha}"
-        self._run(
-            [
-                "docker",
-                "build",
-                "--label",
-                f"org.opencontainers.image.revision={target_sha}",
-                "--tag",
-                self.candidate_tag,
-                str(self.target_app),
-            ]
-        )
-        content = (
-            "services:\n"
-            "  api:\n"
-            f"    image: {self.candidate_tag}\n"
-            "    build: null\n"
-            "    environment:\n"
-            "      RUN_MIGRATIONS: \"0\"\n"
-        ).encode()
-        descriptor = os.open(self.override, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(content)
         bundle_output = self._run(
             [
                 sys.executable,
@@ -846,13 +1177,13 @@ class HostMutationAdapter:
             raise TransitionError("execution_bundle_identity_invalid")
         self.execution_bundle = resolved_bundle
 
-    def revalidate_backup_evidence(self) -> None:
+    def revalidate_original_backup_evidence(self) -> None:
         validate_evidence(
-            self.backup_evidence,
-            kind="backup",
+            self.original_backup_evidence,
+            kind="original_backup",
             schema=BACKUP_EVIDENCE_SCHEMA,
             manifest=self.authorization,
-            backup_root=self.backup_root,
+            backup_root=self.original_backup_root,
         )
 
     def revalidate_removal_evidence(self) -> None:
@@ -861,38 +1192,24 @@ class HostMutationAdapter:
             manifest=self.authorization,
         )
 
+    def revalidate_migration_evidence(self) -> None:
+        validate_migration_evidence(
+            self.migration_evidence,
+            manifest=self.authorization,
+        )
+
+    def revalidate_post_migration_backup_evidence(self) -> None:
+        validate_post_migration_backup_evidence(
+            self.post_migration_backup_evidence,
+            manifest=self.authorization,
+            backup_root=self.post_migration_backup_root,
+        )
+
     def verify_application_layer_absent(self) -> None:
         if self._application_containers():
             raise TransitionError("application_container_present")
         if self._application_process_present():
             raise TransitionError("application_process_present")
-
-    def apply_migrations(self, target_revision: str) -> None:
-        self._run(
-            [
-                "docker",
-                "compose",
-                "--project-directory",
-                str(self.target_app),
-                "--env-file",
-                str(self.current_app / ".env"),
-                "-f",
-                str(self.target_app / "docker-compose.yml"),
-                "-f",
-                str(self.override),
-                "run",
-                "--rm",
-                "--no-deps",
-                "--entrypoint",
-                "python",
-                "api",
-                "-m",
-                "alembic",
-                "upgrade",
-                target_revision,
-            ],
-            cwd=self.target_app,
-        )
 
     def activate_target_with_polling_disabled(self, target_sha: str) -> None:
         if self.execution_bundle is None:
@@ -931,8 +1248,22 @@ class HostMutationAdapter:
             "target_application_sha": target_sha,
             "target_db_revision": self.authorization["target_db_revision"],
             "authorization_sha256": _sha256(self.authorization_manifest),
-            "backup_evidence_checksum": self.authorization["backup_evidence_checksum"],
-            "backup_evidence_sha256": _sha256(self.backup_evidence),
+            "original_backup_evidence_checksum": self.authorization[
+                "original_backup_evidence_checksum"
+            ],
+            "original_backup_evidence_sha256": _sha256(
+                self.original_backup_evidence
+            ),
+            "migration_evidence_checksum": self.authorization[
+                "migration_evidence_checksum"
+            ],
+            "migration_evidence_sha256": _sha256(self.migration_evidence),
+            "post_migration_backup_evidence_checksum": self.authorization[
+                "post_migration_backup_evidence_checksum"
+            ],
+            "post_migration_backup_evidence_sha256": _sha256(
+                self.post_migration_backup_evidence
+            ),
             "removal_evidence_checksum": self.authorization[
                 "application_layer_removal_evidence_checksum"
             ],
@@ -963,6 +1294,8 @@ class HostMutationAdapter:
             {
                 "NURA_PRELAUNCH_TRANSITION_AUTHORIZATION": str(self.authorization_manifest),
                 "NURA_CLEAN_INSTALL_HANDOFF": str(self.clean_install_handoff),
+                "NURA_TARGET_COMPOSE_HANDOFF": str(self.target_compose_handoff),
+                "NURA_TARGET_IMAGE_OVERRIDE": str(self.target_image_override),
                 "NURA_RELEASE_EXECUTION_BUNDLE": str(self.execution_bundle),
                 "NURA_WORKFLOW_SHA": target_sha,
                 "NURA_TG_POLLING_ENABLED": "false",
@@ -999,8 +1332,7 @@ class HostMutationAdapter:
             or dependencies.get("payment_configuration") != "disabled"
         ):
             raise TransitionError("target_readiness_invalid")
-        worker_ping = self._compose(
-            self.current_app,
+        worker_ping = self._target_compose(
             "exec",
             "-T",
             "celery-worker",
@@ -1015,8 +1347,7 @@ class HostMutationAdapter:
         )
         if "pong" not in worker_ping.lower() or "no nodes replied" in worker_ping.lower():
             raise TransitionError("worker_ping_failed")
-        beat_container = self._compose(
-            self.current_app,
+        beat_container = self._target_compose(
             "ps",
             "--status",
             "running",
@@ -1026,8 +1357,7 @@ class HostMutationAdapter:
         )
         if not beat_container:
             raise TransitionError("beat_process_not_running")
-        source = self._compose(
-            self.current_app,
+        source = self._target_compose(
             "exec",
             "-T",
             "celery-beat",
@@ -1038,8 +1368,7 @@ class HostMutationAdapter:
         )
         if any(item in source for item in ("charge-recurring", "expiring-subscriptions", "downgrade-expired")):
             raise TransitionError("payment_schedule_not_contained")
-        polling = self._compose(
-            self.current_app,
+        polling = self._target_compose(
             "exec",
             "-T",
             "bot",
@@ -1053,8 +1382,7 @@ class HostMutationAdapter:
 
     def verify_owner_only_without_polling(self, target_sha: str) -> None:
         del target_sha
-        identity = self._compose(
-            self.current_app,
+        identity = self._target_compose(
             "exec",
             "-T",
             "bot",
@@ -1067,12 +1395,67 @@ class HostMutationAdapter:
             raise TransitionError("owner_only_runtime_output_invalid")
 
     def activate_bot_polling(self) -> None:
-        self._compose(self.current_app, "up", "-d", "--no-deps", "--force-recreate", "bot", polling="true")
+        context = validate_target_compose_handoff(
+            self.target_compose_handoff,
+            manifest=self.authorization,
+            target_source=self.target_source,
+            env_file=self.current_app / ".env",
+        )
+        current = self._target_compose(
+            "ps", "--status", "running", "-q", "bot", polling="false"
+        )
+        if not current or "\n" in current:
+            raise TransitionError("bot_polling_precondition_invalid")
+        before = self._run(
+            [
+                "docker",
+                "inspect",
+                "--format",
+                '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{.Config.Image}}|{{.Image}}|{{index .Config.Labels "org.opencontainers.image.revision"}}',
+                current,
+            ]
+        )
+        if before != f"nura_app|bot|{context.image_tag}|{context.image_id}|{context.target_sha}":
+            raise TransitionError("bot_polling_precondition_invalid")
+        polling = self._target_compose(
+            "exec",
+            "-T",
+            "bot",
+            "python",
+            "-c",
+            "from core.config import settings; print(str(settings.telegram_polling_enabled).lower())",
+            polling="false",
+        )
+        if polling != "false":
+            raise TransitionError("bot_polling_precondition_invalid")
+        self._target_compose(
+            "up", "-d", "--no-deps", "--force-recreate", "bot", polling="true"
+        )
+        container = self._target_compose(
+            "ps", "--status", "running", "-q", "bot", polling="true"
+        )
+        if not container or "\n" in container or container == current:
+            raise TransitionError("bot_polling_identity_invalid")
+        identity = self._run(
+            [
+                "docker",
+                "inspect",
+                "--format",
+                '{{.Config.Image}}|{{.Image}}|{{index .Config.Labels "org.opencontainers.image.revision"}}',
+                container,
+            ]
+        )
+        image, image_id, revision = identity.split("|", 2)
+        if (image, image_id, revision) != (
+            context.image_tag,
+            context.image_id,
+            context.target_sha,
+        ):
+            raise TransitionError("bot_polling_identity_invalid")
+        self.polling_bot_identity = (container, image_id, revision)
 
     def verify_bot_polling(self, target_sha: str) -> None:
-        del target_sha
-        polling = self._compose(
-            self.current_app,
+        polling = self._target_compose(
             "exec",
             "-T",
             "bot",
@@ -1083,11 +1466,47 @@ class HostMutationAdapter:
         )
         if polling != "true":
             raise TransitionError("bot_polling_verification_failed")
+        container = self._target_compose(
+            "ps", "--status", "running", "-q", "bot", polling="true"
+        )
+        context = validate_target_compose_handoff(
+            self.target_compose_handoff,
+            manifest=self.authorization,
+            target_source=self.target_source,
+            env_file=self.current_app / ".env",
+        )
+        identity = self._run(
+            [
+                "docker",
+                "inspect",
+                "--format",
+                '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{.Config.Image}}|{{.Image}}|{{index .Config.Labels "org.opencontainers.image.revision"}}',
+                container,
+            ]
+        )
+        if (
+            self.polling_bot_identity != (container, context.image_id, target_sha)
+            or identity
+            != f"nura_app|bot|{context.image_tag}|{context.image_id}|{target_sha}"
+        ):
+            raise TransitionError("bot_polling_identity_invalid")
 
     def leave_application_stopped(self, source_sha: str, target_sha: str) -> None:
-        self._stop_and_remove_application_containers()
+        compensation_failed = False
+        for action in (
+            self._stop_and_remove_application_containers,
+            lambda: self._restore_source_static(source_sha),
+            lambda: self._restore_source_release_state(source_sha, target_sha),
+        ):
+            try:
+                action()
+            except Exception:
+                compensation_failed = True
+        if compensation_failed:
+            raise TransitionError("application_compensation_incomplete")
 
-        current_link = Path("/var/www/nura-releases/current")
+    def _restore_source_static(self, source_sha: str) -> None:
+        current_link = CURRENT_STATIC_LINK
         source_release = current_link.parent / "releases" / source_sha
         helper = (
             self.execution_bundle / "scripts" / "build_release_artifact.py"
@@ -1107,7 +1526,8 @@ class HostMutationAdapter:
         )
         _validate_static_current(current_link, source_sha, helper)
 
-        current_state = Path("/var/lib/nura-release-state/current.json")
+    def _restore_source_release_state(self, source_sha: str, target_sha: str) -> None:
+        current_state = CURRENT_RELEASE_STATE
         previous_state = Path("/var/lib/nura-release-state/previous.json")
         current = _read_canonical_json(current_state, "current_release_state")
         if current.get("sha") == target_sha:
@@ -1248,6 +1668,232 @@ def _sha256(path: Path) -> str:
         raise TransitionError("artifact_path_unreadable") from exc
 
 
+@dataclass(frozen=True)
+class TargetComposeContext:
+    target_sha: str
+    project_directory: Path
+    compose_file: Path
+    image_override: Path
+    env_file: Path
+    image_tag: str
+    image_id: str
+
+
+def _target_image_override_bytes(target_sha: str) -> bytes:
+    image_tag = f"nura-release:{target_sha}"
+    lines = ["services:"]
+    for service in APP_SERVICES:
+        lines.extend(
+            (
+                f"  {service}:",
+                f"    image: {image_tag}",
+                "    build: null",
+            )
+        )
+        if service == "api":
+            lines.extend(("    environment:", '      RUN_MIGRATIONS: "0"'))
+    return ("\n".join(lines) + "\n").encode()
+
+
+def create_target_compose_handoff(
+    path: Path,
+    *,
+    image_override: Path,
+    repo: Path,
+    env_file: Path,
+    target_sha: str,
+    image_tag: str,
+    image_id: str,
+    oci_revision: str,
+) -> None:
+    """Persist the one exact, secret-free Compose context used after target build."""
+
+    try:
+        repository = repo.resolve(strict=True)
+        environment_file = env_file.resolve(strict=True)
+    except OSError as exc:
+        raise TransitionError("target_compose_handoff_path_invalid") from exc
+    evidence_directory = _validate_root_owned_private_directory(
+        path.parent,
+        "target_compose_evidence_directory",
+    )
+    if (
+        not path.is_absolute()
+        or not image_override.is_absolute()
+        or path.name != "target-compose-handoff.json"
+        or image_override.name != "target-image.override.yml"
+        or image_override.parent.resolve(strict=True) != evidence_directory
+        or path.exists()
+        or path.is_symlink()
+        or image_override.exists()
+        or image_override.is_symlink()
+        or not SHA_RE.fullmatch(target_sha)
+        or _git(repository, "rev-parse", "HEAD") != target_sha
+        or image_tag != f"nura-release:{target_sha}"
+        or not image_id.startswith("sha256:")
+        or oci_revision != target_sha
+    ):
+        raise TransitionError("target_compose_handoff_identity_invalid")
+    project_directory = repository / "nura_app"
+    compose_file = project_directory / "docker-compose.yml"
+    expected_env = project_directory / ".env"
+    if (
+        environment_file != expected_env
+        or env_file.is_symlink()
+        or not env_file.is_file()
+        or compose_file.is_symlink()
+        or not compose_file.is_file()
+    ):
+        raise TransitionError("target_compose_handoff_identity_invalid")
+    compose_blob = _git_bytes(repository, "show", f"{target_sha}:nura_app/docker-compose.yml")
+    if compose_file.read_bytes() != compose_blob:
+        raise TransitionError("target_compose_git_blob_mismatch")
+    override_bytes = _target_image_override_bytes(target_sha)
+    descriptor = os.open(image_override, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(override_bytes)
+        stream.flush()
+        os.fsync(stream.fileno())
+    payload: dict[str, object] = {
+        "schema_version": TARGET_COMPOSE_HANDOFF_SCHEMA,
+        "kind": "exact_target_compose_handoff",
+        "target_sha": target_sha,
+        "project_name": "nura_app",
+        "project_directory": str(project_directory),
+        "compose_path": str(compose_file),
+        "compose_sha256": hashlib.sha256(compose_blob).hexdigest(),
+        "image_override_path": str(image_override),
+        "image_override_sha256": hashlib.sha256(override_bytes).hexdigest(),
+        "image_tag": image_tag,
+        "image_id": image_id,
+        "oci_revision": oci_revision,
+        "environment": {
+            "classification": "non-secret-production",
+            "path": str(environment_file),
+            "sha256": _sha256(environment_file),
+        },
+        "polling_initial_state": False,
+    }
+    handoff = dict(payload)
+    handoff["checksum"] = payload_checksum(payload)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(canonical_json(handoff))
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def validate_target_compose_handoff(
+    path: Path,
+    *,
+    manifest: Mapping[str, object],
+    target_source: Path,
+    env_file: Path,
+) -> TargetComposeContext:
+    """Revalidate every immutable input before any target Compose operation."""
+
+    value = _read_canonical_json(path, "target_compose_handoff")
+    _validate_checksum(value, "target_compose_handoff")
+    evidence_directory = _validate_root_owned_private_directory(
+        path.parent,
+        "target_compose_evidence_directory",
+    )
+    required = {
+        "schema_version",
+        "kind",
+        "target_sha",
+        "project_name",
+        "project_directory",
+        "compose_path",
+        "compose_sha256",
+        "image_override_path",
+        "image_override_sha256",
+        "image_tag",
+        "image_id",
+        "oci_revision",
+        "environment",
+        "polling_initial_state",
+        "checksum",
+    }
+    try:
+        source = target_source.resolve(strict=True)
+        expected_env = env_file.resolve(strict=True)
+        compose_file = Path(str(value["compose_path"])).resolve(strict=True)
+        image_override = Path(str(value["image_override_path"])).resolve(strict=True)
+        project_directory = Path(str(value["project_directory"])).resolve(strict=True)
+        recorded_env = Path(str(value["environment"]["path"])).resolve(strict=True)  # type: ignore[index]
+        handoff_metadata = path.lstat()
+        override_metadata = image_override.lstat()
+    except (KeyError, OSError, TypeError) as exc:
+        raise TransitionError("target_compose_handoff_identity_invalid") from exc
+    target_sha = str(manifest["target_application_sha"])
+    environment = value.get("environment")
+    effective_uid = getattr(os, "geteuid", lambda: None)()
+    if (
+        not path.is_absolute()
+        or path.name != "target-compose-handoff.json"
+        or path.is_symlink()
+        or not stat.S_ISREG(handoff_metadata.st_mode)
+        or handoff_metadata.st_nlink != 1
+        or image_override.is_symlink()
+        or not stat.S_ISREG(override_metadata.st_mode)
+        or override_metadata.st_nlink != 1
+        or compose_file.is_symlink()
+        or env_file.is_symlink()
+        or (
+            os.name == "posix"
+            and (
+                stat.S_IMODE(handoff_metadata.st_mode) != 0o600
+                or stat.S_IMODE(override_metadata.st_mode) != 0o600
+                or handoff_metadata.st_uid != effective_uid
+                or override_metadata.st_uid != effective_uid
+            )
+        )
+        or set(value) != required
+        or value.get("schema_version") != TARGET_COMPOSE_HANDOFF_SCHEMA
+        or value.get("kind") != "exact_target_compose_handoff"
+        or value.get("target_sha") != target_sha
+        or value.get("project_name") != "nura_app"
+        or project_directory != source / "nura_app"
+        or compose_file != project_directory / "docker-compose.yml"
+        or image_override.parent != evidence_directory
+        or image_override.name != "target-image.override.yml"
+        or value.get("image_tag") != f"nura-release:{target_sha}"
+        or not str(value.get("image_id", "")).startswith("sha256:")
+        or value.get("oci_revision") != target_sha
+        or value.get("polling_initial_state") is not False
+        or not isinstance(environment, dict)
+        or environment.get("classification") != "non-secret-production"
+        or recorded_env != expected_env
+        or environment.get("sha256") != _sha256(expected_env)
+    ):
+        raise TransitionError("target_compose_handoff_identity_invalid")
+    compose_blob = _git_bytes(source, "show", f"{target_sha}:nura_app/docker-compose.yml")
+    if (
+        _git(source, "rev-parse", "HEAD") != target_sha
+        or compose_file.read_bytes() != compose_blob
+        or value.get("compose_sha256") != hashlib.sha256(compose_blob).hexdigest()
+    ):
+        raise TransitionError("target_compose_git_blob_mismatch")
+    expected_override = _target_image_override_bytes(target_sha)
+    if (
+        image_override.is_symlink()
+        or image_override.read_bytes() != expected_override
+        or value.get("image_override_sha256")
+        != hashlib.sha256(expected_override).hexdigest()
+    ):
+        raise TransitionError("target_compose_override_mismatch")
+    return TargetComposeContext(
+        target_sha=target_sha,
+        project_directory=project_directory,
+        compose_file=compose_file,
+        image_override=image_override,
+        env_file=expected_env,
+        image_tag=str(value["image_tag"]),
+        image_id=str(value["image_id"]),
+    )
+
+
 def verify_clean_install_handoff(
     path: Path,
     *,
@@ -1279,8 +1925,20 @@ def verify_clean_install_handoff(
         "target_application_sha": target_sha,
         "target_db_revision": manifest["target_db_revision"],
         "authorization_sha256": _sha256(manifest_path),
-        "backup_evidence_checksum": manifest["backup_evidence_checksum"],
-        "backup_evidence_sha256": manifest["backup_evidence_sha256"],
+        "original_backup_evidence_checksum": manifest[
+            "original_backup_evidence_checksum"
+        ],
+        "original_backup_evidence_sha256": manifest[
+            "original_backup_evidence_sha256"
+        ],
+        "migration_evidence_checksum": manifest["migration_evidence_checksum"],
+        "migration_evidence_sha256": manifest["migration_evidence_sha256"],
+        "post_migration_backup_evidence_checksum": manifest[
+            "post_migration_backup_evidence_checksum"
+        ],
+        "post_migration_backup_evidence_sha256": manifest[
+            "post_migration_backup_evidence_sha256"
+        ],
         "removal_evidence_checksum": manifest["application_layer_removal_evidence_checksum"],
         "application_layer_removal_evidence_sha256": manifest["application_layer_removal_evidence_sha256"],
         "precondition_result": "PASS",
@@ -1493,7 +2151,7 @@ def _application_containers_present() -> bool:
                 "docker",
                 "inspect",
             "--format",
-                '{{index .Config.Labels "com.docker.compose.service"}}|{{index .Config.Labels "org.opencontainers.image.revision"}}|{{.Config.Image}}',
+                '{{index .Config.Labels "com.docker.compose.project"}}|{{index .Config.Labels "com.docker.compose.service"}}|{{index .Config.Labels "org.opencontainers.image.revision"}}|{{.Config.Image}}',
                 container,
             ],
             capture_output=True,
@@ -1503,10 +2161,10 @@ def _application_containers_present() -> bool:
         if inspection.returncode:
             raise TransitionError("fleet_probe_failed")
         try:
-            service, revision, image = inspection.stdout.strip().split("|", 2)
+            project, service, revision, image = inspection.stdout.strip().split("|", 3)
         except ValueError as exc:
             raise TransitionError("fleet_probe_invalid") from exc
-        if _is_application_container(service, revision, image):
+        if _is_application_container(project, service, revision, image):
             return True
     return False
 
@@ -1595,6 +2253,7 @@ def _active_transaction_present(directory: Path) -> bool:
 
 def execute_from_cli(args: argparse.Namespace) -> None:
     repo = args.repo.resolve(strict=True)
+    _validate_resume_cli_paths(args, repo)
     manifest = validate_authorization_manifest(args.manifest, repo=repo)
     validate_execution_checkout(repo, manifest)
     validate_target_source_checkout(args.target_source, manifest)
@@ -1602,26 +2261,27 @@ def execute_from_cli(args: argparse.Namespace) -> None:
     from tools.current_vps_prelaunch_preflight import run_preflight
 
     validate_migration_contract(args.target_source / "nura_app" / "alembic" / "versions")
-    backup = validate_evidence(
-        args.backup_evidence,
-        kind="backup",
+    original_backup = validate_evidence(
+        args.original_backup_evidence,
+        kind="original_backup",
         schema=BACKUP_EVIDENCE_SCHEMA,
         manifest=manifest,
-        backup_root=args.backup_root,
+        backup_root=args.original_backup_root,
     )
     removal = validate_removal_evidence(
         args.removal_evidence,
         manifest=manifest,
     )
-    if not args.evidence_directory.is_absolute():
-        raise TransitionError("evidence_directory_unsafe")
-    evidence_metadata = args.evidence_directory.lstat()
-    if (
-        args.evidence_directory.is_symlink()
-        or not stat.S_ISDIR(evidence_metadata.st_mode)
-        or (os.name != "nt" and stat.S_IMODE(evidence_metadata.st_mode) != 0o700)
-    ):
-        raise TransitionError("evidence_directory_unsafe")
+    migration = validate_migration_evidence(
+        args.migration_evidence,
+        manifest=manifest,
+    )
+    post_migration_backup = validate_post_migration_backup_evidence(
+        args.post_migration_backup_evidence,
+        manifest=manifest,
+        backup_root=args.post_migration_backup_root,
+    )
+    validate_resume_evidence_timeline(migration, post_migration_backup, manifest)
     preflight = run_preflight(
         env_file=args.env_file,
         compose_file=args.target_source / "nura_app" / "docker-compose.yml",
@@ -1683,16 +2343,21 @@ def execute_from_cli(args: argparse.Namespace) -> None:
         checksum=args.checksum,
         public_manifest=args.public_manifest,
         evidence_directory=args.evidence_directory,
-        backup_evidence=args.backup_evidence,
+        original_backup_evidence=args.original_backup_evidence,
         removal_evidence=args.removal_evidence,
-        backup_root=args.backup_root,
+        migration_evidence=args.migration_evidence,
+        post_migration_backup_evidence=args.post_migration_backup_evidence,
+        original_backup_root=args.original_backup_root,
+        post_migration_backup_root=args.post_migration_backup_root,
         authorization=manifest,
     )
-    TransitionEngine(adapter).execute(
+    TransitionEngine(adapter).execute_resume_post_migration(
         authorization=manifest,
         preconditions=preconditions,
-        backup_evidence=backup,
+        original_backup_evidence=original_backup,
         removal_evidence=removal,
+        migration_evidence=migration,
+        post_migration_backup_evidence=post_migration_backup,
     )
 
 
@@ -1715,15 +2380,37 @@ def main(argv: Sequence[str] | None = None) -> int:
     handoff_parser.add_argument("--target-sha", required=True)
     handoff_parser.add_argument("--repo", type=Path, default=REPO_ROOT)
     handoff_parser.add_argument("--consume", action="store_true")
-    execute_parser = subparsers.add_parser("execute")
+    target_handoff_parser = subparsers.add_parser("create-target-compose-handoff")
+    target_handoff_parser.add_argument("--handoff", type=Path, required=True)
+    target_handoff_parser.add_argument("--image-override", type=Path, required=True)
+    target_handoff_parser.add_argument("--repo", type=Path, required=True)
+    target_handoff_parser.add_argument("--env-file", type=Path, required=True)
+    target_handoff_parser.add_argument("--target-sha", required=True)
+    target_handoff_parser.add_argument("--image-tag", required=True)
+    target_handoff_parser.add_argument("--image-id", required=True)
+    target_handoff_parser.add_argument("--oci-revision", required=True)
+    target_validate_parser = subparsers.add_parser("validate-target-compose-handoff")
+    target_validate_parser.add_argument("--handoff", type=Path, required=True)
+    target_validate_parser.add_argument("--manifest", type=Path, required=True)
+    target_validate_parser.add_argument("--target-source", type=Path, required=True)
+    target_validate_parser.add_argument("--env-file", type=Path, required=True)
+    target_validate_parser.add_argument("--repo", type=Path, default=REPO_ROOT)
+    execute_parser = subparsers.add_parser("clean-install-resume-post-migration")
     execute_parser.add_argument("--manifest", type=Path, required=True)
-    execute_parser.add_argument("--backup-evidence", type=Path, required=True)
+    execute_parser.add_argument("--original-backup-evidence", type=Path, required=True)
     execute_parser.add_argument(
-        "--backup-root",
+        "--original-backup-root",
         type=Path,
         default=Path("/var/backups/nura-release-transition"),
     )
     execute_parser.add_argument("--removal-evidence", type=Path, required=True)
+    execute_parser.add_argument("--migration-evidence", type=Path, required=True)
+    execute_parser.add_argument(
+        "--post-migration-backup-evidence", type=Path, required=True
+    )
+    execute_parser.add_argument(
+        "--post-migration-backup-root", type=Path, required=True
+    )
     execute_parser.add_argument("--target-source", type=Path, required=True)
     execute_parser.add_argument("--archive", type=Path, required=True)
     execute_parser.add_argument("--checksum", type=Path, required=True)
@@ -1741,7 +2428,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     execute_parser.add_argument("--p7b-transaction-directory", type=Path, default=Path("/var/lib/nura-release-state/p7b/transactions"))
     args = parser.parse_args(argv)
-    if args.command == "execute" and os.environ.get("NURA_COMMON_LOCK_FD") != "9":
+    if (
+        args.command == "clean-install-resume-post-migration"
+        and os.environ.get("NURA_COMMON_LOCK_FD") != "9"
+    ):
         lock_helper = Path(__file__).with_name("release_lock.py")
         os.execv(
             sys.executable,
@@ -1757,9 +2447,34 @@ def main(argv: Sequence[str] | None = None) -> int:
             ],
         )
     try:
-        if args.command == "execute":
+        if args.command == "clean-install-resume-post-migration":
             execute_from_cli(args)
             output = {"status": "PASS", "result": "transition_succeeded"}
+        elif args.command == "create-target-compose-handoff":
+            create_target_compose_handoff(
+                args.handoff,
+                image_override=args.image_override,
+                repo=args.repo,
+                env_file=args.env_file,
+                target_sha=args.target_sha,
+                image_tag=args.image_tag,
+                image_id=args.image_id,
+                oci_revision=args.oci_revision,
+            )
+            output = {"status": "PASS", "result": "target_compose_handoff_created"}
+        elif args.command == "validate-target-compose-handoff":
+            manifest = validate_authorization_manifest(args.manifest, repo=args.repo)
+            context = validate_target_compose_handoff(
+                args.handoff,
+                manifest=manifest,
+                target_source=args.target_source,
+                env_file=args.env_file,
+            )
+            output = {
+                "status": "PASS",
+                "result": "target_compose_handoff_verified",
+                "target": context.target_sha,
+            }
         elif args.command == "verify-clean-install-handoff":
             verify_clean_install_handoff(
                 args.handoff,

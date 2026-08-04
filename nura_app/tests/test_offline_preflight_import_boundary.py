@@ -162,6 +162,7 @@ module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 module.validate_authorization_manifest = lambda *args, **kwargs: {}
+module._validate_resume_cli_paths = lambda *args, **kwargs: None
 
 def reject_checkout(*args, **kwargs):
     raise module.TransitionError("execution_checkout_dirty")
